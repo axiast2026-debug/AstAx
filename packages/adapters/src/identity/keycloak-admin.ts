@@ -162,7 +162,11 @@ export class KeycloakAdmin {
     );
     const matching = credentials.filter((c) => c.type === type);
     for (const credential of matching) {
-      await this.call("removeCredential", "DELETE", `/users/${userId}/credentials/${credential.id}`);
+      await this.call(
+        "removeCredential",
+        "DELETE",
+        `/users/${userId}/credentials/${credential.id}`,
+      );
     }
     return matching.length;
   }
