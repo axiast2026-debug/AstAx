@@ -68,9 +68,13 @@ export class RequestsController {
   }
 
   @Get("reference/municipalities")
-  @RequirePermission("request.create")
-  municipalities(@CurrentAuth() auth: AuthContext, @Query("q") q: string | undefined) {
-    return this.reference.searchMunicipalities(auth, q ?? "");
+  @RequirePermission("profile.view")
+  municipalities(
+    @CurrentAuth() auth: AuthContext,
+    @Query("q") q: string | undefined,
+    @Query("cadastral") cadastral: string | undefined,
+  ) {
+    return this.reference.searchMunicipalities(auth, q ?? "", cadastral);
   }
 
   @Post("vehicle-data/lookup")

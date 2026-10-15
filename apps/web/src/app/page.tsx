@@ -1,7 +1,11 @@
-import { buttonVariants, Card, CardTitle } from "@astax/ui";
+import { Button, buttonVariants, Card, CardTitle } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { AppShell } from "@/components/app-shell";
-import { sessionId, webAuth } from "@/lib/auth";
+import Link from "next/link";
+import { createPrivateRequest } from "@/app/request-actions";
+import { StatusBadge } from "@/components/request-view";
+import { api, sessionId, webAuth } from "@/lib/auth";
+import type { RequestSummary } from "@/lib/requests";
 import { requireViewer } from "@/lib/me";
 
 export default async function HomePage({
@@ -14,14 +18,44 @@ export default async function HomePage({
 
   const viewer = await requireViewer();
   const t = await getTranslations("home");
+  const isPrivate = viewer.me.kind === "PRIVATE";
+  const current = isPrivate
+    ? (await api<RequestSummary[]>("/requests")).body.find(
+        (r) => !["CANCELLED", "EXCLUDED"].includes(r.status),
+      )
+    : undefined;
   return (
     <AppShell viewer={viewer}>
       <Card>
         <CardTitle>{t("welcome", { name: viewer.me.firstName })}</CardTitle>
-        <p className="mt-2 text-warm-600">
-          {viewer.me.kind === "PRIVATE" ? t("privateIntro") : t("proIntro")}
-        </p>
+        <p className="mt-2 text-warm-600">{isPrivate ? t("privateIntro") : t("proIntro")}</p>
+        {isPrivate ? (
+          <form action={createPrivateRequest} className="mt-4">
+            <Button type="submit" size="lg">
+              {t("newQuote")}
+            </Button>
+          </form>
+        ) : null}
       </Card>
+      {current ? (
+        <Card className="mt-6">
+          <div className="flex flex-wrap items-center gap-3">
+            <CardTitle>{t("currentRequest", { code: current.code })}</CardTitle>
+            <StatusBadge status={current.status} />
+          </div>
+          <p className="mt-2 text-sm text-warm-600">
+            {current.status === "INTEGRATION_REQUESTED"
+              ? t("actionIntegration")
+              : t(`statusHint.${current.status}`)}
+          </p>
+          <Link
+            href={`/preventivi/${current.id}`}
+            className="mt-3 inline-block font-medium underline"
+          >
+            {t("open")}
+          </Link>
+        </Card>
+      ) : null}
     </AppShell>
   );
 }

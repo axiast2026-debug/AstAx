@@ -104,7 +104,7 @@ const ENDPOINTS: Endpoint[] = [
   { action: "auditLog.viewAll", method: "GET", path: () => "/admin/audit" },
   // Fase 2: requests, customers, consent
   { action: "request.create", method: "GET", path: () => "/reference/request-options" },
-  { action: "request.create", method: "GET", path: () => "/reference/municipalities?q=Mi" },
+  { action: "profile.view", method: "GET", path: () => "/reference/municipalities?q=Mi" },
   { action: "request.create", method: "POST", path: () => "/vehicle-data/lookup", body: {} },
   { action: "request.viewOwn", method: "GET", path: () => "/requests" },
   { action: "request.create", method: "POST", path: () => "/requests", body: { customerId: "x" } },
@@ -167,6 +167,19 @@ const ENDPOINTS: Endpoint[] = [
   { action: "brokerCustomer.manage", method: "GET", path: () => "/customers" },
   { action: "brokerCustomer.manage", method: "POST", path: () => "/customers", body: {} },
   { action: "brokerCustomer.manage", method: "GET", path: () => `/customers/${randomUUID()}` },
+  {
+    action: "notification.viewOwn",
+    method: "GET",
+    path: () => "/me/notifications",
+    personal: true,
+  },
+  {
+    action: "notification.viewOwn",
+    method: "POST",
+    path: () => `/me/notifications/${randomUUID()}/read`,
+    body: {},
+    personal: true,
+  },
   // Fase 2: back office verification
   { action: "verification.viewQueue", method: "GET", path: () => "/verification/queue" },
   {

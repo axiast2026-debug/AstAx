@@ -160,6 +160,10 @@ export class VerificationService {
             })
           : Promise.resolve(null),
       ]);
+      const lists = await tx.listValue.findMany({
+        where: { listKey: { in: ["integrationRequestReason", "exclusionCase"] }, active: true },
+        orderBy: { sortOrder: "asc" },
+      });
       await this.audit.inTransaction(tx, actorOf(auth), {
         action: "QUOTE_DATA_VIEWED",
         targetType: "QuoteRequest",
@@ -172,6 +176,14 @@ export class VerificationService {
         status: request.status,
         channel: request.channel,
         customer: customer ? customerName(customer.person) : null,
+        reasons: {
+          integration: lists
+            .filter((l) => l.listKey === "integrationRequestReason")
+            .map((l) => ({ code: l.code, it: l.labelIt, sq: l.labelSq })),
+          exclusion: lists
+            .filter((l) => l.listKey === "exclusionCase")
+            .map((l) => ({ code: l.code, it: l.labelIt, sq: l.labelSq })),
+        },
         quoteData,
         quoteDataVersion: request.quoteDataVersion,
         versions: versions.map((v) => ({ ...v, createdAt: v.createdAt.toISOString() })),

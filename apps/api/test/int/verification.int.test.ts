@@ -130,10 +130,15 @@ describe("fase 2: verification queue and card", () => {
     );
     const email = [...h.email.sent].reverse().find((m) => m.to === DAVIDE_EMAIL);
     expect(email?.subject).toContain("serve un'integrazione");
-    const notices = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
-      tx.notification.findMany({ where: { eventKey: "request.integration_requested" } }),
-    );
-    expect(notices.length).toBeGreaterThan(0);
+    const inbox = await r.json<{
+      unread: number;
+      items: { id: string; eventKey: string; link: string }[];
+    }>(await r.call(davide, "/me/notifications"), 200);
+    const notice = inbox.items.find((n) => n.eventKey === "request.integration_requested");
+    expect(notice?.link).toBe(`/preventivi/${request.id}`);
+    await r.json(await r.call(davide, `/me/notifications/${notice?.id}/read`, { body: {} }), 204);
+    const after = await r.json<{ unread: number }>(await r.call(davide, "/me/notifications"), 200);
+    expect(after.unread).toBe(inbox.unread - 1);
 
     const detail = await r.json<{
       status: string;

@@ -102,7 +102,15 @@ export class ReferenceService {
     });
   }
 
-  async searchMunicipalities(auth: AuthContext, query: string) {
+  async searchMunicipalities(auth: AuthContext, query: string, cadastral?: string) {
+    if (cadastral && /^[A-Z]\d{3}$/.test(cadastral)) {
+      return withContext(this.db, auth.db, (tx) =>
+        tx.municipality.findMany({
+          where: { cadastralCode: cadastral },
+          select: { istatCode: true, name: true, province: true },
+        }),
+      );
+    }
     const q = query.trim();
     if (q.length < 2) return [];
     return withContext(this.db, auth.db, (tx) =>

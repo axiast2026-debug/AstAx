@@ -170,6 +170,12 @@ describe("fase 2: options from the parameters", () => {
       200,
     );
     expect(found).toContainEqual(expect.objectContaining({ istatCode: "015146", name: "Milano" }));
+    // The cadastral code of a fiscal code gives the municipality of birth.
+    const byCadastral = await json<{ istatCode: string }[]>(
+      await call(asLuca(), "/reference/municipalities?cadastral=F205"),
+      200,
+    );
+    expect(byCadastral.map((m) => m.istatCode)).toEqual(["015146"]);
   });
 });
 

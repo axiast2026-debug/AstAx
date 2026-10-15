@@ -7,6 +7,9 @@ const config: NextConfig = {
   poweredByHeader: false,
   // Tokens and sessions are handled on the server; nothing sensitive is cached.
   serverExternalPackages: ["redis"],
+  // Document photos go through server actions. Technical cap only: the business
+  // limit is documents.maxUploadMb, checked by the API.
+  experimental: { serverActions: { bodySizeLimit: "20mb" } },
 };
 
 export default withNextIntl(config);

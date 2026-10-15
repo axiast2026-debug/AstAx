@@ -14,6 +14,7 @@ import { LegalGate } from "./legal/legal-gate.js";
 import { LegalService } from "./legal/legal.service.js";
 import { MeController } from "./me/me.controller.js";
 import { NotificationService } from "./notifications/notification.service.js";
+import { NotificationsController } from "./notifications/notifications.controller.js";
 import { OutboxRunner } from "./outbox/outbox-runner.js";
 import { AutoCheckService } from "./requests/auto-check.service.js";
 import { ConsentLinksController } from "./requests/consent-links.controller.js";
@@ -47,6 +48,7 @@ export class AppModule {
         CustomersController,
         ConsentLinksController,
         VerificationController,
+        NotificationsController,
       ],
       providers: [
         AuditService,
