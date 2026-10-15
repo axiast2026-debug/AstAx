@@ -5,7 +5,7 @@ import { SYSTEM_CONTEXT, withContext, type DbClient } from "../src/index.js";
 import { LEGAL_PLACEHOLDER_MARK } from "../src/seed/legal-placeholders.js";
 import { seedReference } from "../src/seed/reference.js";
 import { SYNTHETIC, seedSynthetic, syntheticId } from "../src/seed/synthetic.js";
-import { appDb, asMember, superDb } from "./fixtures.js";
+import { appDb, asMember, asPrivate, superDb } from "./fixtures.js";
 
 const SEED = "seed-test";
 const cipher = new LocalFieldCipher("1".repeat(64), "2".repeat(64));
@@ -129,5 +129,46 @@ describe("fase 1 passo 4: seed", () => {
       (tx) => tx.organization.findMany(),
     );
     expect(orgs.map((o) => o.legalName)).toEqual(["Agenzia Uno"]);
+  });
+});
+
+describe("fase 2: reference data for requests", () => {
+  it("loads the ISTAT municipalities, the excluded cases and the coverage packages", async () => {
+    const data = await withContext(db, SYSTEM_CONTEXT, async (tx) => ({
+      municipalities: await tx.municipality.count(),
+      milan: await tx.municipality.findUnique({ where: { cadastralCode: "F205" } }),
+      rules: await tx.exclusionRule.findMany({ orderBy: { code: "asc" } }),
+      packages: await tx.coveragePackageVersion.findMany({ orderBy: { packageCode: "asc" } }),
+    }));
+    expect(data.municipalities).toBeGreaterThan(7800);
+    expect(data.milan).toMatchObject({ istatCode: "015146", province: "MI", name: "Milano" });
+    expect(data.rules.find((r) => r.code === "TAXI")).toMatchObject({
+      blockingInWizard: true,
+      active: true,
+    });
+    expect(data.rules.find((r) => r.code === "VINTAGE")).toMatchObject({ blockingInWizard: false });
+    expect(data.packages.map((p) => [p.packageCode, p.version])).toEqual([
+      ["BASE", 1],
+      ["COMPLETE", 1],
+      ["PLUS", 1],
+    ]);
+  });
+
+  it("the seed can run again without duplicating rows", async () => {
+    await runSeed();
+    const count = await withContext(db, SYSTEM_CONTEXT, (tx) => tx.coveragePackageVersion.count());
+    expect(count).toBe(3);
+  });
+
+  it("an ordinary user can read but not change reference data", async () => {
+    await expect(
+      withContext(db, asPrivate("00000000-0000-7000-8000-000000000001"), (tx) =>
+        tx.municipality.update({ where: { istatCode: "015146" }, data: { name: "X" } }),
+      ),
+    ).rejects.toThrow();
+    const milan = await withContext(db, asPrivate("00000000-0000-7000-8000-000000000001"), (tx) =>
+      tx.municipality.findUnique({ where: { istatCode: "015146" } }),
+    );
+    expect(milan?.name).toBe("Milano");
   });
 });

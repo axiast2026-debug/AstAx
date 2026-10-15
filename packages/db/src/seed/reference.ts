@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { parseSeedSettings } from "@astax/shared/settings";
 import { z } from "zod";
 import type { DbTransaction } from "../client.js";
+import { parseSemicolonCsv } from "./csv.js";
 import { LEGAL_PLACEHOLDERS, placeholderContent } from "./legal-placeholders.js";
 
 /** validFrom of the first version of every parameter, list and legal text. */
@@ -13,8 +14,27 @@ const listsFileSchema = z.object({
   lists: z.record(
     z.string(),
     z.array(
-      z.looseObject({ code: z.string(), it: z.string(), sq: z.string(), phase: z.number().optional() }),
+      z.looseObject({
+        code: z.string(),
+        it: z.string(),
+        sq: z.string(),
+        phase: z.number().optional(),
+        blockingInWizard: z.boolean().optional(),
+      }),
     ),
+  ),
+});
+
+const packagesFileSchema = z.object({
+  schemaVersion: z.literal(1),
+  packages: z.array(
+    z.object({
+      code: z.enum(["BASE", "PLUS", "COMPLETE"]),
+      name: z.string(),
+      version: z.number().int().min(1),
+      requirements: z.record(z.string(), z.unknown()),
+      customerText: z.object({ it: z.string() }),
+    }),
   ),
 });
 
@@ -29,11 +49,28 @@ function readSeedFile(repoRoot: string, name: string): unknown {
   return JSON.parse(readFileSync(join(repoRoot, "seed", name), "utf8"));
 }
 
+/** seed/comuni.csv, written by `pnpm reference:municipalities` from the ISTAT list. */
+export function readMunicipalities(
+  repoRoot: string,
+): { istatCode: string; cadastralCode: string; province: string; name: string }[] {
+  const [header, ...rows] = parseSemicolonCsv(readFileSync(join(repoRoot, "seed", "comuni.csv"), "utf8"));
+  if (header?.join(";") !== "istat;cadastral;province;name") throw new Error("Unexpected seed/comuni.csv header");
+  return rows.map(([istatCode = "", cadastralCode = "", province = "", name = ""]) => ({
+    istatCode,
+    cadastralCode,
+    province,
+    name,
+  }));
+}
+
 export interface ReferenceCounts {
   settings: number;
   listValues: number;
   holidays: number;
   legalDocuments: number;
+  municipalities: number;
+  exclusionRules: number;
+  coveragePackages: number;
 }
 
 /**
@@ -71,6 +108,42 @@ export async function seedReference(tx: DbTransaction, repoRoot: string): Promis
     }
   }
 
+  // Excluded cases (ASTA-10): the list entries also carry blockingInWizard.
+  const exclusionCases = lists.exclusionCase ?? [];
+  for (const entry of exclusionCases) {
+    if (entry.blockingInWizard === undefined) throw new Error(`exclusionCase ${entry.code}: blockingInWizard missing`);
+    await tx.exclusionRule.upsert({
+      where: { code: entry.code },
+      create: {
+        code: entry.code,
+        blockingInWizard: entry.blockingInWizard,
+        messageIt: entry.it,
+        messageSq: entry.sq,
+        active: entry.phase === undefined || entry.phase <= 1,
+      },
+      update: {},
+    });
+  }
+
+  const packages = packagesFileSchema.parse(readSeedFile(repoRoot, "pacchetti.json")).packages;
+  for (const pkg of packages) {
+    await tx.coveragePackage.upsert({ where: { code: pkg.code }, create: { code: pkg.code, name: pkg.name }, update: {} });
+    await tx.coveragePackageVersion.upsert({
+      where: { packageCode_version: { packageCode: pkg.code, version: pkg.version } },
+      create: {
+        packageCode: pkg.code,
+        version: pkg.version,
+        requirements: pkg.requirements as never,
+        customerTextIt: pkg.customerText.it,
+        validFrom: SEED_VALID_FROM,
+      },
+      update: {},
+    });
+  }
+
+  const municipalities = readMunicipalities(repoRoot);
+  await tx.municipality.createMany({ data: municipalities, skipDuplicates: true });
+
   const holidaysFile = holidaysFileSchema.parse(readSeedFile(repoRoot, "festivita.json"));
   const holidays = [
     ...holidaysFile.seedYears.flatMap((year) =>
@@ -107,5 +180,8 @@ export async function seedReference(tx: DbTransaction, repoRoot: string): Promis
     listValues,
     holidays: holidays.length,
     legalDocuments: LEGAL_PLACEHOLDERS.length,
+    municipalities: municipalities.length,
+    exclusionRules: exclusionCases.length,
+    coveragePackages: packages.length,
   };
 }

@@ -28,7 +28,8 @@
     "reset": "prisma migrate reset --force && tsx src/seed/run.ts",
     "audit:verify": "tsx src/scripts/audit-verify.ts",
     "seed": "tsx src/seed/run.ts",
-    "legal:check": "tsx src/scripts/legal-check.ts"
+    "legal:check": "tsx src/scripts/legal-check.ts",
+    "reference:municipalities": "tsx src/scripts/import-municipalities.ts"
   },
   "dependencies": {
     "@astax/shared": "workspace:*",

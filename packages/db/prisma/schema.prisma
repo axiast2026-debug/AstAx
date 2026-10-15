@@ -286,6 +286,55 @@ model ListValue {
   @@unique([listKey, code])
 }
 
+/// Italian municipalities from ISTAT (seed/comuni.csv): the cadastral code is
+/// the one in the fiscal code.
+model Municipality {
+  istatCode     String   @id
+  cadastralCode String   @unique
+  province      String
+  name          String
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([name])
+}
+
+/// Excluded cases (ASTA-10), from the exclusionCase list of seed/elenchi.json.
+model ExclusionRule {
+  code             String   @id
+  /// Extra machine-readable condition, for cases the automatic check detects.
+  condition        Json?
+  blockingInWizard Boolean
+  messageIt        String
+  messageSq        String
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime @default(now()) @db.Timestamptz(3)
+}
+
+/// Coverage packages (spec 09 §2, seed/pacchetti.json). A request stores the
+/// version it used.
+model CoveragePackage {
+  code      String                   @id
+  name      String
+  versions  CoveragePackageVersion[]
+  createdAt DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime                 @default(now()) @db.Timestamptz(3)
+}
+
+model CoveragePackageVersion {
+  id             String          @id @default(uuid(7)) @db.Uuid
+  packageCode    String
+  package        CoveragePackage @relation(fields: [packageCode], references: [code])
+  version        Int
+  requirements   Json
+  customerTextIt String
+  validFrom      DateTime        @db.Timestamptz(3)
+  createdAt      DateTime        @default(now()) @db.Timestamptz(3)
+
+  @@unique([packageCode, version])
+}
+
 /// National holidays: auction time does not run (ASTA-02).
 model Holiday {
   id        String   @id @default(uuid(7)) @db.Uuid
