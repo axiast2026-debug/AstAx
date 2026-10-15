@@ -86,6 +86,7 @@
     { "key": "organizations.profInsuranceReminderDays", "value": 30, "description": "Avviso prima della scadenza della RC professionale", "rule": "—" },
     { "key": "otp.validityMinutes", "value": 10, "description": "Validità dei codici OTP inviati da AstAx", "rule": "SIC-05" },
     { "key": "otp.maxAttempts", "value": 5, "description": "Tentativi massimi per codice OTP", "rule": "SIC-05" },
+    { "key": "team.inviteValidityDays", "value": 7, "description": "Giorni di validità di un invito a entrare nel team. Valore proposto, da confermare (domanda aperta 4)", "rule": "—" },
     { "key": "requests.codePrefix", "value": "AX", "description": "Prefisso del codice richiesta (AX-AAAA-NNNNNN)", "rule": "—" }
   ]
 }

@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "keycloak:sync": "tsx src/scripts/keycloak-dev-sync.ts"
+    "keycloak:sync": "tsx src/scripts/keycloak-dev-sync.ts",
+    "test:int": "vitest run --config vitest.int.config.ts"
   },
   "dependencies": {
     "@astax/adapters": "workspace:*",
@@ -23,7 +24,9 @@
     "express": "5.3.0",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
-    "zod": "4.6.7"
+    "zod": "4.6.7",
+    "jose": "6.2.12",
+    "yaml": "2.9.1"
   },
   "devDependencies": {
     "@astax/config": "workspace:*",

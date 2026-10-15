@@ -25,7 +25,8 @@
     "db:reset": "pnpm --filter @astax/db reset",
     "audit:verify": "pnpm --filter @astax/db audit:verify",
     "db:seed": "pnpm --filter @astax/db seed",
-    "keycloak:sync": "pnpm --filter @astax/api keycloak:sync"
+    "keycloak:sync": "pnpm --filter @astax/api keycloak:sync",
+    "legal:check": "pnpm --filter @astax/db legal:check"
   },
   "devDependencies": {
     "prettier": "3.9.10",

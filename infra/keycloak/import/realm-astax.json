@@ -5,9 +5,7 @@
   "loginTheme": "astax",
   "emailTheme": "astax",
   "internationalizationEnabled": true,
-  "supportedLocales": [
-    "it"
-  ],
+  "supportedLocales": ["it"],
   "defaultLocale": "it",
   "registrationAllowed": false,
   "registrationEmailAsUsername": true,
@@ -168,12 +166,8 @@
       "directAccessGrantsEnabled": false,
       "implicitFlowEnabled": false,
       "serviceAccountsEnabled": false,
-      "redirectUris": [
-        "http://localhost:3000/*"
-      ],
-      "webOrigins": [
-        "http://localhost:3000"
-      ],
+      "redirectUris": ["http://localhost:3000/*"],
+      "webOrigins": ["http://localhost:3000"],
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "post.logout.redirect.uris": "http://localhost:3000/*",
@@ -183,14 +177,7 @@
       "authenticationFlowBindingOverrides": {
         "browser": "0199e5c0-0000-7000-8000-000000000001"
       },
-      "defaultClientScopes": [
-        "web-origins",
-        "acr",
-        "basic",
-        "profile",
-        "roles",
-        "email"
-      ],
+      "defaultClientScopes": ["web-origins", "acr", "basic", "profile", "roles", "email"],
       "protocolMappers": [
         {
           "name": "astax-api-audience",
@@ -214,12 +201,8 @@
       "directAccessGrantsEnabled": false,
       "implicitFlowEnabled": false,
       "serviceAccountsEnabled": false,
-      "redirectUris": [
-        "http://localhost:3000/*"
-      ],
-      "webOrigins": [
-        "http://localhost:3000"
-      ],
+      "redirectUris": ["http://localhost:3000/*"],
+      "webOrigins": ["http://localhost:3000"],
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "post.logout.redirect.uris": "http://localhost:3000/*",
@@ -228,14 +211,7 @@
       "authenticationFlowBindingOverrides": {
         "browser": "0199e5c0-0000-7000-8000-000000000002"
       },
-      "defaultClientScopes": [
-        "web-origins",
-        "acr",
-        "basic",
-        "profile",
-        "roles",
-        "email"
-      ],
+      "defaultClientScopes": ["web-origins", "acr", "basic", "profile", "roles", "email"],
       "protocolMappers": [
         {
           "name": "astax-api-audience",
@@ -259,12 +235,8 @@
       "directAccessGrantsEnabled": false,
       "implicitFlowEnabled": false,
       "serviceAccountsEnabled": false,
-      "redirectUris": [
-        "http://localhost:3001/*"
-      ],
-      "webOrigins": [
-        "http://localhost:3001"
-      ],
+      "redirectUris": ["http://localhost:3001/*"],
+      "webOrigins": ["http://localhost:3001"],
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "post.logout.redirect.uris": "http://localhost:3001/*",
@@ -273,14 +245,7 @@
       "authenticationFlowBindingOverrides": {
         "browser": "0199e5c0-0000-7000-8000-000000000002"
       },
-      "defaultClientScopes": [
-        "web-origins",
-        "acr",
-        "basic",
-        "profile",
-        "roles",
-        "email"
-      ],
+      "defaultClientScopes": ["web-origins", "acr", "basic", "profile", "roles", "email"],
       "protocolMappers": [
         {
           "name": "astax-api-audience",
@@ -305,10 +270,7 @@
       "directAccessGrantsEnabled": false,
       "implicitFlowEnabled": false,
       "serviceAccountsEnabled": true,
-      "defaultClientScopes": [
-        "basic",
-        "roles"
-      ]
+      "defaultClientScopes": ["basic", "roles"]
     }
   ],
   "users": [

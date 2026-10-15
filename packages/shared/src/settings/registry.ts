@@ -119,6 +119,7 @@ export const settingSchemas = {
   "organizations.profInsuranceReminderDays": positiveInt,
   "otp.validityMinutes": positiveInt,
   "otp.maxAttempts": positiveInt,
+  "team.inviteValidityDays": positiveInt,
   "requests.codePrefix": z.string().regex(/^[A-Z]{2,5}$/),
 } as const satisfies Record<string, z.ZodType>;
 

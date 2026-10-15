@@ -25,8 +25,10 @@ export async function appendAudit(
 ): Promise<ChainedAuditEntry> {
   const [row] = await tx.$queryRaw<{ head: string }[]>`SELECT audit_log_lock_head() AS head`;
   const entry = chainAuditEntry(content, row?.head ?? GENESIS_HASH);
-  await tx.auditLog.create({
-    data: { ...entry, before: toJson(entry.before), after: toJson(entry.after) },
+  // createMany: no RETURNING, so writers who may not read the log (a private
+  // customer, another organization) can still append to it.
+  await tx.auditLog.createMany({
+    data: [{ ...entry, before: toJson(entry.before), after: toJson(entry.after) }],
   });
   return entry;
 }

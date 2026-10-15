@@ -11,6 +11,10 @@
     "./seed": {
       "types": "./dist/seed/index.d.ts",
       "default": "./dist/seed/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "default": "./dist/testing/index.js"
     }
   },
   "scripts": {
@@ -23,7 +27,8 @@
     "migrate:deploy": "prisma migrate deploy",
     "reset": "prisma migrate reset --force && tsx src/seed/run.ts",
     "audit:verify": "tsx src/scripts/audit-verify.ts",
-    "seed": "tsx src/seed/run.ts"
+    "seed": "tsx src/seed/run.ts",
+    "legal:check": "tsx src/scripts/legal-check.ts"
   },
   "dependencies": {
     "@astax/shared": "workspace:*",
@@ -31,11 +36,11 @@
     "@prisma/client": "7.10.0",
     "pg": "8.23.1",
     "@astax/adapters": "workspace:*",
-    "zod": "4.6.7"
+    "zod": "4.6.7",
+    "@testcontainers/postgresql": "12.2.1"
   },
   "devDependencies": {
     "@astax/config": "workspace:*",
-    "@testcontainers/postgresql": "12.2.1",
     "@types/node": "24.19.2",
     "@types/pg": "8.23.1",
     "eslint": "10.12.0",

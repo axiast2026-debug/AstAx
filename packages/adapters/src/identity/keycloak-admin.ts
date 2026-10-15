@@ -157,6 +157,28 @@ export class KeycloakAdmin {
     await this.call("logoutUser", "POST", `/users/${userId}/logout`);
   }
 
+  /**
+   * Keycloak emails the user a link to perform the given actions (set the
+   * password, configure TOTP), then sends them to `redirectUri`.
+   */
+  async executeActionsEmail(
+    userId: string,
+    actions: string[],
+    options: { clientId: string; redirectUri: string; lifespanSeconds: number },
+  ): Promise<void> {
+    const query = new URLSearchParams({
+      client_id: options.clientId,
+      redirect_uri: options.redirectUri,
+      lifespan: String(options.lifespanSeconds),
+    });
+    await this.call(
+      "executeActionsEmail",
+      "PUT",
+      `/users/${userId}/execute-actions-email?${query}`,
+      actions,
+    );
+  }
+
   /** Updates attributes of a client found by clientId (e.g. session timeouts). */
   async updateClientAttributes(
     clientId: string,

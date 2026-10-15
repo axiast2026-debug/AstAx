@@ -1,0 +1,12 @@
+{
+  "role": {
+    "OWNER": "titolare",
+    "SUPERVISOR": "supervisore",
+    "OPERATOR": "operatore",
+    "BO_VERIFIER": "operatore verifica",
+    "BO_SUPPORT": "assistenza",
+    "BO_ACCOUNTING": "contabilità",
+    "BO_SUPERVISOR": "supervisore del back office",
+    "ADMIN": "amministratore"
+  }
+}

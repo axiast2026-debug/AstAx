@@ -11,6 +11,8 @@ export const TEST_ENV = {
   DATABASE_URL: "postgresql://astax_app:test@127.0.0.1:1/astax",
   FIELD_ENCRYPTION_KEY: "1".repeat(64),
   BLIND_INDEX_KEY: "2".repeat(64),
+  KEYCLOAK_URL: "http://keycloak.test",
+  KEYCLOAK_API_ADMIN_SECRET: "test-secret-not-used-0000",
 };
 
 export interface TestApi {

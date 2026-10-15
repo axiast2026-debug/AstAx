@@ -7,7 +7,15 @@ import {
   withContext,
   type DbClient,
 } from "../src/index.js";
-import { appDb, asMember, createWorld, ownerDb, superDb, type World } from "./fixtures.js";
+import {
+  appDb,
+  asMember,
+  asPrivate,
+  createWorld,
+  ownerDb,
+  superDb,
+  type World,
+} from "./fixtures.js";
 
 let db: DbClient;
 let owner: DbClient;
@@ -54,6 +62,13 @@ describe("SIC-04 audit log in the database", () => {
     const check = await verifyAuditLog(db);
     expect(check.ok).toBe(true);
     expect(check.checked).toBeGreaterThanOrEqual(2);
+  });
+
+  it("a writer who cannot read the log can still append to it (private customer)", async () => {
+    await withContext(db, asPrivate(w.giuliaNeri), (tx) =>
+      appendAudit(tx, entry({ actorUserId: w.giuliaNeri, actorOrganizationId: null })),
+    );
+    expect((await verifyAuditLog(db)).ok).toBe(true);
   });
 
   it("keeps the chain valid with concurrent writers", async () => {

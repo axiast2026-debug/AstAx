@@ -16,6 +16,14 @@ const configSchema = z
     DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
     FIELD_ENCRYPTION_KEY: hexKey,
     BLIND_INDEX_KEY: hexKey,
+    KEYCLOAK_URL: z.url(),
+    KEYCLOAK_REALM: z.string().min(1).default("astax"),
+    KEYCLOAK_API_ADMIN_SECRET: z.string().min(16),
+    /** Public address of apps/web, used in links sent by email. */
+    WEB_URL: z.url().default("http://localhost:3000"),
+    /** Development email delivery (Mailpit); production uses a real provider (phase 8). */
+    MAILPIT_URL: z.url().default("http://127.0.0.1:8025"),
+    EMAIL_FROM: z.email().default("noreply@astax.test"),
   })
   // Development tools never run in production (CLAUDE.md rule 13).
   .refine((c) => !(c.NODE_ENV === "production" && c.DEV_TOOLS), {

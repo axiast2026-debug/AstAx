@@ -2,9 +2,9 @@ import {
   EMAIL_CODE_CONFIG,
   emailCodeConfig,
   keycloakSessionSettings,
-  type KeycloakAdmin,
 } from "@astax/adapters/identity";
 import type { SettingKey } from "@astax/shared/settings";
+import type { IdentityAdmin } from "./identity-admin.js";
 
 /** Parameters that live in Keycloak too: changing one re-applies them (fase 1, passo 6). */
 export const IDENTITY_SETTING_KEYS = [
@@ -29,7 +29,10 @@ export interface IdentitySettingValues {
 
 /** Pushes the session durations and the email-code limits to Keycloak. */
 export async function applyIdentitySettings(
-  admin: KeycloakAdmin,
+  admin: Pick<
+    IdentityAdmin,
+    "updateRealm" | "updateClientAttributes" | "updateAuthenticatorConfig"
+  >,
   values: IdentitySettingValues,
 ): Promise<void> {
   const sessions = keycloakSessionSettings({
