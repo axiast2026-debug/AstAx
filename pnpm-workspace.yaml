@@ -1,6 +1,7 @@
 packages:
   - "apps/*"
   - "packages/*"
+  - "tests/e2e"
 
 # Install scripts allowed to run: only what is needed (Prisma engines, esbuild for tsx).
 allowBuilds:
@@ -32,3 +33,6 @@ minimumReleaseAgeExclude:
   - "@next/swc-win32-x64-msvc@16.4.1"
   - next@16.4.1
   - react-dom@19.3.1
+  - "@playwright/test@1.64.1"
+  - playwright-core@1.64.1
+  - playwright@1.64.1

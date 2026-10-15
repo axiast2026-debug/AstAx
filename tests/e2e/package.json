@@ -1,0 +1,21 @@
+{
+  "name": "@astax/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@astax/adapters": "workspace:*",
+    "@astax/config": "workspace:*",
+    "@astax/db": "workspace:*",
+    "@astax/shared": "workspace:*",
+    "@playwright/test": "1.64.1",
+    "@types/node": "24.19.2",
+    "eslint": "10.12.0",
+    "typescript": "6.0.3"
+  }
+}

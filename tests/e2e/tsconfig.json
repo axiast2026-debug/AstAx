@@ -1,0 +1,5 @@
+{
+  "extends": "@astax/config/tsconfig.base.json",
+  "compilerOptions": { "noEmit": true, "types": ["node"] },
+  "include": ["*.ts", "specs", "support"]
+}

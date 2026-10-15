@@ -153,6 +153,20 @@ export class KeycloakAdmin {
     await this.call("deleteSession", "DELETE", `/sessions/${sessionId}`);
   }
 
+  /** Removes every credential of a type (e.g. "otp"), as when the administrator resets the second factor. */
+  async removeCredentials(userId: string, type: string): Promise<number> {
+    const credentials = await this.call<{ id: string; type: string }[]>(
+      "listCredentials",
+      "GET",
+      `/users/${userId}/credentials`,
+    );
+    const matching = credentials.filter((c) => c.type === type);
+    for (const credential of matching) {
+      await this.call("removeCredential", "DELETE", `/users/${userId}/credentials/${credential.id}`);
+    }
+    return matching.length;
+  }
+
   async logoutUser(userId: string): Promise<void> {
     await this.call("logoutUser", "POST", `/users/${userId}/logout`);
   }
