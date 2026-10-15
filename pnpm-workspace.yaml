@@ -1,3 +1,12 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# Install scripts allowed to run: only what is needed (Prisma engines, esbuild for tsx).
+allowBuilds:
+  "@prisma/engines": true
+  prisma: true
+  esbuild: true
+  cpu-features: false
+  ssh2: false
+  protobufjs: false
