@@ -12,3 +12,23 @@ allowBuilds:
   protobufjs: false
   # Usage telemetry pulled in by swagger-ui-dist: never runs.
   "@scarf/scarf": false
+  # Native helpers of next-intl's message extractor, not used by AstAx.
+  "@parcel/watcher": false
+  "@swc/core": false
+
+# Exceptions to pnpm's minimum release age, reviewed on 2026-10-15: Next.js 16.4.1 and
+# React 19.3.1 (published 2026-10-14) fix critical remote code execution advisories
+# (GHSA-673q-mjm6-r5xr, GHSA-2464-fhr4-w9xw). Remove once older than the policy.
+minimumReleaseAgeExclude:
+  - react@19.3.1
+  - "@next/env@16.4.1"
+  - "@next/swc-darwin-arm64@16.4.1"
+  - "@next/swc-darwin-x64@16.4.1"
+  - "@next/swc-linux-arm64-gnu@16.4.1"
+  - "@next/swc-linux-arm64-musl@16.4.1"
+  - "@next/swc-linux-x64-gnu@16.4.1"
+  - "@next/swc-linux-x64-musl@16.4.1"
+  - "@next/swc-win32-arm64-msvc@16.4.1"
+  - "@next/swc-win32-x64-msvc@16.4.1"
+  - next@16.4.1
+  - react-dom@19.3.1

@@ -1,0 +1,132 @@
+{
+  "app": {
+    "name": "AstAx",
+    "tagline": "Back office dhe administrimi i AstAx"
+  },
+  "login": {
+    "title": "Back office AstAx",
+    "text": "Hyrje vetëm për stafin e AstAx: email, fjalëkalim dhe kodi i aplikacionit të vërtetimit.",
+    "button": "Hyr",
+    "expired": "Seanca ka skaduar. Hyni përsëri."
+  },
+  "shell": {
+    "notifications": "Njoftime",
+    "support": "Asistencë",
+    "profile": "Profili",
+    "logout": "Dil",
+    "context": "Po punoni për",
+    "switchContext": "Ndrysho",
+    "menu": "Menuja kryesore",
+    "language": "Gjuha"
+  },
+  "languages": {
+    "it": "Italiano",
+    "sq": "Shqip"
+  },
+  "menu": {
+    "home": "Kreu",
+    "quotes": "Ofertat",
+    "policies": "Policat",
+    "documents": "Dokumentet",
+    "profile": "Profili",
+    "dashboard": "Paneli",
+    "newRequest": "Kërkesë e re",
+    "requests": "Kërkesat",
+    "customers": "Klientët",
+    "renewals": "Rinovimet",
+    "accounting": "Kontabiliteti",
+    "team": "Ekipi",
+    "settings": "Cilësimet",
+    "incomingRequests": "Kërkesat në hyrje",
+    "myOffers": "Ofertat e mia",
+    "toIssue": "Për t'u lëshuar",
+    "issuedPolicies": "Policat e lëshuara",
+    "results": "Rezultatet",
+    "filters": "Filtrat dhe kapaciteti",
+    "agency": "Agjencia",
+    "personalDashboard": "Paneli personal",
+    "myResults": "Rezultatet e mia",
+    "myFilters": "Filtrat e mi",
+    "operationsDashboard": "Paneli operativ",
+    "verificationQueue": "Radha e verifikimeve",
+    "auctions": "Ankandet",
+    "exceptions": "Përjashtimet",
+    "payments": "Pagesat",
+    "organizations": "Agjencitë dhe brokerët",
+    "support": "Asistencë",
+    "complaints": "Ankesat",
+    "flags": "Sinjalizimet",
+    "invoicing": "Faturimi",
+    "auditLog": "Regjistri i aktiviteteve",
+    "adminDashboard": "Paneli i kontrollit",
+    "auctionRules": "Rregullat e ankandit",
+    "packages": "Paketat dhe rastet e përjashtuara",
+    "economy": "Ekonomia",
+    "users": "Përdoruesit dhe lejet",
+    "legalDocuments": "Kontratat dhe dokumentet ligjore",
+    "communications": "Komunikimet",
+    "integrations": "Integrimet",
+    "reports": "Raporte dhe eksportime"
+  },
+  "home": {
+    "welcome": "Përshëndetje {name}",
+    "intro": "Nga këtu do të menaxhoni verifikimet, ankandet, pagesat dhe rregullat e platformës."
+  },
+  "comingSoon": {
+    "title": "Së shpejti",
+    "text": "Ky seksion vjen në fazat e ardhshme të AstAx."
+  },
+  "legal": {
+    "title": "Dokumente për t'u pranuar",
+    "intro": "Para se të vazhdoni, lexoni dhe pranoni këto dokumente. Regjistrojmë versionin, datën dhe orën.",
+    "notValidated": "Tekst i përkohshëm, në pritje të juristit",
+    "version": "Versioni {number}",
+    "accept": "I lexova dhe i pranoj"
+  },
+  "profile": {
+    "title": "Profili",
+    "data": "Të dhënat personale",
+    "name": "Emri",
+    "email": "Email",
+    "phone": "Telefoni",
+    "roles": "Organizatat dhe rolet",
+    "sessions": "Hyrjet aktive",
+    "sessionsIntro": "Pajisjet dhe shfletuesit nga të cilët jeni të lidhur. Mund të mbyllni ato që nuk i njihni.",
+    "sessionStarted": "Filloi",
+    "sessionLastAccess": "Përdorimi i fundit",
+    "sessionIp": "Adresa",
+    "revoke": "Shkëput",
+    "logoutAll": "Shkëput të gjitha pajisjet",
+    "noSessions": "Asnjë hyrje aktive.",
+    "missing": "Nuk është treguar"
+  },
+  "notifications": {
+    "title": "Njoftime",
+    "empty": "Nuk keni njoftime."
+  },
+  "roles": {
+    "BO_VERIFIER": "Operator verifikimi",
+    "BO_SUPPORT": "Asistencë",
+    "BO_ACCOUNTING": "Kontabilitet",
+    "BO_SUPERVISOR": "Mbikëqyrës",
+    "ADMIN": "Administrator"
+  },
+  "organizationTypes": {
+    "AGENCY": "Agjenci",
+    "BROKER": "Broker",
+    "ASTAX": "AstAx"
+  },
+  "audit": {
+    "title": "Regjistri i aktiviteteve",
+    "intro": "Veprimet e fundit të regjistruara, nga më e reja. Regjistri nuk ndryshohet dhe nuk fshihet.",
+    "at": "Data dhe ora",
+    "action": "Veprimi",
+    "actor": "Përdoruesi",
+    "organization": "Organizata",
+    "target": "Objekti",
+    "reason": "Arsyeja",
+    "empty": "Asnjë regjistrim.",
+    "older": "Regjistrimet e mëparshme",
+    "system": "Sistemi"
+  }
+}

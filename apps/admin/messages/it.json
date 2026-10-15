@@ -1,0 +1,132 @@
+{
+  "app": {
+    "name": "AstAx",
+    "tagline": "Back office e amministrazione di AstAx"
+  },
+  "login": {
+    "title": "Back office AstAx",
+    "text": "Accesso riservato al personale di AstAx: email, password e codice dell'app di autenticazione.",
+    "button": "Accedi",
+    "expired": "La sessione è scaduta. Accedi di nuovo."
+  },
+  "shell": {
+    "notifications": "Notifiche",
+    "support": "Assistenza",
+    "profile": "Profilo",
+    "logout": "Esci",
+    "context": "Stai lavorando per",
+    "switchContext": "Cambia",
+    "menu": "Menu principale",
+    "language": "Lingua"
+  },
+  "menu": {
+    "home": "Home",
+    "quotes": "Preventivi",
+    "policies": "Polizze",
+    "documents": "Documenti",
+    "profile": "Profilo",
+    "dashboard": "Dashboard",
+    "newRequest": "Nuova richiesta",
+    "requests": "Richieste",
+    "customers": "Clienti",
+    "renewals": "Rinnovi",
+    "accounting": "Contabilità",
+    "team": "Team",
+    "settings": "Impostazioni",
+    "incomingRequests": "Richieste in arrivo",
+    "myOffers": "Le mie offerte",
+    "toIssue": "Da emettere",
+    "issuedPolicies": "Polizze emesse",
+    "results": "Risultati",
+    "filters": "Filtri e capacità",
+    "agency": "Agenzia",
+    "personalDashboard": "Dashboard personale",
+    "myResults": "I miei risultati",
+    "myFilters": "I miei filtri",
+    "operationsDashboard": "Dashboard operativa",
+    "verificationQueue": "Coda verifiche",
+    "auctions": "Aste",
+    "exceptions": "Eccezioni",
+    "payments": "Pagamenti",
+    "organizations": "Agenzie e broker",
+    "support": "Assistenza",
+    "complaints": "Reclami",
+    "flags": "Segnalazioni",
+    "invoicing": "Fatturazione",
+    "auditLog": "Registro delle attività",
+    "adminDashboard": "Cruscotto",
+    "auctionRules": "Regole d'asta",
+    "packages": "Pacchetti e casi esclusi",
+    "economy": "Economia",
+    "users": "Utenti e permessi",
+    "legalDocuments": "Contratti e documenti legali",
+    "communications": "Comunicazioni",
+    "integrations": "Integrazioni",
+    "reports": "Report ed esportazioni"
+  },
+  "home": {
+    "welcome": "Ciao {name}",
+    "intro": "Da qui gestirai verifiche, aste, pagamenti e regole della piattaforma."
+  },
+  "comingSoon": {
+    "title": "In arrivo",
+    "text": "Questa sezione arriva nelle prossime fasi di AstAx."
+  },
+  "legal": {
+    "title": "Documenti da accettare",
+    "intro": "Prima di continuare leggi e accetta questi documenti. Registriamo la versione, la data e l'ora.",
+    "notValidated": "Testo provvisorio, in attesa del legale",
+    "version": "Versione {number}",
+    "accept": "Ho letto e accetto"
+  },
+  "profile": {
+    "title": "Profilo",
+    "data": "Dati personali",
+    "name": "Nome",
+    "email": "Email",
+    "phone": "Telefono",
+    "roles": "Organizzazioni e ruoli",
+    "sessions": "Accessi attivi",
+    "sessionsIntro": "Dispositivi e browser da cui sei collegato. Puoi chiudere quelli che non riconosci.",
+    "sessionStarted": "Iniziato",
+    "sessionLastAccess": "Ultimo uso",
+    "sessionIp": "Indirizzo",
+    "revoke": "Disconnetti",
+    "logoutAll": "Disconnetti tutti i dispositivi",
+    "noSessions": "Nessun accesso attivo.",
+    "missing": "Non indicato"
+  },
+  "notifications": {
+    "title": "Notifiche",
+    "empty": "Non hai notifiche."
+  },
+  "roles": {
+    "BO_VERIFIER": "Operatore verifica",
+    "BO_SUPPORT": "Assistenza",
+    "BO_ACCOUNTING": "Contabilità",
+    "BO_SUPERVISOR": "Supervisore",
+    "ADMIN": "Amministratore"
+  },
+  "organizationTypes": {
+    "AGENCY": "Agenzia",
+    "BROKER": "Broker",
+    "ASTAX": "AstAx"
+  },
+  "languages": {
+    "it": "Italiano",
+    "sq": "Shqip"
+  },
+  "audit": {
+    "title": "Registro delle attività",
+    "intro": "Le ultime operazioni registrate, dalla più recente. Il registro non si modifica e non si cancella.",
+    "at": "Data e ora",
+    "action": "Azione",
+    "actor": "Utente",
+    "organization": "Organizzazione",
+    "target": "Oggetto",
+    "reason": "Motivo",
+    "empty": "Nessuna voce.",
+    "older": "Voci precedenti",
+    "system": "Sistema"
+  }
+}
