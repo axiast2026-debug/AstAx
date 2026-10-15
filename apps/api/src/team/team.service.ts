@@ -3,7 +3,7 @@ import type { Clock } from "@astax/adapters/clock";
 import type { FieldCipher } from "@astax/adapters/crypto";
 import type { EmailSender } from "@astax/adapters/email";
 import { KEYCLOAK_CLIENTS } from "@astax/adapters/identity";
-import { withContext, type DbClient } from "@astax/db";
+import { recordDomainEvent, withContext, type DbClient } from "@astax/db";
 import { membershipGrantProblems } from "@astax/shared/domain";
 import type { Logger } from "@astax/shared/logging";
 import type { MembershipFlags, MembershipRole } from "@astax/shared/permissions";
@@ -258,6 +258,14 @@ export class TeamService {
         before: { role: member.role, status: member.status, ...flagsOf(member) },
         after: { role: updated.role, status: updated.status, ...flagsOf(updated) },
       });
+      await recordDomainEvent(tx, {
+        aggregateType: "Membership",
+        aggregateId: membershipId,
+        type: "membership.updated",
+        at: this.clock.now(),
+        actorUserId: auth.userId,
+        data: { role: updated.role, status: updated.status },
+      });
       return { membershipId, role: updated.role, status: updated.status, flags: flagsOf(updated) };
     });
   }
@@ -271,6 +279,13 @@ export class TeamService {
         targetType: "Membership",
         targetId: membershipId,
         before: { role: member.role, status: member.status },
+      });
+      await recordDomainEvent(tx, {
+        aggregateType: "Membership",
+        aggregateId: membershipId,
+        type: "membership.removed",
+        at: this.clock.now(),
+        actorUserId: auth.userId,
       });
     });
   }
@@ -361,6 +376,14 @@ export class TeamService {
           after: { role: invite.role, ...flags },
         },
       );
+      await recordDomainEvent(tx, {
+        aggregateType: "Membership",
+        aggregateId: membership.id,
+        type: "teamInvite.accepted",
+        at: now,
+        actorUserId: auth.userId,
+        data: { teamInviteId: invite.id, organizationId: invite.organizationId },
+      });
       return {
         membershipId: membership.id,
         organizationId: invite.organizationId,

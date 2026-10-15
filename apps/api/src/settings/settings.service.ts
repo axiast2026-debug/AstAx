@@ -1,5 +1,5 @@
 import type { Clock } from "@astax/adapters/clock";
-import { withContext, type DbClient } from "@astax/db";
+import { recordDomainEvent, withContext, type DbClient } from "@astax/db";
 import type { Logger } from "@astax/shared/logging";
 import {
   isSettingKey,
@@ -118,7 +118,7 @@ export class SettingsService {
           "Invalid value, reason or validity date for this parameter",
         );
       }
-      await tx.setting.create({
+      const row = await tx.setting.create({
         data: {
           key,
           value: planned.value as never,
@@ -139,6 +139,14 @@ export class SettingsService {
           validFrom: planned.validFrom.toISOString(),
         },
         reason: planned.reason,
+      });
+      await recordDomainEvent(tx, {
+        aggregateType: "Setting",
+        aggregateId: row.id,
+        type: "setting.changed",
+        at: this.clock.now(),
+        actorUserId: auth.userId,
+        data: { key, version: planned.version },
       });
       return planned;
     });

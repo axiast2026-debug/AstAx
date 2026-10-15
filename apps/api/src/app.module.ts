@@ -12,6 +12,7 @@ import { LegalController } from "./legal/legal.controller.js";
 import { LegalGate } from "./legal/legal-gate.js";
 import { LegalService } from "./legal/legal.service.js";
 import { MeController } from "./me/me.controller.js";
+import { OutboxRunner } from "./outbox/outbox-runner.js";
 import { SettingsController } from "./settings/settings.controller.js";
 import { SettingsService } from "./settings/settings.service.js";
 import { TeamController } from "./team/team.controller.js";
@@ -38,6 +39,7 @@ export class AppModule {
         LegalGate,
         TeamService,
         SettingsService,
+        OutboxRunner,
         { provide: APP_GUARD, useClass: AuthGuard },
         { provide: APP_FILTER, useClass: ProblemFilter },
       ],

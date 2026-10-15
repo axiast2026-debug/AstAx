@@ -133,6 +133,7 @@ export async function startHarness(): Promise<Harness> {
     BLIND_INDEX_KEY: TEST_CIPHER_KEYS.blindIndex,
     KEYCLOAK_URL: "http://keycloak.test",
     KEYCLOAK_API_ADMIN_SECRET: "test-secret-not-used-0000",
+    OUTBOX_DISPATCH_INTERVAL_MS: "0",
   });
   const app = await createApp(config, {
     clock,

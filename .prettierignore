@@ -6,3 +6,4 @@ docs/
 fasi/
 seed/
 *.md
+**/src/generated/

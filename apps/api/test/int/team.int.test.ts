@@ -1,3 +1,4 @@
+import { OutboxRunner } from "../../src/outbox/outbox-runner.js";
 import { SYSTEM_CONTEXT, withContext } from "@astax/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -173,5 +174,28 @@ describe("fase 1 passo 8: team", () => {
       orgId("agenzia-due"),
       orgId("agenzia-sei"),
     ]);
+  });
+});
+
+describe("fase 1 passo 9: events of team changes", () => {
+  it("a membership change writes a domain event and an outbox event, delivered by the dispatcher", async () => {
+    const supervisor = membershipId("agenzia-sei-supervisor", "agenzia-sei");
+    const response = await h.call(`/team/members/${supervisor}`, {
+      token: ownerToken,
+      context: ownerContext(),
+      method: "PATCH",
+      body: { flags: { canSeeAccounting: false } },
+    });
+    expect(response.status).toBe(200);
+    const event = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.domainEvent.findFirst({ where: { aggregateId: supervisor, type: "membership.updated" } }),
+    );
+    expect(event?.data).toEqual({ role: "SUPERVISOR", status: "ACTIVE" });
+
+    await h.app.get(OutboxRunner).tick();
+    const pending = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.outboxEvent.count({ where: { status: "PENDING" } }),
+    );
+    expect(pending).toBe(0);
   });
 });
