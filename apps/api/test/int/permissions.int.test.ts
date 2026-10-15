@@ -167,6 +167,54 @@ const ENDPOINTS: Endpoint[] = [
   { action: "brokerCustomer.manage", method: "GET", path: () => "/customers" },
   { action: "brokerCustomer.manage", method: "POST", path: () => "/customers", body: {} },
   { action: "brokerCustomer.manage", method: "GET", path: () => `/customers/${randomUUID()}` },
+  // Fase 2: back office verification
+  { action: "verification.viewQueue", method: "GET", path: () => "/verification/queue" },
+  {
+    action: "request.viewQuoteData",
+    method: "GET",
+    path: () => `/verification/requests/${randomUUID()}`,
+  },
+  {
+    action: "request.viewQuoteData",
+    method: "GET",
+    path: () => `/verification/requests/${randomUUID()}/documents/${randomUUID()}/file`,
+  },
+  {
+    action: "verification.decide",
+    method: "POST",
+    path: () => `/verification/requests/${randomUUID()}/assign`,
+    body: {},
+  },
+  {
+    action: "verification.decide",
+    method: "PUT",
+    path: () => `/verification/requests/${randomUUID()}/checklist/DOCUMENTS`,
+    body: {},
+  },
+  {
+    action: "verification.decide",
+    method: "POST",
+    path: () => `/verification/requests/${randomUUID()}/corrections`,
+    body: {},
+  },
+  {
+    action: "verification.decide",
+    method: "POST",
+    path: () => `/verification/requests/${randomUUID()}/approve`,
+    body: {},
+  },
+  {
+    action: "verification.decide",
+    method: "POST",
+    path: () => `/verification/requests/${randomUUID()}/integration`,
+    body: {},
+  },
+  {
+    action: "verification.decide",
+    method: "POST",
+    path: () => `/verification/requests/${randomUUID()}/exclude`,
+    body: {},
+  },
 ];
 
 /**
@@ -245,6 +293,7 @@ describe("SIC-01 every API route is in the table", () => {
               .replace(/[0-9a-f-]{36}/g, "{id}")
               .replace("/documents/{id}/file", "/documents/{documentId}/file")
               .replace("/draft/vehicle", "/draft/{section}")
+              .replace("/checklist/DOCUMENTS", "/checklist/{code}")
               .replace("/documents/none/", "/documents/{key}/")
               .replace("/settings/invitations.max", "/settings/{key}")}`,
         ),

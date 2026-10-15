@@ -23,6 +23,8 @@ import { CustomersService } from "./requests/customers.service.js";
 import { ReferenceService } from "./requests/reference.service.js";
 import { RequestsController } from "./requests/requests.controller.js";
 import { RequestsService } from "./requests/requests.service.js";
+import { VerificationController } from "./verification/verification.controller.js";
+import { VerificationService } from "./verification/verification.service.js";
 import { SettingsController } from "./settings/settings.controller.js";
 import { SettingsService } from "./settings/settings.service.js";
 import { TeamController } from "./team/team.controller.js";
@@ -44,6 +46,7 @@ export class AppModule {
         RequestsController,
         CustomersController,
         ConsentLinksController,
+        VerificationController,
       ],
       providers: [
         AuditService,
@@ -59,6 +62,7 @@ export class AppModule {
         RequestsService,
         ConsentService,
         CustomersService,
+        VerificationService,
         IdentitySync,
         { provide: APP_GUARD, useClass: AuthGuard },
         { provide: APP_FILTER, useClass: ProblemFilter },
