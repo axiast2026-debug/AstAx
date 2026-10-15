@@ -6,7 +6,7 @@ Claude Code aggiorna questo file alla fine di ogni sessione di lavoro e alla chi
 
 | Fase | Stato | Chiusa il | Note |
 | --- | --- | --- | --- |
-| 1. Fondamenta | In corso | | Tutti i passi fatti; demo provata da Dan il 2026-10-15 con esito positivo. CI verde e obbligatoria su GitHub; manca `/chiudi-fase 1` |
+| 1. Fondamenta | In verifica | | Criteri soddisfatti; verifica indipendente fatta (due giri) e problemi corretti; demo vista da Dan il 2026-10-15. Manca la conferma finale di Dan |
 | 2. Richiesta e verifica | Da iniziare | | |
 | 3. Motore d'asta | Da iniziare | | |
 | 4. Offerte | Da iniziare | | |
@@ -43,13 +43,22 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 | Privato: accesso con codice via email o SMS | Fatto (email) | `tests/e2e/specs/fase1-accessi.spec.ts` (privato); SMS con il fornitore in fase 8 |
 | Durate di sessione dai parametri per privati, professionisti, personale AstAx | Fatto | `packages/adapters/src/identity/session-settings.test.ts`; `apps/api/test/int/settings.int.test.ts` («SIC-05 a session parameter is applied to Keycloak») |
 | Test a tabella dei permessi per ogni ruolo; endpoint senza permesso → 403 | Fatto | `packages/shared/src/permissions/can.test.ts`; `apps/api/test/int/permissions.int.test.ts` (via HTTP); `apps/api/test/auth-guard.test.ts` |
-| Senza contesto o con contesto altrui → 403; Marco Rossi cambia contesto | Fatto | `apps/api/test/int/auth.int.test.ts`; `tests/e2e/specs/fase1-accessi.spec.ts` |
+| Senza contesto o con contesto altrui → 403; Marco Rossi cambia contesto e vede solo il contesto attivo | Fatto, con limite | `apps/api/test/int/auth.int.test.ts`; `tests/e2e/specs/fase1-accessi.spec.ts`. «Vede solo i dati del contesto attivo» è provato dal database (`packages/db/test/rls.int.test.ts`) e dal nome dell'organizzazione in schermata; schermate con dati delle organizzazioni arrivano in fase 2 (debito) |
 | Sicurezza a livello di riga: Agenzia Uno non vede righe di Agenzia Due | Fatto | `packages/db/test/rls.int.test.ts` |
 | Registro: azioni protette e 403 registrati; UPDATE/DELETE falliscono; `audit:verify` trova una riga alterata | Fatto | `packages/db/test/audit.int.test.ts`; `apps/api/test/int/auth.int.test.ts`; `pnpm audit:verify` |
 | Modifica di parametro → nuova versione con autore e motivo; lettura a una data | Fatto | `apps/api/test/int/settings.int.test.ts`; `packages/shared/src/settings/settings.test.ts` |
 | Documenti legali: accettazione al primo accesso e a ogni nuova versione, con versione, data e IP | Fatto | `apps/api/test/int/auth.int.test.ts` («LEG-01 LEG-02 …»); `tests/e2e/specs/fase1-accessi.spec.ts` |
 | Il logger oscura codice fiscale, telefono, email, IBAN e importi delle offerte | Fatto | `packages/shared/src/logging/logger.test.ts` |
 | Il lint blocca `Date.now()`/`new Date()` nel dominio e i testi nei componenti | Fatto | `packages/config/src/eslint/rules.test.js` |
+
+## Verifica indipendente (chiusura della fase 1)
+
+Il comando `/chiudi-fase` non era caricato nella sessione (aperta nella cartella superiore): i suoi passi sono stati eseguiti a mano il 2026-10-15.
+
+1. `pnpm check` (31 task) e test end-to-end (5 su 5) verdi; CI verde su GitHub.
+2. Primo giro del revisore indipendente: 15 problemi. Corretti nel commit `2fdbec1`. I più importanti: un indirizzo poteva essere «prenotato» come privato bloccando un invito; testi legali nuovi senza il marchio; parametri modificabili nel passato; accessi non registrati.
+3. Secondo giro: 12 punti risolti, 2 rinviati come debiti (isolamento dei dati per contesto nelle schermate, ruoli del back office nella sicurezza a livello di riga), 1 risolto in parte. Due problemi nuovi corretti nel commit successivo: l'IP del browser poteva essere falsificato (ora si usa solo dietro un proxy di fiducia) e l'ADR 0002 non era aggiornato. Nuova domanda per Dan: la 5 in `domande-aperte.md`.
+4. Restano come debiti tecnici, nella tabella qui sotto, i punti rinviati dal revisore.
 
 ## Demo per Dan
 
@@ -80,6 +89,9 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 | Testi in albanese del back office da far rileggere a un madrelingua | Tradotti da Claude | Fase 7 |
 | Sicurezza a livello di riga: tutto il back office è «privilegiato» (anche contabilità e assistenza possono scrivere parametri e utenti a livello di database); il registro della propria organizzazione è leggibile da ogni membro | La prima linea (API) distingue i ruoli; il database non conosce ancora il ruolo del back office né il titolare | Fase 2, aggiungendo il ruolo alle variabili di contesto |
 | Blocco dei tentativi di accesso in Keycloak (10 errori, attesa massima 15 minuti) scritto nel file del realm | Valori tecnici di sicurezza, non di business; da decidere se diventano parametri | Fase 8 |
+| Codici via email: al massimo 3 per tentativo di accesso (numero fisso nell'estensione); nessun limite per indirizzo o per rete | Il limite vero di frequenza serve con i fornitori reali | Fase 8 |
+| Accessi registrati dalle app web (`POST /me/logins`), non da un evento di Keycloak | Un accesso fatto fuori dalle nostre app non lascerebbe traccia; oggi le uniche app sono le nostre | Fase 8, con gli eventi di Keycloak verso il registro |
+| IP vero del browser solo dietro il nostro proxy (`WEB_TRUSTED_PROXY`); in locale si registra l'indirizzo dell'app web | L'intestazione X-Forwarded-For può essere falsificata dal browser | Fase 8, con il proxy in cloud |
 | Isolamento dei dati per contesto provato dal database, non ancora da schermate con dati delle organizzazioni | In fase 1 non esistono ancora schermate di questo tipo | Fase 2, con le prime richieste |
 | `pnpm db:reset` mai provato da Claude | Prisma chiede il consenso esplicito di Dan quando lo lancia un agente AI | Alla prima occasione, con il consenso di Dan |
 

@@ -1,3 +1,4 @@
+export { browserClientFrom, type HeaderReader } from "./browser-client.js";
 export { MemorySessionStore, RedisSessionStore } from "./redis-store.js";
 export {
   SessionExpiredError,

@@ -107,6 +107,26 @@ describe("fase 1 passo 10: parameters with history", () => {
     expect(response.status).toBe(400);
   });
 
+  it("checks the rules also against changes already scheduled for later", async () => {
+    // From 1 December the default validity becomes 30 days (one of 7/15/30)…
+    const scheduled = await h.call("/admin/settings/guarantee.defaultMinValidityDays", {
+      token: admin,
+      context: adminContext(),
+      method: "PUT",
+      body: { value: 30, reason: "Prova", validFrom: "2026-12-01T00:00:00.000Z" },
+    });
+    expect(scheduled.status).toBe(200);
+    // …so removing 30 from the options today would break that future version.
+    const response = await h.call("/admin/settings/guarantee.minValidityDaysOptions", {
+      token: admin,
+      context: adminContext(),
+      method: "PUT",
+      body: { value: [7, 15], reason: "Prova" },
+    });
+    expect(response.status).toBe(400);
+    expect(await response.text()).toContain("guarantee.defaultMinValidityDays");
+  });
+
   it("refuses a value that breaks a rule tying parameters together", async () => {
     // The default duration must be one of the durations offered (ASTA-03).
     const response = await h.call("/admin/settings/auction.defaultDurationWorkingHours", {

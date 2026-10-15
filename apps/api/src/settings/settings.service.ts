@@ -129,9 +129,16 @@ export class SettingsService {
           "Invalid value, reason or validity date for this parameter",
         );
       }
-      // Rules tying parameters together hold on the set in force from validFrom.
-      const all = (await tx.setting.findMany()).map((r) => toVersion(r as Row));
-      const problems = crossSettingErrors(snapshotSettingsAt([...all, planned], validFrom));
+      // Rules tying parameters together must hold from validFrom and at every
+      // change already scheduled after it.
+      const all = [...(await tx.setting.findMany()).map((r) => toVersion(r as Row)), planned];
+      const moments = [
+        validFrom,
+        ...all.filter((v) => v.validFrom > validFrom).map((v) => v.validFrom),
+      ];
+      const problems = [
+        ...new Set(moments.flatMap((at) => crossSettingErrors(snapshotSettingsAt(all, at)))),
+      ];
       if (problems.length > 0) {
         throw new ProblemError(
           "VALIDATION_FAILED",

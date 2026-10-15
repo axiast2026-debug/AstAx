@@ -1,7 +1,13 @@
 import "server-only";
 import { SystemClock } from "@astax/adapters/clock";
 import { loadEnv } from "@astax/shared/env";
-import { RedisSessionStore, SessionExpiredError, WebAuth } from "@astax/ui/server";
+import {
+  browserClientFrom,
+  RedisSessionStore,
+  SessionExpiredError,
+  WebAuth,
+  type BrowserClient,
+} from "@astax/ui/server";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -52,11 +58,10 @@ export async function api<T>(
   }
 }
 
-/** The browser of the current request, passed on to the API for the audit log. */
-export async function browserClient(): Promise<{
-  forwardedFor: string | null;
-  userAgent: string | null;
-}> {
-  const h = await headers();
-  return { forwardedFor: h.get("x-forwarded-for"), userAgent: h.get("user-agent") };
+/** In the cloud the app runs behind our proxy, which writes the real client address. */
+export const behindTrustedProxy = process.env.WEB_TRUSTED_PROXY === "true";
+
+/** The browser of the current request, passed on to the API for the audit log (ADR 0004). */
+export async function browserClient(): Promise<BrowserClient> {
+  return browserClientFrom(await headers(), behindTrustedProxy);
 }

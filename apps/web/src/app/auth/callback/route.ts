@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { SESSION_COOKIE, webAuth } from "@/lib/auth";
+import { browserClientFrom } from "@astax/ui/server";
+import { behindTrustedProxy, SESSION_COOKIE, webAuth } from "@/lib/auth";
 
 const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
 
@@ -9,10 +10,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const id = await webAuth().completeLogin(callbackUrl);
     // Every access goes to the audit log, with the browser's address (rule 4).
-    await webAuth().recordLogin(id, {
-      forwardedFor: request.headers.get("x-forwarded-for"),
-      userAgent: request.headers.get("user-agent"),
-    });
+    await webAuth().recordLogin(id, browserClientFrom(request.headers, behindTrustedProxy));
     const response = NextResponse.redirect(new URL("/", webUrl));
     response.cookies.set(SESSION_COOKIE, id, {
       httpOnly: true,
