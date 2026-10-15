@@ -407,3 +407,376 @@ model OutboxEvent {
 
   @@index([status, nextAttemptAt])
 }
+
+// ---------------------------------------------------------------------------
+// Customers and requests (phase 2, ADR 0007)
+// Every row has an owner for row level security: ownerUserId for a private
+// customer, ownerOrganizationId (+ ownerMembershipId) for a broker.
+// ---------------------------------------------------------------------------
+
+enum PersonKind {
+  PERSON
+  COMPANY
+}
+
+/// Contacts live only here, encrypted, never in quoteData (VIS-01).
+model Customer {
+  id                  String    @id @default(uuid(7)) @db.Uuid
+  ownerUserId         String?   @db.Uuid
+  ownerOrganizationId String?   @db.Uuid
+  ownerMembershipId   String?   @db.Uuid
+  personId            String    @db.Uuid
+  emailEnc            String?
+  emailHash           String?
+  phoneEnc            String?
+  phoneHash           String?
+  contactsVerifiedAt  DateTime? @db.Timestamptz(3)
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime  @default(now()) @db.Timestamptz(3)
+
+  person        Person         @relation(fields: [personId], references: [id])
+  vehicles      Vehicle[]
+  quoteRequests QuoteRequest[]
+  consents      Consent[]
+
+  @@index([ownerUserId])
+  @@index([ownerOrganizationId])
+  @@index([emailHash])
+  @@index([phoneHash])
+}
+
+model Person {
+  id                  String     @id @default(uuid(7)) @db.Uuid
+  ownerUserId         String?    @db.Uuid
+  ownerOrganizationId String?    @db.Uuid
+  kind                PersonKind
+  surname             String?
+  givenName           String?
+  companyName         String?
+  fiscalCodeEnc       String?
+  fiscalCodeHash      String?
+  vatNumber           String?
+  birthDate           DateTime?  @db.Date
+  birthPlace          String?
+  sex                 String?
+  /// Street, postal code, ISTAT code of the municipality, province.
+  residence           Json?
+  profession          String?
+  maritalStatus       String?
+  children            Int?
+  createdAt           DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime   @default(now()) @db.Timestamptz(3)
+
+  customers Customer[]
+
+  @@index([fiscalCodeHash])
+  @@index([ownerOrganizationId])
+}
+
+model Vehicle {
+  id                  String   @id @default(uuid(7)) @db.Uuid
+  ownerUserId         String?  @db.Uuid
+  ownerOrganizationId String?  @db.Uuid
+  customerId          String   @db.Uuid
+  plate               String
+  /// Technical data as in quoteData.vehicle, without the plate.
+  data                Json
+  createdAt           DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime @default(now()) @db.Timestamptz(3)
+
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@unique([customerId, plate])
+}
+
+enum RequestChannel {
+  PRIVATE
+  BROKER
+}
+
+enum QuoteRequestStatus {
+  DRAFT
+  IN_VERIFICATION
+  INTEGRATION_REQUESTED
+  EXCLUDED
+  AUCTION_OPEN
+  OFFERS_AVAILABLE
+  DESERTED
+  ACCEPTED
+  IN_ISSUANCE
+  ISSUED
+  EXPIRED
+  IN_RECONFIRMATION
+  CANCELLED
+}
+
+enum CheckOutcome {
+  GREEN
+  YELLOW
+  RED
+}
+
+model QuoteRequest {
+  id                    String             @id @default(uuid(7)) @db.Uuid
+  /// AX-2026-000001; prefix from requests.codePrefix.
+  code                  String             @unique
+  channel               RequestChannel
+  ownerUserId           String?            @db.Uuid
+  ownerOrganizationId   String?            @db.Uuid
+  requesterUserId       String             @db.Uuid
+  requesterMembershipId String?            @db.Uuid
+  customerId            String?            @db.Uuid
+  status                QuoteRequestStatus @default(DRAFT)
+  /// QuoteDraft encrypted (ADR 0007); null after submission.
+  draftEnc              String?
+  /// Version of quoteData in force (QuoteDataVersion), null while a draft.
+  quoteDataVersion      Int?
+  plate                 String?
+  vehicleType           String?
+  province              String?
+  cuClass               Int?
+  claimsLast5y          Int?
+  youngestDriverAge     Int?
+  packageCode           String?
+  startDate             DateTime?          @db.Date
+  minValidityDays       Int?
+  auctionDurationHours  Int?
+  autoOutcome           CheckOutcome?
+  aiComparisonUsed      Boolean            @default(false)
+  reconfirmationsUsed   Int                @default(0)
+  renewalOfPolicyId     String?            @db.Uuid
+  submittedAt           DateTime?          @db.Timestamptz(3)
+  cancelledAt           DateTime?          @db.Timestamptz(3)
+  createdAt             DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime           @default(now()) @db.Timestamptz(3)
+
+  customer          Customer?           @relation(fields: [customerId], references: [id])
+  quoteDataVersions QuoteDataVersion[]
+  documents         Document[]
+  verifications     Verification[]
+  events            QuoteRequestEvent[]
+  consentLinks      ConsentLink[]
+
+  @@index([ownerUserId, status])
+  @@index([ownerOrganizationId, status])
+  @@index([status, submittedAt])
+}
+
+enum QuoteDataSource {
+  SUBMISSION
+  INTEGRATION
+  BACK_OFFICE_CORRECTION
+}
+
+/// Append only (ADR 0007): every change of quoteData is a new version.
+model QuoteDataVersion {
+  id                  String          @id @default(uuid(7)) @db.Uuid
+  quoteRequestId      String          @db.Uuid
+  ownerUserId         String?         @db.Uuid
+  ownerOrganizationId String?         @db.Uuid
+  version             Int
+  dataEnc             String
+  dataSha256          String
+  source              QuoteDataSource
+  /// Paths of the fields changed from the previous version.
+  changedFields       Json            @default("[]")
+  reason              String?
+  createdByUserId     String          @db.Uuid
+  createdAt           DateTime        @default(now()) @db.Timestamptz(3)
+
+  quoteRequest QuoteRequest @relation(fields: [quoteRequestId], references: [id])
+
+  @@unique([quoteRequestId, version])
+}
+
+enum ConsentType {
+  DATA_SHARING_AGENCIES
+}
+
+enum ConsentMethod {
+  OTP_PRIVATE
+  OTP_LINK
+  UPLOADED_BY_BROKER
+}
+
+/// LEG-04: the customer's consent to share the request with the invited agencies.
+model Consent {
+  id                  String        @id @default(uuid(7)) @db.Uuid
+  customerId          String        @db.Uuid
+  ownerUserId         String?       @db.Uuid
+  ownerOrganizationId String?       @db.Uuid
+  quoteRequestId      String?       @db.Uuid
+  type                ConsentType
+  legalVersionId      String?       @db.Uuid
+  method              ConsentMethod
+  /// Identifiers only: OTP challenge, document, IP and browser.
+  evidence            Json
+  acceptedAt          DateTime      @db.Timestamptz(3)
+  revokedAt           DateTime?     @db.Timestamptz(3)
+  createdAt           DateTime      @default(now()) @db.Timestamptz(3)
+
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@index([customerId, type])
+}
+
+enum ConsentLinkStatus {
+  SENT
+  COMPLETED
+  EXPIRED
+  REVOKED
+}
+
+/// Link sent by a broker to the customer for the consent (consent.signature_request).
+model ConsentLink {
+  id                  String            @id @default(uuid(7)) @db.Uuid
+  quoteRequestId      String            @db.Uuid
+  customerId          String            @db.Uuid
+  ownerOrganizationId String            @db.Uuid
+  tokenHash           String            @unique
+  status              ConsentLinkStatus @default(SENT)
+  expiresAt           DateTime          @db.Timestamptz(3)
+  sentByUserId        String            @db.Uuid
+  completedAt         DateTime?         @db.Timestamptz(3)
+  createdAt           DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime          @default(now()) @db.Timestamptz(3)
+
+  quoteRequest QuoteRequest @relation(fields: [quoteRequestId], references: [id])
+}
+
+enum OtpPurpose {
+  PRIVATE_CONSENT
+  LINK_CONSENT
+}
+
+/// One-time codes sent by AstAx (auth.otp), stored only as a keyed hash.
+model OtpChallenge {
+  id                  String     @id @default(uuid(7)) @db.Uuid
+  purpose             OtpPurpose
+  /// The request (private consent) or the consent link.
+  subjectId           String     @db.Uuid
+  ownerUserId         String?    @db.Uuid
+  ownerOrganizationId String?    @db.Uuid
+  codeHash            String
+  expiresAt           DateTime   @db.Timestamptz(3)
+  attempts            Int        @default(0)
+  maxAttempts         Int
+  consumedAt          DateTime?  @db.Timestamptz(3)
+  createdAt           DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime   @default(now()) @db.Timestamptz(3)
+
+  @@index([subjectId, purpose])
+}
+
+enum DocumentKind {
+  REGISTRATION_CERTIFICATE
+  DRIVING_LICENCE
+  RISK_CERTIFICATE
+  FISCAL_CODE_CARD
+  CONSENT_FORM
+  OTHER
+}
+
+model Document {
+  id                  String       @id @default(uuid(7)) @db.Uuid
+  kind                DocumentKind
+  ownerUserId         String?      @db.Uuid
+  ownerOrganizationId String?      @db.Uuid
+  quoteRequestId      String?      @db.Uuid
+  customerId          String?      @db.Uuid
+  /// For a licence: the driver's index in quoteData.drivers.
+  driverIndex         Int?
+  /// Opaque key, never a name (CLAUDE.md rule 8).
+  storageKey          String       @unique
+  sha256              String
+  mime                String
+  size                Int
+  fileName            String
+  encryption          String       @default("SSE_KMS")
+  uploadedByUserId    String       @db.Uuid
+  /// Fields read by the document reader, with confidence.
+  extraction          Json?
+  extractedAt         DateTime?    @db.Timestamptz(3)
+  retainUntil         DateTime?    @db.Timestamptz(3)
+  deletedAt           DateTime?    @db.Timestamptz(3)
+  createdAt           DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime     @default(now()) @db.Timestamptz(3)
+
+  quoteRequest QuoteRequest? @relation(fields: [quoteRequestId], references: [id])
+
+  @@index([quoteRequestId])
+}
+
+enum VerificationDecision {
+  APPROVED
+  INTEGRATION_REQUESTED
+  EXCLUDED
+}
+
+/// One per submission round: the automatic check and the back office decision.
+model Verification {
+  id                  String                @id @default(uuid(7)) @db.Uuid
+  quoteRequestId      String                @db.Uuid
+  ownerUserId         String?               @db.Uuid
+  ownerOrganizationId String?               @db.Uuid
+  round               Int
+  quoteDataVersion    Int
+  autoOutcome         CheckOutcome
+  /// Items: code, automatic outcome, reasons, fields, correction, note.
+  checklist           Json
+  assignedToUserId    String?               @db.Uuid
+  decision            VerificationDecision?
+  reasonCodes         Json                  @default("[]")
+  message             String?
+  decidedByUserId     String?               @db.Uuid
+  decidedAt           DateTime?             @db.Timestamptz(3)
+  excludedAgencies    Json                  @default("[]")
+  createdAt           DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime              @default(now()) @db.Timestamptz(3)
+
+  quoteRequest QuoteRequest @relation(fields: [quoteRequestId], references: [id])
+
+  @@unique([quoteRequestId, round])
+  @@index([decision, createdAt])
+}
+
+/// The request's timeline, shown to requester and back office. Append only;
+/// details hold codes and identifiers only.
+model QuoteRequestEvent {
+  id                  String   @id @default(uuid(7)) @db.Uuid
+  quoteRequestId      String   @db.Uuid
+  ownerUserId         String?  @db.Uuid
+  ownerOrganizationId String?  @db.Uuid
+  type                String
+  actorKind           String
+  actorUserId         String?  @db.Uuid
+  details             Json     @default("{}")
+  at                  DateTime @db.Timestamptz(3)
+  createdAt           DateTime @default(now()) @db.Timestamptz(3)
+
+  quoteRequest QuoteRequest @relation(fields: [quoteRequestId], references: [id])
+
+  @@index([quoteRequestId, at])
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+}
+
+/// In-app notifications (docs/notifiche.md); payload holds identifiers and the rendered text only.
+model Notification {
+  id        String             @id @default(uuid(7)) @db.Uuid
+  userId    String             @db.Uuid
+  eventKey  String
+  title     String
+  body      String
+  link      String?
+  payload   Json               @default("{}")
+  status    NotificationStatus @default(UNREAD)
+  readAt    DateTime?          @db.Timestamptz(3)
+  createdAt DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime           @default(now()) @db.Timestamptz(3)
+
+  @@index([userId, status, createdAt])
+}

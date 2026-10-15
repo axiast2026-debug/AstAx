@@ -83,6 +83,8 @@ Filtri (`criteria`): `vehicleTypes[]`, `provinces[]` o tutte, `cuClassMin`, `cuC
 | `ExclusionRule` | `code`, `condition` (JSON), `blockingInWizard`, `messageIt`, `active` | ASTA-10 |
 | `CoveragePackage`, `CoveragePackageVersion` | `code`, `name`; versione: `requirements` (JSON), `customerTextIt`, `validFrom` | La richiesta salva la versione usata |
 
+Aggiunte in fase 2 ([ADR 0007](adr/0007-dati-della-richiesta-cifrati.md)): `QuoteDataVersion` (versioni di `quoteData` cifrate, solo in aggiunta), `QuoteRequestEvent` (cronologia, solo in aggiunta), `ConsentLink` (link di consenso del broker al cliente), `OtpChallenge` (codici OTP salvati come impronta), `Notification` (avvisi in app, anticipata dalla fase 7). Ogni riga di clienti e richieste ha `ownerUserId` o `ownerOrganizationId` per la sicurezza a livello di riga.
+
 Colonne derivate di `QuoteRequest` per la selezione delle agenzie: `vehicleType`, `province` (residenza del contraente), `cuClass`, `claimsLast5y`, `youngestDriverAge` (alla decorrenza), `packageCode`, `startDate`, `minValidityDays`.
 
 Struttura di `quoteData` (schema Zod in `packages/shared`, `schemaVersion: 1`):
