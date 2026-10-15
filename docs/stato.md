@@ -19,37 +19,31 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 
 ## Ultima sessione
 
-**2026-10-15 — fase 1, passi da 1 a 14.**
+**2026-10-15 — fase 2, passi 1-3 di 13** (piano approvato da Dan il 2026-10-15).
 
-- Fatto (commit locali, nessun push; `pnpm check` verde con 1.220 test; 4 test end-to-end verdi):
-  - ambiente locale con Docker; database con sicurezza a livello di riga, registro immutabile con catena di hash, eventi di dominio e outbox con nuovi tentativi;
-  - seed dei parametri, degli elenchi, delle festività, dei testi legali segnaposto e dei dati sintetici degli scenari, con un comando (`pnpm db:seed`);
-  - Keycloak con estensione «codice via email» per i privati e password più TOTP obbligatorio per professionisti e personale, durate di sessione dai parametri (ADR 0002);
-  - API: guardia unica (token, tipo di utente, contesto, permesso, testi legali), profilo e sessioni, team, parametri con storico, testi legali, registro;
-  - sito e back office in Next.js: accesso, menu per ruolo, selettore di contesto, profilo con sessioni, centro notifiche vuoto, back office in italiano e albanese, pagina del registro (ADR 0004);
-  - CI di GitHub Actions scritta (non ancora eseguita);
-  - ADR 0001-0004.
-- Demo: Dan l'ha provata il 2026-10-15 (privato con codice, titolare con TOTP, Marco Rossi con due agenzie, back office in albanese, registro): tutto funzionante.
-- Fase 1 chiusa il 2026-10-15 con la conferma di Dan. Prossimo passo: `/fase 2` (richiesta e verifica).
-- Incidente di questa sessione: un comando scritto male ha eseguito per errore alcuni comandi di sviluppo (build, migrazioni, seed, sincronizzazione Keycloak, `pnpm dev`). Erano tutti ripetibili; servizi, volumi Docker e `.env` sono intatti. Il comando che cancella i dati locali non è partito.
+- Fatto (commit su `main`, pubblicati su GitHub; `pnpm check` verde, 32 task):
+  - regole di base in `packages/shared`: codice fiscale con omocodie, targhe, schema `quoteData` senza telefono ed email, casi esclusi, formula esperta, condizioni per l'invio, documenti richiesti, colonne derivate, controllo automatico verde/giallo/rosso;
+  - due parametri nuovi: `vehicle.vintageAgeYears` (30) e `consent.linkValidityDays` (7), dalle risposte di Dan alle domande 6 e 7;
+  - elenco dei comuni ISTAT (7.896, con codice catastale) in `seed/comuni.csv`, rigenerabile con `pnpm reference:municipalities`; tabelle dei comuni, dei casi esclusi e dei pacchetti nel database, caricate da `pnpm db:seed`;
+  - fornitori finti: ricerca per targa, lettura documenti con esempi inventati (anche a bassa confidenza), storage dei file su SeaweedFS, SMS che finiscono in Mailpit.
+- Prossimo passo: il 4, il database delle richieste. **Serve prima la revisione di Dan dei campi del preventivo** (tabella §3 di `docs/specifiche/09-decisioni-e-valori-predefiniti.md`).
+- Da provare adesso: niente di visibile nelle app; `pnpm db:seed` mostra `municipalities: 7896`.
 
 ## Criteri della fase in corso
 
 | Criterio | Stato | Prova |
 | --- | --- | --- |
-| Da una macchina pulita, seguendo il README, ambiente e dati di prova partono con un comando ciascuno | Fatto | `README.md`: `pnpm infra:up` e `pnpm db:seed`; provato su questo computer, non ancora su un computer nuovo |
-| CI verde e obbligatoria per unire una pull request | Fatto | CI verde su GitHub (esecuzione 38727751445: check ed e2e); ruleset su `main` con i controlli obbligatori `check` ed `e2e`, impostato da Dan il 2026-10-15 |
-| Utente professionale: password e TOTP, TOTP configurato al primo accesso | Fatto | `tests/e2e/specs/fase1-accessi.spec.ts` (titolare, amministratore); flusso `astax-professional-browser` in `infra/keycloak/import/realm-astax.json` |
-| Privato: accesso con codice via email o SMS | Fatto (email) | `tests/e2e/specs/fase1-accessi.spec.ts` (privato); SMS con il fornitore in fase 8 |
-| Durate di sessione dai parametri per privati, professionisti, personale AstAx | Fatto | `packages/adapters/src/identity/session-settings.test.ts`; `apps/api/test/int/settings.int.test.ts` («SIC-05 a session parameter is applied to Keycloak») |
-| Test a tabella dei permessi per ogni ruolo; endpoint senza permesso → 403 | Fatto | `packages/shared/src/permissions/can.test.ts`; `apps/api/test/int/permissions.int.test.ts` (via HTTP); `apps/api/test/auth-guard.test.ts` |
-| Senza contesto o con contesto altrui → 403; Marco Rossi cambia contesto e vede solo il contesto attivo | Fatto, con limite | `apps/api/test/int/auth.int.test.ts`; `tests/e2e/specs/fase1-accessi.spec.ts`. «Vede solo i dati del contesto attivo» è provato dal database (`packages/db/test/rls.int.test.ts`) e dal nome dell'organizzazione in schermata; schermate con dati delle organizzazioni arrivano in fase 2 (debito) |
-| Sicurezza a livello di riga: Agenzia Uno non vede righe di Agenzia Due | Fatto | `packages/db/test/rls.int.test.ts` |
-| Registro: azioni protette e 403 registrati; UPDATE/DELETE falliscono; `audit:verify` trova una riga alterata | Fatto | `packages/db/test/audit.int.test.ts`; `apps/api/test/int/auth.int.test.ts`; `pnpm audit:verify` |
-| Modifica di parametro → nuova versione con autore e motivo; lettura a una data | Fatto | `apps/api/test/int/settings.int.test.ts`; `packages/shared/src/settings/settings.test.ts` |
-| Documenti legali: accettazione al primo accesso e a ogni nuova versione, con versione, data e IP | Fatto | `apps/api/test/int/auth.int.test.ts` («LEG-01 LEG-02 …»); `tests/e2e/specs/fase1-accessi.spec.ts` |
-| Il logger oscura codice fiscale, telefono, email, IBAN e importi delle offerte | Fatto | `packages/shared/src/logging/logger.test.ts` |
-| Il lint blocca `Date.now()`/`new Date()` nel dominio e i testi nei componenti | Fatto | `packages/config/src/eslint/rules.test.js` |
+| E2E: Giulia Neri completa la procedura e invia; l'operatore la trova verde, apre la scheda e approva; la cronologia mostra ogni passaggio | Da fare | |
+| E2E: Paolo Verdi crea una richiesta per Anna Riva con il link di consenso, e un'altra con il consenso caricato | Da fare | |
+| Un caso escluso dichiarato blocca l'invio; un veicolo con più di trent'anni arriva rosso con il motivo | In parte | Regole: `packages/shared/src/domain/quote-rules.test.ts` («ASTA-10 …», «is RED with the reason …»); manca il percorso nelle app |
+| Un documento a bassa confidenza porta la richiesta in giallo, con i campi evidenziati | In parte | Regola: `quote-rules.test.ts` («is YELLOW for fields read below …»); lettore finto: `packages/adapters/src/document-reader/document-reader.test.ts` |
+| Integrazione chiesta → il richiedente completa → torna in coda | Da fare | |
+| Dopo l'invio dati non modificabili (409); correzione del back office in una nuova versione registrata | Da fare | |
+| `quoteData` non contiene telefono ed email | Fatto | `quote-rules.test.ts` («VIS-01 has no place for the customer's phone or email, anywhere») |
+| Codice fiscale, telefono ed email cifrati; ricerca per codice fiscale con l'indice cieco | Da fare | |
+| Opzioni di durata e validità dai parametri | In parte | `quote-rules.test.ts` («rule 7: duration and validity …»); mancano le schermate |
+| Procedura del privato su mobile, da tastiera, con etichette | Da fare | |
+| Ogni apertura di scheda o documento da parte del back office è registrata | Da fare | |
 
 ## Verifica indipendente (chiusura della fase 1)
 
@@ -60,7 +54,7 @@ Il comando `/chiudi-fase` non era caricato nella sessione (aperta nella cartella
 3. Secondo giro: 12 punti risolti, 2 rinviati come debiti (isolamento dei dati per contesto nelle schermate, ruoli del back office nella sicurezza a livello di riga), 1 risolto in parte. Due problemi nuovi corretti nel commit successivo: l'IP del browser poteva essere falsificato (ora si usa solo dietro un proxy di fiducia) e l'ADR 0002 non era aggiornato. Nuova domanda per Dan: la 5 in `domande-aperte.md`.
 4. Restano come debiti tecnici, nella tabella qui sotto, i punti rinviati dal revisore.
 
-## Demo per Dan
+## Demo per Dan (fase 1)
 
 Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Searches\astax`, `pnpm infra:up`, poi `pnpm dev` (lasciare la finestra aperta). Sul telefono un'app di autenticazione (Google Authenticator, Microsoft Authenticator o FreeOTP). La password dei professionisti è `DEV_USERS_PASSWORD` nel file `.env`. Per i privati il codice arriva in Mailpit, http://127.0.0.1:8025.
 
@@ -93,6 +87,9 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 | Accessi registrati dalle app web (`POST /me/logins`), non da un evento di Keycloak | Un accesso fatto fuori dalle nostre app non lascerebbe traccia; oggi le uniche app sono le nostre | Fase 8, con gli eventi di Keycloak verso il registro |
 | IP vero del browser solo dietro il nostro proxy (`WEB_TRUSTED_PROXY`); in locale si registra l'indirizzo dell'app web | L'intestazione X-Forwarded-For può essere falsificata dal browser | Fase 8, con il proxy in cloud |
 | Isolamento dei dati per contesto provato dal database, non ancora da schermate con dati delle organizzazioni | In fase 1 non esistono ancora schermate di questo tipo | Fase 2, con le prime richieste |
+| Comuni soppressi non presenti in `seed/comuni.csv` (solo i comuni attuali) | Il codice fiscale di chi è nato in un comune poi soppresso non trova il comune: il luogo di nascita non viene confrontato (nessun falso rosso) | Fase 8, con l'elenco ISTAT dei comuni soppressi |
+| Etichetta della formula esperta in `seed/elenchi.json` con «26 anni» scritto nel testo | Se cambia `drivingFormula.expertMinAge` il testo va aggiornato a mano | Fase 2, quando le schermate useranno l'elenco |
+| `S3_REGION` e `S3_BUCKET` nuovi in `.env.example` | `pnpm env:init` non riscrive un `.env` esistente: l'API usa valori predefiniti se mancano | — |
 | `pnpm db:reset` mai provato da Claude | Prisma chiede il consenso esplicito di Dan quando lo lancia un agente AI | Alla prima occasione, con il consenso di Dan |
 
 ## Decisioni (ADR)

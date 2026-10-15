@@ -72,6 +72,7 @@ Li crea la fase 1; da allora questa sezione va tenuta aggiornata.
 | `pnpm test:e2e` | Test end-to-end con Playwright (ambiente locale acceso e `pnpm db:seed` fatto) |
 | `pnpm audit:verify` | Controlla la catena di hash del registro attività |
 | `pnpm legal:check` | Fallisce se un testo legale in uso non è validato |
+| `pnpm reference:municipalities` | Rigenera `seed/comuni.csv` dall'elenco ISTAT dei comuni (scarica il file; oppure gli si passa un CSV già scaricato) |
 
 Su Windows Docker Desktop è installato nella cartella dell'utente: i comandi che usano Docker (`infra:*`, `check`, `test:e2e`) vanno lanciati da PowerShell, dove Docker è nel PATH.
 
