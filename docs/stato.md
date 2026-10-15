@@ -7,7 +7,7 @@ Claude Code aggiorna questo file alla fine di ogni sessione di lavoro e alla chi
 | Fase | Stato | Chiusa il | Note |
 | --- | --- | --- | --- |
 | 1. Fondamenta | Chiusa | 2026-10-15 | Criteri soddisfatti; verifica indipendente in due giri; demo vista e chiusura confermata da Dan |
-| 2. Richiesta e verifica | Da iniziare | | |
+| 2. Richiesta e verifica | In corso | | Piano approvato da Dan il 2026-10-15 |
 | 3. Motore d'asta | Da iniziare | | |
 | 4. Offerte | Da iniziare | | |
 | 5. Accettazione | Da iniziare | | |
