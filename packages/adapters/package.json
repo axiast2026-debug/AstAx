@@ -11,6 +11,10 @@
     "./crypto": {
       "types": "./dist/crypto/index.d.ts",
       "default": "./dist/crypto/index.js"
+    },
+    "./identity": {
+      "types": "./dist/identity/index.d.ts",
+      "default": "./dist/identity/index.js"
     }
   },
   "scripts": {

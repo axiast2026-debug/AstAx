@@ -46,9 +46,13 @@ services:
     mem_limit: 128m
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.8.1
+    # Official Keycloak 26.8.1 plus the AstAx email-code extension and theme (ADR 0002).
+    build: ./keycloak
+    image: astax-keycloak:dev
     command: ["start-dev", "--import-realm"]
     environment:
+      # Read by the realm import (infra/keycloak/import/realm-astax.json).
+      KEYCLOAK_API_ADMIN_SECRET: ${KEYCLOAK_API_ADMIN_SECRET:?run pnpm env:init}
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: keycloak
@@ -56,6 +60,9 @@ services:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?run pnpm env:init}
       KC_HTTP_PORT: "8080"
+      # Fixed public address, so every token has the same issuer (checked by the API).
+      KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT:-8180}
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
       KC_HEALTH_ENABLED: "true"
       JAVA_OPTS_KC_HEAP: "-XX:MaxRAMPercentage=65"
     ports:

@@ -9,7 +9,8 @@
     "start": "node dist/main.js",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "keycloak:sync": "tsx src/scripts/keycloak-dev-sync.ts"
   },
   "dependencies": {
     "@astax/adapters": "workspace:*",
