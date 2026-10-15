@@ -10,5 +10,8 @@ ADR attesi:
 | --- | --- | --- |
 | 0001 | Stack e versioni | 1 |
 | 0002 | Autenticazione e accesso dei privati | 1 |
-| 0003 | Libreria e formato della busta chiusa | 3 |
-| 0004 | Temporal: Cloud UE o installazione propria | 8 |
+| 0003 | Storage S3 locale: SeaweedFS invece di MinIO | 1 |
+| 0004 | Libreria e formato della busta chiusa | 3 |
+| 0005 | Temporal: Cloud UE o installazione propria | 8 |
+
+I numeri seguono l'ordine in cui le decisioni vengono prese: la 0003 è arrivata in fase 1, prima di quelle previste.

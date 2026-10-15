@@ -1,0 +1,147 @@
+# Local development environment of AstAx. Synthetic data only (CLAUDE.md rule 11).
+# Start with: pnpm infra:up   (reads ../.env, created by pnpm env:init)
+# Memory limits keep the whole stack around 2 GB, for laptops with 8 GB of RAM.
+name: astax
+
+services:
+  postgres:
+    image: postgres:18.6
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?run pnpm env:init}
+      ASTAX_DB_OWNER_PASSWORD: ${ASTAX_DB_OWNER_PASSWORD:?run pnpm env:init}
+      ASTAX_DB_APP_PASSWORD: ${ASTAX_DB_APP_PASSWORD:?run pnpm env:init}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?run pnpm env:init}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d astax"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 512m
+
+  redis:
+    image: redis:8.10.2
+    command:
+      [
+        "redis-server",
+        "--requirepass",
+        "${REDIS_PASSWORD:?run pnpm env:init}",
+        "--maxmemory",
+        "96mb",
+      ]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6380}:6379"
+    healthcheck:
+      test: ["CMD-SHELL", 'redis-cli -a "$$REDIS_PASSWORD" --no-auth-warning ping | grep PONG']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    mem_limit: 128m
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.1
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?run pnpm env:init}
+      KC_HTTP_PORT: "8080"
+      KC_HEALTH_ENABLED: "true"
+      JAVA_OPTS_KC_HEAP: "-XX:MaxRAMPercentage=65"
+    ports:
+      - "127.0.0.1:${KEYCLOAK_PORT:-8180}:8080"
+    volumes:
+      - ./keycloak/import:/opt/keycloak/data/import:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.0\r\n\r\n' >&3 && grep -q UP <&3",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    mem_limit: 768m
+
+  temporal:
+    image: temporalio/temporal:1.9.1
+    command:
+      [
+        "server",
+        "start-dev",
+        "--ip",
+        "0.0.0.0",
+        "--ui-port",
+        "8233",
+        "--db-filename",
+        "/home/temporal/temporal.db",
+        "--namespace",
+        "astax",
+      ]
+    ports:
+      - "127.0.0.1:${TEMPORAL_PORT:-7233}:7233"
+      - "127.0.0.1:${TEMPORAL_UI_PORT:-8233}:8233"
+    volumes:
+      - temporal-data:/home/temporal
+    healthcheck:
+      test: ["CMD", "temporal", "operator", "cluster", "health", "--address", "127.0.0.1:7233"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    mem_limit: 384m
+
+  # S3-compatible object storage. Replaces MinIO, whose official images are no
+  # longer published (ADR 0003).
+  storage:
+    image: chrislusf/seaweedfs:4.48
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        mkdir -p /etc/seaweedfs &&
+        printf '{"identities":[{"name":"astax","credentials":[{"accessKey":"%s","secretKey":"%s"}],"actions":["Admin","Read","Write","List","Tagging"]}]}'
+        "$$S3_ACCESS_KEY" "$$S3_SECRET_KEY" > /etc/seaweedfs/s3.json &&
+        exec weed server -dir=/data -ip=storage -ip.bind=0.0.0.0 -master.volumeSizeLimitMB=64
+        -volume.max=0 -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?run pnpm env:init}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?run pnpm env:init}
+    ports:
+      - "127.0.0.1:${S3_PORT:-8333}:8333"
+    volumes:
+      - storage-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9333/cluster/status"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    mem_limit: 256m
+
+  mailpit:
+    image: axllent/mailpit:v1.31.6
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+    ports:
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
+    # The image ships its own healthcheck.
+    mem_limit: 64m
+
+volumes:
+  postgres-data:
+  temporal-data:
+  storage-data:

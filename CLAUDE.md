@@ -58,7 +58,9 @@ Li crea la fase 1; da allora questa sezione va tenuta aggiornata.
 
 | Comando | Cosa fa |
 | --- | --- |
-| `docker compose -f infra/docker-compose.yml up -d` | Avvia PostgreSQL, Redis, Keycloak, Temporal, MinIO, Mailpit |
+| `pnpm env:init` | Crea `.env` da `.env.example` con valori locali casuali (mai sovrascrive) |
+| `pnpm infra:up` | Avvia PostgreSQL (5433), Redis (6380), Keycloak (8180), Temporal (7233, UI 8233), storage S3 SeaweedFS (8333, ADR 0003), Mailpit (8025) e aspetta che siano pronti |
+| `pnpm infra:down` | Ferma i servizi locali, senza cancellare i dati |
 | `pnpm install` | Installa le dipendenze |
 | `pnpm db:reset` | Ricrea il database, applica le migrazioni, carica seed e dati sintetici |
 | `pnpm dev` | Avvia web, admin, api e worker in sviluppo |
