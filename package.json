@@ -22,9 +22,9 @@
     "infra:down": "docker compose --env-file .env -f infra/docker-compose.yml down",
     "infra:ps": "docker compose --env-file .env -f infra/docker-compose.yml ps",
     "db:migrate": "pnpm --filter @astax/db migrate:deploy",
-    "db:reset": "pnpm --filter @astax/db reset",
+    "db:reset": "pnpm --filter @astax/db reset && pnpm --filter @astax/api keycloak:sync",
     "audit:verify": "pnpm --filter @astax/db audit:verify",
-    "db:seed": "pnpm --filter @astax/db seed",
+    "db:seed": "pnpm --filter @astax/db seed && pnpm --filter @astax/api keycloak:sync",
     "keycloak:sync": "pnpm --filter @astax/api keycloak:sync",
     "legal:check": "pnpm --filter @astax/db legal:check"
   },

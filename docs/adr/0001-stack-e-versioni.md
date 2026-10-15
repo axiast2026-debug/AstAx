@@ -21,8 +21,18 @@
 | Vitest | 5.0.4 | |
 | Zod | 4.6.7 | Schemi condivisi tra API, worker e frontend |
 | pino | 10.4.0 | Logger di API e worker, sempre dietro `redact` |
+| PostgreSQL | 18.6 | Immagine Docker; Prisma 7.10.0 (non l'8, ancora release candidate) con `@prisma/adapter-pg` e `pg` 8.23 |
+| Redis | 8.10.2 | Immagine Docker; client `redis` 6.3.0 |
+| Keycloak | 26.8.1 | Immagine propria con l'estensione AstAx (ADR 0002) |
+| Temporal | CLI 1.9.1 (server 1.32) | Server di sviluppo; SDK dalla fase 3 |
+| SeaweedFS | 4.48 | Storage S3 locale (ADR 0003) |
+| Mailpit | 1.31.6 | |
+| NestJS | 12.1.3 | Con express 5.3, `@nestjs/swagger` 12.0.2, `jose` 6.2.12, `yaml` 2.9.1 |
+| Next.js | 16.4.1 | React 19.3.1, next-intl 4.14.9, Tailwind 4.3.3, `openid-client` 6.8.8 (ADR 0004) |
+| Testcontainers | 12.2.1 | PostgreSQL vero nei test di integrazione |
+| Playwright | 1.64.1 | Chromium per i test end-to-end |
 
-Le altre dipendenze (NestJS, Prisma, Next.js, Keycloak, Temporal…) si aggiungono a questa tabella quando entrano, nel passo che le usa.
+Le dipendenze delle fasi successive si aggiungono a questa tabella quando entrano, nel passo che le usa.
 
 Convenzioni:
 
