@@ -14,6 +14,7 @@ export const TEST_ENV = {
   KEYCLOAK_URL: "http://keycloak.test",
   KEYCLOAK_API_ADMIN_SECRET: "test-secret-not-used-0000",
   OUTBOX_DISPATCH_INTERVAL_MS: "0",
+  IDENTITY_SYNC_ON_START: "false",
 };
 
 export interface TestApi {

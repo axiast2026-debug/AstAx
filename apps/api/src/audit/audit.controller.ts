@@ -6,6 +6,7 @@ import type { AuthContext } from "../auth/auth-context.js";
 import { CurrentAuth, RequirePermission } from "../auth/decorators.js";
 import { parseInput } from "../http/validation.js";
 import { DB } from "../infra/tokens.js";
+import { actorOf, AuditService } from "./audit.service.js";
 
 const querySchema = z.object({
   before: z.coerce.bigint().positive().optional(),
@@ -18,7 +19,10 @@ const querySchema = z.object({
 @ApiBearerAuth()
 @Controller("admin/audit")
 export class AuditController {
-  constructor(@Inject(DB) private readonly db: DbClient) {}
+  constructor(
+    @Inject(DB) private readonly db: DbClient,
+    @Inject(AuditService) private readonly audit: AuditService,
+  ) {}
 
   @Get()
   @RequirePermission("auditLog.viewAll")
@@ -31,6 +35,12 @@ export class AuditController {
         take: limit,
       }),
     );
+    // Reading everyone's actions is itself recorded (CLAUDE.md rule 4).
+    await this.audit.record(actorOf(auth), {
+      action: "AUDIT_LOG_READ",
+      targetType: "AuditLog",
+      after: { before: before?.toString() ?? null, limit, action: action ?? null },
+    });
     return {
       entries: rows.map((r) => ({
         seq: r.seq.toString(),

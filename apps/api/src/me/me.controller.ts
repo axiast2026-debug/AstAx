@@ -162,6 +162,23 @@ export class MeController {
     });
   }
 
+  /**
+   * Called by the web apps right after a login completes: the access is written to
+   * the audit log with the browser's IP and user agent (CLAUDE.md rule 4).
+   */
+  @Post("me/logins")
+  @HttpCode(204)
+  @RequirePermission("session.manageOwn")
+  @NoContext()
+  @AllowPendingLegal()
+  async login(@CurrentAuth() auth: AuthContext): Promise<void> {
+    await this.audit.record(actorOf(auth), {
+      action: "LOGIN",
+      targetType: "User",
+      targetId: auth.userId,
+    });
+  }
+
   @Post("me/sessions/logout-all")
   @HttpCode(204)
   @RequirePermission("session.manageOwn")

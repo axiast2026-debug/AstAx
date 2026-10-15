@@ -5,6 +5,7 @@ import type { EmailSender } from "@astax/adapters/email";
 import { KEYCLOAK_CLIENTS } from "@astax/adapters/identity";
 import { recordDomainEvent, withContext, type DbClient } from "@astax/db";
 import { membershipGrantProblems } from "@astax/shared/domain";
+import { formatDate } from "@astax/shared/format";
 import type { Logger } from "@astax/shared/logging";
 import type { MembershipFlags, MembershipRole } from "@astax/shared/permissions";
 import { requireSettingAt, type SettingVersion } from "@astax/shared/settings";
@@ -132,6 +133,19 @@ export class TeamService {
     const emailHash = this.cipher.blindIndex("email", input.email);
     const now = this.clock.now();
 
+    // Only professionals join a team: an address already used by a private customer
+    // or by AstAx staff cannot become a broker or agency user (SIC-05, ADR 0002).
+    const keycloakUser = await this.identity.findUserByEmail(input.email);
+    if (keycloakUser) {
+      const roles = await this.identity.realmRoles(keycloakUser.id);
+      if (!roles.includes("astax-professional")) {
+        throw new ProblemError(
+          "CONFLICT",
+          "This address belongs to an account that is not professional",
+        );
+      }
+    }
+
     const { invite, organizationName, inviterName, validityDays } = await withContext(
       this.db,
       auth.db,
@@ -177,7 +191,6 @@ export class TeamService {
       },
     );
 
-    const keycloakUser = await this.identity.findUserByEmail(input.email);
     if (!keycloakUser) {
       const keycloakId = await this.identity.createUser({
         email: input.email,
@@ -198,10 +211,7 @@ export class TeamService {
         organizzazione: organizationName,
         ruolo: labels.role[input.role],
         link: `${this.config.WEB_URL}/inviti`,
-        scadenza: new Intl.DateTimeFormat("it-IT", {
-          timeZone: "Europe/Rome",
-          dateStyle: "long",
-        }).format(invite.expiresAt),
+        scadenza: formatDate(invite.expiresAt, "it"),
       });
       await this.email.send({ to: input.email, ...message });
     }
@@ -215,8 +225,14 @@ export class TeamService {
   async revokeInvite(auth: AuthContext, inviteId: string): Promise<void> {
     const now = this.clock.now();
     await withContext(this.db, auth.db, async (tx) => {
+      // Own organization checked here; row level security is only the second line (rule 3).
       const invite = await tx.teamInvite.findFirst({
-        where: { id: inviteId, acceptedAt: null, revokedAt: null },
+        where: {
+          id: inviteId,
+          organizationId: this.membershipOf(auth).organizationId,
+          acceptedAt: null,
+          revokedAt: null,
+        },
       });
       if (!invite) throw new ProblemError("NOT_FOUND");
       await tx.teamInvite.update({ where: { id: inviteId }, data: { revokedAt: now } });

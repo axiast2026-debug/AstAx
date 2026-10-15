@@ -153,6 +153,16 @@ export class KeycloakAdmin {
     await this.call("deleteSession", "DELETE", `/sessions/${sessionId}`);
   }
 
+  /** Names of the realm roles assigned to a user (e.g. astax-private, astax-professional). */
+  async realmRoles(userId: string): Promise<string[]> {
+    const roles = await this.call<{ name: string }[]>(
+      "realmRoles",
+      "GET",
+      `/users/${userId}/role-mappings/realm`,
+    );
+    return roles.map((r) => r.name);
+  }
+
   /** Removes every credential of a type (e.g. "otp"), as when the administrator resets the second factor. */
   async removeCredentials(userId: string, type: string): Promise<number> {
     const credentials = await this.call<{ id: string; type: string }[]>(

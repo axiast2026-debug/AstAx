@@ -30,12 +30,17 @@ export function totp(secret: string, atMs: number): string {
   return String((hmac.readUInt32BE(offset) & 0x7fffffff) % 1_000_000).padStart(6, "0");
 }
 
-/** Keycloak password form, then the mandatory TOTP setup of the first login (SIC-05). */
+/**
+ * Keycloak password form, then the mandatory TOTP setup of the first login (SIC-05).
+ * With `wrongCodeFirst` a wrong code is tried first and must be refused.
+ * Returns the TOTP secret, needed for the next logins.
+ */
 export async function loginProfessional(
   page: Page,
   email: string,
   password: string,
-): Promise<void> {
+  options: { wrongCodeFirst?: boolean } = {},
+): Promise<string> {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Accedi" }).click();
@@ -43,9 +48,45 @@ export async function loginProfessional(
   const secretField = page.locator('input[name="totpSecret"]');
   await expect(secretField).toBeAttached();
   const secret = await secretField.inputValue();
+  if (options.wrongCodeFirst) {
+    const right = totp(secret, clock.now().getTime());
+    await page.locator("#totp").fill(right === "000000" ? "111111" : "000000");
+    await page.locator('input[name="userLabel"]').fill("e2e");
+    await page.locator('#kc-totp-settings-form [type="submit"]').first().click();
+    // Still on the setup page: no way in without a valid code.
+    await expect(page.locator("#kc-totp-settings-form")).toBeVisible();
+  }
   await page.locator("#totp").fill(totp(secret, clock.now().getTime()));
   await page.locator('input[name="userLabel"]').fill("e2e");
   await page.locator('#kc-totp-settings-form [type="submit"]').first().click();
+  return secret;
+}
+
+/**
+ * A later login: password, then the TOTP code is asked again. The code of the next
+ * 30-second step is used, because Keycloak refuses a code that was already used.
+ */
+export async function loginProfessionalAgain(
+  page: Page,
+  email: string,
+  password: string,
+  secret: string,
+): Promise<void> {
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "Accedi" }).click();
+  const otp = page.locator("#otp");
+  await expect(otp).toBeVisible();
+  await otp.fill(totp(secret, clock.now().getTime() + 30_000));
+  await page.locator('#kc-otp-login-form [type="submit"]').first().click();
+}
+
+/** Number of emails Mailpit holds for an address. */
+export async function mailCount(email: string): Promise<number> {
+  const list = (await (
+    await fetch(`${MAILPIT_URL}/api/v1/search?query=${encodeURIComponent(`to:${email}`)}`)
+  ).json()) as { messages_count: number };
+  return list.messages_count;
 }
 
 /** Private login: email, then the code read from the local Mailpit. */
@@ -79,7 +120,8 @@ async function readCode(email: string): Promise<string> {
 
 /** Accepts the legal texts in force when the app asks for them (LEG-02). */
 export async function acceptLegalIfAsked(page: Page): Promise<void> {
-  if (page.url().endsWith("/documenti-legali")) {
+  // Customer and professional site: /documenti-legali; back office: /accetta-documenti.
+  if (/\/(documenti-legali|accetta-documenti)$/.test(page.url())) {
     await page.getByRole("button", { name: /accetto|pranoj/ }).click();
   }
 }

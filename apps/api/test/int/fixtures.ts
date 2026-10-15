@@ -64,8 +64,16 @@ export class FakeIdentityAdmin implements IdentityAdmin {
     this.users.set(user.email, id);
     return id;
   }
+  /** Realm roles by Keycloak id; users added by hand in a test are professionals unless set here. */
+  readonly roles = new Map<string, string[]>();
+
+  async realmRoles(userId: string) {
+    this.track("realmRoles", userId);
+    return this.roles.get(userId) ?? ["astax-professional"];
+  }
   async addRealmRoles(userId: string, roles: string[]) {
     this.track("addRealmRoles", userId, roles);
+    this.roles.set(userId, [...(this.roles.get(userId) ?? []), ...roles]);
   }
   async executeActionsEmail(userId: string, actions: string[], options: unknown) {
     this.track("executeActionsEmail", userId, actions, options);
@@ -134,6 +142,7 @@ export async function startHarness(): Promise<Harness> {
     KEYCLOAK_URL: "http://keycloak.test",
     KEYCLOAK_API_ADMIN_SECRET: "test-secret-not-used-0000",
     OUTBOX_DISPATCH_INTERVAL_MS: "0",
+    IDENTITY_SYNC_ON_START: "false",
   });
   const app = await createApp(config, {
     clock,

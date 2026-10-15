@@ -78,6 +78,9 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 | Dispatcher dell'outbox nell'API, senza destinatari | Notifiche e workflow non esistono ancora | Fase 3 (passa al worker) |
 | Eccezione alla regola pnpm sull'età minima dei pacchetti per Next.js 16.4.1 e React 19.3.1 | Correggono vulnerabilità critiche | Da togliere appena superano l'età minima |
 | Testi in albanese del back office da far rileggere a un madrelingua | Tradotti da Claude | Fase 7 |
+| Sicurezza a livello di riga: tutto il back office è «privilegiato» (anche contabilità e assistenza possono scrivere parametri e utenti a livello di database); il registro della propria organizzazione è leggibile da ogni membro | La prima linea (API) distingue i ruoli; il database non conosce ancora il ruolo del back office né il titolare | Fase 2, aggiungendo il ruolo alle variabili di contesto |
+| Blocco dei tentativi di accesso in Keycloak (10 errori, attesa massima 15 minuti) scritto nel file del realm | Valori tecnici di sicurezza, non di business; da decidere se diventano parametri | Fase 8 |
+| Isolamento dei dati per contesto provato dal database, non ancora da schermate con dati delle organizzazioni | In fase 1 non esistono ancora schermate di questo tipo | Fase 2, con le prime richieste |
 | `pnpm db:reset` mai provato da Claude | Prisma chiede il consenso esplicito di Dan quando lo lancia un agente AI | Alla prima occasione, con il consenso di Dan |
 
 ## Decisioni (ADR)

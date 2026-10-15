@@ -41,6 +41,12 @@ export interface WebAuthOptions {
   discover?: (clientId: string) => Promise<oidc.Configuration>;
 }
 
+/** The end user's browser, as seen by the web app (X-Forwarded-For from the proxy in front). */
+export interface BrowserClient {
+  forwardedFor?: string | null;
+  userAgent?: string | null;
+}
+
 export class SessionExpiredError extends Error {
   constructor() {
     super("Session expired");
@@ -128,13 +134,17 @@ export class WebAuth {
       (tokens as { refresh_expires_in?: number }).refresh_expires_in ?? 0,
     );
     if (!tokens.refresh_token) throw new Error("No refresh token from the identity provider");
+    if (!tokens.expires_in) throw new Error("No token lifetime from the identity provider");
+    const accessExpiresAt = now + tokens.expires_in * 1000;
     return {
       kind,
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token,
       idToken: tokens.id_token ?? null,
-      accessExpiresAt: now + (tokens.expires_in ?? 60) * 1000,
-      refreshExpiresAt: now + (refreshSeconds > 0 ? refreshSeconds : 3600) * 1000,
+      accessExpiresAt,
+      // Session limits come from Keycloak (session.* parameters, SIC-05). Without
+      // them the session ends with the access token: nothing is invented here.
+      refreshExpiresAt: refreshSeconds > 0 ? now + refreshSeconds * 1000 : accessExpiresAt,
       contextId,
     };
   }
@@ -180,13 +190,24 @@ export class WebAuth {
     await this.save(id, { ...session, contextId });
   }
 
-  /** Calls the API as the user, with the active context. */
-  async api(id: string | undefined, path: string, init: RequestInit = {}): Promise<Response> {
+  /**
+   * Calls the API as the user, with the active context. The browser's address and
+   * user agent are passed on, so the audit log and legal acceptances record the
+   * user's, not this server's (LEG-01, CLAUDE.md rule 4).
+   */
+  async api(
+    id: string | undefined,
+    path: string,
+    init: RequestInit = {},
+    client: BrowserClient = {},
+  ): Promise<Response> {
     const session = await this.session(id);
     if (!session) throw new SessionExpiredError();
     const headers = new Headers(init.headers);
     headers.set("authorization", `Bearer ${session.accessToken}`);
     if (session.contextId) headers.set("x-astax-context", session.contextId);
+    if (client.forwardedFor) headers.set("x-forwarded-for", client.forwardedFor);
+    if (client.userAgent) headers.set("user-agent", client.userAgent.slice(0, 300));
     if (init.body !== undefined && !headers.has("content-type"))
       headers.set("content-type", "application/json");
     const response = await fetch(`${this.options.apiUrl}${path}`, {
@@ -196,6 +217,11 @@ export class WebAuth {
     });
     if (response.status === 401) throw new SessionExpiredError();
     return response;
+  }
+
+  /** Writes the completed login to the audit log, with the browser's data. */
+  async recordLogin(id: string, client: BrowserClient): Promise<void> {
+    await this.api(id, "/me/logins", { method: "POST" }, client);
   }
 
   /** Ends the session here and at the identity provider; returns where to send the browser. */

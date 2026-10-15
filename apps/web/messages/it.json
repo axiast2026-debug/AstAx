@@ -84,7 +84,7 @@
   "legal": {
     "title": "Documenti da accettare",
     "intro": "Prima di continuare leggi e accetta questi documenti. Registriamo la versione, la data e l'ora.",
-    "notValidated": "Testo provvisorio, in attesa del legale",
+    "notValidated": "[DA VALIDARE — LEGALE]",
     "version": "Versione {number}",
     "accept": "Ho letto e accetto"
   },

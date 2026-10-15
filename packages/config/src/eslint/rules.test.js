@@ -35,6 +35,8 @@ tester.run("no-ui-literals", noUiLiterals, {
     "const a = <p>{t('home.title')}</p>;",
     "const a = <p> · </p>;",
     "const a = <p>{1234}</p>;",
+    "const a = <p>{ok ? t('yes') : t('no')}</p>;",
+    "const a = <p>{value ?? ''}</p>;",
     "const a = <input type='text' className='w-full' placeholder={t('form.plate')} />;",
   ],
   invalid: [
@@ -43,6 +45,9 @@ tester.run("no-ui-literals", noUiLiterals, {
     { code: "const a = <p>{`Offerte: ${n}`}</p>;", errors: [{ messageId: "literal" }] },
     { code: "const a = <input placeholder='Targa' />;", errors: [{ messageId: "literal" }] },
     { code: "const a = <img alt={'Logo AstAx'} />;", errors: [{ messageId: "literal" }] },
+    { code: "const a = <p>{ok ? 'Sì' : t('no')}</p>;", errors: [{ messageId: "literal" }] },
+    { code: "const a = <p>{error && 'Errore'}</p>;", errors: [{ messageId: "literal" }] },
+    { code: "const a = <p>{name ?? 'Anonimo'}</p>;", errors: [{ messageId: "literal" }] },
   ],
 });
 

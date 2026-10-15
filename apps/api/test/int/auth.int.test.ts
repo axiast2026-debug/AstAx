@@ -147,9 +147,21 @@ describe("LEG-01 LEG-02 legal documents gate", () => {
     const created = await h.call("/admin/legal/documents/cookie-policy/versions", {
       token: admin,
       context: adminContext,
-      body: { contentMd: "[DA VALIDARE — LEGALE]\n\n# Cookie policy\n\nVersione 2." },
+      body: {
+        contentMd: "[DA VALIDARE — LEGALE]\n\n# Cookie policy\n\nVersione 2.",
+        reason: "Nuovi cookie tecnici",
+      },
     });
     expect(created.status).toBe(201);
+    // Every administrator change keeps before, after, author and reason (docs/permessi.md).
+    const logged = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.auditLog.findFirstOrThrow({ where: { action: "LEGAL_VERSION_CREATED" } }),
+    );
+    expect(logged).toMatchObject({
+      reason: "Nuovi cookie tecnici",
+      before: { number: 1, status: "DRAFT" },
+      after: { key: "cookie-policy", number: 2, status: "DRAFT" },
+    });
 
     const owner = await h.tokenFor("agenzia-cinque-owner");
     const pending = (await (await h.call("/legal/pending", { token: owner })).json()) as {
@@ -170,7 +182,7 @@ describe("LEG-01 LEG-02 legal documents gate", () => {
     const response = await h.call(`/admin/legal/versions/${version.id}/validate`, {
       token: admin,
       context: membershipId("admin", "astax"),
-      body: {},
+      body: { reason: "Testo arrivato dal legale" },
     });
     expect(response.status).toBe(409);
   });

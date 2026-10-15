@@ -74,6 +74,18 @@ describe("fase 1 passo 8: team", () => {
     expect(me.memberships[0]?.flags.canIssue).toBe(true);
   });
 
+  it("refuses to invite an address that belongs to a private customer, writing nothing", async () => {
+    const email = "cliente.privato@example.test";
+    h.identity.users.set(email, "kc-some-private");
+    h.identity.roles.set("kc-some-private", ["astax-private"]);
+    const before = await withContext(h.db, SYSTEM_CONTEXT, (tx) => tx.teamInvite.count());
+    const response = await call("/team/invites", {
+      body: { email, firstName: "Cliente", lastName: "Privato", role: "OPERATOR" },
+    });
+    expect(response.status).toBe(409);
+    expect(await withContext(h.db, SYSTEM_CONTEXT, (tx) => tx.teamInvite.count())).toBe(before);
+  });
+
   it("refuses roles and flags that do not exist for an agency", async () => {
     const wrongRole = await call("/team/invites", {
       body: { email: "x@agenzia-sei.test", firstName: "X", lastName: "Y", role: "OWNER" },

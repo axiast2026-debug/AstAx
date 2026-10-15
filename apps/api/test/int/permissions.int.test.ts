@@ -37,6 +37,20 @@ const ENDPOINTS: Endpoint[] = [
   { action: "session.manageOwn", method: "GET", path: () => "/me/sessions", personal: true },
   {
     action: "session.manageOwn",
+    method: "POST",
+    path: () => "/me/sessions/logout-all",
+    body: {},
+    personal: true,
+  },
+  {
+    action: "session.manageOwn",
+    method: "POST",
+    path: () => "/me/logins",
+    body: {},
+    personal: true,
+  },
+  {
+    action: "session.manageOwn",
     method: "DELETE",
     path: () => `/me/sessions/${randomUUID()}`,
     personal: true,
@@ -133,6 +147,33 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await h.close();
+});
+
+describe("SIC-01 every API route is in the table", () => {
+  it("the routes published in OpenAPI are exactly the table's, apart from the public health check", async () => {
+    const document = (await (await h.call("/openapi.json")).json()) as {
+      paths: Record<string, Record<string, unknown>>;
+    };
+    const published = Object.entries(document.paths)
+      .flatMap(([path, methods]) =>
+        Object.keys(methods).map((method) => `${method.toUpperCase()} ${path}`),
+      )
+      .filter((route) => route !== "GET /health")
+      .sort();
+    const covered = [
+      ...new Set(
+        ENDPOINTS.map(
+          (e) =>
+            `${e.method} ${e
+              .path()
+              .replace(/[0-9a-f-]{36}/g, "{id}")
+              .replace("/documents/none/", "/documents/{key}/")
+              .replace("/settings/invitations.max", "/settings/{key}")}`,
+        ),
+      ),
+    ].sort();
+    expect(published).toEqual(covered);
+  });
 });
 
 describe("SIC-01 permission table over HTTP, role by role", () => {

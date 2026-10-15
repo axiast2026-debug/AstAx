@@ -23,18 +23,28 @@ export const noUiLiterals = {
       }
       return null;
     };
+    /** A string the expression may render: literals, templates, and both branches of `?:`, `&&`, `||`, `??`. */
+    const rendersText = (expression) => {
+      switch (expression?.type) {
+        case "Literal":
+          return isText(expression.value);
+        case "TemplateLiteral":
+          return expression.quasis.some((quasi) => isText(quasi.value.cooked));
+        case "ConditionalExpression":
+          return rendersText(expression.consequent) || rendersText(expression.alternate);
+        case "LogicalExpression":
+          return rendersText(expression.left) || rendersText(expression.right);
+        default:
+          return false;
+      }
+    };
     return {
       JSXText(node) {
         if (isText(node.value)) context.report({ node, messageId: "literal" });
       },
       JSXExpressionContainer(node) {
         if (node.parent?.type === "JSXAttribute") return;
-        const { expression } = node;
-        const hasText =
-          (expression.type === "Literal" && isText(expression.value)) ||
-          (expression.type === "TemplateLiteral" &&
-            expression.quasis.some((quasi) => isText(quasi.value.cooked)));
-        if (hasText) context.report({ node, messageId: "literal" });
+        if (rendersText(node.expression)) context.report({ node, messageId: "literal" });
       },
       JSXAttribute(node) {
         if (node.name.type !== "JSXIdentifier" || !TEXT_ATTRIBUTES.has(node.name.name)) return;

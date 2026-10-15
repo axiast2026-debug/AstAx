@@ -1,6 +1,13 @@
 import { randomBytes } from "node:crypto";
 import { expect, test } from "@playwright/test";
-import { acceptLegalIfAsked, e2eState, loginPrivate, loginProfessional } from "../support/auth.js";
+import {
+  acceptLegalIfAsked,
+  e2eState,
+  loginPrivate,
+  loginProfessional,
+  loginProfessionalAgain,
+  mailCount,
+} from "../support/auth.js";
 
 const WEB = "http://localhost:3000";
 const ADMIN = "http://localhost:3001";
@@ -30,15 +37,35 @@ test.describe("fase 1: accessi", () => {
     await page.getByRole("link", { name: "Profilo" }).first().click();
     await expect(page.getByText(email)).toBeVisible();
     await expect(page.getByText("Accessi attivi")).toBeVisible();
+
+    // «Assistenza» in the top bar: the page arrives in a later phase, it is not a 404.
+    await page.getByRole("link", { name: "Assistenza" }).click();
+    await expect(page.getByRole("heading", { name: "Assistenza" })).toBeVisible();
   });
 
-  test("il titolare di un'agenzia entra con password e TOTP, configurato al primo accesso", async ({
+  test("l'email di un professionista nella pagina dei privati non riceve codici e non entra", async ({
+    page,
+  }) => {
+    const { users } = e2eState();
+    const before = await mailCount(users.admin);
+    await page.goto(`${WEB}/auth/login?as=private`);
+    await page.getByLabel("Email").fill(users.admin);
+    await page.getByRole("button", { name: "Inviami il codice" }).click();
+    // Same page as anybody else: the form does not reveal professional addresses.
+    await expect(page.getByText("Scrivi il codice")).toBeVisible();
+    await page.getByLabel("Codice").fill("123456");
+    await page.getByRole("button", { name: "Accedi" }).click();
+    await expect(page.getByText("Il codice non è corretto.")).toBeVisible();
+    expect(await mailCount(users.admin)).toBe(before);
+  });
+
+  test("il titolare entra con password e TOTP: configurato al primo accesso, chiesto di nuovo dopo, un codice sbagliato non basta", async ({
     page,
   }) => {
     const { users, password } = e2eState();
     await page.goto(WEB);
     await page.getByRole("link", { name: "Accesso professionisti" }).click();
-    await loginProfessional(page, users.owner, password);
+    const secret = await loginProfessional(page, users.owner, password, { wrongCodeFirst: true });
     await acceptLegalIfAsked(page);
 
     await expect(page).toHaveURL(`${WEB}/`);
@@ -46,6 +73,13 @@ test.describe("fase 1: accessi", () => {
     const menu = page.getByRole("navigation", { name: "Menu principale" });
     await expect(menu.getByRole("link", { name: "Team" })).toBeVisible();
     await expect(menu.getByRole("link", { name: "Contabilità" })).toBeVisible();
+
+    // Log out and back in: password alone is not enough, the TOTP code is asked again.
+    await page.getByRole("button", { name: "Esci" }).click();
+    await page.getByRole("link", { name: "Accesso professionisti" }).click();
+    await loginProfessionalAgain(page, users.owner, password, secret);
+    await expect(page).toHaveURL(`${WEB}/`);
+    await expect(page.getByText("Agenzia Uno")).toBeVisible();
   });
 
   test("Marco Rossi passa da Agenzia Uno ad Agenzia Tre e vede solo il contesto attivo", async ({

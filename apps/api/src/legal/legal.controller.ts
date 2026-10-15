@@ -17,7 +17,9 @@ import { CLOCK, DB } from "../infra/tokens.js";
 import { LegalService } from "./legal.service.js";
 
 const acceptSchema = z.object({ versionIds: z.array(z.uuid()).min(1).max(20) }).strict();
-const newVersionSchema = z.object({ contentMd: z.string().min(1).max(200_000) }).strict();
+const reason = z.string().trim().min(3).max(500);
+const newVersionSchema = z.object({ contentMd: z.string().min(1).max(200_000), reason }).strict();
+const validateSchema = z.object({ reason }).strict();
 
 @ApiTags("legal")
 @ApiBearerAuth()
@@ -79,7 +81,11 @@ export class LegalController {
         action: "LEGAL_VERSION_CREATED",
         targetType: "LegalDocumentVersion",
         targetId: version.id,
-        after: { key, number },
+        before: document.versions[0]
+          ? { number: document.versions[0].number, status: document.versions[0].status }
+          : null,
+        after: { key, number, status: version.status },
+        reason: input.reason,
       });
       return { id: version.id, key, number, status: version.status };
     });
@@ -88,7 +94,8 @@ export class LegalController {
   /** Marks a version as validated by the lawyer (LEG-03); only then can production start. */
   @Post("admin/legal/versions/:id/validate")
   @RequirePermission("admin.legal.manage")
-  async validate(@CurrentAuth() auth: AuthContext, @Param("id") id: string) {
+  async validate(@CurrentAuth() auth: AuthContext, @Param("id") id: string, @Body() body: unknown) {
+    const input = parseInput(validateSchema, body);
     const now = this.clock.now();
     return withContext(this.db, auth.db, async (tx) => {
       const version = await tx.legalDocumentVersion.findUnique({ where: { id } });
@@ -106,6 +113,7 @@ export class LegalController {
         targetId: id,
         before: { status: version.status },
         after: { status: updated.status },
+        reason: input.reason,
       });
       return { id, status: updated.status };
     });

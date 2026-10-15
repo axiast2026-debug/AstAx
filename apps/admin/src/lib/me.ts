@@ -45,7 +45,7 @@ export async function requireViewer(
   const { body: me } = await api<Me>("/me");
   if (!options.allowPendingLegal) {
     const { body: pending } = await api<unknown[]>("/legal/pending");
-    if (pending.length > 0) redirect("/documenti-legali");
+    if (pending.length > 0) redirect("/accetta-documenti");
   }
   if (me.kind === "PRIVATE") return { me, actor: { kind: "PRIVATE" }, activeMembership: null };
 

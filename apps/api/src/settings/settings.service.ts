@@ -2,9 +2,11 @@ import type { Clock } from "@astax/adapters/clock";
 import { recordDomainEvent, withContext, type DbClient } from "@astax/db";
 import type { Logger } from "@astax/shared/logging";
 import {
+  crossSettingErrors,
   isSettingKey,
   planSettingChange,
   requireSettingAt,
+  snapshotSettingsAt,
   SETTING_KEYS,
   type SettingKey,
   type SettingVersion,
@@ -99,7 +101,16 @@ export class SettingsService {
     input: { value: unknown; reason: string; validFrom?: Date },
   ) {
     if (!isSettingKey(key)) throw new ProblemError("NOT_FOUND");
-    const validFrom = input.validFrom ?? this.clock.now();
+    const now = this.clock.now();
+    const validFrom = input.validFrom ?? now;
+    // The history is evidence: what was in force yesterday cannot change today.
+    if (validFrom < now) {
+      throw new ProblemError("VALIDATION_FAILED", "A parameter cannot change in the past");
+    }
+    // Session and OTP values live in Keycloak too and are applied when saved.
+    if (isIdentitySetting(key) && validFrom > now) {
+      throw new ProblemError("VALIDATION_FAILED", "This parameter can only change from now");
+    }
     const next = await withContext(this.db, auth.db, async (tx) => {
       const rows = await tx.setting.findMany({ where: { key }, orderBy: { version: "asc" } });
       const current = rows.length > 0 ? toVersion(rows[rows.length - 1] as Row) : undefined;
@@ -116,6 +127,16 @@ export class SettingsService {
         throw new ProblemError(
           "VALIDATION_FAILED",
           "Invalid value, reason or validity date for this parameter",
+        );
+      }
+      // Rules tying parameters together hold on the set in force from validFrom.
+      const all = (await tx.setting.findMany()).map((r) => toVersion(r as Row));
+      const problems = crossSettingErrors(snapshotSettingsAt([...all, planned], validFrom));
+      if (problems.length > 0) {
+        throw new ProblemError(
+          "VALIDATION_FAILED",
+          undefined,
+          problems.map((problem) => ({ path: "value", issue: problem })),
         );
       }
       const row = await tx.setting.create({
@@ -151,8 +172,8 @@ export class SettingsService {
       return planned;
     });
 
-    if (isIdentitySetting(key) && validFrom <= this.clock.now())
-      await this.pushIdentitySettings(auth);
+    // Identity parameters are always in force from now (checked above): apply them at once.
+    if (isIdentitySetting(key)) await this.pushIdentitySettings(auth);
     return {
       key,
       version: next.version,

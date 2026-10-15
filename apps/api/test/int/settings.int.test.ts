@@ -87,6 +87,38 @@ describe("fase 1 passo 10: parameters with history", () => {
     expect(decimal.status).toBe(400);
   });
 
+  it("refuses a change in the past: the history is evidence (ASTA-09)", async () => {
+    const response = await h.call("/admin/settings/invitations.topUp.extra", {
+      token: admin,
+      context: adminContext(),
+      method: "PUT",
+      body: { value: 3, reason: "prova", validFrom: "2026-11-15T09:00:00.000Z" },
+    });
+    expect(response.status).toBe(400);
+  });
+
+  it("refuses a future date for session and OTP parameters, applied to Keycloak when saved", async () => {
+    const response = await h.call("/admin/settings/session.privateDays", {
+      token: admin,
+      context: adminContext(),
+      method: "PUT",
+      body: { value: 20, reason: "prova", validFrom: "2026-12-01T00:00:00.000Z" },
+    });
+    expect(response.status).toBe(400);
+  });
+
+  it("refuses a value that breaks a rule tying parameters together", async () => {
+    // The default duration must be one of the durations offered (ASTA-03).
+    const response = await h.call("/admin/settings/auction.defaultDurationWorkingHours", {
+      token: admin,
+      context: adminContext(),
+      method: "PUT",
+      body: { value: 3, reason: "prova" },
+    });
+    expect(response.status).toBe(400);
+    expect(await response.text()).toContain("auction.durationsWorkingHours");
+  });
+
   it("SIC-05 a session parameter is applied to Keycloak at once", async () => {
     const response = await h.call("/admin/settings/session.staffIdleHours", {
       token: admin,
@@ -135,6 +167,32 @@ describe("profile sessions (spec 01, «Accesso e sicurezza»)", () => {
       204,
     );
     expect(h.identity.sessions.get("kc-bo-support")).toHaveLength(1);
+  });
+});
+
+describe("rule 4: accesses and reads of the log are recorded", () => {
+  it("a login is written with the browser's address passed on by the web app", async () => {
+    const response = await fetch(`${h.baseUrl}/me/logins`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${admin}`,
+        "x-forwarded-for": "198.51.100.23",
+        "user-agent": "Browser di prova",
+      },
+    });
+    expect(response.status).toBe(204);
+    const entry = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.auditLog.findFirstOrThrow({ where: { action: "LOGIN" }, orderBy: { seq: "desc" } }),
+    );
+    expect(entry).toMatchObject({ ip: "198.51.100.23", userAgent: "Browser di prova" });
+  });
+
+  it("reading the whole audit log is itself recorded", async () => {
+    await h.call("/admin/audit?limit=5", { token: admin, context: adminContext() });
+    const entry = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.auditLog.findFirst({ where: { action: "AUDIT_LOG_READ" }, orderBy: { seq: "desc" } }),
+    );
+    expect(entry?.after).toMatchObject({ limit: 5 });
   });
 });
 

@@ -79,7 +79,7 @@
   "legal": {
     "title": "Dokumente për t'u pranuar",
     "intro": "Para se të vazhdoni, lexoni dhe pranoni këto dokumente. Regjistrojmë versionin, datën dhe orën.",
-    "notValidated": "Tekst i përkohshëm, në pritje të juristit",
+    "notValidated": "[DA VALIDARE — LEGALE]",
     "version": "Versioni {number}",
     "accept": "I lexova dhe i pranoj"
   },

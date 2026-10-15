@@ -103,8 +103,14 @@ export class AuthGuard implements CanActivate {
 
     const kind = kindFromToken(token);
     if (!kind) return deny("FORBIDDEN", anonymousActor, { reason: "TOKEN_CLIENT_ROLE_MISMATCH" });
-    const outcome = await this.users.resolve(token, kind);
-    if ("refused" in outcome) return deny("FORBIDDEN", anonymousActor, { reason: outcome.refused });
+    const outcome = await this.users.resolve(token, kind, { ip, userAgent });
+    if ("refused" in outcome) {
+      return deny(
+        "FORBIDDEN",
+        { ...anonymousActor, userId: outcome.userId ?? null },
+        { reason: outcome.refused },
+      );
+    }
     const user = outcome.user;
     const userActor: AuditActor = { ...anonymousActor, userId: user.id };
     if (user.status !== "ACTIVE")

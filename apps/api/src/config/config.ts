@@ -25,6 +25,11 @@ const configSchema = z
     MAILPIT_URL: z.url().default("http://127.0.0.1:8025"),
     EMAIL_FROM: z.email().default("noreply@astax.test"),
     /** 0 switches the outbox dispatcher off (tests run it by hand). */
+    /** Writes session and OTP parameters to Keycloak at start-up (false in tests). */
+    IDENTITY_SYNC_ON_START: z
+      .enum(["true", "false"])
+      .default("true")
+      .transform((v) => v === "true"),
     OUTBOX_DISPATCH_INTERVAL_MS: z.coerce.number().int().min(0).default(5000),
   })
   // Development tools never run in production (CLAUDE.md rule 13).

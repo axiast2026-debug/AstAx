@@ -8,6 +8,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const callbackUrl = new URL(`${request.nextUrl.pathname}${request.nextUrl.search}`, adminUrl);
   try {
     const id = await webAuth().completeLogin(callbackUrl);
+    // Every access goes to the audit log, with the browser's address (rule 4).
+    await webAuth().recordLogin(id, {
+      forwardedFor: request.headers.get("x-forwarded-for"),
+      userAgent: request.headers.get("user-agent"),
+    });
     const response = NextResponse.redirect(new URL("/", adminUrl));
     response.cookies.set(SESSION_COOKIE, id, {
       httpOnly: true,

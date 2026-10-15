@@ -15,7 +15,7 @@ export interface ResolvedUser {
 }
 
 export type ResolveOutcome =
-  { user: ResolvedUser } | { refused: "NOT_PROVISIONED" | "KIND_MISMATCH" };
+  { user: ResolvedUser } | { refused: "NOT_PROVISIONED" | "KIND_MISMATCH"; userId?: string };
 
 /**
  * Finds the AstAx user behind a token. A private customer is created on the
@@ -31,14 +31,22 @@ export class UserResolver {
     @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
-  async resolve(token: VerifiedToken, kind: UserKind): Promise<ResolveOutcome> {
+  async resolve(
+    token: VerifiedToken,
+    kind: UserKind,
+    client: { ip: string | null; userAgent: string | null },
+  ): Promise<ResolveOutcome> {
     const existing = await withContext(this.db, SYSTEM_CONTEXT, (tx) =>
       tx.user.findUnique({
         where: { keycloakId: token.sub },
         select: { id: true, kind: true, status: true },
       }),
     );
-    if (existing) return existing.kind === kind ? { user: existing } : { refused: "KIND_MISMATCH" };
+    if (existing) {
+      return existing.kind === kind
+        ? { user: existing }
+        : { refused: "KIND_MISMATCH", userId: existing.id };
+    }
     if (!token.email || !token.emailVerified) return { refused: "NOT_PROVISIONED" };
     const emailHash = this.cipher.blindIndex("email", token.email);
 
@@ -61,8 +69,8 @@ export class UserResolver {
             userId: created.id,
             membershipId: null,
             organizationId: null,
-            ip: null,
-            userAgent: null,
+            ip: client.ip,
+            userAgent: client.userAgent,
           },
           {
             action: "USER_PROVISIONED",
@@ -127,8 +135,8 @@ export class UserResolver {
             userId: user.id,
             membershipId: membership.id,
             organizationId: invite.organizationId,
-            ip: null,
-            userAgent: null,
+            ip: client.ip,
+            userAgent: client.userAgent,
           },
           {
             action: "TEAM_INVITE_ACCEPTED",
