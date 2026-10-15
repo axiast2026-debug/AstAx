@@ -17,14 +17,17 @@
     "test:int": "vitest run --config vitest.int.config.ts",
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
-    "reset": "prisma migrate reset --force",
-    "audit:verify": "tsx src/scripts/audit-verify.ts"
+    "reset": "prisma migrate reset --force && tsx src/seed/run.ts",
+    "audit:verify": "tsx src/scripts/audit-verify.ts",
+    "seed": "tsx src/seed/run.ts"
   },
   "dependencies": {
     "@astax/shared": "workspace:*",
     "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.10.0",
-    "pg": "8.23.1"
+    "pg": "8.23.1",
+    "@astax/adapters": "workspace:*",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@astax/config": "workspace:*",

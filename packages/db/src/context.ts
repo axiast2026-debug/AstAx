@@ -20,17 +20,21 @@ export async function withContext<T>(
   db: DbClient,
   context: DbContext,
   work: (tx: DbTransaction) => Promise<T>,
+  options: { timeoutMs?: number } = {},
 ): Promise<T> {
   const userId = context.kind === "USER" ? context.userId : "";
   const organizationId = context.kind === "USER" ? (context.organizationId ?? "") : "";
   const isStaff = context.kind === "USER" && context.isStaff ? "true" : "false";
   const isSystem = context.kind === "SYSTEM" ? "true" : "false";
-  return db.$transaction(async (tx) => {
-    await tx.$executeRaw`SELECT
+  return db.$transaction(
+    async (tx) => {
+      await tx.$executeRaw`SELECT
       set_config('app.user_id', ${userId}, true),
       set_config('app.organization_id', ${organizationId}, true),
       set_config('app.is_staff', ${isStaff}, true),
       set_config('app.is_system', ${isSystem}, true)`;
-    return work(tx);
-  });
+      return work(tx);
+    },
+    { timeout: options.timeoutMs ?? 5_000 },
+  );
 }

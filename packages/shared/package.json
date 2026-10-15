@@ -23,6 +23,10 @@
     "./env": {
       "types": "./dist/env/index.d.ts",
       "default": "./dist/env/index.js"
+    },
+    "./domain": {
+      "types": "./dist/domain/index.d.ts",
+      "default": "./dist/domain/index.js"
     }
   },
   "scripts": {

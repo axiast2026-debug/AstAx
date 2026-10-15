@@ -23,7 +23,8 @@
     "infra:ps": "docker compose --env-file .env -f infra/docker-compose.yml ps",
     "db:migrate": "pnpm --filter @astax/db migrate:deploy",
     "db:reset": "pnpm --filter @astax/db reset",
-    "audit:verify": "pnpm --filter @astax/db audit:verify"
+    "audit:verify": "pnpm --filter @astax/db audit:verify",
+    "db:seed": "pnpm --filter @astax/db seed"
   },
   "devDependencies": {
     "prettier": "3.9.10",
