@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "note": "Pacchetti di copertura, versione 1. Un'offerta può dare coperture uguali o migliori, mai inferiori (OFF-06). Massimali e capitali in euro interi; franchigie in euro interi. Rivalsa e franchigie vanno validate con 3-4 agenzie del pilota prima del lancio.",
+  "legalMinimums": {
+    "rcaBodilyInjuryPerClaimEur": 6450000,
+    "rcaPropertyDamagePerClaimEur": 1300000,
+    "source": "DM 31 maggio 2022"
+  },
+  "packages": [
+    {
+      "code": "BASE",
+      "name": "Base",
+      "version": 1,
+      "requirements": {
+        "rca": { "limitType": "LEGAL_MINIMUMS" },
+        "recourseWaiver": { "required": false },
+        "roadsideAssistance": { "required": false },
+        "legalProtection": { "required": false },
+        "driverAccident": { "required": false },
+        "theftFire": { "required": false },
+        "naturalEventsVandalism": { "required": false },
+        "glass": { "required": false }
+      },
+      "customerText": {
+        "it": "La responsabilità civile obbligatoria con i massimali minimi di legge. È la copertura essenziale per circolare."
+      }
+    },
+    {
+      "code": "PLUS",
+      "name": "Plus",
+      "version": 1,
+      "requirements": {
+        "rca": { "limitType": "SINGLE_LIMIT", "minSingleLimitEur": 10000000 },
+        "recourseWaiver": { "required": true, "minCases": ["EXPIRED_LICENCE", "NON_COMPLIANT_PASSENGER_TRANSPORT"] },
+        "roadsideAssistance": { "required": true },
+        "legalProtection": { "required": true },
+        "driverAccident": { "required": false },
+        "theftFire": { "required": false },
+        "naturalEventsVandalism": { "required": false },
+        "glass": { "required": false }
+      },
+      "customerText": {
+        "it": "Responsabilità civile con massimale unico di 10 milioni di euro, rinuncia alla rivalsa almeno per patente scaduta e trasporto non conforme, assistenza stradale e tutela legale."
+      }
+    },
+    {
+      "code": "COMPLETE",
+      "name": "Completo",
+      "version": 1,
+      "requirements": {
+        "rca": { "limitType": "SINGLE_LIMIT", "minSingleLimitEur": 10000000 },
+        "recourseWaiver": { "required": true, "minCases": ["EXPIRED_LICENCE", "NON_COMPLIANT_PASSENGER_TRANSPORT"] },
+        "roadsideAssistance": { "required": true },
+        "legalProtection": { "required": true },
+        "driverAccident": { "required": true, "minCapitalEur": 50000 },
+        "theftFire": { "required": true, "maxCoinsurancePct": 10, "maxCoinsuranceMinEur": 250, "requiresMarketValue": true },
+        "naturalEventsVandalism": { "required": true, "maxCoinsurancePct": 10, "maxCoinsuranceMinEur": 250 },
+        "glass": { "required": true, "maxDeductibleEur": 150 }
+      },
+      "customerText": {
+        "it": "Tutto il pacchetto Plus, più infortuni del conducente (capitale di almeno 50.000 euro), furto e incendio, eventi naturali e atti vandalici (scoperto al massimo del 10% con minimo non oltre 250 euro) e cristalli (franchigia al massimo di 150 euro)."
+      }
+    }
+  ],
+  "notInPackages": {
+    "note": "Formula di guida e scatola nera sono dati della richiesta, uguali per tutte le offerte. La kasko è fuori dall'MVP."
+  }
+}

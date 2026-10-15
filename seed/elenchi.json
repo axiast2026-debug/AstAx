@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "note": "Elenchi di valori modificabili dall'amministratore (ListValue). Le etichette in albanese (sq) servono al back office e vanno rilette da un madrelingua. Le voci con phase 2 restano inattive nell'MVP.",
+  "lists": {
+    "contractorType": [
+      { "code": "PERSON", "it": "Persona fisica", "sq": "Person fizik" },
+      { "code": "COMPANY", "it": "Società", "sq": "Shoqëri" }
+    ],
+    "vehicleType": [
+      { "code": "CAR", "it": "Autovettura", "sq": "Autoveturë" },
+      { "code": "MOTORCYCLE", "it": "Motociclo", "sq": "Motoçikletë" },
+      { "code": "MOPED", "it": "Ciclomotore", "sq": "Ciklomotor" },
+      { "code": "LIGHT_TRUCK_OWN_USE", "it": "Autocarro fino a 3,5 t per uso proprio", "sq": "Kamionçinë deri në 3,5 t për përdorim vetjak", "phase": 2 },
+      { "code": "CAMPER", "it": "Camper", "sq": "Kamper", "phase": 2 }
+    ],
+    "vehicleUse": [
+      { "code": "PRIVATE", "it": "Uso privato", "sq": "Përdorim privat" },
+      { "code": "PROFESSIONAL_OWN", "it": "Uso professionale del contraente", "sq": "Përdorim profesional i kontraktuesit", "phase": 2 }
+    ],
+    "fuel": [
+      { "code": "PETROL", "it": "Benzina", "sq": "Benzinë" },
+      { "code": "DIESEL", "it": "Gasolio", "sq": "Naftë" },
+      { "code": "LPG", "it": "GPL", "sq": "GPL" },
+      { "code": "CNG", "it": "Metano", "sq": "Metan" },
+      { "code": "HYBRID", "it": "Ibrida", "sq": "Hibride" },
+      { "code": "ELECTRIC", "it": "Elettrica", "sq": "Elektrike" }
+    ],
+    "drivingFormula": [
+      { "code": "FREE", "it": "Guida libera", "sq": "Drejtim i lirë" },
+      { "code": "EXPERT", "it": "Guida esperta (tutti i conducenti con almeno 26 anni)", "sq": "Drejtim me përvojë (të gjithë drejtuesit të paktën 26 vjeç)" },
+      { "code": "EXCLUSIVE", "it": "Guida esclusiva", "sq": "Drejtim ekskluziv" }
+    ],
+    "provenance": [
+      { "code": "FIRST_REGISTRATION", "it": "Prima immatricolazione", "sq": "Regjistrim i parë" },
+      { "code": "USED_WITHOUT_OWN_CERTIFICATE", "it": "Veicolo usato senza attestato proprio", "sq": "Automjet i përdorur pa dëshmi rreziku të vetën" },
+      { "code": "FROM_OTHER_COMPANY", "it": "Da altra compagnia", "sq": "Nga një kompani tjetër" },
+      { "code": "FAMILY_RC", "it": "RC familiare", "sq": "RC familjare" },
+      { "code": "FROM_ABROAD", "it": "Veicolo proveniente dall'estero", "sq": "Automjet i ardhur nga jashtë", "phase": 2 }
+    ],
+    "paymentFrequency": [
+      { "code": "ANNUAL", "it": "Annuale", "sq": "Vjetore" },
+      { "code": "SEMIANNUAL", "it": "Semestrale", "sq": "Gjashtëmujore", "phase": 2 }
+    ],
+    "exclusionCase": [
+      { "code": "VINTAGE", "it": "Veicolo d'epoca o storico", "sq": "Automjet historik ose i epokës", "blockingInWizard": false },
+      { "code": "FOREIGN_OR_TEMPORARY_PLATE", "it": "Targa estera o temporanea", "sq": "Targë e huaj ose e përkohshme", "blockingInWizard": true },
+      { "code": "RENTAL", "it": "Noleggio", "sq": "Qira", "blockingInWizard": true },
+      { "code": "TAXI", "it": "Taxi", "sq": "Taksi", "blockingInWizard": true },
+      { "code": "NCC", "it": "Noleggio con conducente", "sq": "Qira me shofer", "blockingInWizard": true },
+      { "code": "DRIVING_SCHOOL", "it": "Scuola guida", "sq": "Autoshkollë", "blockingInWizard": true },
+      { "code": "HAULAGE_FOR_THIRD_PARTIES", "it": "Trasporto merci per conto terzi", "sq": "Transport mallrash për llogari të të tretëve", "blockingInWizard": true },
+      { "code": "FLEET", "it": "Flotta", "sq": "Flotë", "blockingInWizard": true }
+    ],
+    "declineReason": [
+      { "code": "OUT_OF_TARIFF", "it": "Fuori tariffa", "sq": "Jashtë tarifës" },
+      { "code": "COMPANY_UNAVAILABLE", "it": "Compagnia non disponibile", "sq": "Kompania nuk është e disponueshme" },
+      { "code": "NOT_INSURABLE", "it": "Profilo non assumibile", "sq": "Profil që nuk pranohet" },
+      { "code": "NOT_ENOUGH_TIME", "it": "Tempi stretti", "sq": "Kohë e pamjaftueshme" },
+      { "code": "OTHER", "it": "Altro", "sq": "Tjetër" }
+    ],
+    "annualKmBand": [
+      { "code": "UP_TO_10000", "it": "Fino a 10.000 km", "sq": "Deri në 10.000 km" },
+      { "code": "10000_20000", "it": "Da 10.000 a 20.000 km", "sq": "Nga 10.000 deri në 20.000 km" },
+      { "code": "OVER_20000", "it": "Oltre 20.000 km", "sq": "Mbi 20.000 km" }
+    ],
+    "nightParking": [
+      { "code": "CLOSED_GARAGE", "it": "Box chiuso", "sq": "Garazh i mbyllur" },
+      { "code": "PRIVATE_COURTYARD", "it": "Cortile o posto auto privato", "sq": "Oborr ose vend parkimi privat" },
+      { "code": "STREET", "it": "Strada", "sq": "Rrugë" }
+    ],
+    "maritalStatus": [
+      { "code": "SINGLE", "it": "Celibe o nubile", "sq": "Beqar/e" },
+      { "code": "MARRIED", "it": "Coniugato o coniugata", "sq": "I/e martuar" },
+      { "code": "CIVIL_UNION", "it": "Unito o unita civilmente", "sq": "Në bashkim civil" },
+      { "code": "SEPARATED", "it": "Separato o separata", "sq": "I/e ndarë" },
+      { "code": "DIVORCED", "it": "Divorziato o divorziata", "sq": "I/e divorcuar" },
+      { "code": "WIDOWED", "it": "Vedovo o vedova", "sq": "I/e ve" }
+    ],
+    "profession": [
+      { "code": "EMPLOYEE", "it": "Lavoratore dipendente", "sq": "I/e punësuar" },
+      { "code": "SELF_EMPLOYED", "it": "Lavoratore autonomo", "sq": "I/e vetëpunësuar" },
+      { "code": "FREELANCE_PROFESSIONAL", "it": "Libero professionista", "sq": "Profesionist/e i/e lirë" },
+      { "code": "RETIRED", "it": "Pensionato", "sq": "Pensionist/e" },
+      { "code": "STUDENT", "it": "Studente", "sq": "Student/e" },
+      { "code": "HOMEMAKER", "it": "Casalingo o casalinga", "sq": "Shtëpiak/e" },
+      { "code": "UNEMPLOYED", "it": "In cerca di occupazione", "sq": "Në kërkim të punës" },
+      { "code": "LAW_ENFORCEMENT_MILITARY", "it": "Forze dell'ordine o militare", "sq": "Forcat e rendit ose ushtarak/e" },
+      { "code": "OTHER", "it": "Altro", "sq": "Tjetër" }
+    ],
+    "licenceCategory": [
+      { "code": "AM", "it": "AM", "sq": "AM" },
+      { "code": "A1", "it": "A1", "sq": "A1" },
+      { "code": "A2", "it": "A2", "sq": "A2" },
+      { "code": "A", "it": "A", "sq": "A" },
+      { "code": "B", "it": "B", "sq": "B" },
+      { "code": "BE", "it": "BE", "sq": "BE" },
+      { "code": "C1", "it": "C1", "sq": "C1" },
+      { "code": "C", "it": "C", "sq": "C" }
+    ],
+    "claimResponsibility": [
+      { "code": "MAIN", "it": "Responsabilità principale", "sq": "Përgjegjësi kryesore" },
+      { "code": "SHARED", "it": "Responsabilità paritaria", "sq": "Përgjegjësi e barabartë" }
+    ],
+    "issuanceProblemType": [
+      { "code": "DATA_MISMATCH", "it": "I dati non corrispondono", "sq": "Të dhënat nuk përputhen" },
+      { "code": "CANNOT_ISSUE", "it": "Impossibile emettere", "sq": "Lëshimi i pamundur" }
+    ],
+    "integrationRequestReason": [
+      { "code": "UNREADABLE_DOCUMENT", "it": "Documento non leggibile", "sq": "Dokument i palexueshëm" },
+      { "code": "MISSING_DOCUMENT", "it": "Documento mancante", "sq": "Dokument që mungon" },
+      { "code": "EXPIRED_LICENCE", "it": "Patente scaduta", "sq": "Patentë e skaduar" },
+      { "code": "RESIDENCE_MISMATCH", "it": "Residenza non coerente con i documenti", "sq": "Vendbanimi nuk përputhet me dokumentet" },
+      { "code": "CERTIFICATE_MISMATCH", "it": "Dati dell'attestato non coerenti", "sq": "Të dhënat e dëshmisë së rrezikut nuk përputhen" },
+      { "code": "OTHER", "it": "Altro", "sq": "Tjetër" }
+    ]
+  }
+}

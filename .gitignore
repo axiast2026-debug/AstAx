@@ -1,0 +1,35 @@
+# Dipendenze e build
+node_modules/
+.pnpm-store/
+.turbo/
+dist/
+build/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Test
+playwright-report/
+test-results/
+blob-report/
+
+# Segreti e configurazioni locali
+.env
+.env.local
+.env.*.local
+secrets/
+*.pem
+*.key
+
+# Terraform
+infra/**/.terraform/
+infra/**/*.tfstate
+infra/**/*.tfstate.*
+infra/**/*.tfvars
+!infra/**/*.tfvars.example
+
+# Sistema
+.DS_Store
+Thumbs.db
+*.log

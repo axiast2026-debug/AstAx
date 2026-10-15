@@ -1,0 +1,836 @@
+# Testi delle notifiche di AstAx.
+# Regole, destinatari e canali: docs/notifiche.md.
+# Campi: title e body valgono per in app e push; emailSubject ed emailBody per l'email; sms per l'SMS.
+# Variabili tra doppie graffe, già formattate dal motore (importi, date nel fuso di Roma, etichette nella lingua del destinatario).
+# Le versioni in albanese (sq) servono al back office: vanno rilette da un madrelingua prima del lancio.
+
+schemaVersion: 1
+
+events:
+
+  # ---------------------------------------------------------------- Accesso
+
+  auth.otp:
+    recipients: [user]
+    channels: [sms, email]
+    mandatory: true
+    variables: [codice_otp, scopo, minuti]
+    it:
+      sms: "AstAx: {{codice_otp}} è il codice per {{scopo}}. Vale {{minuti}} minuti. Non condividerlo con nessuno."
+      emailSubject: "Il tuo codice AstAx"
+      emailBody: |
+        Il codice per {{scopo}} è {{codice_otp}}.
+        Vale {{minuti}} minuti. Se non l'hai chiesto tu, ignora questo messaggio: nessuno di AstAx ti chiederà mai questo codice.
+
+  # ---------------------------------------------------------------- Richiesta e verifica
+
+  request.submitted.bo:
+    recipients: [bo_verifiers]
+    channels: [in_app]
+    variables: [codice, canale, veicolo, esito_auto, link]
+    it:
+      title: "Nuova richiesta da verificare"
+      body: "{{codice}} · {{canale}} · {{veicolo}}. Controllo automatico: {{esito_auto}}."
+    sq:
+      title: "Kërkesë e re për verifikim"
+      body: "{{codice}} · {{canale}} · {{veicolo}}. Kontrolli automatik: {{esito_auto}}."
+
+  request.integration_requested:
+    recipients: [requester]
+    channels: [in_app, push, email]
+    variables: [nome, codice, veicolo, motivo, messaggio_back_office, link]
+    it:
+      title: "Serve un'integrazione"
+      body: "Per la richiesta {{codice}} manca ancora qualcosa: {{motivo}}."
+      emailSubject: "Richiesta {{codice}}: serve un'integrazione"
+      emailBody: |
+        Ciao {{nome}},
+        per mettere all'asta la richiesta {{codice}} ({{veicolo}}) ci serve ancora: {{motivo}}.
+        {{messaggio_back_office}}
+        Completa qui: {{link}}
+
+  request.excluded:
+    recipients: [requester]
+    channels: [in_app, email]
+    variables: [nome, codice, veicolo, motivo, messaggio_back_office]
+    it:
+      title: "Questa richiesta non può andare all'asta"
+      body: "{{codice}}: {{motivo}}."
+      emailSubject: "Richiesta {{codice}}: non può andare all'asta"
+      emailBody: |
+        Ciao {{nome}},
+        la richiesta {{codice}} per {{veicolo}} non può andare all'asta: {{motivo}}.
+        {{messaggio_back_office}}
+        Non ti è stato addebitato nulla. Per domande scrivici dall'app.
+
+  consent.signature_request:
+    recipients: [broker_client]
+    channels: [email, sms]
+    mandatory: true
+    variables: [nome, broker, veicolo, link, scadenza_link]
+    it:
+      sms: "{{broker}} ti chiede il consenso per un preventivo RC auto su AstAx: {{link}}"
+      emailSubject: "{{broker}} ti chiede il consenso per il preventivo RC auto"
+      emailBody: |
+        Buongiorno {{nome}},
+        {{broker}} sta chiedendo per te un preventivo RC auto su AstAx per {{veicolo}}.
+        Per procedere serve il tuo consenso a condividere i dati del preventivo con le agenzie che faranno l'offerta. Telefono ed email non vengono condivisi.
+        Leggi e conferma con un codice: {{link}}
+        Il link vale fino al {{scadenza_link}}.
+
+  # ---------------------------------------------------------------- Asta
+
+  auction.opened.requester:
+    recipients: [requester]
+    channels: [in_app, push, email]
+    variables: [nome, codice, veicolo, ora_chiusura, link]
+    it:
+      title: "Asta aperta"
+      body: "{{veicolo}}: le agenzie stanno preparando le offerte. Chiusura {{ora_chiusura}}."
+      emailSubject: "La tua asta è aperta: chiude {{ora_chiusura}}"
+      emailBody: |
+        Ciao {{nome}},
+        abbiamo verificato la richiesta {{codice}} e l'asta è aperta.
+        Chiusura: {{ora_chiusura}}.
+        Durante l'asta vedi quante offerte arrivano; i prezzi compaiono alla chiusura.
+        Segui l'asta: {{link}}
+
+  auction.invited:
+    recipients: [invited_agency_users]
+    channels: [in_app, push, email]
+    variables: [codice, veicolo, provincia, pacchetto, decorrenza, garanzia_minima, ora_chiusura, link]
+    it:
+      title: "Nuova richiesta in target"
+      body: "{{veicolo}} · {{provincia}} · {{pacchetto}}. Chiude {{ora_chiusura}}."
+      emailSubject: "Nuova richiesta {{codice}}: chiude {{ora_chiusura}}"
+      emailBody: |
+        È arrivata una richiesta nei vostri filtri.
+        Veicolo: {{veicolo}}
+        Provincia: {{provincia}}
+        Pacchetto: {{pacchetto}}
+        Decorrenza: {{decorrenza}}
+        Prezzo da garantire almeno fino al: {{garanzia_minima}}
+        Chiusura dell'asta: {{ora_chiusura}}
+        Apri la richiesta: {{link}}
+        Ogni apertura dei dati del cliente viene registrata.
+
+  auction.closing_soon:
+    recipients: [invited_agency_users_without_offer]
+    channels: [in_app, push]
+    forcePush: true
+    variables: [codice, veicolo, ora_chiusura, link]
+    it:
+      title: "Asta in chiusura"
+      body: "{{codice}} ({{veicolo}}) chiude {{ora_chiusura}} e non avete ancora offerto."
+
+  auction.closed.requester:
+    recipients: [requester]
+    channels: [in_app, push, email]
+    variables: [nome, codice, veicolo, numero_offerte, premio_minimo, link]
+    it:
+      title: "Le offerte sono pronte"
+      body: "{{numero_offerte}} offerte per {{veicolo}}, a partire da {{premio_minimo}}."
+      emailSubject: "{{numero_offerte}} offerte per {{veicolo}}"
+      emailBody: |
+        Ciao {{nome}},
+        l'asta della richiesta {{codice}} è chiusa.
+        Offerte valide: {{numero_offerte}}. La più conveniente: {{premio_minimo}}.
+        Ogni offerta è garantita fino alla data indicata accanto al prezzo. Confrontale e scegli: {{link}}
+
+  auction.closed.agency:
+    recipients: [participating_agency_users]
+    channels: [in_app, email]
+    variables: [codice, veicolo, stato_offerta, motivo_esclusione, garanzia_offerta, link]
+    it:
+      title: "Asta chiusa: {{codice}}"
+      body: "La vostra offerta è {{stato_offerta}}. La classifica arriva quando il cliente sceglie."
+      emailSubject: "Asta {{codice}} chiusa: offerta {{stato_offerta}}"
+      emailBody: |
+        L'asta {{codice}} ({{veicolo}}) si è chiusa.
+        Stato della vostra offerta: {{stato_offerta}}. {{motivo_esclusione}}
+        Se è valida, resta vincolante fino al {{garanzia_offerta}}.
+        Le prime due offerte e la vostra posizione saranno visibili quando il cliente accetta un'offerta.
+        Dettagli: {{link}}
+
+  auction.reopened.requester:
+    recipients: [requester]
+    channels: [in_app, push]
+    variables: [veicolo, ora_chiusura, link]
+    it:
+      title: "Abbiamo invitato altre agenzie"
+      body: "Per {{veicolo}} non sono arrivate offerte valide: l'asta è riaperta fino a {{ora_chiusura}}."
+
+  auction.deserted.requester:
+    recipients: [requester]
+    channels: [in_app, push, email]
+    variables: [nome, codice, veicolo]
+    it:
+      title: "Nessuna offerta per ora"
+      body: "Per {{veicolo}} non sono arrivate offerte valide. Ti scriviamo con le alternative."
+      emailSubject: "Richiesta {{codice}}: nessuna offerta valida"
+      emailBody: |
+        Ciao {{nome}},
+        per la richiesta {{codice}} ({{veicolo}}) nessuna agenzia ha presentato un'offerta valida, nemmeno dopo aver invitato altre agenzie.
+        Il nostro back office valuta le alternative e ti scrive.
+        Non ti è stato addebitato nulla.
+
+  auction.deserted.bo:
+    recipients: [bo_verifiers, bo_supervisors]
+    channels: [in_app, email]
+    variables: [codice, veicolo, link]
+    it:
+      title: "Asta deserta: {{codice}}"
+      body: "Nessuna offerta valida anche dopo la riapertura. Decidi se aprire una nuova asta o avvisare il cliente."
+      emailSubject: "Asta deserta: {{codice}}"
+      emailBody: |
+        La richiesta {{codice}} ({{veicolo}}) è deserta anche dopo la riapertura automatica.
+        Decidi se aprire una nuova asta con filtri più ampi o chiudere con un avviso al cliente: {{link}}
+    sq:
+      title: "Ankand pa oferta: {{codice}}"
+      body: "Asnjë ofertë e vlefshme edhe pas rihapjes. Vendos nëse do të hapësh një ankand të ri apo do të njoftosh klientin."
+      emailSubject: "Ankand pa oferta: {{codice}}"
+      emailBody: |
+        Kërkesa {{codice}} ({{veicolo}}) mbeti pa oferta edhe pas rihapjes automatike.
+        Vendos nëse do të hapësh një ankand të ri me filtra më të gjerë apo do ta mbyllësh me një njoftim për klientin: {{link}}
+
+  offer.excluded_after_review:
+    recipients: [participating_agency_users]
+    channels: [in_app, email]
+    variables: [codice, motivo, link]
+    it:
+      title: "Offerta esclusa: {{codice}}"
+      body: "Il back office ha escluso la vostra offerta: {{motivo}}."
+      emailSubject: "Offerta esclusa: {{codice}}"
+      emailBody: |
+        Dopo il controllo del preventivo PDF, il back office ha escluso la vostra offerta per la richiesta {{codice}}.
+        Motivo: {{motivo}}
+        Per chiarimenti scrivete all'assistenza dalla pagina della richiesta: {{link}}
+
+  # ---------------------------------------------------------------- Garanzia e riconferma
+
+  guarantee.expiring:
+    recipients: [requester]
+    channels: [in_app, push, email]
+    forcePush: true
+    variables: [nome, veicolo, premio, garanzia, giorni, link]
+    it:
+      title: "Il prezzo migliore scade tra {{giorni}} giorni"
+      body: "{{premio}} per {{veicolo}}, garantito fino al {{garanzia}}."
+      emailSubject: "La tua offerta migliore è garantita fino al {{garanzia}}"
+      emailBody: |
+        Ciao {{nome}},
+        l'offerta più conveniente per {{veicolo}} ({{premio}}) è garantita fino al {{garanzia}}.
+        Se vuoi acquistare a questo prezzo, accetta entro quella data: {{link}}
+
+  request.expired:
+    recipients: [requester]
+    channels: [in_app, push, email]
+    variables: [nome, veicolo, link]
+    it:
+      title: "Le offerte sono scadute"
+      body: "Puoi chiedere alle stesse agenzie di riconfermare il prezzo con un clic."
+      emailSubject: "Le offerte per {{veicolo}} sono scadute"
+      emailBody: |
+        Ciao {{nome}},
+        le garanzie delle offerte per {{veicolo}} sono scadute.
+        Puoi chiedere alle stesse agenzie di confermare o aggiornare il prezzo, senza rifare la richiesta: {{link}}
+
+  reconfirmation.requested:
+    recipients: [agencies_with_valid_offer]
+    channels: [in_app, push, email]
+    forcePush: true
+    variables: [codice, veicolo, premio_offerto, termine, link]
+    it:
+      title: "Richiesta di riconferma: {{codice}}"
+      body: "Il cliente chiede di riconfermare il prezzo. Rispondete entro {{termine}}."
+      emailSubject: "Riconferma entro {{termine}}: {{codice}}"
+      emailBody: |
+        Il richiedente della pratica {{codice}} ({{veicolo}}) chiede di riconfermare la vostra offerta di {{premio_offerto}}.
+        Potete confermare il prezzo, aggiornarlo o rinunciare entro {{termine}}. Le risposte restano in busta chiusa fino alla scadenza.
+        Rispondi: {{link}}
+
+  reconfirmation.completed.requester:
+    recipients: [requester]
+    channels: [in_app, push, email]
+    variables: [nome, veicolo, numero_offerte, premio_minimo, link]
+    it:
+      title: "Prezzi riconfermati"
+      body: "{{numero_offerte}} offerte valide per {{veicolo}}, a partire da {{premio_minimo}}."
+      emailSubject: "Prezzi riconfermati per {{veicolo}}"
+      emailBody: |
+        Ciao {{nome}},
+        le agenzie hanno risposto: {{numero_offerte}} offerte valide, la più conveniente a {{premio_minimo}}, con nuove date di garanzia.
+        Confrontale e scegli: {{link}}
+
+  # ---------------------------------------------------------------- Accettazione e pagamento
+
+  offer.link_to_client:
+    recipients: [broker_client]
+    channels: [email, sms]
+    mandatory: true
+    variables: [nome, broker, veicolo, descrizione_offerta, premio, garanzia, link, scadenza_link]
+    it:
+      sms: "{{broker}} ti ha inviato l'offerta RC auto per {{veicolo}}: {{link}}"
+      emailSubject: "{{broker}}: la tua offerta RC auto per {{veicolo}}"
+      emailBody: |
+        Buongiorno {{nome}},
+        {{broker}} ti propone {{descrizione_offerta}} per {{veicolo}}.
+        Premio annuo: {{premio}}. Prezzo garantito fino al {{garanzia}}.
+        Da questo link leggi i documenti, firmi con un codice e paghi: {{link}}
+        Il link vale fino al {{scadenza_link}}.
+
+  payment.confirmed:
+    recipients: [payer]
+    channels: [in_app, email]
+    variables: [nome, veicolo, totale, premio, riga_fee, agenzia, termine_emissione, link]
+    it:
+      title: "Pagamento ricevuto"
+      body: "Abbiamo ricevuto {{totale}}. La polizza sarà emessa entro {{termine_emissione}}."
+      emailSubject: "Pagamento ricevuto per {{veicolo}}"
+      emailBody: |
+        Ciao {{nome}},
+        abbiamo ricevuto il pagamento di {{totale}}:
+        premio {{premio}}
+        {{riga_fee}}
+        L'agenzia {{agenzia}} emetterà la polizza entro {{termine_emissione}}. Ti avvisiamo appena i documenti sono pronti.
+        Riepilogo: {{link}}
+
+  payment.failed:
+    recipients: [payer]
+    channels: [in_app, push, email]
+    variables: [nome, veicolo, garanzia, link]
+    it:
+      title: "Pagamento non riuscito"
+      body: "Il pagamento per {{veicolo}} non è andato a buon fine. Puoi riprovare fino al {{garanzia}}."
+      emailSubject: "Pagamento non riuscito per {{veicolo}}"
+      emailBody: |
+        Ciao {{nome}},
+        il pagamento per {{veicolo}} non è andato a buon fine e non ti è stato addebitato nulla.
+        L'offerta resta garantita fino al {{garanzia}}: puoi riprovare o scegliere un'altra offerta da qui: {{link}}
+
+  offer.won:
+    recipients: [winning_agency_users]
+    channels: [in_app, push, email]
+    forcePush: true
+    variables: [codice, veicolo, premio, compagnia, termine_emissione, decorrenza, link]
+    it:
+      title: "Avete vinto: {{codice}}"
+      body: "Pagamento confermato. Emettete entro {{termine_emissione}}."
+      emailSubject: "Polizza da emettere entro {{termine_emissione}}: {{codice}}"
+      emailBody: |
+        Il cliente ha accettato e pagato la vostra offerta di {{premio}} ({{compagnia}}) per {{veicolo}}.
+        Termine di emissione: {{termine_emissione}}, comunque prima della decorrenza del {{decorrenza}}.
+        Nell'area «Da emettere» trovate i dati completi, i contatti del cliente, i documenti firmati e la ricevuta di pagamento: {{link}}
+
+  offer.won.bo:
+    recipients: [bo_verifiers]
+    channels: [in_app]
+    variables: [codice, agenzia, termine_emissione, link]
+    it:
+      title: "Polizza da emettere: {{codice}}"
+      body: "Pagamento confermato. {{agenzia}} deve emettere entro {{termine_emissione}}."
+    sq:
+      title: "Policë për t'u lëshuar: {{codice}}"
+      body: "Pagesa u konfirmua. {{agenzia}} duhet ta lëshojë deri më {{termine_emissione}}."
+
+  ranking.available:
+    recipients: [participating_agency_users]
+    channels: [in_app, email]
+    variables: [codice, esito, premio_primo, premio_secondo, premio_proprio, posizione, totale_offerte, scarto, link]
+    it:
+      title: "Classifica disponibile: {{codice}}"
+      body: "La vostra offerta è {{posizione}}ª su {{totale_offerte}}."
+      emailSubject: "Classifica della richiesta {{codice}}"
+      emailBody: |
+        {{esito}} per la richiesta {{codice}}.
+        Prima offerta: {{premio_primo}}
+        Seconda offerta: {{premio_secondo}}
+        La vostra: {{premio_proprio}}, {{posizione}}ª su {{totale_offerte}}, {{scarto}} dalla prima.
+        Le offerte degli altri sono anonime. Dettagli e statistiche: {{link}}
+
+  ranking.available.excluded:
+    recipients: [participating_agency_users]
+    channels: [in_app]
+    variables: [codice, motivo, link]
+    it:
+      title: "Classifica disponibile: {{codice}}"
+      body: "La vostra offerta era esclusa: {{motivo}}."
+
+  # ---------------------------------------------------------------- Emissione
+
+  issuance.deadline_near:
+    recipients: [winning_agency_users]
+    channels: [in_app, push, email]
+    forcePush: true
+    variables: [codice, minuti, termine_emissione, link]
+    it:
+      title: "Emissione in scadenza: {{codice}}"
+      body: "Mancano {{minuti}} minuti al termine di emissione ({{termine_emissione}})."
+      emailSubject: "Emissione entro {{termine_emissione}}: {{codice}}"
+      emailBody: |
+        La polizza della richiesta {{codice}} va emessa entro {{termine_emissione}}.
+        Caricate polizza, quietanza e certificato, oppure segnalate subito un problema: {{link}}
+
+  issuance.deadline_near.bo:
+    recipients: [bo_verifiers]
+    channels: [in_app]
+    variables: [codice, agenzia, termine_emissione, link]
+    it:
+      title: "Termine di emissione vicino: {{codice}}"
+      body: "{{agenzia}} non ha ancora emesso. Termine: {{termine_emissione}}."
+    sq:
+      title: "Afati i lëshimit po afron: {{codice}}"
+      body: "{{agenzia}} nuk e ka lëshuar ende policën. Afati: {{termine_emissione}}."
+
+  issuance.deadline_passed:
+    recipients: [winning_agency_users]
+    channels: [in_app, push, email]
+    forcePush: true
+    variables: [codice, decorrenza, link]
+    it:
+      title: "Termine di emissione superato: {{codice}}"
+      body: "Emettete subito: la decorrenza è il {{decorrenza}}. È stata proposta la penale per ritardo."
+      emailSubject: "Termine superato: {{codice}}"
+      emailBody: |
+        Il termine di emissione della richiesta {{codice}} è scaduto ed è stata proposta la penale per ritardo.
+        Emettete subito: la decorrenza è il {{decorrenza}}. Se non potete emettere, segnalatelo dall'area «Da emettere»: {{link}}
+
+  issuance.deadline_passed.bo:
+    recipients: [bo_verifiers, bo_supervisors]
+    channels: [in_app, email]
+    variables: [codice, agenzia, termine_emissione, decorrenza, link]
+    it:
+      title: "Termine di emissione superato: {{codice}}"
+      body: "{{agenzia}} non ha emesso entro {{termine_emissione}}. Decorrenza: {{decorrenza}}."
+      emailSubject: "Termine di emissione superato: {{codice}}"
+      emailBody: |
+        {{agenzia}} non ha emesso la polizza della richiesta {{codice}} entro {{termine_emissione}}. È stata proposta la penale per ritardo.
+        Decorrenza: {{decorrenza}}. Se la polizza non arriva in tempo, apri la mancata emissione: {{link}}
+    sq:
+      title: "Afati i lëshimit ka kaluar: {{codice}}"
+      body: "{{agenzia}} nuk e lëshoi policën brenda {{termine_emissione}}. Data e fillimit: {{decorrenza}}."
+      emailSubject: "Afati i lëshimit ka kaluar: {{codice}}"
+      emailBody: |
+        {{agenzia}} nuk e lëshoi policën e kërkesës {{codice}} brenda {{termine_emissione}}. U propozua gjoba për vonesë.
+        Data e fillimit: {{decorrenza}}. Nëse polica nuk lëshohet në kohë, hap rastin e moslëshimit: {{link}}
+
+  issuance.problem_reported.bo:
+    recipients: [bo_verifiers, bo_supervisors]
+    channels: [in_app, email]
+    variables: [codice, agenzia, tipo_problema, descrizione, link]
+    it:
+      title: "Problema di emissione: {{codice}}"
+      body: "{{agenzia}} segnala: {{tipo_problema}}."
+      emailSubject: "Problema di emissione: {{codice}}"
+      emailBody: |
+        {{agenzia}} segnala un problema sulla richiesta {{codice}}: {{tipo_problema}}.
+        {{descrizione}}
+        Apri il caso e decidi come procedere: {{link}}
+    sq:
+      title: "Problem me lëshimin: {{codice}}"
+      body: "{{agenzia}} sinjalizon: {{tipo_problema}}."
+      emailSubject: "Problem me lëshimin: {{codice}}"
+      emailBody: |
+        {{agenzia}} sinjalizon një problem për kërkesën {{codice}}: {{tipo_problema}}.
+        {{descrizione}}
+        Hap rastin dhe vendos si të veprosh: {{link}}
+
+  issuance.second_offer_proposed:
+    recipients: [requester, broker_client]
+    channels: [in_app, push, email, sms]
+    forcePush: true
+    variables: [nome, veicolo, compagnia, premio, garanzia, riga_differenza, termine, link]
+    it:
+      title: "Serve una tua conferma"
+      body: "L'agenzia scelta non ha potuto emettere. Ti proponiamo la seconda offerta: {{premio}}. Conferma entro {{termine}}."
+      sms: "AstAx: l'agenzia scelta non ha potuto emettere la polizza per {{veicolo}}. Conferma la seconda offerta entro {{termine}}: {{link}}"
+      emailSubject: "Polizza per {{veicolo}}: serve una tua conferma"
+      emailBody: |
+        Ciao {{nome}},
+        ci dispiace: l'agenzia che aveva vinto non ha potuto emettere la polizza per {{veicolo}}.
+        Ti proponiamo la seconda offerta migliore: {{compagnia}}, {{premio}}, garantita fino al {{garanzia}}.
+        {{riga_differenza}}
+        Conferma entro {{termine}}, oppure chiedi il rimborso completo: {{link}}
+
+  policy.issued:
+    recipients: [requester]
+    channels: [in_app, push, email]
+    variables: [nome, veicolo, numero_polizza, agenzia, compagnia, decorrenza, scadenza, contatti_agenzia, link]
+    it:
+      title: "La tua polizza è pronta"
+      body: "{{veicolo}} è assicurato dal {{decorrenza}} con {{compagnia}}. I documenti sono nell'app."
+      emailSubject: "La tua polizza per {{veicolo}} è pronta"
+      emailBody: |
+        Ciao {{nome}},
+        la polizza n. {{numero_polizza}} per {{veicolo}} è stata emessa da {{agenzia}} con {{compagnia}}.
+        Decorrenza: {{decorrenza}}. Scadenza: {{scadenza}}.
+        Nell'area documenti trovi polizza, quietanza e certificato: {{link}}
+        Per sinistri e assistenza contatta l'agenzia: {{contatti_agenzia}}.
+
+  policy.issued.broker:
+    recipients: [requester]
+    channels: [in_app, email]
+    variables: [cliente, veicolo, numero_polizza, agenzia, compagnia, decorrenza, link]
+    it:
+      title: "Polizza emessa per {{cliente}}"
+      body: "{{veicolo}}: polizza n. {{numero_polizza}} con {{compagnia}}, dal {{decorrenza}}."
+      emailSubject: "Polizza emessa per {{cliente}}"
+      emailBody: |
+        {{agenzia}} ha emesso la polizza n. {{numero_polizza}} ({{compagnia}}) per {{cliente}}, {{veicolo}}, con decorrenza {{decorrenza}}.
+        Documenti e riepilogo: {{link}}
+
+  policy.issued.broker_client:
+    recipients: [broker_client]
+    channels: [email]
+    variables: [nome, veicolo, numero_polizza, compagnia, decorrenza, broker, link]
+    it:
+      emailSubject: "La tua polizza per {{veicolo}} è pronta"
+      emailBody: |
+        Buongiorno {{nome}},
+        la polizza n. {{numero_polizza}} ({{compagnia}}) per {{veicolo}} è attiva dal {{decorrenza}}.
+        Scarica polizza, quietanza e certificato con un codice di conferma: {{link}}
+        Per ogni necessità puoi rivolgerti a {{broker}}.
+
+  policy.issued.bo:
+    recipients: [bo_verifiers]
+    channels: [in_app]
+    variables: [codice, agenzia, numero_polizza, link]
+    it:
+      title: "Polizza emessa: {{codice}}"
+      body: "{{agenzia}} ha emesso la polizza {{numero_polizza}}."
+    sq:
+      title: "Polica u lëshua: {{codice}}"
+      body: "{{agenzia}} lëshoi policën {{numero_polizza}}."
+
+  # ---------------------------------------------------------------- Contabilità e penali
+
+  remittance.executed:
+    recipients: [agency_owner]
+    channels: [in_app, email]
+    variables: [periodo, numero_polizze, premi_lordi, fee_totali, penali, importo_netto, iban_finale, data, link]
+    it:
+      title: "Rimessa eseguita"
+      body: "{{importo_netto}} per {{numero_polizze}} polizze, bonifico del {{data}}."
+      emailSubject: "Rimessa eseguita: {{importo_netto}}"
+      emailBody: |
+        Abbiamo eseguito la rimessa del periodo {{periodo}} ({{numero_polizze}} polizze):
+        premi lordi {{premi_lordi}}
+        fee AstAx {{fee_totali}}
+        penali {{penali}}
+        netto {{importo_netto}}, bonifico del {{data}} sull'IBAN che termina con {{iban_finale}}.
+        Dettaglio ed estratto conto: {{link}}
+
+  penalty.applied:
+    recipients: [agency_owner]
+    channels: [in_app, email]
+    variables: [codice, tipo_penale, importo, scadenza_contestazione, link]
+    it:
+      title: "Penale applicata"
+      body: "{{tipo_penale}} sulla richiesta {{codice}}: {{importo}}. Contestabile entro il {{scadenza_contestazione}}."
+      emailSubject: "Penale applicata: {{tipo_penale}}"
+      emailBody: |
+        Sulla richiesta {{codice}} è stata applicata una penale per {{tipo_penale}} di {{importo}}.
+        Sarà trattenuta dalla prossima rimessa. Se non siete d'accordo, potete contestarla entro il {{scadenza_contestazione}}: {{link}}
+
+  penalty.contested:
+    recipients: [admins]
+    channels: [in_app, email]
+    variables: [agenzia, codice, tipo_penale, link]
+    it:
+      title: "Penale contestata"
+      body: "{{agenzia}} contesta la penale per {{tipo_penale}} sulla richiesta {{codice}}."
+      emailSubject: "Penale contestata da {{agenzia}}"
+      emailBody: |
+        {{agenzia}} ha contestato la penale per {{tipo_penale}} sulla richiesta {{codice}}.
+        Leggi la contestazione e decidi: {{link}}
+
+  penalty.contest_decided:
+    recipients: [agency_owner]
+    channels: [in_app, email]
+    variables: [codice, esito, motivazione, link]
+    it:
+      title: "Contestazione decisa"
+      body: "Penale sulla richiesta {{codice}}: {{esito}}."
+      emailSubject: "Esito della contestazione: {{codice}}"
+      emailBody: |
+        La contestazione della penale sulla richiesta {{codice}} è stata decisa: {{esito}}.
+        Motivazione: {{motivazione}}
+        Dettagli: {{link}}
+
+  agency.suspended:
+    recipients: [agency_owner]
+    channels: [in_app, email]
+    variables: [motivo, link]
+    it:
+      title: "Account sospeso dagli inviti"
+      body: "{{motivo}}. Offerte ed emissioni in corso restano valide."
+      emailSubject: "La vostra agenzia è sospesa dagli inviti"
+      emailBody: |
+        La vostra agenzia è sospesa dagli inviti alle nuove aste. Motivo: {{motivo}}.
+        Le offerte ancora garantite e le emissioni in corso restano obbligatorie.
+        Per chiarimenti scrivete all'assistenza: {{link}}
+
+  agency.suspended.admin:
+    recipients: [admins]
+    channels: [in_app, email]
+    variables: [agenzia, numero, mesi, link]
+    it:
+      title: "Sospensione automatica: {{agenzia}}"
+      body: "{{numero}} mancate emissioni negli ultimi {{mesi}} mesi. Conferma o revoca la sospensione."
+      emailSubject: "Sospensione automatica: {{agenzia}}"
+      emailBody: |
+        {{agenzia}} è stata sospesa in automatico dagli inviti: {{numero}} mancate emissioni negli ultimi {{mesi}} mesi.
+        Conferma o revoca la sospensione: {{link}}
+
+  invoice.available:
+    recipients: [invoice_recipient]
+    channels: [in_app, email]
+    variables: [numero_fattura, importo, descrizione, link]
+    it:
+      title: "Nuova fattura"
+      body: "Fattura n. {{numero_fattura}} di {{importo}}."
+      emailSubject: "Fattura AstAx n. {{numero_fattura}}"
+      emailBody: |
+        È disponibile la fattura n. {{numero_fattura}} di {{importo}} per {{descrizione}}.
+        Scaricala qui: {{link}}
+
+  refund.approval_needed.bo:
+    recipients: [bo_supervisors]
+    channels: [in_app, email]
+    variables: [codice, importo, motivo, richiedente_rimborso, link]
+    it:
+      title: "Rimborso da approvare: {{codice}}"
+      body: "{{importo}} per {{motivo}}, chiesto da {{richiedente_rimborso}}."
+      emailSubject: "Rimborso da approvare: {{codice}}"
+      emailBody: |
+        {{richiedente_rimborso}} chiede un rimborso di {{importo}} sulla richiesta {{codice}}.
+        Motivo: {{motivo}}
+        Approva o respingi: {{link}}
+    sq:
+      title: "Rimbursim për miratim: {{codice}}"
+      body: "{{importo}} për {{motivo}}, kërkuar nga {{richiedente_rimborso}}."
+      emailSubject: "Rimbursim për miratim: {{codice}}"
+      emailBody: |
+        {{richiedente_rimborso}} kërkon një rimbursim prej {{importo}} për kërkesën {{codice}}.
+        Arsyeja: {{motivo}}
+        Mirato ose refuzo: {{link}}
+
+  refund.executed:
+    recipients: [refund_recipient]
+    channels: [in_app, email]
+    variables: [nome, importo, veicolo]
+    it:
+      title: "Rimborso eseguito"
+      body: "Ti abbiamo rimborsato {{importo}}. L'accredito può richiedere alcuni giorni lavorativi."
+      emailSubject: "Rimborso di {{importo}} eseguito"
+      emailBody: |
+        Ciao {{nome}},
+        ti abbiamo rimborsato {{importo}} per {{veicolo}}, con lo stesso metodo che hai usato per pagare.
+        L'accredito può richiedere alcuni giorni lavorativi, secondo la tua banca.
+
+  # ---------------------------------------------------------------- Rinnovi e post-vendita
+
+  renewal.upcoming:
+    recipients: [requester]
+    channels: [in_app, push, email]
+    variables: [nome, veicolo, scadenza, link]
+    it:
+      title: "La tua polizza scade il {{scadenza}}"
+      body: "Rinnova in asta con i dati già salvati: serve solo il nuovo attestato."
+      emailSubject: "{{veicolo}}: la polizza scade il {{scadenza}}"
+      emailBody: |
+        Ciao {{nome}},
+        la polizza di {{veicolo}} scade il {{scadenza}}.
+        Puoi rimettere il rinnovo all'asta con i dati già salvati: ti serve solo l'attestato di rischio aggiornato, che trovi nell'area clienti della tua compagnia.
+        Inizia qui: {{link}}
+
+  renewal.upcoming.broker:
+    recipients: [requester]
+    channels: [in_app, email]
+    variables: [cliente, veicolo, scadenza, rinnovo_automatico, link]
+    it:
+      title: "Rinnovo in arrivo: {{cliente}}"
+      body: "{{veicolo}} scade il {{scadenza}}. {{rinnovo_automatico}}"
+      emailSubject: "Rinnovo in arrivo: {{cliente}}, {{veicolo}}"
+      emailBody: |
+        La polizza di {{cliente}} per {{veicolo}} scade il {{scadenza}}.
+        {{rinnovo_automatico}}
+        Carica l'attestato aggiornato per mandare il rinnovo all'asta: {{link}}
+
+  survey.post_sale:
+    recipients: [private_or_broker_client]
+    channels: [email]
+    variables: [nome, veicolo, link]
+    it:
+      emailSubject: "Com'è andata con AstAx?"
+      emailBody: |
+        Ciao {{nome}},
+        la polizza per {{veicolo}} è attiva da qualche giorno. Ci aiuti con tre domande? Serve un minuto: {{link}}
+        Ti chiediamo anche se qualcuno ti ha contattato per proporti un'assicurazione fuori da AstAx: ci aiuta a proteggere i tuoi dati.
+
+  # ---------------------------------------------------------------- Organizzazioni e utenti
+
+  team.invitation:
+    recipients: [invitee]
+    channels: [email]
+    mandatory: true
+    variables: [nome, invitante, organizzazione, ruolo, link, scadenza]
+    it:
+      emailSubject: "{{organizzazione}} ti invita su AstAx"
+      emailBody: |
+        Buongiorno {{nome}},
+        {{invitante}} ti ha invitato a lavorare su AstAx per {{organizzazione}} con il ruolo di {{ruolo}}.
+        Accetta l'invito e imposta l'accesso: {{link}}
+        L'invito scade il {{scadenza}}.
+
+  onboarding.submitted.bo:
+    recipients: [bo_supervisors]
+    channels: [in_app, email]
+    variables: [organizzazione, tipo_organizzazione, numero_rui, link]
+    it:
+      title: "Nuova richiesta di ingresso: {{organizzazione}}"
+      body: "{{tipo_organizzazione}}, RUI {{numero_rui}}. Verifica dati, mandati, RC professionale e contratti."
+      emailSubject: "Nuova richiesta di ingresso: {{organizzazione}}"
+      emailBody: |
+        {{organizzazione}} ({{tipo_organizzazione}}, RUI {{numero_rui}}) ha chiesto di entrare su AstAx.
+        Verifica dati, mandati, RC professionale e contratti firmati: {{link}}
+    sq:
+      title: "Kërkesë e re për anëtarësim: {{organizzazione}}"
+      body: "{{tipo_organizzazione}}, RUI {{numero_rui}}. Verifiko të dhënat, mandatet, sigurimin e përgjegjësisë profesionale dhe kontratat."
+      emailSubject: "Kërkesë e re për anëtarësim: {{organizzazione}}"
+      emailBody: |
+        {{organizzazione}} ({{tipo_organizzazione}}, RUI {{numero_rui}}) ka kërkuar të anëtarësohet në AstAx.
+        Verifiko të dhënat, mandatet, sigurimin e përgjegjësisë profesionale dhe kontratat e nënshkruara: {{link}}
+
+  onboarding.approved:
+    recipients: [organization_owner]
+    channels: [in_app, email]
+    variables: [nome, organizzazione, prossimo_passo, link]
+    it:
+      title: "Benvenuti su AstAx"
+      body: "La verifica di {{organizzazione}} è completata. {{prossimo_passo}}"
+      emailSubject: "{{organizzazione}} è attiva su AstAx"
+      emailBody: |
+        Buongiorno {{nome}},
+        abbiamo completato la verifica di {{organizzazione}}: l'account è attivo.
+        {{prossimo_passo}}
+        Accedi: {{link}}
+
+  onboarding.rejected:
+    recipients: [organization_owner]
+    channels: [in_app, email]
+    variables: [nome, organizzazione, motivo, link]
+    it:
+      title: "Richiesta di ingresso non approvata"
+      body: "{{motivo}}. Potete correggere e inviare di nuovo."
+      emailSubject: "{{organizzazione}}: richiesta di ingresso non approvata"
+      emailBody: |
+        Buongiorno {{nome}},
+        non possiamo ancora attivare {{organizzazione}}. Motivo: {{motivo}}.
+        Potete correggere e inviare di nuovo da qui: {{link}}
+
+  profinsurance.expiring:
+    recipients: [organization_owner]
+    channels: [in_app, email]
+    variables: [organizzazione, scadenza, link]
+    it:
+      title: "RC professionale in scadenza"
+      body: "La RC professionale di {{organizzazione}} scade il {{scadenza}}. Caricate il rinnovo."
+      emailSubject: "RC professionale in scadenza il {{scadenza}}"
+      emailBody: |
+        La polizza di responsabilità civile professionale di {{organizzazione}} scade il {{scadenza}}.
+        Caricate il rinnovo per continuare a ricevere richieste: {{link}}
+
+  legal.new_version:
+    recipients: [affected_users]
+    channels: [email]
+    variables: [nome, documento, data, sintesi]
+    it:
+      emailSubject: "Abbiamo aggiornato: {{documento}}"
+      emailBody: |
+        Ciao {{nome}},
+        abbiamo pubblicato una nuova versione di «{{documento}}», in vigore dal {{data}}.
+        In sintesi: {{sintesi}}
+        Te la mostreremo al prossimo accesso, per l'accettazione.
+
+  # ---------------------------------------------------------------- Reclami e segnalazioni
+
+  complaint.received:
+    recipients: [complainant]
+    channels: [in_app, email]
+    variables: [nome, protocollo, scadenza]
+    it:
+      title: "Reclamo ricevuto"
+      body: "Protocollo {{protocollo}}. Ti risponderemo entro il {{scadenza}}."
+      emailSubject: "Reclamo ricevuto: protocollo {{protocollo}}"
+      emailBody: |
+        Ciao {{nome}},
+        abbiamo ricevuto il tuo reclamo e lo abbiamo registrato con il protocollo {{protocollo}}.
+        Ti risponderemo entro il {{scadenza}}. Se la risposta non ti soddisfa, o non la ricevi entro quella data, puoi rivolgerti all'IVASS: nella risposta trovi come fare.
+
+  complaint.answered:
+    recipients: [complainant]
+    channels: [in_app, email]
+    variables: [nome, protocollo, link]
+    it:
+      title: "Risposta al tuo reclamo"
+      body: "Protocollo {{protocollo}}: la risposta è disponibile."
+      emailSubject: "Risposta al reclamo {{protocollo}}"
+      emailBody: |
+        Ciao {{nome}},
+        la risposta al reclamo {{protocollo}} è disponibile: {{link}}
+
+  complaint.new.bo:
+    recipients: [bo_supervisors]
+    channels: [in_app, email]
+    variables: [protocollo, data, scadenza, link]
+    it:
+      title: "Nuovo reclamo: protocollo {{protocollo}}"
+      body: "Ricevuto il {{data}}. Risposta entro il {{scadenza}}."
+      emailSubject: "Nuovo reclamo: protocollo {{protocollo}}"
+      emailBody: |
+        È arrivato un nuovo reclamo, protocollo {{protocollo}}, ricevuto il {{data}}.
+        La risposta va data entro il {{scadenza}}: {{link}}
+    sq:
+      title: "Ankesë e re: protokolli {{protocollo}}"
+      body: "Marrë më {{data}}. Përgjigja deri më {{scadenza}}."
+      emailSubject: "Ankesë e re: protokolli {{protocollo}}"
+      emailBody: |
+        Ka mbërritur një ankesë e re, protokolli {{protocollo}}, e marrë më {{data}}.
+        Përgjigja duhet dhënë deri më {{scadenza}}: {{link}}
+
+  complaint.due_soon.bo:
+    recipients: [bo_supervisors]
+    channels: [in_app, email]
+    variables: [protocollo, giorni, scadenza, link]
+    it:
+      title: "Reclamo in scadenza: {{protocollo}}"
+      body: "Mancano {{giorni}} giorni alla scadenza della risposta ({{scadenza}})."
+      emailSubject: "Reclamo in scadenza: {{protocollo}}"
+      emailBody: |
+        Mancano {{giorni}} giorni alla scadenza della risposta al reclamo {{protocollo}} ({{scadenza}}): {{link}}
+    sq:
+      title: "Ankesë që po skadon: {{protocollo}}"
+      body: "Mbeten {{giorni}} ditë deri në afatin e përgjigjes ({{scadenza}})."
+      emailSubject: "Ankesë që po skadon: {{protocollo}}"
+      emailBody: |
+        Mbeten {{giorni}} ditë deri në afatin e përgjigjes për ankesën {{protocollo}} ({{scadenza}}): {{link}}
+
+  flag.new.bo:
+    recipients: [bo_supervisors]
+    channels: [in_app, email]
+    variables: [tipo_segnalazione, codice, fonte, link]
+    it:
+      title: "Nuova segnalazione: {{tipo_segnalazione}}"
+      body: "Richiesta {{codice}}. Fonte: {{fonte}}."
+      emailSubject: "Nuova segnalazione: {{tipo_segnalazione}}"
+      emailBody: |
+        Nuova segnalazione di {{tipo_segnalazione}} sulla richiesta {{codice}}. Fonte: {{fonte}}.
+        Controlla il registro degli accessi alla richiesta e decidi l'esito: {{link}}
+    sq:
+      title: "Sinjalizim i ri: {{tipo_segnalazione}}"
+      body: "Kërkesa {{codice}}. Burimi: {{fonte}}."
+      emailSubject: "Sinjalizim i ri: {{tipo_segnalazione}}"
+      emailBody: |
+        Sinjalizim i ri për {{tipo_segnalazione}} në kërkesën {{codice}}. Burimi: {{fonte}}.
+        Kontrollo regjistrin e aksesit në kërkesë dhe vendos rezultatin: {{link}}
