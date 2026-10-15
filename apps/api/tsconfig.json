@@ -1,0 +1,10 @@
+{
+  "extends": "@astax/config/tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "types": ["node"],
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  },
+  "include": ["src", "test", "*.ts"]
+}

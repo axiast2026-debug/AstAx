@@ -1,0 +1,23 @@
+import type { Logger } from "@astax/shared/logging";
+import type { LoggerService } from "@nestjs/common";
+
+/** Routes NestJS's own messages through the redacting pino logger (SIC-06). */
+export class NestPinoLogger implements LoggerService {
+  constructor(private readonly logger: Logger) {}
+
+  log(message: unknown, context?: string): void {
+    this.logger.info({ context }, String(message));
+  }
+  error(message: unknown, trace?: string, context?: string): void {
+    this.logger.error({ context, trace }, String(message));
+  }
+  warn(message: unknown, context?: string): void {
+    this.logger.warn({ context }, String(message));
+  }
+  debug(message: unknown, context?: string): void {
+    this.logger.debug({ context }, String(message));
+  }
+  verbose(message: unknown, context?: string): void {
+    this.logger.trace({ context }, String(message));
+  }
+}

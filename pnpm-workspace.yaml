@@ -10,3 +10,5 @@ allowBuilds:
   cpu-features: false
   ssh2: false
   protobufjs: false
+  # Usage telemetry pulled in by swagger-ui-dist: never runs.
+  "@scarf/scarf": false

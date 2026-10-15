@@ -37,6 +37,8 @@ export function astaxConfig() {
       rules: {
         "@typescript-eslint/no-explicit-any": "error",
         "@typescript-eslint/consistent-type-imports": "error",
+        // NestJS modules are decorated classes without members.
+        "@typescript-eslint/no-extraneous-class": ["error", { allowWithDecorator: true }],
         "astax/no-system-time": "error",
       },
     },

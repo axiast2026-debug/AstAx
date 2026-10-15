@@ -27,6 +27,10 @@
     "./domain": {
       "types": "./dist/domain/index.d.ts",
       "default": "./dist/domain/index.js"
+    },
+    "./errors": {
+      "types": "./dist/errors/index.d.ts",
+      "default": "./dist/errors/index.js"
     }
   },
   "scripts": {
