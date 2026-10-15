@@ -29,7 +29,8 @@
 | Mailpit | 1.31.6 | |
 | NestJS | 12.1.3 | Con express 5.3, `@nestjs/swagger` 12.0.2, `jose` 6.2.12, `yaml` 2.9.1 |
 | Next.js | 16.4.1 | React 19.3.1, next-intl 4.14.9, Tailwind 4.3.3, `openid-client` 6.8.8 (ADR 0004) |
-| Testcontainers | 12.2.1 | PostgreSQL vero nei test di integrazione |
+| Testcontainers | 12.2.1 | PostgreSQL vero nei test di integrazione; SeaweedFS nel test di contratto dello storage (fase 2) |
+| AWS SDK S3 | 3.1151.0 | `@aws-sdk/client-s3` e `s3-request-presigner`: storage dei documenti, SeaweedFS in locale e S3 in cloud (fase 2) |
 | Playwright | 1.64.1 | Chromium per i test end-to-end |
 
 Le dipendenze delle fasi successive si aggiungono a questa tabella quando entrano, nel passo che le usa.

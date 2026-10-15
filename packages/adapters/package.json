@@ -19,19 +19,41 @@
     "./email": {
       "types": "./dist/email/index.d.ts",
       "default": "./dist/email/index.js"
+    },
+    "./vehicle-data": {
+      "types": "./dist/vehicle-data/index.d.ts",
+      "default": "./dist/vehicle-data/index.js"
+    },
+    "./document-reader": {
+      "types": "./dist/document-reader/index.d.ts",
+      "default": "./dist/document-reader/index.js"
+    },
+    "./storage": {
+      "types": "./dist/storage/index.d.ts",
+      "default": "./dist/storage/index.js"
+    },
+    "./sms": {
+      "types": "./dist/sms/index.d.ts",
+      "default": "./dist/sms/index.js"
     }
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:int": "vitest run --config vitest.int.config.ts"
   },
   "devDependencies": {
     "@astax/config": "workspace:*",
     "@types/node": "24.19.2",
     "eslint": "10.12.0",
+    "testcontainers": "12.2.1",
     "typescript": "6.0.3",
     "vitest": "5.0.4"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.1151.0",
+    "@aws-sdk/s3-request-presigner": "3.1151.0"
   }
 }

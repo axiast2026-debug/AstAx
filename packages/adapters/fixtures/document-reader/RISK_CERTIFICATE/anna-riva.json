@@ -1,0 +1,9 @@
+{
+  "plate": "AR456CD",
+  "cuClass": 4,
+  "currentInsurer": "Compagnia Beta",
+  "expiryDate": "@today+20",
+  "riskUniqueId": "IUR0000000002",
+  "claimsMainLast5y": 0,
+  "claimsSharedLast5y": 0
+}

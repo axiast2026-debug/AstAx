@@ -1,0 +1,9 @@
+{
+  "plate": "MP789EF",
+  "cuClass": 9,
+  "currentInsurer": "Compagnia Gamma",
+  "expiryDate": "@today+25",
+  "riskUniqueId": "IUR0000000003",
+  "claimsMainLast5y": 1,
+  "claimsSharedLast5y": 0
+}

@@ -1,0 +1,9 @@
+{
+  "plate": "GN123AB",
+  "cuClass": 1,
+  "currentInsurer": "Compagnia Alfa",
+  "expiryDate": "@today+30",
+  "riskUniqueId": "IUR0000000001",
+  "claimsMainLast5y": 0,
+  "claimsSharedLast5y": 0
+}
