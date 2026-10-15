@@ -1,0 +1,25 @@
+{
+  "name": "@astax/adapters",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./clock": {
+      "types": "./dist/clock/index.d.ts",
+      "default": "./dist/clock/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@astax/config": "workspace:*",
+    "@types/node": "24.19.2",
+    "eslint": "10.12.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.4"
+  }
+}
