@@ -731,6 +731,8 @@ model Verification {
   decidedByUserId     String?               @db.Uuid
   decidedAt           DateTime?             @db.Timestamptz(3)
   excludedAgencies    Json                  @default("[]")
+  /// Integration: draft sections and document kinds the requester may change (question 9).
+  integrationScope    Json?
   createdAt           DateTime              @default(now()) @db.Timestamptz(3)
   updatedAt           DateTime              @default(now()) @db.Timestamptz(3)
 

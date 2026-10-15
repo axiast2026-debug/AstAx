@@ -66,3 +66,25 @@ export function renderEmail(
     text: render(texts.emailBody, variables).trim(),
   };
 }
+
+export function renderInApp(
+  templates: NotificationTemplates,
+  eventKey: string,
+  locale: "it" | "sq",
+  variables: Readonly<Record<string, string>>,
+): { title: string; body: string } {
+  const event = templates[eventKey];
+  const texts = (locale === "sq" ? event?.sq : undefined) ?? event?.it;
+  if (!texts?.title || !texts.body) throw new Error(`No in-app text for ${eventKey}`);
+  return { title: render(texts.title, variables), body: render(texts.body, variables) };
+}
+
+export function renderSms(
+  templates: NotificationTemplates,
+  eventKey: string,
+  variables: Readonly<Record<string, string>>,
+): string {
+  const text = templates[eventKey]?.it.sms;
+  if (!text) throw new Error(`No SMS text for ${eventKey}`);
+  return render(text, variables);
+}

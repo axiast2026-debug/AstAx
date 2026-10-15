@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { formatDate, formatDateTime, formatEuroCents } from "./format.js";
+import {
+  calendarDateToDbDate,
+  dbDateToCalendarDate,
+  formatDate,
+  formatDateTime,
+  formatEuroCents,
+  romeCalendarDate,
+} from "./format.js";
 
 describe("display formatting", () => {
   it("shows dates in the Rome time zone, summer and winter time included", () => {
@@ -12,5 +19,17 @@ describe("display formatting", () => {
     expect(formatEuroCents(52000).replace(/\s/g, " ")).toBe("520,00 €");
     expect(formatEuroCents(3500).replace(/\s/g, " ")).toBe("35,00 €");
     expect(() => formatEuroCents(15.5)).toThrow();
+  });
+});
+
+describe("Rome calendar day", () => {
+  it("uses the Rome day, not the UTC day, around midnight", () => {
+    expect(romeCalendarDate(new Date("2026-10-15T21:59:00.000Z"))).toBe("2026-10-15");
+    expect(romeCalendarDate(new Date("2026-10-15T22:01:00.000Z"))).toBe("2026-10-16");
+    expect(romeCalendarDate(new Date("2026-12-31T23:30:00.000Z"))).toBe("2027-01-01");
+  });
+
+  it("stores calendar days as midnight UTC", () => {
+    expect(dbDateToCalendarDate(calendarDateToDbDate("2026-11-30"))).toBe("2026-11-30");
   });
 });

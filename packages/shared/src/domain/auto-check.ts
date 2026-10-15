@@ -36,7 +36,8 @@ export type ChecklistItemCode =
   | "VEHICLE"
   | "RESIDENCE"
   | "HISTORY"
-  | "DOCUMENTS";
+  | "DOCUMENTS"
+  | "CONSENT";
 
 export interface ChecklistItem {
   code: ChecklistItemCode;

@@ -5,4 +5,5 @@ export * from "./italian-ids.js";
 export * from "./plates.js";
 export * from "./quote-data.js";
 export * from "./quote-rules.js";
+export * from "./sample-quote-data.js";
 export * from "./team.js";

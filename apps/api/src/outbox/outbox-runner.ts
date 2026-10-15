@@ -1,6 +1,6 @@
 import type { Clock } from "@astax/adapters/clock";
 import { dispatchOutbox, type DbClient, type OutboxMessage } from "@astax/db";
-import type { Logger } from "@astax/shared/logging";
+import { errorForLog, type Logger } from "@astax/shared/logging";
 import {
   Inject,
   Injectable,
@@ -53,7 +53,7 @@ export class OutboxRunner implements OnApplicationBootstrap, OnApplicationShutdo
       });
       if (result.failed > 0) this.logger.error({ ...result }, "outbox events failed for good");
     } catch (error) {
-      this.logger.error({ err: error }, "outbox dispatch failed");
+      this.logger.error({ err: errorForLog(error) }, "outbox dispatch failed");
     } finally {
       this.#running = false;
     }

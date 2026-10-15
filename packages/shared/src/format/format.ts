@@ -30,3 +30,27 @@ export function formatEuroCents(cents: number, locale: DisplayLocale = "it"): st
     cents / 100,
   );
 }
+
+/**
+ * The calendar day ("2026-10-15") of an instant in Rome: "today" for the
+ * domain rules on dates (policy start, ages), from an instant read by `Clock`.
+ */
+export function romeCalendarDate(at: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: DISPLAY_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(at);
+  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+/** Midnight UTC of a calendar day: how a `@db.Date` column stores it. */
+export function calendarDateToDbDate(date: string): Date {
+  return new Date(`${date}T00:00:00.000Z`);
+}
+
+export function dbDateToCalendarDate(value: Date): string {
+  return value.toISOString().slice(0, 10);
+}

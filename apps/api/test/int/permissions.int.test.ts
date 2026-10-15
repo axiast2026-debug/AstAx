@@ -102,6 +102,81 @@ const ENDPOINTS: Endpoint[] = [
     body: {},
   },
   { action: "auditLog.viewAll", method: "GET", path: () => "/admin/audit" },
+  // Fase 2: requests, customers, consent
+  { action: "request.create", method: "GET", path: () => "/reference/request-options" },
+  { action: "request.create", method: "GET", path: () => "/reference/municipalities?q=Mi" },
+  { action: "request.create", method: "POST", path: () => "/vehicle-data/lookup", body: {} },
+  { action: "request.viewOwn", method: "GET", path: () => "/requests" },
+  { action: "request.create", method: "POST", path: () => "/requests", body: { customerId: "x" } },
+  { action: "request.viewOwn", method: "GET", path: () => `/requests/${randomUUID()}` },
+  {
+    action: "request.create",
+    method: "PUT",
+    path: () => `/requests/${randomUUID()}/draft/special-uses`,
+    body: {},
+  },
+  {
+    action: "request.create",
+    method: "PUT",
+    path: () => `/requests/${randomUUID()}/draft/vehicle`,
+    body: {},
+  },
+  { action: "request.create", method: "POST", path: () => `/requests/${randomUUID()}/documents` },
+  {
+    action: "request.viewOwn",
+    method: "GET",
+    path: () => `/requests/${randomUUID()}/documents/${randomUUID()}/file`,
+  },
+  {
+    action: "request.create",
+    method: "POST",
+    path: () => `/requests/${randomUUID()}/submit`,
+    body: {},
+  },
+  {
+    action: "request.cancel",
+    method: "POST",
+    path: () => `/requests/${randomUUID()}/cancel`,
+    body: {},
+  },
+  { action: "request.create", method: "GET", path: () => `/requests/${randomUUID()}/consent` },
+  {
+    action: "request.create",
+    method: "POST",
+    path: () => `/requests/${randomUUID()}/consent/code`,
+    body: {},
+  },
+  {
+    action: "request.create",
+    method: "POST",
+    path: () => `/requests/${randomUUID()}/consent/confirm`,
+    body: {},
+  },
+  {
+    action: "customerLink.send",
+    method: "POST",
+    path: () => `/requests/${randomUUID()}/consent/link`,
+    body: {},
+  },
+  {
+    action: "brokerCustomer.manage",
+    method: "POST",
+    path: () => `/requests/${randomUUID()}/consent/uploaded`,
+    body: {},
+  },
+  { action: "brokerCustomer.manage", method: "GET", path: () => "/customers" },
+  { action: "brokerCustomer.manage", method: "POST", path: () => "/customers", body: {} },
+  { action: "brokerCustomer.manage", method: "GET", path: () => `/customers/${randomUUID()}` },
+];
+
+/**
+ * Routes without authentication: the consent page the broker's customer opens
+ * from the link (the secret token is the proof). Tested in requests.int.test.ts.
+ */
+const PUBLIC_ROUTES = [
+  "GET /consent-links/{token}",
+  "POST /consent-links/{token}/code",
+  "POST /consent-links/{token}/confirm",
 ];
 
 /** One synthetic user per role, with the membership the seed gives them. */
@@ -158,7 +233,7 @@ describe("SIC-01 every API route is in the table", () => {
       .flatMap(([path, methods]) =>
         Object.keys(methods).map((method) => `${method.toUpperCase()} ${path}`),
       )
-      .filter((route) => route !== "GET /health")
+      .filter((route) => route !== "GET /health" && !PUBLIC_ROUTES.includes(route))
       .sort();
     const covered = [
       ...new Set(
@@ -166,7 +241,10 @@ describe("SIC-01 every API route is in the table", () => {
           (e) =>
             `${e.method} ${e
               .path()
+              .replace(/\?.*$/, "")
               .replace(/[0-9a-f-]{36}/g, "{id}")
+              .replace("/documents/{id}/file", "/documents/{documentId}/file")
+              .replace("/draft/vehicle", "/draft/{section}")
               .replace("/documents/none/", "/documents/{key}/")
               .replace("/settings/invitations.max", "/settings/{key}")}`,
         ),

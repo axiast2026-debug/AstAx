@@ -31,6 +31,13 @@ const configSchema = z
       .default("true")
       .transform((v) => v === "true"),
     OUTBOX_DISPATCH_INTERVAL_MS: z.coerce.number().int().min(0).default(5000),
+    /** Document storage: SeaweedFS in development (ADR 0003), S3 in the cloud (phase 8). */
+    S3_ENDPOINT: z.url().optional(),
+    S3_PORT: z.coerce.number().int().min(1).max(65535).default(8333),
+    S3_REGION: z.string().min(1).default("eu-south-1"),
+    S3_BUCKET: z.string().min(3).default("astax-documents"),
+    S3_ACCESS_KEY: z.string().min(1).optional(),
+    S3_SECRET_KEY: z.string().min(1).optional(),
   })
   // Development tools never run in production (CLAUDE.md rule 13).
   .refine((c) => !(c.NODE_ENV === "production" && c.DEV_TOOLS), {

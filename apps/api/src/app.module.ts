@@ -13,7 +13,16 @@ import { LegalController } from "./legal/legal.controller.js";
 import { LegalGate } from "./legal/legal-gate.js";
 import { LegalService } from "./legal/legal.service.js";
 import { MeController } from "./me/me.controller.js";
+import { NotificationService } from "./notifications/notification.service.js";
 import { OutboxRunner } from "./outbox/outbox-runner.js";
+import { AutoCheckService } from "./requests/auto-check.service.js";
+import { ConsentLinksController } from "./requests/consent-links.controller.js";
+import { ConsentService } from "./requests/consent.service.js";
+import { CustomersController } from "./requests/customers.controller.js";
+import { CustomersService } from "./requests/customers.service.js";
+import { ReferenceService } from "./requests/reference.service.js";
+import { RequestsController } from "./requests/requests.controller.js";
+import { RequestsService } from "./requests/requests.service.js";
 import { SettingsController } from "./settings/settings.controller.js";
 import { SettingsService } from "./settings/settings.service.js";
 import { TeamController } from "./team/team.controller.js";
@@ -32,6 +41,9 @@ export class AppModule {
         TeamController,
         SettingsController,
         AuditController,
+        RequestsController,
+        CustomersController,
+        ConsentLinksController,
       ],
       providers: [
         AuditService,
@@ -41,6 +53,12 @@ export class AppModule {
         TeamService,
         SettingsService,
         OutboxRunner,
+        NotificationService,
+        ReferenceService,
+        AutoCheckService,
+        RequestsService,
+        ConsentService,
+        CustomersService,
         IdentitySync,
         { provide: APP_GUARD, useClass: AuthGuard },
         { provide: APP_FILTER, useClass: ProblemFilter },

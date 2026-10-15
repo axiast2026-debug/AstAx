@@ -8,5 +8,11 @@
     "BO_ACCOUNTING": "contabilità",
     "BO_SUPERVISOR": "supervisore del back office",
     "ADMIN": "amministratore"
+  },
+  "channel": { "PRIVATE": "privato", "BROKER": "broker" },
+  "outcome": { "GREEN": "verde", "YELLOW": "giallo", "RED": "rosso" },
+  "otpPurpose": {
+    "PRIVATE_CONSENT": "confermare i consensi della tua richiesta",
+    "LINK_CONSENT": "confermare il consenso alla richiesta del tuo broker"
   }
 }

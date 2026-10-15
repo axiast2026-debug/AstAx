@@ -40,6 +40,8 @@ export interface S3StorageConfig {
   secretAccessKey: string;
   /** SeaweedFS and other local servers need path-style URLs. */
   forcePathStyle?: boolean;
+  /** Development only: create the bucket on the first write. In the cloud Terraform creates it. */
+  createBucketIfMissing?: boolean;
 }
 
 function attachment(fileName: string): string {
@@ -77,6 +79,7 @@ export class S3ObjectStorage implements ObjectStoragePort {
   }
 
   async put(input: { key: string; body: Uint8Array; contentType: string }): Promise<void> {
+    if (this.config.createBucketIfMissing) await this.ensureBucket();
     await this.#client.send(
       new PutObjectCommand({
         Bucket: this.config.bucket,

@@ -1,6 +1,13 @@
 import { Writable } from "node:stream";
 import { describe, expect, it } from "vitest";
-import { createLogger, isSensitiveKey, redact, REDACTED, scrubString } from "./index.js";
+import {
+  createLogger,
+  errorForLog,
+  isSensitiveKey,
+  redact,
+  REDACTED,
+  scrubString,
+} from "./index.js";
 
 // Synthetic data only (SIC-08).
 const FISCAL_CODE = "RSSMRA80A01H501U";
@@ -102,5 +109,24 @@ describe("SIC-06 the logger hides personal data and offer prices", () => {
     const node: Record<string, unknown> = { id: "x" };
     node.self = node;
     expect(redact(node)).toEqual({ id: "x", self: "[Circular]" });
+  });
+});
+
+describe("errors in the log", () => {
+  it("rule 8: a database error is logged without its message, which repeats the query values", () => {
+    class PrismaClientValidationError extends Error {
+      override name = "PrismaClientValidationError";
+    }
+    const error = new PrismaClientValidationError('Invalid create: fiscalCode: "NREGLI90E52F205X"');
+    const logged = errorForLog(error);
+    expect(logged.type).toBe("PrismaClientValidationError");
+    expect(JSON.stringify(logged)).not.toContain("NREGLI90E52F205X");
+  });
+
+  it("other errors keep their message", () => {
+    expect(errorForLog(new TypeError("x is not a function"))).toMatchObject({
+      type: "TypeError",
+      message: "x is not a function",
+    });
   });
 });

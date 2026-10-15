@@ -1,0 +1,4 @@
+{
+  "channel": { "PRIVATE": "privat", "BROKER": "broker" },
+  "outcome": { "GREEN": "jeshile", "YELLOW": "e verdhë", "RED": "e kuqe" }
+}

@@ -1,6 +1,6 @@
 import type { Clock } from "@astax/adapters/clock";
 import { recordDomainEvent, withContext, type DbClient } from "@astax/db";
-import type { Logger } from "@astax/shared/logging";
+import { errorForLog, type Logger } from "@astax/shared/logging";
 import {
   crossSettingErrors,
   isSettingKey,
@@ -199,7 +199,7 @@ export class SettingsService {
       await applyIdentitySettings(this.identity, values);
     } catch (error) {
       // The version is saved; the sync script or the next change re-applies it.
-      this.logger.error({ err: error }, "identity settings not applied to Keycloak");
+      this.logger.error({ err: errorForLog(error) }, "identity settings not applied to Keycloak");
       throw new ProblemError("INTERNAL", "Saved, but not yet applied to the login service");
     }
   }

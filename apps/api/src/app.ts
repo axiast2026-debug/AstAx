@@ -5,6 +5,7 @@ import type { INestApplication } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule, type OpenAPIObject } from "@nestjs/swagger";
+import { raw } from "express";
 import { AppModule } from "./app.module.js";
 import type { ApiConfig } from "./config/config.js";
 import { requestLogger } from "./http/request-logger.js";
@@ -38,6 +39,9 @@ export async function createApp(
   app.disable("x-powered-by");
   app.set("trust proxy", "loopback");
   app.use(requestLogger(logger, app.get<Clock>(CLOCK)));
+  // Document uploads send the file itself as the body. The technical cap is
+  // generous; the business limit is documents.maxUploadMb, checked by the use case.
+  app.use(/^\/requests\/[^/]+\/documents$/, raw({ type: () => true, limit: "60mb" }));
   app.enableShutdownHooks();
 
   const document = buildOpenApi(app);

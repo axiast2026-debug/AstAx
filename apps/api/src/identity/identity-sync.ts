@@ -1,6 +1,6 @@
 import type { Clock } from "@astax/adapters/clock";
 import { SYSTEM_CONTEXT, withContext, type DbClient } from "@astax/db";
-import type { Logger } from "@astax/shared/logging";
+import { errorForLog, type Logger } from "@astax/shared/logging";
 import { requireSettingAt, type SettingVersion } from "@astax/shared/settings";
 import { Inject, Injectable, type OnApplicationBootstrap } from "@nestjs/common";
 import type { ApiConfig } from "../config/config.js";
@@ -33,7 +33,10 @@ export class IdentitySync implements OnApplicationBootstrap {
       await this.apply();
     } catch (error) {
       // The API keeps running; the next parameter change or restart applies them.
-      this.logger.error({ err: error }, "identity parameters not applied to Keycloak at start-up");
+      this.logger.error(
+        { err: errorForLog(error) },
+        "identity parameters not applied to Keycloak at start-up",
+      );
     }
   }
 
