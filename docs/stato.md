@@ -6,7 +6,7 @@ Claude Code aggiorna questo file alla fine di ogni sessione di lavoro e alla chi
 
 | Fase | Stato | Chiusa il | Note |
 | --- | --- | --- | --- |
-| 1. Fondamenta | In verifica | | Criteri soddisfatti; verifica indipendente fatta (due giri) e problemi corretti; demo vista da Dan il 2026-10-15. Manca la conferma finale di Dan |
+| 1. Fondamenta | Chiusa | 2026-10-15 | Criteri soddisfatti; verifica indipendente in due giri; demo vista e chiusura confermata da Dan |
 | 2. Richiesta e verifica | Da iniziare | | |
 | 3. Motore d'asta | Da iniziare | | |
 | 4. Offerte | Da iniziare | | |
@@ -30,7 +30,7 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
   - CI di GitHub Actions scritta (non ancora eseguita);
   - ADR 0001-0004.
 - Demo: Dan l'ha provata il 2026-10-15 (privato con codice, titolare con TOTP, Marco Rossi con due agenzie, back office in albanese, registro): tutto funzionante.
-- Resta per chiudere la fase: creare il repository GitHub, far girare la CI e renderla obbligatoria; poi `/chiudi-fase 1` (verifica indipendente e demo).
+- Fase 1 chiusa il 2026-10-15 con la conferma di Dan. Prossimo passo: `/fase 2` (richiesta e verifica).
 - Incidente di questa sessione: un comando scritto male ha eseguito per errore alcuni comandi di sviluppo (build, migrazioni, seed, sincronizzazione Keycloak, `pnpm dev`). Erano tutti ripetibili; servizi, volumi Docker e `.env` sono intatti. Il comando che cancella i dati locali non è partito.
 
 ## Criteri della fase in corso
