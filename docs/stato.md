@@ -6,7 +6,7 @@ Claude Code aggiorna questo file alla fine di ogni sessione di lavoro e alla chi
 
 | Fase | Stato | Chiusa il | Note |
 | --- | --- | --- | --- |
-| 1. Fondamenta | In corso | | Tutti i passi fatti; demo provata da Dan il 2026-10-15 con esito positivo. Mancano la CI su GitHub (repository da creare) e `/chiudi-fase 1` |
+| 1. Fondamenta | In corso | | Tutti i passi fatti; demo provata da Dan il 2026-10-15 con esito positivo. CI verde su GitHub; mancano la regola che la rende obbligatoria e `/chiudi-fase 1` |
 | 2. Richiesta e verifica | Da iniziare | | |
 | 3. Motore d'asta | Da iniziare | | |
 | 4. Offerte | Da iniziare | | |
@@ -38,7 +38,7 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 | Criterio | Stato | Prova |
 | --- | --- | --- |
 | Da una macchina pulita, seguendo il README, ambiente e dati di prova partono con un comando ciascuno | Fatto | `README.md`: `pnpm infra:up` e `pnpm db:seed`; provato su questo computer, non ancora su un computer nuovo |
-| CI verde e obbligatoria per unire una pull request | Da fare | `.github/workflows/ci.yml` scritto; serve il repository GitHub e la regola di protezione del ramo `main` |
+| CI verde e obbligatoria per unire una pull request | In parte | CI verde su GitHub (esecuzione 38727751445: check ed e2e); manca la regola che la rende obbligatoria, da impostare da Dan in GitHub |
 | Utente professionale: password e TOTP, TOTP configurato al primo accesso | Fatto | `tests/e2e/specs/fase1-accessi.spec.ts` (titolare, amministratore); flusso `astax-professional-browser` in `infra/keycloak/import/realm-astax.json` |
 | Privato: accesso con codice via email o SMS | Fatto (email) | `tests/e2e/specs/fase1-accessi.spec.ts` (privato); SMS con il fornitore in fase 8 |
 | Durate di sessione dai parametri per privati, professionisti, personale AstAx | Fatto | `packages/adapters/src/identity/session-settings.test.ts`; `apps/api/test/int/settings.int.test.ts` («SIC-05 a session parameter is applied to Keycloak») |
