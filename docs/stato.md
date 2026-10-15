@@ -19,17 +19,26 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 
 ## Ultima sessione
 
-**2026-10-15 — fase 1, parti che non richiedono Docker.**
+**2026-10-15 — fase 1, passi 1, 2, 3 e parti dei passi 5-7.**
 
-- Fatto (6 commit, `pnpm check` verde, 888 test):
+- Fatto (10 commit, `pnpm check` verde, 908 test):
   - passo 1: monorepo pnpm + Turborepo, `@astax/config` con TypeScript strict, ESLint e Prettier, e regole proprie che bloccano l'orologio di sistema e i testi nei componenti;
-  - passo 5: porta `Clock` (`@astax/adapters/clock`), catalogo tipizzato di tutti i parametri con lettura a una data e nuova versione con autore e motivo (`@astax/shared/settings`), mappa completa dei permessi con negazione predefinita (`@astax/shared/permissions`);
-  - passo 6, parte senza server: logger che oscura dati personali e importi (`@astax/shared/logging`);
-  - passo 7, parte senza database: catena di hash del registro (`@astax/shared/audit`);
-  - ADR 0001 (stack e versioni).
-- Resta: passi 2-4 e 7-14, che richiedono Docker (ambiente locale, database, Keycloak, API, frontend, E2E, CI).
-- Bloccato da: Docker Desktop non ancora installato; repository GitHub non ancora creato.
-- Come provarlo: in `C:\Users\clien\Searches\astax`, `pnpm install` e poi `pnpm check`. Deve finire con «8 successful».
+  - passo 2: ambiente locale con Docker (`pnpm env:init`, `pnpm infra:up`): PostgreSQL, Redis, Keycloak, Temporal, storage S3 SeaweedFS (ADR 0003, al posto di MinIO), Mailpit; README con i passi da una macchina pulita;
+  - passo 3: `@astax/db` con Prisma 7.10, entità «Identità e organizzazioni», sicurezza a livello di riga, registro che rifiuta UPDATE/DELETE/TRUNCATE anche al proprietario dello schema, `pnpm audit:verify`; test di integrazione su PostgreSQL vero (Testcontainers);
+  - passo 5: porta `Clock`, catalogo dei parametri con lettura a una data, mappa completa dei permessi con negazione predefinita;
+  - passo 6, parte senza server: logger che oscura dati personali e importi;
+  - passo 7, parte senza API: catena di hash, scrittura nel registro con blocco contro le scritture concorrenti;
+  - ADR 0001 (stack e versioni), ADR 0003 (storage S3 locale).
+- Resta: passo 4 (seed e dati sintetici), passi 6-14 (API, Keycloak, permessi nell'API, team, parametri e documenti legali via API, frontend, E2E, CI).
+- In attesa: repository GitHub (serve per la CI, passo 13).
+- Come provarlo, in `C:\Users\clien\Searches\astax`, da PowerShell (Docker Desktop acceso):
+  1. `pnpm install`
+  2. `pnpm infra:up` → tutti i servizi «Healthy»
+  3. `pnpm db:migrate` → «All migrations have been successfully applied»
+  4. `pnpm check` → «12 successful»
+  5. `pnpm audit:verify` → «Audit log intact»
+  6. Mailpit su http://127.0.0.1:8025 e Temporal su http://127.0.0.1:8233 si aprono nel browser.
+- Nota tecnica: Docker è installato nella cartella dell'utente; la shell Bash di Claude Code non lo vede nel PATH, PowerShell sì. I test di integrazione vanno lanciati da PowerShell.
 
 ## Criteri della fase in corso
 
@@ -42,8 +51,8 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 | Durate di sessione dai parametri per privati, professionisti, personale AstAx | Da fare | Parametri `session.*` validati in `packages/shared/src/settings` |
 | Test a tabella dei permessi per ogni ruolo; endpoint senza permesso → 403 | In parte | Mappa: `packages/shared/src/permissions/can.test.ts`; guard dell'API da fare |
 | Senza contesto o con contesto altrui → 403; Marco Rossi cambia contesto | Da fare | — |
-| Sicurezza a livello di riga: Agenzia Uno non vede righe di Agenzia Due | Da fare | — |
-| Registro: azioni protette e 403 registrati; UPDATE/DELETE falliscono; `audit:verify` trova una riga alterata | In parte | Catena: `packages/shared/src/audit/hash-chain.test.ts`; database e comando da fare |
+| Sicurezza a livello di riga: Agenzia Uno non vede righe di Agenzia Due | Fatto | `packages/db/test/rls.int.test.ts` |
+| Registro: azioni protette e 403 registrati; UPDATE/DELETE falliscono; `audit:verify` trova una riga alterata | In parte | `packages/db/test/audit.int.test.ts` (UPDATE/DELETE, riga alterata), `pnpm audit:verify`; registrazione delle azioni e dei 403 dall'API da fare |
 | Modifica di parametro → nuova versione con autore e motivo; lettura a una data | In parte | Logica: `packages/shared/src/settings/settings.test.ts`; API da fare |
 | Documenti legali: accettazione al primo accesso e a ogni nuova versione, con versione, data e IP | Da fare | — |
 | Il logger oscura codice fiscale, telefono, email, IBAN e importi delle offerte | Fatto | `packages/shared/src/logging/logger.test.ts` |
@@ -62,3 +71,4 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 | Numero | Titolo | Data |
 | --- | --- | --- |
 | 0001 | [Stack e versioni](adr/0001-stack-e-versioni.md) | 2026-10-15 |
+| 0003 | [Storage S3 locale: SeaweedFS invece di MinIO](adr/0003-storage-s3-locale.md) | 2026-10-15 |

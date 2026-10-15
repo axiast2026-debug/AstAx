@@ -62,7 +62,8 @@ Li crea la fase 1; da allora questa sezione va tenuta aggiornata.
 | `pnpm infra:up` | Avvia PostgreSQL (5433), Redis (6380), Keycloak (8180), Temporal (7233, UI 8233), storage S3 SeaweedFS (8333, ADR 0003), Mailpit (8025) e aspetta che siano pronti |
 | `pnpm infra:down` | Ferma i servizi locali, senza cancellare i dati |
 | `pnpm install` | Installa le dipendenze |
-| `pnpm db:reset` | Ricrea il database, applica le migrazioni, carica seed e dati sintetici |
+| `pnpm db:migrate` | Applica le migrazioni (come `astax_owner`) |
+| `pnpm db:reset` | Ricrea il database, applica le migrazioni, carica seed e dati sintetici (seed dal passo 4 della fase 1) |
 | `pnpm dev` | Avvia web, admin, api e worker in sviluppo |
 | `pnpm check` | Lint, tipi, test unitari e di integrazione: deve essere verde prima di ogni commit |
 | `pnpm test:e2e` | Test end-to-end (scenari S01-S10 e percorsi principali) |
