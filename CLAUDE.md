@@ -99,7 +99,9 @@ Su Windows Docker Desktop è installato nella cartella dell'utente: i comandi ch
 - Se una scelta tecnica non è nelle specifiche o se ne discosta, scrivi un ADR in `docs/adr/` prima di procedere.
 - Alla fine di ogni sessione aggiorna `docs/stato.md`: cosa hai fatto, cosa resta, come provarlo, debiti tecnici.
 - La fase si chiude con `/chiudi-fase N`: tutti i criteri verificati, con il sottoagente `verificatore` come controllo indipendente, e la demo per Dan descritta in `docs/stato.md`.
-- Non fare push, non creare risorse cloud e non usare credenziali vere senza che Dan lo chieda.
+- Push: dal 2026-10-15 Dan autorizza in modo permanente i push su `https://github.com/axiast2026-debug/AstAx` (ramo `main` e rami di lavoro), solo con `pnpm check` verde. Niente `push --force`.
+- Il repository è pubblico per scelta di Dan (2026-10-15): mai segreti, dati reali o credenziali nei file, nei commit, nei log della CI.
+- Non creare risorse cloud e non usare credenziali vere senza che Dan lo chieda.
 
 ## Come si scrivono i test
 
