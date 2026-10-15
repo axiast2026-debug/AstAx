@@ -25,6 +25,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
+          # pnpm is enabled by corepack in the next step: no automatic cache here.
+          package-manager-cache: false
       - name: Enable pnpm
         run: corepack enable pnpm
       - name: Install dependencies
@@ -47,6 +49,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
+          # pnpm is enabled by corepack in the next step: no automatic cache here.
+          package-manager-cache: false
       - name: Enable pnpm
         run: corepack enable pnpm
       - name: Install dependencies
