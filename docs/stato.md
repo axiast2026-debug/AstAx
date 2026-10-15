@@ -6,7 +6,7 @@ Claude Code aggiorna questo file alla fine di ogni sessione di lavoro e alla chi
 
 | Fase | Stato | Chiusa il | Note |
 | --- | --- | --- | --- |
-| 1. Fondamenta | In corso | | Tutti i passi fatti; manca la CI su GitHub (repository da creare), poi `/chiudi-fase 1` |
+| 1. Fondamenta | In corso | | Tutti i passi fatti; demo provata da Dan il 2026-10-15 con esito positivo. Mancano la CI su GitHub (repository da creare) e `/chiudi-fase 1` |
 | 2. Richiesta e verifica | Da iniziare | | |
 | 3. Motore d'asta | Da iniziare | | |
 | 4. Offerte | Da iniziare | | |
@@ -29,6 +29,7 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
   - sito e back office in Next.js: accesso, menu per ruolo, selettore di contesto, profilo con sessioni, centro notifiche vuoto, back office in italiano e albanese, pagina del registro (ADR 0004);
   - CI di GitHub Actions scritta (non ancora eseguita);
   - ADR 0001-0004.
+- Demo: Dan l'ha provata il 2026-10-15 (privato con codice, titolare con TOTP, Marco Rossi con due agenzie, back office in albanese, registro): tutto funzionante.
 - Resta per chiudere la fase: creare il repository GitHub, far girare la CI e renderla obbligatoria; poi `/chiudi-fase 1` (verifica indipendente e demo).
 - Incidente di questa sessione: un comando scritto male ha eseguito per errore alcuni comandi di sviluppo (build, migrazioni, seed, sincronizzazione Keycloak, `pnpm dev`). Erano tutti ripetibili; servizi, volumi Docker e `.env` sono intatti. Il comando che cancella i dati locali non è partito.
 
