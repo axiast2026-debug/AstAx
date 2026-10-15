@@ -28,6 +28,7 @@
       "persistent": true
     },
     "generate": {
+      "dependsOn": ["^build"],
       "outputs": ["src/generated/**"]
     }
   }
