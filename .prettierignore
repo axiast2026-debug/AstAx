@@ -1,0 +1,8 @@
+pnpm-lock.yaml
+dist/
+.turbo/
+coverage/
+docs/
+fasi/
+seed/
+*.md
