@@ -11,6 +11,10 @@
     "./permissions": {
       "types": "./dist/permissions/index.d.ts",
       "default": "./dist/permissions/index.js"
+    },
+    "./logging": {
+      "types": "./dist/logging/index.d.ts",
+      "default": "./dist/logging/index.js"
     }
   },
   "scripts": {
@@ -20,7 +24,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "zod": "4.6.7"
+    "zod": "4.6.7",
+    "pino": "10.4.0"
   },
   "devDependencies": {
     "@astax/config": "workspace:*",
