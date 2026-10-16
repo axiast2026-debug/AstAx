@@ -679,6 +679,8 @@ enum DocumentKind {
   RISK_CERTIFICATE
   FISCAL_CODE_CARD
   CONSENT_FORM
+  /// The PDF quote of an offer, stored after the closing (docs/busta-chiusa.md, step 5).
+  OFFER_QUOTE
   OTHER
 }
 

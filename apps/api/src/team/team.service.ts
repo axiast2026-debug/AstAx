@@ -29,7 +29,7 @@ import {
   loadNotificationTemplates,
   renderEmail,
   type NotificationTemplates,
-} from "../notifications/templates.js";
+} from "@astax/shared/notifications";
 
 const DAY_MS = 86_400_000;
 

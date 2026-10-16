@@ -10,7 +10,7 @@ import {
   renderInApp,
   renderSms,
   type NotificationTemplates,
-} from "./templates.js";
+} from "@astax/shared/notifications";
 
 export interface InAppRecipient {
   userId: string;

@@ -1,0 +1,926 @@
+import { createHash, randomUUID } from "node:crypto";
+import {
+  decryptFile,
+  generateAuctionKeyPair,
+  KMS_KEYS,
+  openSealed,
+  wipe,
+} from "@astax/adapters/kms";
+import {
+  addRequestEvent,
+  auctionSettings,
+  auctionSettingsAt,
+  filterableRequest,
+  loadAgencyCandidates,
+  loadWorkingCalendar,
+  recordDomainEvent,
+  settingsAt,
+  SYSTEM_CONTEXT,
+  withContext,
+  type Auction,
+  type DbTransaction,
+  type Prisma,
+  type QuoteRequest,
+} from "@astax/db";
+import {
+  addWorkingMinutes,
+  auctionTimes,
+  backOfficeMayInvite,
+  coverageShortfalls,
+  guaranteeDateAccepted,
+  OfferPayloadSchema,
+  PackageRequirementsSchema,
+  rankOffers,
+  selectAgencies,
+  topUpSize,
+  transitionOffer,
+  transitionRequest,
+  type OfferPayload,
+  type RequestStatus,
+} from "@astax/shared/domain";
+import {
+  calendarDateToDbDate,
+  dbDateToCalendarDate,
+  formatDate,
+  formatDateTime,
+  formatEuroCents,
+} from "@astax/shared/format";
+import { errorForLog } from "@astax/shared/logging";
+import { ApplicationFailure } from "@temporalio/activity";
+import type { PendingEmail } from "../notifier.js";
+import {
+  agencyRecipients,
+  audit,
+  calendarOf,
+  quoteDataOf,
+  requesterLink,
+  requesterOf,
+  roundTimesOf,
+  snapshotOf,
+  staffRecipients,
+  vehicleForAgency,
+  vehicleForRequester,
+  type ActivityDeps,
+} from "./support.js";
+import type { AuctionActivities, CloseResult, OpenResult, RoundKind } from "./types.js";
+
+const LONG_TX = { timeoutMs: 60_000 };
+
+/**
+ * The activities of QuoteRequestWorkflow for auctions (ADR 0008). Each runs in
+ * a system transaction, checks the state before acting (a repetition by
+ * Temporal changes nothing) and sends emails only after the commit.
+ */
+export function auctionActivities(
+  deps: ActivityDeps,
+): Omit<AuctionActivities, "guaranteeSchedule" | "sendGuaranteeReminder" | "expireRequest"> {
+  const { db, kms, clock, cipher, notifier, urls } = deps;
+
+  async function inSystem<T>(work: (tx: DbTransaction, pending: PendingEmail[]) => Promise<T>) {
+    const pending: PendingEmail[] = [];
+    const result = await withContext(db, SYSTEM_CONTEXT, (tx) => work(tx, pending), LONG_TX);
+    await notifier.flush(pending);
+    return result;
+  }
+
+  async function lockAuction(tx: DbTransaction, auctionId: string): Promise<Auction> {
+    await tx.$queryRaw`SELECT 1 FROM "Auction" WHERE "id" = ${auctionId}::uuid FOR UPDATE`;
+    return tx.auction.findUniqueOrThrow({ where: { id: auctionId } });
+  }
+
+  async function setRequestStatus(tx: DbTransaction, request: QuoteRequest, to: RequestStatus) {
+    if (request.status === to) return;
+    transitionRequest(request.status as RequestStatus, to);
+    await tx.quoteRequest.update({ where: { id: request.id }, data: { status: to } });
+  }
+
+  async function publish(requestId: string) {
+    try {
+      await deps.publish({ type: "AUCTION_CHANGED", requestId });
+    } catch (error) {
+      deps.logger.warn({ requestId, err: errorForLog(error) }, "realtime event not published");
+    }
+  }
+
+  /** Invitations, with the in-app notification and the email to the agency's members. */
+  async function invite(
+    tx: DbTransaction,
+    pending: PendingEmail[],
+    auction: Auction,
+    request: QuoteRequest,
+    organizationIds: readonly string[],
+    source: "AUTO" | "TOP_UP" | "BACK_OFFICE" | "REOPEN",
+    invitedByUserId: string | null,
+  ) {
+    const now = clock.now();
+    await tx.invitation.createMany({
+      data: organizationIds.map((organizationId) => ({
+        auctionId: auction.id,
+        organizationId,
+        source,
+        invitedAt: now,
+        invitedByUserId,
+      })),
+      skipDuplicates: true,
+    });
+    const quoteData = await quoteDataOf(tx, cipher, request);
+    const pkg = await tx.coveragePackage.findUnique({ where: { code: request.packageCode ?? "" } });
+    await notifier.notify(
+      tx,
+      pending,
+      await agencyRecipients(tx, cipher, organizationIds),
+      "auction.invited",
+      () => ({
+        codice: request.code,
+        veicolo: vehicleForAgency(quoteData),
+        provincia: request.province ?? "",
+        pacchetto: pkg?.name ?? request.packageCode ?? "",
+        decorrenza: request.startDate ? formatDate(dbDateToCalendarDate(request.startDate)) : "",
+        garanzia_minima: formatDate(dbDateToCalendarDate(auction.minGuaranteeDate)),
+        ora_chiusura: formatDateTime(auction.scheduledCloseAt),
+        link: `${urls.web}/richieste-in-arrivo`,
+      }),
+      `/richieste-in-arrivo`,
+      { auctionId: auction.id },
+    );
+  }
+
+  async function openRound(input: {
+    requestId: string;
+    kind: RoundKind;
+    round: number;
+  }): Promise<OpenResult> {
+    const result = await inSystem(async (tx, pending): Promise<OpenResult> => {
+      const now = clock.now();
+      await tx.$queryRaw`SELECT 1 FROM "QuoteRequest" WHERE "id" = ${input.requestId}::uuid FOR UPDATE`;
+      const request = await tx.quoteRequest.findUniqueOrThrow({ where: { id: input.requestId } });
+      const rounds = await tx.auction.findMany({
+        where: { quoteRequestId: request.id },
+        orderBy: { round: "asc" },
+        include: { invitations: true },
+      });
+      // A repetition finds the round it already opened.
+      const same = rounds.find((r) => r.round === input.round);
+      if (same) {
+        const calendar = await calendarOf(tx, same);
+        return { opened: true, invited: same.invitations.length, ...roundTimesOf(same, calendar) };
+      }
+      const last = rounds.at(-1);
+      if (input.kind === "MAIN") {
+        if (input.round !== 1 || rounds.length > 0 || request.status !== "IN_VERIFICATION") {
+          return { opened: false, reason: "NOT_APPROVED" };
+        }
+        const round = await tx.verification.findFirst({
+          where: { quoteRequestId: request.id },
+          orderBy: { round: "desc" },
+        });
+        if (round?.decision !== "APPROVED") return { opened: false, reason: "NOT_APPROVED" };
+        // LEG-04: no new auction once the customer has revoked the consent.
+        const consent = await tx.consent.findFirst({
+          where: {
+            customerId: request.customerId ?? "",
+            type: "DATA_SHARING_AGENCIES",
+            revokedAt: null,
+          },
+        });
+        if (!consent) return { opened: false, reason: "CONSENT_REVOKED" };
+      } else if (
+        request.status !== "AUCTION_OPEN" ||
+        !last ||
+        last.status !== "CLOSED" ||
+        input.round !== last.round + 1
+      ) {
+        return { opened: false, reason: "NOT_REOPENABLE" };
+      }
+
+      const snapshot = await auctionSettingsAt(tx, now);
+      const settings = auctionSettings(snapshot);
+      const calendar = await loadWorkingCalendar(tx, snapshot["calendar.workingHours"]);
+      const durationHours =
+        input.kind === "MAIN"
+          ? (request.auctionDurationHours ?? 0)
+          : snapshot["auction.desertedReopen.workingHours"];
+      const times = auctionTimes(
+        calendar,
+        now,
+        durationHours,
+        request.minValidityDays ?? 0,
+        settings,
+      );
+      const filterable = filterableRequest(request, now);
+      if (!filterable) throw ApplicationFailure.nonRetryable("The request has no submitted data");
+      const exclusions = await tx.invitationExclusion.findMany({
+        where: { quoteRequestId: request.id },
+      });
+      const selection = selectAgencies({
+        request: filterable,
+        candidates: await loadAgencyCandidates(tx, now),
+        calendar,
+        openedAt: now,
+        closeAt: times.scheduledCloseAt,
+        minReceptionOverlapMinutes: settings.minReceptionOverlapWorkingHours * 60,
+        // ASTA-08: the reopening invites every compatible agency not yet invited.
+        limit: input.kind === "MAIN" ? settings.invitationsMax : null,
+        alreadyInvited: rounds.flatMap((r) =>
+          r.invitations.map((i) => ({ organizationId: i.organizationId, companies: [] })),
+        ),
+        excluded: exclusions.map((e) => e.organizationId),
+        rotation: input.kind === "MAIN",
+      });
+      if (selection.selected.length === 0) return { opened: false, reason: "NO_AGENCIES" };
+
+      const auctionId = randomUUID();
+      const keys = await generateAuctionKeyPair();
+      const wrappedPrivateKey = await kms.encrypt(KMS_KEYS.sealedBids, keys.privateKey, {
+        purpose: "sealed-bid",
+        auctionId,
+      });
+      await wipe(keys.privateKey);
+      const auction = await tx.auction.create({
+        data: {
+          id: auctionId,
+          quoteRequestId: request.id,
+          ownerUserId: request.ownerUserId,
+          ownerOrganizationId: request.ownerOrganizationId,
+          kind: input.kind,
+          round: input.round,
+          openedAt: now,
+          scheduledCloseAt: times.scheduledCloseAt,
+          originalCloseAt: times.scheduledCloseAt,
+          minGuaranteeDate: calendarDateToDbDate(times.minGuaranteeDate),
+          durationHours,
+          settingsSnapshot: snapshot,
+          publicKey: keys.publicKey,
+          wrappedPrivateKey,
+          kmsKeyRef: KMS_KEYS.sealedBids,
+        },
+      });
+      const organizationIds = selection.selected.map((s) => s.organizationId);
+      await invite(
+        tx,
+        pending,
+        auction,
+        request,
+        organizationIds,
+        input.kind === "MAIN" ? "AUTO" : "REOPEN",
+        null,
+      );
+      await setRequestStatus(tx, request, "AUCTION_OPEN");
+      await addRequestEvent(tx, request, {
+        type: input.kind === "MAIN" ? "AUCTION_OPENED" : "AUCTION_REOPENED",
+        actorKind: "SYSTEM",
+        actorUserId: null,
+        at: now,
+        details: {
+          round: auction.round,
+          scheduledCloseAt: auction.scheduledCloseAt.toISOString(),
+          invited: organizationIds.length,
+        },
+      });
+      await recordDomainEvent(tx, {
+        aggregateType: "Auction",
+        aggregateId: auction.id,
+        type: "AuctionOpened",
+        at: now,
+        actorUserId: null,
+        data: { quoteRequestId: request.id, round: auction.round, invited: organizationIds.length },
+      });
+      await audit(tx, now, {
+        action: "AUCTION_OPENED",
+        targetType: "Auction",
+        targetId: auction.id,
+        after: { quoteRequestId: request.id, kind: input.kind, invited: organizationIds },
+      });
+      const quoteData = await quoteDataOf(tx, cipher, request);
+      const requester = await requesterOf(tx, cipher, request);
+      await notifier.notify(
+        tx,
+        pending,
+        requester.recipients,
+        input.kind === "MAIN" ? "auction.opened.requester" : "auction.reopened.requester",
+        () => ({
+          nome: requester.firstName,
+          codice: request.code,
+          veicolo: vehicleForRequester(quoteData),
+          ora_chiusura: formatDateTime(auction.scheduledCloseAt),
+          link: requesterLink(urls, request),
+        }),
+        new URL(requesterLink(urls, request)).pathname,
+        { quoteRequestId: request.id },
+      );
+      return { opened: true, invited: organizationIds.length, ...roundTimesOf(auction, calendar) };
+    });
+    await publish(input.requestId);
+    return result;
+  }
+
+  async function roundTimes(input: { auctionId: string }) {
+    return withContext(db, SYSTEM_CONTEXT, async (tx) => {
+      const auction = await tx.auction.findUniqueOrThrow({ where: { id: input.auctionId } });
+      return roundTimesOf(auction, await calendarOf(tx, auction));
+    });
+  }
+
+  async function reopenPolicy(input: { auctionId: string }) {
+    return withContext(db, SYSTEM_CONTEXT, async (tx) => {
+      const auction = await tx.auction.findUniqueOrThrow({ where: { id: input.auctionId } });
+      const snapshot = snapshotOf(auction);
+      return {
+        enabled: snapshot["auction.desertedReopen.enabled"],
+        maxAttempts: snapshot["auction.desertedReopen.maxAttempts"],
+      };
+    });
+  }
+
+  /** ASTA-04: at half of the auction, below 3 offers, up to 4 more agencies. */
+  async function topUp(input: { auctionId: string }) {
+    const result = await inSystem(async (tx, pending) => {
+      const auction = await lockAuction(tx, input.auctionId);
+      if (auction.status !== "OPEN") return { invited: 0, requestId: auction.quoteRequestId };
+      const invitations = await tx.invitation.findMany({ where: { auctionId: auction.id } });
+      if (invitations.some((i) => i.source === "TOP_UP")) {
+        return { invited: 0, requestId: auction.quoteRequestId };
+      }
+      const offers = await tx.offer.count({
+        where: { auctionId: auction.id, status: "SUBMITTED" },
+      });
+      const settings = auctionSettings(snapshotOf(auction));
+      const size = topUpSize(offers, settings);
+      if (size === 0) return { invited: 0, requestId: auction.quoteRequestId };
+      const now = clock.now();
+      const request = await tx.quoteRequest.findUniqueOrThrow({
+        where: { id: auction.quoteRequestId },
+      });
+      const filterable = filterableRequest(request, auction.openedAt);
+      if (!filterable) return { invited: 0, requestId: request.id };
+      const calendar = await calendarOf(tx, auction);
+      const mandates = await tx.agencyMandate.findMany({
+        where: { organizationId: { in: invitations.map((i) => i.organizationId) } },
+      });
+      const exclusions = await tx.invitationExclusion.findMany({
+        where: { quoteRequestId: request.id },
+      });
+      const selection = selectAgencies({
+        request: filterable,
+        candidates: await loadAgencyCandidates(tx, now),
+        calendar,
+        openedAt: now,
+        closeAt: auction.scheduledCloseAt,
+        minReceptionOverlapMinutes: settings.minReceptionOverlapWorkingHours * 60,
+        limit: size,
+        alreadyInvited: invitations.map((i) => ({
+          organizationId: i.organizationId,
+          companies: mandates
+            .filter((m) => m.organizationId === i.organizationId)
+            .map((m) => m.companyId),
+        })),
+        excluded: exclusions.map((e) => e.organizationId),
+        rotation: true,
+      });
+      const ids = selection.selected.map((s) => s.organizationId);
+      if (ids.length > 0) {
+        await invite(tx, pending, auction, request, ids, "TOP_UP", null);
+        await addRequestEvent(tx, request, {
+          type: "AUCTION_TOPPED_UP",
+          actorKind: "SYSTEM",
+          actorUserId: null,
+          at: now,
+          details: { invited: ids.length },
+        });
+      }
+      await audit(tx, now, {
+        action: "AUCTION_TOPPED_UP",
+        targetType: "Auction",
+        targetId: auction.id,
+        after: { offers, invited: ids },
+      });
+      return { invited: ids.length, requestId: request.id };
+    });
+    if (result.invited > 0) await publish(result.requestId);
+    return { invited: result.invited };
+  }
+
+  /** ASTA-07: the invited agencies that have not offered yet. */
+  async function remindAgencies(input: { auctionId: string }) {
+    return inSystem(async (tx, pending) => {
+      const auction = await tx.auction.findUniqueOrThrow({ where: { id: input.auctionId } });
+      if (auction.status !== "OPEN") return { reminded: 0 };
+      const sent = await tx.notification.count({
+        where: {
+          eventKey: "auction.closing_soon",
+          payload: { path: ["auctionId"], equals: auction.id },
+        },
+      });
+      if (sent > 0) return { reminded: 0 };
+      const [invitations, offers] = await Promise.all([
+        tx.invitation.findMany({ where: { auctionId: auction.id, status: { not: "DECLINED" } } }),
+        tx.offer.findMany({ where: { auctionId: auction.id, status: "SUBMITTED" } }),
+      ]);
+      const offered = new Set(offers.map((o) => o.organizationId));
+      const silent = invitations.map((i) => i.organizationId).filter((id) => !offered.has(id));
+      const request = await tx.quoteRequest.findUniqueOrThrow({
+        where: { id: auction.quoteRequestId },
+      });
+      const quoteData = await quoteDataOf(tx, cipher, request);
+      await notifier.notify(
+        tx,
+        pending,
+        await agencyRecipients(tx, cipher, silent),
+        "auction.closing_soon",
+        () => ({
+          codice: request.code,
+          veicolo: vehicleForAgency(quoteData),
+          ora_chiusura: formatDateTime(auction.scheduledCloseAt),
+          link: `${urls.web}/richieste-in-arrivo`,
+        }),
+        `/richieste-in-arrivo`,
+        { auctionId: auction.id },
+      );
+      return { reminded: silent.length };
+    });
+  }
+
+  /**
+   * The closing (docs/busta-chiusa.md, step 5): CLOSING under the row lock, so
+   * that no submission gets in; the private key unwrapped by the KMS; every
+   * envelope opened and checked (OFF-04..06); plain values, ranking (CLA-01)
+   * and statuses written; the key wiped; CLOSED. Returns only counts (BC-07).
+   */
+  async function closeRound(input: { auctionId: string }): Promise<CloseResult> {
+    const outcome = await inSystem(async (tx, pending) => {
+      const auction = await lockAuction(tx, input.auctionId);
+      if (auction.status === "CANCELLED") {
+        return {
+          validOffers: 0,
+          excludedOffers: 0,
+          cancelled: true,
+          requestId: auction.quoteRequestId,
+        };
+      }
+      if (auction.status === "CLOSED") {
+        const valid = await tx.offer.count({
+          where: {
+            auctionId: auction.id,
+            status: { notIn: ["SUBMITTED", "WITHDRAWN", "EXCLUDED"] },
+          },
+        });
+        const excluded = await tx.offer.count({
+          where: { auctionId: auction.id, status: "EXCLUDED" },
+        });
+        return {
+          validOffers: valid,
+          excludedOffers: excluded,
+          cancelled: false,
+          requestId: auction.quoteRequestId,
+        };
+      }
+      const now = clock.now();
+      await tx.auction.update({ where: { id: auction.id }, data: { status: "CLOSING" } });
+      const request = await tx.quoteRequest.findUniqueOrThrow({
+        where: { id: auction.quoteRequestId },
+      });
+      const offers = await tx.offer.findMany({
+        where: { auctionId: auction.id, status: "SUBMITTED" },
+      });
+
+      const valid: {
+        id: string;
+        organizationId: string;
+        payload: OfferPayload;
+        lastChangedAt: Date;
+      }[] = [];
+      const excluded: { id: string; organizationId: string; reason: string }[] = [];
+      if (offers.length > 0) {
+        const privateKey = await kms.decrypt(KMS_KEYS.sealedBids, auction.wrappedPrivateKey, {
+          purpose: "sealed-bid",
+          auctionId: auction.id,
+        });
+        try {
+          const version = await tx.coveragePackageVersion.findFirst({
+            where: { packageCode: request.packageCode ?? "", validFrom: { lte: auction.openedAt } },
+            orderBy: { version: "desc" },
+          });
+          const requirements = PackageRequirementsSchema.parse(version?.requirements);
+          const legal = await settingsAt(tx, ["rca.legalMinimums"], auction.openedAt);
+          const minimum = dbDateToCalendarDate(auction.minGuaranteeDate);
+          for (const offer of offers) {
+            const opened = await openSealed(auction.publicKey, privateKey, offer.sealedPayload);
+            const parsed = OfferPayloadSchema.safeParse(
+              JSON.parse(new TextDecoder().decode(opened)),
+            );
+            if (!parsed.success) {
+              excluded.push({
+                id: offer.id,
+                organizationId: offer.organizationId,
+                reason: "INVALID_CONTENT",
+              });
+              continue;
+            }
+            const p = parsed.data;
+            const [mandate, product] = await Promise.all([
+              tx.agencyMandate.findFirst({
+                where: {
+                  organizationId: offer.organizationId,
+                  companyId: p.companyId,
+                  verifiedAt: { not: null },
+                },
+              }),
+              tx.insuranceProduct.findFirst({
+                where: {
+                  id: p.productId,
+                  organizationId: offer.organizationId,
+                  companyId: p.companyId,
+                },
+              }),
+            ]);
+            const short = coverageShortfalls(requirements, p.coverage, {
+              rcaBodilyInjuryPerClaimEur: legal["rca.legalMinimums"].bodilyInjuryPerClaimEur,
+              rcaPropertyDamagePerClaimEur: legal["rca.legalMinimums"].propertyDamagePerClaimEur,
+            });
+            const reason = !mandate
+              ? "COMPANY_NOT_MANDATED"
+              : !product
+                ? "PRODUCT_NOT_FOUND"
+                : !guaranteeDateAccepted(p.guaranteeUntil, minimum)
+                  ? "GUARANTEE_BEFORE_MINIMUM"
+                  : short.length > 0
+                    ? `COVERAGE:${short.join(",")}`
+                    : null;
+            if (reason)
+              excluded.push({ id: offer.id, organizationId: offer.organizationId, reason });
+            else
+              valid.push({
+                id: offer.id,
+                organizationId: offer.organizationId,
+                payload: p,
+                lastChangedAt: offer.lastChangedAt,
+              });
+
+            // The PDF becomes an ordinary document of the request (SSE in the cloud).
+            if (offer.sealedPdfKey && offer.sealedPdfDataKey) {
+              const key = await openSealed(auction.publicKey, privateKey, offer.sealedPdfDataKey);
+              const pdf = await decryptFile(key, await deps.storage.get(offer.sealedPdfKey));
+              await wipe(key);
+              const storageKey = `documents/${randomUUID()}`;
+              await deps.storage.put({
+                key: storageKey,
+                body: pdf,
+                contentType: "application/pdf",
+              });
+              const document = await tx.document.create({
+                data: {
+                  kind: "OFFER_QUOTE",
+                  ownerUserId: request.ownerUserId,
+                  ownerOrganizationId: request.ownerOrganizationId,
+                  quoteRequestId: request.id,
+                  storageKey,
+                  sha256: createHash("sha256").update(pdf).digest("hex"),
+                  mime: "application/pdf",
+                  size: pdf.length,
+                  fileName: "preventivo.pdf",
+                  uploadedByUserId: offer.userId,
+                },
+              });
+              await tx.offer.update({
+                where: { id: offer.id },
+                data: { pdfDocumentId: document.id },
+              });
+            }
+          }
+        } finally {
+          await wipe(privateKey);
+        }
+      }
+
+      const ranked = rankOffers(
+        valid.map((v) => ({
+          id: v.id,
+          companyId: v.payload.companyId,
+          annualGrossPremiumCents: v.payload.annualGrossPremiumCents,
+          guaranteeUntil: v.payload.guaranteeUntil,
+          lastSubmittedAt: v.lastChangedAt,
+        })),
+      );
+      for (const r of ranked) {
+        const p = valid.find((v) => v.id === r.id)?.payload;
+        if (!p) continue;
+        transitionOffer("SUBMITTED", "AWAITING_CUSTOMER");
+        await tx.offer.update({
+          where: { id: r.id },
+          data: {
+            status: "AWAITING_CUSTOMER",
+            annualGrossPremiumCents: p.annualGrossPremiumCents,
+            companyId: p.companyId,
+            productId: p.productId,
+            coverage: p.coverage,
+            guaranteeUntil: calendarDateToDbDate(p.guaranteeUntil),
+            notes: p.notes,
+            rank: r.rank,
+          },
+        });
+      }
+      for (const e of excluded) {
+        transitionOffer("SUBMITTED", "EXCLUDED");
+        await tx.offer.update({
+          where: { id: e.id },
+          data: { status: "EXCLUDED", exclusionReason: e.reason },
+        });
+      }
+      await tx.ranking.create({
+        data: {
+          quoteRequestId: request.id,
+          auctionId: auction.id,
+          entries: ranked.map((r) => ({
+            offerId: r.id,
+            organizationId: valid.find((v) => v.id === r.id)?.organizationId ?? null,
+            rank: r.rank,
+            annualGrossPremiumCents: r.annualGrossPremiumCents,
+          })),
+          validCount: ranked.length,
+        },
+      });
+      await tx.auction.update({
+        where: { id: auction.id },
+        data: { status: "CLOSED", closedAt: now },
+      });
+      if (ranked.length > 0) await setRequestStatus(tx, request, "OFFERS_AVAILABLE");
+      await addRequestEvent(tx, request, {
+        type: "AUCTION_CLOSED",
+        actorKind: "SYSTEM",
+        actorUserId: null,
+        at: now,
+        details: { round: auction.round, validOffers: ranked.length },
+      });
+      await audit(tx, now, {
+        action: "AUCTION_CLOSED",
+        targetType: "Auction",
+        targetId: auction.id,
+        after: { offers: offers.length, valid: ranked.length, excluded: excluded.length },
+      });
+
+      const quoteData = await quoteDataOf(tx, cipher, request);
+      if (ranked.length > 0) {
+        const requester = await requesterOf(tx, cipher, request);
+        const cheapest = ranked[0]?.annualGrossPremiumCents ?? 0;
+        await notifier.notify(
+          tx,
+          pending,
+          requester.recipients,
+          "auction.closed.requester",
+          () => ({
+            nome: requester.firstName,
+            codice: request.code,
+            veicolo: vehicleForRequester(quoteData),
+            numero_offerte: String(ranked.length),
+            premio_minimo: formatEuroCents(cheapest),
+            link: requesterLink(urls, request),
+          }),
+          new URL(requesterLink(urls, request)).pathname,
+          { quoteRequestId: request.id },
+        );
+      }
+      // Each agency learns only the status of its own offer (CLA-04), never a price.
+      for (const offer of [...valid, ...excluded]) {
+        const isValid = valid.some((v) => v.id === offer.id);
+        const guarantee = valid.find((v) => v.id === offer.id)?.payload.guaranteeUntil;
+        await notifier.notify(
+          tx,
+          pending,
+          await agencyRecipients(tx, cipher, [offer.organizationId]),
+          "auction.closed.agency",
+          () => ({
+            codice: request.code,
+            veicolo: vehicleForAgency(quoteData),
+            stato_offerta: isValid ? "valida" : "esclusa",
+            motivo_esclusione: isValid
+              ? ""
+              : "Le coperture o i dati dichiarati non rispettano la richiesta.",
+            garanzia_offerta: guarantee ? formatDate(guarantee) : "—",
+            link: `${urls.web}/le-mie-offerte`,
+          }),
+          `/le-mie-offerte`,
+          { auctionId: auction.id },
+        );
+      }
+      return {
+        validOffers: ranked.length,
+        excludedOffers: excluded.length,
+        cancelled: false,
+        requestId: request.id,
+      };
+    });
+    await publish(outcome.requestId);
+    return {
+      validOffers: outcome.validOffers,
+      excludedOffers: outcome.excludedOffers,
+      cancelled: outcome.cancelled,
+    };
+  }
+
+  /** ASTA-08: no valid offer, also after the reopening (or no agency to reopen with). */
+  async function markDeserted(input: { requestId: string }) {
+    await inSystem(async (tx, pending) => {
+      const now = clock.now();
+      const request = await tx.quoteRequest.findUniqueOrThrow({ where: { id: input.requestId } });
+      if (request.status === "DESERTED") return;
+      await setRequestStatus(tx, request, "DESERTED");
+      await addRequestEvent(tx, request, {
+        type: "DESERTED",
+        actorKind: "SYSTEM",
+        actorUserId: null,
+        at: now,
+      });
+      await audit(tx, now, {
+        action: "REQUEST_DESERTED",
+        targetType: "QuoteRequest",
+        targetId: request.id,
+      });
+      const quoteData = await quoteDataOf(tx, cipher, request);
+      const requester = await requesterOf(tx, cipher, request);
+      await notifier.notify(
+        tx,
+        pending,
+        requester.recipients,
+        "auction.deserted.requester",
+        () => ({
+          nome: requester.firstName,
+          codice: request.code,
+          veicolo: vehicleForRequester(quoteData),
+        }),
+        new URL(requesterLink(urls, request)).pathname,
+        { quoteRequestId: request.id },
+      );
+      await notifier.notify(
+        tx,
+        pending,
+        await staffRecipients(tx, cipher, ["BO_VERIFIER", "BO_SUPERVISOR"]),
+        "auction.deserted.bo",
+        () => ({
+          codice: request.code,
+          veicolo: vehicleForAgency(quoteData),
+          link: `${urls.admin}/aste`,
+        }),
+        `/aste`,
+        { quoteRequestId: request.id },
+      );
+    });
+    await publish(input.requestId);
+  }
+
+  /** ASTA-06: a later closing, with reason; the minimum guarantee does not move (GAR-01). */
+  async function extendRound(input: {
+    auctionId: string;
+    workingHours: number;
+    byUserId: string;
+    reason: string;
+  }) {
+    const requestId = await inSystem(async (tx) => {
+      const auction = await lockAuction(tx, input.auctionId);
+      if (auction.status !== "OPEN") throw ApplicationFailure.nonRetryable("AUCTION_NOT_OPEN");
+      const now = clock.now();
+      const calendar = await calendarOf(tx, auction);
+      const to = addWorkingMinutes(calendar, auction.scheduledCloseAt, input.workingHours * 60);
+      const extensions = [
+        ...(auction.extensions as Prisma.InputJsonArray),
+        {
+          at: now.toISOString(),
+          byUserId: input.byUserId,
+          workingHours: input.workingHours,
+          from: auction.scheduledCloseAt.toISOString(),
+          to: to.toISOString(),
+        },
+      ];
+      await tx.auction.update({
+        where: { id: auction.id },
+        data: { scheduledCloseAt: to, extensions },
+      });
+      const request = await tx.quoteRequest.findUniqueOrThrow({
+        where: { id: auction.quoteRequestId },
+      });
+      await addRequestEvent(tx, request, {
+        type: "AUCTION_EXTENDED",
+        actorKind: "BACK_OFFICE",
+        actorUserId: input.byUserId,
+        at: now,
+        details: { scheduledCloseAt: to.toISOString() },
+      });
+      await audit(tx, now, {
+        action: "AUCTION_EXTENDED",
+        targetType: "Auction",
+        targetId: auction.id,
+        actorUserId: input.byUserId,
+        after: { from: auction.scheduledCloseAt.toISOString(), to: to.toISOString() },
+        reason: input.reason,
+      });
+      return request.id;
+    });
+    await publish(requestId);
+  }
+
+  /** ASTA-06: invitations by the back office, only in the first half of the auction. */
+  async function addInvitations(input: {
+    auctionId: string;
+    organizationIds: string[];
+    byUserId: string;
+    reason: string;
+  }) {
+    const result = await inSystem(async (tx, pending) => {
+      const auction = await lockAuction(tx, input.auctionId);
+      const now = clock.now();
+      const calendar = await calendarOf(tx, auction);
+      if (
+        auction.status !== "OPEN" ||
+        !backOfficeMayInvite(
+          calendar,
+          auction.openedAt,
+          auction.originalCloseAt,
+          now,
+          auctionSettings(snapshotOf(auction)),
+        )
+      ) {
+        throw ApplicationFailure.nonRetryable("AFTER_FIRST_HALF");
+      }
+      const already = new Set(
+        (await tx.invitation.findMany({ where: { auctionId: auction.id } })).map(
+          (i) => i.organizationId,
+        ),
+      );
+      const agencies = await tx.organization.findMany({
+        where: { id: { in: input.organizationIds }, type: "AGENCY", status: "ACTIVE" },
+      });
+      const ids = agencies.map((a) => a.id).filter((id) => !already.has(id));
+      const request = await tx.quoteRequest.findUniqueOrThrow({
+        where: { id: auction.quoteRequestId },
+      });
+      if (ids.length > 0)
+        await invite(tx, pending, auction, request, ids, "BACK_OFFICE", input.byUserId);
+      await addRequestEvent(tx, request, {
+        type: "AUCTION_INVITATIONS_ADDED",
+        actorKind: "BACK_OFFICE",
+        actorUserId: input.byUserId,
+        at: now,
+        details: { invited: ids.length },
+      });
+      await audit(tx, now, {
+        action: "AUCTION_INVITATIONS_ADDED",
+        targetType: "Auction",
+        targetId: auction.id,
+        actorUserId: input.byUserId,
+        after: { invited: ids },
+        reason: input.reason,
+      });
+      return { invited: ids.length, requestId: request.id };
+    });
+    await publish(result.requestId);
+    return { invited: result.invited };
+  }
+
+  /**
+   * ASTA-06: the back office cancels the auction, with reason. The request
+   * becomes «Deserta» (question 13, prudent value): from there the back office
+   * opens a new auction or closes it. Sealed offers stay sealed.
+   */
+  async function cancelRound(input: { auctionId: string; byUserId: string; reason: string }) {
+    const requestId = await inSystem(async (tx) => {
+      const auction = await lockAuction(tx, input.auctionId);
+      if (auction.status !== "OPEN") return auction.quoteRequestId;
+      const now = clock.now();
+      await tx.auction.update({
+        where: { id: auction.id },
+        data: { status: "CANCELLED", closedAt: now, cancelReason: input.reason },
+      });
+      const request = await tx.quoteRequest.findUniqueOrThrow({
+        where: { id: auction.quoteRequestId },
+      });
+      await setRequestStatus(tx, request, "DESERTED");
+      await addRequestEvent(tx, request, {
+        type: "AUCTION_CANCELLED",
+        actorKind: "BACK_OFFICE",
+        actorUserId: input.byUserId,
+        at: now,
+      });
+      await audit(tx, now, {
+        action: "AUCTION_CANCELLED",
+        targetType: "Auction",
+        targetId: auction.id,
+        actorUserId: input.byUserId,
+        reason: input.reason,
+      });
+      return request.id;
+    });
+    await publish(requestId);
+  }
+
+  return {
+    openRound,
+    roundTimes,
+    reopenPolicy,
+    topUp,
+    remindAgencies,
+    closeRound,
+    markDeserted,
+    extendRound,
+    addInvitations,
+    cancelRound,
+  };
+}

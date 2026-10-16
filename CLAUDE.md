@@ -66,7 +66,7 @@ Li crea la fase 1; da allora questa sezione va tenuta aggiornata.
 | `pnpm db:seed` | Carica parametri, elenchi, festività, testi legali segnaposto e dati sintetici, e crea gli utenti di prova in Keycloak (`keycloak:sync`). Si può rilanciare |
 | `pnpm db:reset` | Ricrea il database, applica le migrazioni, carica seed e dati sintetici. Prisma chiede il consenso esplicito di Dan quando lo lancia un agente AI |
 | `pnpm keycloak:sync` | Solo sviluppo: utenti di prova in Keycloak e durate di sessione dai parametri |
-| `pnpm dev` | Avvia web (3000), admin (3001) e api (4000) in sviluppo; il worker arriva in fase 3 |
+| `pnpm dev` | Avvia web (3000), admin (3001), api (4000) e il worker delle aste (Temporal, ADR 0008) in sviluppo |
 | `pnpm check` | Lint, tipi, test unitari e di integrazione (serve Docker acceso): deve essere verde prima di ogni commit |
 | `pnpm build` | Compila pacchetti e app, comprese le build di produzione di Next.js |
 | `pnpm test:e2e` | Test end-to-end con Playwright (ambiente locale acceso e `pnpm db:seed` fatto) |

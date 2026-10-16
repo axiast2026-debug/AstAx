@@ -123,6 +123,9 @@ export const settingSchemas = {
   "team.inviteValidityDays": positiveInt,
   "vehicle.vintageAgeYears": positiveInt,
   "consent.linkValidityDays": positiveInt,
+  "rca.legalMinimums": z
+    .object({ bodilyInjuryPerClaimEur: positiveInt, propertyDamagePerClaimEur: positiveInt })
+    .strict(),
   "requests.codePrefix": z.string().regex(/^[A-Z]{2,5}$/),
 } as const satisfies Record<string, z.ZodType>;
 

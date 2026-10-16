@@ -1,5 +1,4 @@
-import { OutboxRunner } from "../../src/outbox/outbox-runner.js";
-import { SYSTEM_CONTEXT, withContext } from "@astax/db";
+import { dispatchOutbox, SYSTEM_CONTEXT, withContext } from "@astax/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   acceptAllLegal,
@@ -204,7 +203,10 @@ describe("fase 1 passo 9: events of team changes", () => {
     );
     expect(event?.data).toEqual({ role: "SUPERVISOR", status: "ACTIVE" });
 
-    await h.app.get(OutboxRunner).tick();
+    // Since phase 3 the worker delivers the outbox (ADR 0008); here a plain handler.
+    await dispatchOutbox(h.db, () => Promise.resolve(), {
+      now: new Date("2030-01-01T00:00:00.000Z"),
+    });
     const pending = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
       tx.outboxEvent.count({ where: { status: "PENDING", type: "membership.updated" } }),
     );

@@ -15,5 +15,6 @@ ADR attesi:
 | 0005 | Busta chiusa: libreria, formato e KMS finto | 3 |
 | 0006 | Temporal: Cloud UE o installazione propria | 8 |
 | 0007 | Dati della richiesta cifrati, bozza a sezioni, proprietà delle righe | 2 |
+| 0008 | Worker delle aste e tempo reale | 3 |
 
 I numeri seguono l'ordine in cui le decisioni vengono prese: la 0003 e la 0004 sono arrivate in fase 1, prima di quelle previste.

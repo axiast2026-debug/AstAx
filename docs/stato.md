@@ -34,7 +34,8 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 - 2026-10-16: piano della fase 3 approvato da Dan (proposte A-G). Passo 1 fatto: revoca del consenso (dal profilo del privato, dalla scheda cliente del broker; dopo la revoca il back office non può approvare); nel database il ruolo dell'utenza (parametri, elenchi, festività e testi legali solo dall'amministratore; registro di un'organizzazione solo per il titolare e per supporto, supervisore e amministratore del back office), consensi creati solo dall'API dopo il controllo e modificabili solo per revocarli, notifiche per altri utenti solo dal servizio delle notifiche.
 - Passi 2-4 della fase 3 fatti: calendario lavorativo e regole dell'asta nel dominio; tabelle di compagnie, agenzie, aste e offerte sigillate con le regole del database; scelta delle agenzie (ASTA-05) e anteprima nella scheda di verifica, con esclusione motivata.
 - Passo 5 della fase 3 fatto: busta chiusa con libsodium e KMS finto (ADR 0005), registro delle chiavi in `KmsEvent`; l'API ha solo la chiave delle copie per l'agenzia.
-- Prossimo passo: passo 6 della fase 3 (worker delle aste con Temporal); i problemi della demo della fase 2 quando Dan li indica. Domande 11 e 12 risposte da Dan il 2026-10-16 (60 secondi; un privato può chiedere un preventivo per un'altra persona, punto aggiunto per il legale).
+- Passo 6 della fase 3 fatto: `apps/worker` con Temporal (ADR 0008): `QuoteRequestWorkflow` dall'approvazione (tramite l'outbox, ora nel worker) ad apertura, rabbocco, promemoria, chiusura con apertura delle buste, riapertura dell'asta deserta, garanzie e «Scaduta»; azioni del back office come segnali. Domande 13 e 14 per Dan (asta annullata, ora del promemoria GAR-05).
+- Prossimo passo: passo 7 della fase 3 (offerte via API); i problemi della demo della fase 2 quando Dan li indica. Domande 11 e 12 risposte da Dan il 2026-10-16 (60 secondi; un privato può chiedere un preventivo per un'altra persona, punto aggiunto per il legale).
 
 ## Criteri della fase in corso
 
@@ -116,12 +117,10 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 | Archivio documenti del privato: una chiamata all'API per ogni richiesta | Pochi preventivi per persona | Quando cresce, con un endpoint unico |
 | Caricamento in blocco da CSV per i broker | Non era nel piano della fase 2 | Fase 7 |
 | Dashboard del broker con i contatori | Non era nel piano della fase 2 | Fase 7 |
-| Una richiesta approvata resta nello stato «In verifica» (con la decisione «Approvata») | La fase 3 la porta ad «Asta aperta» | Fase 3 |
-| Approvazione automatica (`verification.autoApproveGreen`, spenta nel pilota) in una transazione separata dopo l'invio | Serve il ruolo di sistema; se fallisce la richiesta va al back office con la notifica | Fase 3, nel worker |
+| Approvazione automatica (`verification.autoApproveGreen`, spenta nel pilota) in una transazione separata dopo l'invio, nell'API | Serve il ruolo di sistema; se fallisce la richiesta va al back office con la notifica. L'apertura dell'asta parte comunque dall'evento `RequestApproved`, consegnato dal worker | Quando si accende nel pilota |
 | Ricerche (codice fiscale, targa) tenute in chiaro sul server (Redis) per 15 minuti accanto alla sessione, legate al contesto attivo e cancellate con «Esci» | Non devono finire nell'indirizzo della pagina (regola 8) | Fase 8, cifrandole con la chiave dei campi |
 | Guscio delle schermate duplicato tra `apps/web` e `apps/admin` | Piccole differenze (contesto, lingua) | Quando cresce, in `packages/ui` |
 | Tentativi di accesso con token non validi solo nel log (non nel registro), senza limite di frequenza; nessun limite di frequenza sulla pagina pubblica del consenso | Non riempire il registro a catena (dubbio 6); i codici hanno comunque un massimo di tentativi | Fase 8, con il limite di frequenza |
-| Dispatcher dell'outbox nell'API, senza destinatari; gli eventi delle richieste (`RequestSubmitted`, `RequestApproved`…) restano in coda, e il test del team controlla solo i propri | Notifiche e workflow non esistono ancora | Fase 3 (passa al worker) |
 | Eccezione alla regola pnpm sull'età minima dei pacchetti per Next.js 16.4.1 e React 19.3.1 | Correggono vulnerabilità critiche | Da togliere appena superano l'età minima |
 | Testi in albanese del back office da far rileggere a un madrelingua | Tradotti da Claude (anche quelli nuovi della verifica) | Fase 7 |
 | Blocco dei tentativi di accesso in Keycloak (10 errori, attesa massima 15 minuti) scritto nel file del realm | Valori tecnici di sicurezza, non di business; da decidere se diventano parametri | Fase 8 |
@@ -142,4 +141,5 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 | 0003 | [Storage S3 locale: SeaweedFS invece di MinIO](adr/0003-storage-s3-locale.md) | 2026-10-15 |
 | 0004 | [Accesso dalle app web: token solo sul server](adr/0004-accesso-dalle-app-web.md) | 2026-10-15 |
 | 0005 | [Busta chiusa: libreria, formato e KMS finto](adr/0005-busta-chiusa-libreria-e-formato.md) | 2026-10-16 |
+| 0008 | [Worker delle aste e tempo reale](adr/0008-worker-delle-aste-e-tempo-reale.md) | 2026-10-16 |
 | 0007 | [Dati della richiesta cifrati, bozza a sezioni, proprietà delle righe](adr/0007-dati-della-richiesta-cifrati.md) | 2026-10-15 |

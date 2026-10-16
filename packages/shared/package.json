@@ -35,6 +35,10 @@
     "./format": {
       "types": "./dist/format/index.d.ts",
       "default": "./dist/format/index.js"
+    },
+    "./notifications": {
+      "types": "./dist/notifications/index.d.ts",
+      "default": "./dist/notifications/index.js"
     }
   },
   "scripts": {
@@ -44,8 +48,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "zod": "4.6.7",
-    "pino": "10.4.0"
+    "pino": "10.4.0",
+    "yaml": "2.9.1",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@astax/config": "workspace:*",

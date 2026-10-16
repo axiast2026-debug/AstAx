@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { findRepoRoot } from "@astax/shared/env";
+import { findRepoRoot } from "../env/index.js";
 import { parse } from "yaml";
 import { z } from "zod";
 

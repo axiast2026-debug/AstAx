@@ -1,0 +1,68 @@
+/**
+ * What the workflow and the activities exchange (ADR 0008): identifiers,
+ * counts and instants as ISO strings. Never premiums, names or fiscal codes
+ * (BC-07, SIC-06): a test checks the serialized history.
+ */
+
+export type RoundKind = "MAIN" | "REOPEN";
+
+export interface RoundTimes {
+  auctionId: string;
+  status: "OPEN" | "CLOSING" | "CLOSED" | "CANCELLED";
+  scheduledCloseAt: string;
+  topUpAt: string;
+  reminderAt: string;
+}
+
+export type OpenResult =
+  | ({ opened: true; invited: number } & RoundTimes)
+  | {
+      opened: false;
+      reason: "NO_AGENCIES" | "CONSENT_REVOKED" | "NOT_APPROVED" | "NOT_REOPENABLE";
+    };
+
+export interface CloseResult {
+  validOffers: number;
+  excludedOffers: number;
+  cancelled: boolean;
+}
+
+export interface GuaranteeSchedule {
+  /** False once the request has left «Offerte disponibili» (accepted, cancelled, expired). */
+  active: boolean;
+  /** GAR-05: when to remind about the best guaranteed offer; null when sent or none. */
+  reminderAt: string | null;
+  reminderOfferId: string | null;
+  /** When the best guaranteed offer ends: then another may become the best (GAR-05). */
+  bestExpiresAt: string | null;
+  /** GAR-06: when the last guarantee ends; null when none is left. */
+  allExpiredAt: string | null;
+}
+
+export interface ReopenPolicy {
+  enabled: boolean;
+  maxAttempts: number;
+}
+
+export interface BackOfficeAction {
+  byUserId: string;
+  reason: string;
+}
+
+export interface AuctionActivities {
+  openRound(input: { requestId: string; kind: RoundKind; round: number }): Promise<OpenResult>;
+  roundTimes(input: { auctionId: string }): Promise<RoundTimes>;
+  reopenPolicy(input: { auctionId: string }): Promise<ReopenPolicy>;
+  topUp(input: { auctionId: string }): Promise<{ invited: number }>;
+  remindAgencies(input: { auctionId: string }): Promise<{ reminded: number }>;
+  closeRound(input: { auctionId: string }): Promise<CloseResult>;
+  markDeserted(input: { requestId: string }): Promise<void>;
+  extendRound(input: { auctionId: string; workingHours: number } & BackOfficeAction): Promise<void>;
+  addInvitations(
+    input: { auctionId: string; organizationIds: string[] } & BackOfficeAction,
+  ): Promise<{ invited: number }>;
+  cancelRound(input: { auctionId: string } & BackOfficeAction): Promise<void>;
+  guaranteeSchedule(input: { requestId: string }): Promise<GuaranteeSchedule>;
+  sendGuaranteeReminder(input: { requestId: string; offerId: string }): Promise<void>;
+  expireRequest(input: { requestId: string }): Promise<{ expired: boolean }>;
+}

@@ -1,0 +1,35 @@
+{
+  "name": "@astax/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "node --watch --import tsx src/main.ts",
+    "start": "node dist/main.js",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:int": "vitest run --config vitest.int.config.ts"
+  },
+  "dependencies": {
+    "@astax/adapters": "workspace:*",
+    "@astax/db": "workspace:*",
+    "@astax/shared": "workspace:*",
+    "@temporalio/activity": "1.24.0",
+    "@temporalio/client": "1.24.0",
+    "@temporalio/worker": "1.24.0",
+    "@temporalio/workflow": "1.24.0",
+    "redis": "6.3.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@astax/config": "workspace:*",
+    "@temporalio/testing": "1.24.0",
+    "@types/node": "24.19.2",
+    "eslint": "10.12.0",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "vitest": "5.0.4"
+  }
+}

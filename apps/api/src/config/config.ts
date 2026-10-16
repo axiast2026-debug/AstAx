@@ -29,13 +29,11 @@ const configSchema = z
     /** Development email delivery (Mailpit); production uses a real provider (phase 8). */
     MAILPIT_URL: z.url().default("http://127.0.0.1:8025"),
     EMAIL_FROM: z.email().default("noreply@astax.test"),
-    /** 0 switches the outbox dispatcher off (tests run it by hand). */
     /** Writes session and OTP parameters to Keycloak at start-up (false in tests). */
     IDENTITY_SYNC_ON_START: z
       .enum(["true", "false"])
       .default("true")
       .transform((v) => v === "true"),
-    OUTBOX_DISPATCH_INTERVAL_MS: z.coerce.number().int().min(0).default(5000),
     /** Document storage: SeaweedFS in development (ADR 0003), S3 in the cloud (phase 8). */
     S3_ENDPOINT: z.url().optional(),
     S3_PORT: z.coerce.number().int().min(1).max(65535).default(8333),

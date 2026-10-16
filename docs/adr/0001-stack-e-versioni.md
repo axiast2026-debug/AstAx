@@ -32,6 +32,7 @@
 | Testcontainers | 12.2.1 | PostgreSQL vero nei test di integrazione; SeaweedFS nel test di contratto dello storage (fase 2) |
 | AWS SDK S3 | 3.1151.0 | `@aws-sdk/client-s3` e `s3-request-presigner`: storage dei documenti, SeaweedFS in locale e S3 in cloud (fase 2) |
 | libsodium-wrappers | 0.8.4 | Busta chiusa: `crypto_box_seal` e `crypto_secretbox` (fase 3, ADR 0005) |
+| Temporal TypeScript SDK | 1.24.0 | `@temporalio/worker`, `client`, `workflow`, `activity`, `testing`: worker delle aste (fase 3, ADR 0008) |
 | Playwright | 1.64.1 | Chromium per i test end-to-end |
 
 Le dipendenze delle fasi successive si aggiungono a questa tabella quando entrano, nel passo che le usa.
