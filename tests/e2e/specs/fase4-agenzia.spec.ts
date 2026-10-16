@@ -76,5 +76,37 @@ test.describe.serial("fase 4 — area agenzia", () => {
     await expect(row.getByText("In corso")).toBeVisible();
     // The agency reads its own premium from its owner copy (BC-04).
     await expect(row.getByText(/505,00/)).toBeVisible();
+
+    // ASTA-05 VIS-06: filters and capacity; saving the capacity as it is changes nothing.
+    await agency.goto(`${WEB}/filtri`);
+    await expect(agency.getByRole("heading", { name: "Filtri dell'agenzia" })).toBeVisible();
+    await expect(agency.getByRole("heading", { name: "I miei filtri personali" })).toBeVisible();
+    await agency.getByRole("button", { name: "Salva capacità e orari" }).click();
+    await expect(agency.getByText("Modifiche salvate.")).toBeVisible();
+
+    // Decision 17: the product library with its information set.
+    await agency.goto(`${WEB}/agenzia`);
+    await expect(agency.getByRole("heading", { name: "Libreria prodotti" })).toBeVisible();
+    const first = agency.locator("section", { hasText: "RC Auto Alfa" }).first();
+    await first.getByLabel(/^DIP per/).setInputFiles({
+      name: "dip.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from("%PDF-1.4 e2e dip"),
+    });
+    await first
+      .getByRole("button", { name: /Carica|Sostituisci/ })
+      .first()
+      .click();
+    await expect(agency.getByText("Modifiche salvate.")).toBeVisible();
+
+    // VIS-08: the owner sees the opening of the request in the access log.
+    await agency.goto(`${WEB}/team`);
+    await expect(agency.getByRole("heading", { name: "Team", exact: true })).toBeVisible();
+    await agency.getByRole("link", { name: "Registro degli accessi" }).click();
+    await expect(
+      agency
+        .getByRole("row", { name: new RegExp(`Ha aperto i dati della richiesta ${code}`) })
+        .first(),
+    ).toBeVisible();
   });
 });

@@ -681,6 +681,10 @@ enum DocumentKind {
   CONSENT_FORM
   /// The PDF quote of an offer, stored after the closing (docs/busta-chiusa.md, step 5).
   OFFER_QUOTE
+  /// The information set of a product of the agency library (decision 17, LEG-05).
+  PRODUCT_DIP
+  PRODUCT_DIP_ADDITIONAL
+  PRODUCT_CONDITIONS
   OTHER
 }
 
@@ -693,6 +697,9 @@ model Document {
   customerId          String?      @db.Uuid
   /// For a licence: the driver's index in quoteData.drivers.
   driverIndex         Int?
+  /// For the information set: the product of the agency library. The latest
+  /// document of each kind is the current one; older ones stay as history.
+  productId           String?      @db.Uuid
   /// Opaque key, never a name (CLAUDE.md rule 8).
   storageKey          String       @unique
   sha256              String
@@ -710,9 +717,11 @@ model Document {
   createdAt           DateTime     @default(now()) @db.Timestamptz(3)
   updatedAt           DateTime     @default(now()) @db.Timestamptz(3)
 
-  quoteRequest QuoteRequest? @relation(fields: [quoteRequestId], references: [id])
+  quoteRequest QuoteRequest?     @relation(fields: [quoteRequestId], references: [id])
+  product      InsuranceProduct? @relation(fields: [productId], references: [id])
 
   @@index([quoteRequestId])
+  @@index([productId])
 }
 
 enum VerificationDecision {
@@ -838,7 +847,8 @@ model InsuranceProduct {
   active         Boolean  @default(true)
   createdAt      DateTime @default(now()) @db.Timestamptz(3)
 
-  company InsuranceCompany @relation(fields: [companyId], references: [id])
+  company   InsuranceCompany @relation(fields: [companyId], references: [id])
+  documents Document[]
 
   @@unique([organizationId, companyId, name, version])
 }

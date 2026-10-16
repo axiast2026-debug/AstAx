@@ -47,6 +47,8 @@ export async function createApp(
     /^\/(auctions\/[^/]+\/offers|offers\/[^/]+)$/,
     raw({ type: "application/pdf", limit: "60mb" }),
   );
+  // The information set of a product of the agency library (decision 17).
+  app.use(/^\/agency\/products\/[^/]+\/documents$/, raw({ type: () => true, limit: "60mb" }));
   app.enableShutdownHooks();
 
   const document = buildOpenApi(app);

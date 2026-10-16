@@ -47,6 +47,14 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 - Debito: le pagine dell'agenzia non si aggiornano in tempo reale (il conto alla rovescia sì; un prolungamento si vede ricaricando la pagina).
 - Prossimo passo: fase 4, passo 4 (filtri e capacità, prodotti, team, registro accessi per il titolare).
 
+**2026-10-16 — fase 4, passo 4.**
+
+- Fatto: API e schermate di «Filtri e capacità» (filtri dell'agenzia solo con compagnie a mandato verificato; capacità giornaliera, orari di ricezione, pausa, distribuzione; filtri personali che possono solo restringere quelli dell'agenzia, VIS-06), «Agenzia» con le compagnie mandanti e la libreria prodotti con DIP, DIP aggiuntivo e condizioni in PDF (decisione 17; il documento precedente resta come storico), «Team» con ruolo, numero RUI, permessi, stato, ultimo accesso, invito, sospensione e rimozione, e il registro degli accessi per il titolare (VIS-08; anche la lettura del registro è registrata).
+- Database: migrazione `20261018080000_product_documents` (tipi di documento del set informativo e collegamento al prodotto).
+- Prova: `apps/api/test/int/agency-settings.int.test.ts` (7 test).
+- Nota: la pausa finisce alle 23:59 ora invernale del giorno scelto, cioè d'estate alle 00:59 del giorno dopo: un'ora in più, mai in meno.
+- Prossimo passo: fase 4, passo 5 (sub-agente).
+
 ## Criteri della fase 3
 
 | Criterio | Stato | Prova |

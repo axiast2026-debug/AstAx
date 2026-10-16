@@ -25,6 +25,7 @@ import { RequestsController } from "./requests/requests.controller.js";
 import { RequestsService } from "./requests/requests.service.js";
 import { AgencyController } from "./agency/agency.controller.js";
 import { AgencyService } from "./agency/agency.service.js";
+import { AgencySettingsService } from "./agency/agency-settings.service.js";
 import { AuctionsController } from "./auctions/auctions.controller.js";
 import { AuctionsService } from "./auctions/auctions.service.js";
 import { OffersService } from "./auctions/offers.service.js";
@@ -82,6 +83,7 @@ export class AppModule {
         OffersService,
         AuctionsService,
         AgencyService,
+        AgencySettingsService,
         RealtimeHub,
         RealtimeGateway,
         DevToolsService,

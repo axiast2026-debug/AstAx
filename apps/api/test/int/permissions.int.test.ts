@@ -278,6 +278,36 @@ const ENDPOINTS: Endpoint[] = [
     body: { membershipId: randomUUID() },
   },
   { action: "offer.readOwnDuringAuction", method: "GET", path: () => "/agency/offers" },
+  // Fase 4: filters, capacity, product library, access log
+  { action: "memberFilters.manageOwn", method: "GET", path: () => "/agency/filters" },
+  { action: "agencyFilters.manage", method: "PUT", path: () => "/agency/filters", body: {} },
+  { action: "agencyFilters.manage", method: "PUT", path: () => "/agency/capacity", body: {} },
+  {
+    action: "memberFilters.manageOwn",
+    method: "PUT",
+    path: () => "/agency/filters/mine",
+    body: {},
+  },
+  { action: "offer.submit", method: "GET", path: () => "/agency/products" },
+  { action: "productLibrary.manage", method: "POST", path: () => "/agency/products", body: {} },
+  {
+    action: "productLibrary.manage",
+    method: "PATCH",
+    path: () => `/agency/products/${randomUUID()}`,
+    body: {},
+  },
+  {
+    action: "productLibrary.manage",
+    method: "POST",
+    path: () => `/agency/products/${randomUUID()}/documents`,
+    body: {},
+  },
+  {
+    action: "offer.submit",
+    method: "GET",
+    path: () => `/agency/products/${randomUUID()}/documents/${randomUUID()}`,
+  },
+  { action: "accessLog.viewOwnAgency", method: "GET", path: () => "/agency/access-log" },
   {
     action: "claim.manage",
     method: "POST",
@@ -450,6 +480,10 @@ describe("SIC-01 every API route is in the table", () => {
                 "/agency/requests/{auctionId}/documents/{documentId}",
               )
               .replace("/agency/requests/{id}", "/agency/requests/{auctionId}")
+              .replace(
+                /\/agency\/products\/\{id\}\/documents\/\{id\}$/,
+                "/agency/products/{id}/documents/{documentId}",
+              )
               .replace("/draft/vehicle", "/draft/{section}")
               .replace("/checklist/DOCUMENTS", "/checklist/{code}")
               .replace("/documents/none/", "/documents/{key}/")

@@ -353,7 +353,11 @@
     "PDF_REQUIRED": "Allega il PDF del preventivo.",
     "NOT_A_PDF": "Il preventivo deve essere un file PDF.",
     "TOO_LARGE": "Il file è troppo grande.",
-    "PREMIUM_INVALID": "Scrivi il premio in euro, per esempio 505,00."
+    "PREMIUM_INVALID": "Scrivi il premio in euro, per esempio 505,00.",
+    "WIDER_THAN_AGENCY": "I filtri personali non possono essere più larghi di quelli dell'agenzia.",
+    "PRODUCT_EXISTS": "Esiste già un prodotto con questo nome per la compagnia.",
+    "ROLE_NOT_ASSIGNABLE": "Questo ruolo non si può assegnare.",
+    "FLAG_NOT_APPLICABLE": "Questo permesso non vale per il ruolo scelto."
   },
   "wizard": {
     "choose": "Scegli",
@@ -804,6 +808,137 @@
         "averageIssuanceTime": "Tempo medio di emissione"
       },
       "goIncoming": "Vai alle richieste in arrivo"
+    }
+  },
+  "agencySettings": {
+    "saved": "Modifiche salvate.",
+    "filtersTitle": "Filtri e capacità",
+    "filtersIntro": "Decidono quali richieste arrivano all'agenzia e quante. Le richieste fuori dai filtri non vi vengono proposte.",
+    "agencyFilters": "Filtri dell'agenzia",
+    "saveAgencyFilters": "Salva i filtri dell'agenzia",
+    "capacity": "Capacità e orari",
+    "dailyMax": "Massimo di richieste al giorno",
+    "dailyMaxHint": "Vuoto: nessun limite.",
+    "pausedUntil": "Pausa fino al",
+    "pausedHint": "Per esempio le ferie: fino a quel giorno compreso non arrivano richieste.",
+    "pausedNow": "In pausa fino al {date}. Svuota il campo per riprendere.",
+    "receptionHours": "Orari di ricezione",
+    "receptionHoursHint": "Per esempio 09:00-13:00, 14:00-19:00. Vuoto: chiuso.",
+    "weekdays": {
+      "mon": "Lunedì",
+      "tue": "Martedì",
+      "wed": "Mercoledì",
+      "thu": "Giovedì",
+      "fri": "Venerdì",
+      "sat": "Sabato",
+      "sun": "Domenica"
+    },
+    "distribution": "Chi vede le richieste",
+    "distributionAll": "Tutti gli utenti dell'agenzia",
+    "distributionByMember": "Ciascuno secondo i propri filtri personali",
+    "saveCapacity": "Salva capacità e orari",
+    "myFilters": "I miei filtri personali",
+    "myFiltersApply": "L'agenzia distribuisce le richieste secondo i filtri personali: vedi solo quelle che rientrano nei tuoi.",
+    "myFiltersNotApplied": "Oggi l'agenzia mostra le richieste a tutti: i filtri personali contano solo se il titolare sceglie la distribuzione per filtri personali.",
+    "saveMyFilters": "Salva i miei filtri",
+    "removeMyFilters": "Togli i miei filtri personali",
+    "noAgencyFilters": "L'agenzia non ha ancora i suoi filtri: chiedi al titolare di impostarli.",
+    "criteria": {
+      "vehicleTypes": "Tipi di veicolo",
+      "packages": "Pacchetti",
+      "companies": "Compagnie con cui offrire",
+      "provinces": "Province",
+      "provincesHint": "Sigle separate da virgole, per esempio MI, MB, LO. Vuoto: tutte.",
+      "cuClassMin": "Classe CU da",
+      "cuClassMax": "Classe CU fino a",
+      "driverAgeMin": "Età dei conducenti da",
+      "driverAgeMax": "Età dei conducenti fino a",
+      "maxClaims": "Sinistri massimi negli ultimi 5 anni",
+      "maxClaimsHint": "Vuoto: nessun limite.",
+      "maxStartDateDays": "Decorrenza al massimo tra (giorni)",
+      "maxGuaranteeDays": "Validità massima che potete garantire (giorni)",
+      "maxGuaranteeHint": "Le richieste con una validità minima più lunga non vi arrivano."
+    },
+    "agencyTitle": "Agenzia",
+    "mandates": "Compagnie mandanti",
+    "mandatesIntro": "Le compagnie con mandato verificato: sono le sole che si possono scegliere nelle offerte.",
+    "products": "Libreria prodotti",
+    "productsIntro": "Per ogni prodotto il set informativo: DIP, DIP aggiuntivo e condizioni. Arriva al cliente insieme all'offerta.",
+    "active": "In uso",
+    "inactive": "Non in uso",
+    "activate": "Rimetti in uso",
+    "deactivate": "Togli dall'uso",
+    "kinds": {
+      "PRODUCT_DIP": "DIP",
+      "PRODUCT_DIP_ADDITIONAL": "DIP aggiuntivo",
+      "PRODUCT_CONDITIONS": "Condizioni di assicurazione"
+    },
+    "uploadedAt": "Caricato il {at}",
+    "missing": "Da caricare",
+    "pdfFor": "{kind} per {product}",
+    "upload": "Carica",
+    "replace": "Sostituisci",
+    "company": "Compagnia",
+    "productName": "Nome del prodotto",
+    "addProduct": "Aggiungi il prodotto"
+  },
+  "team": {
+    "title": "Team",
+    "accessLog": "Registro degli accessi",
+    "rui": "Numero RUI sez. E",
+    "ruiVerified": "verificato",
+    "ruiToVerify": "da verificare",
+    "lastLogin": "Ultimo accesso",
+    "never": "Mai",
+    "permissions": "Permessi",
+    "role": "Ruolo",
+    "save": "Salva",
+    "suspend": "Sospendi",
+    "reactivate": "Riattiva",
+    "remove": "Rimuovi",
+    "status": {
+      "ACTIVE": "Attivo",
+      "SUSPENDED": "Sospeso"
+    },
+    "flags": {
+      "canIssue": "Può emettere",
+      "canSeeColleagueOffers": "Vede le offerte dei colleghi",
+      "canSeeAccounting": "Vede la contabilità",
+      "seesAllClients": "Vede tutti i clienti"
+    },
+    "flagsHint": "Ogni permesso vale solo per il suo ruolo: emettere e vedere le offerte dei colleghi per gli operatori, la contabilità per i supervisori.",
+    "pending": "Inviti in attesa",
+    "pendingRow": "{role}, valido fino al {date}",
+    "revoke": "Annulla l'invito",
+    "invite": "Invita una persona",
+    "firstName": "Nome",
+    "lastName": "Cognome",
+    "email": "Email",
+    "sendInvite": "Invia l'invito",
+    "done": {
+      "invito": "Invito inviato.",
+      "revocato": "Invito annullato.",
+      "modificato": "Modifiche salvate.",
+      "stato": "Stato aggiornato.",
+      "rimosso": "Persona rimossa dal team."
+    },
+    "log": {
+      "back": "← Team",
+      "title": "Registro degli accessi",
+      "intro": "Le aperture dei dati e dei documenti dei clienti da parte degli utenti dell'agenzia, e i tentativi rifiutati. Anche la lettura di questo registro viene registrata.",
+      "empty": "Nessun accesso registrato.",
+      "when": "Quando",
+      "who": "Chi",
+      "what": "Cosa",
+      "request": "Richiesta",
+      "older": "Accessi precedenti",
+      "actions": {
+        "QUOTE_DATA_VIEWED": "Ha aperto i dati della richiesta",
+        "DOCUMENT_VIEWED": "Ha aperto un documento",
+        "OFFER_OWNER_COPY_READ": "Ha letto un'offerta dell'agenzia",
+        "ACCESS_DENIED": "Accesso rifiutato",
+        "SEALED_BID_ACCESS_DENIED": "Tentativo di leggere un'offerta sigillata"
+      }
     }
   }
 }
