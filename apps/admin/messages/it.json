@@ -240,7 +240,7 @@
       "summary": "Approvando ora si invitano {count} agenzie, che coprono: {companies}. Chiusura prevista: {close}.",
       "none": "Nessuna agenzia compatibile: approvando, la richiesta diventerebbe subito deserta.",
       "reason": "Motivo dell'esclusione",
-      "exclude": "Escludi",
+      "exclude": "Escludi l'agenzia",
       "reserve": "Altre {count} agenzie compatibili restano di riserva (rabbocco e rotazione).",
       "excluded": "Agenzie escluse",
       "include": "Reinserisci"

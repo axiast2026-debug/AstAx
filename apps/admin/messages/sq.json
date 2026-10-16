@@ -240,7 +240,7 @@
       "summary": "Nëse miratoni tani, ftohen {count} agjenci, që mbulojnë: {companies}. Mbyllja e parashikuar: {close}.",
       "none": "Asnjë agjenci e përputhshme: nëse miratoni, kërkesa do të mbetej menjëherë pa oferta.",
       "reason": "Arsyeja e përjashtimit",
-      "exclude": "Përjashto",
+      "exclude": "Përjashto agjencinë",
       "reserve": "{count} agjenci të tjera të përputhshme mbeten rezervë (plotësimi dhe rotacioni).",
       "excluded": "Agjencitë e përjashtuara",
       "include": "Rifut"
