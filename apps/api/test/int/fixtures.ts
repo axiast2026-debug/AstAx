@@ -9,6 +9,7 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT, type JWK } from "jose";
 import { inject } from "vitest";
 import { createApp } from "../../src/app.js";
+import { RecordingWorkflowSignals } from "../../src/auctions/workflow-signals.js";
 import { JwtTokenVerifier } from "../../src/auth/token-verifier.js";
 import { loadConfig } from "../../src/config/config.js";
 import type { IdentityAdmin } from "../../src/identity/identity-admin.js";
@@ -102,6 +103,8 @@ export interface Harness {
   identity: FakeIdentityAdmin;
   email: InMemoryEmailSender;
   db: DbClient;
+  /** Signals to the workflows, recorded instead of sent (ADR 0008). */
+  signals: RecordingWorkflowSignals;
   /** Signed access token, as Keycloak would issue it. */
   token(
     claims: {
@@ -131,6 +134,7 @@ export async function startHarness(): Promise<Harness> {
   const verifier = new JwtTokenVerifier(createLocalJWKSet({ keys: [jwk] }), ISSUER, clock);
   const identity = new FakeIdentityAdmin();
   const email = new InMemoryEmailSender();
+  const signals = new RecordingWorkflowSignals();
   const dbUrl = inject("apiDbUrl");
   const db = createDbClient(dbUrl);
 
@@ -149,6 +153,7 @@ export async function startHarness(): Promise<Harness> {
     db,
     identityAdmin: identity,
     emailSender: email,
+    workflowSignals: signals,
     tokenVerifier: verifier,
     // API_TEST_LOGS=1 shows the (redacted) API logs while debugging a test.
     logger: process.env.API_TEST_LOGS
@@ -206,6 +211,7 @@ export async function startHarness(): Promise<Harness> {
     identity,
     email,
     db,
+    signals,
     token,
     tokenFor,
     call,

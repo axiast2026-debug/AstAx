@@ -21,6 +21,7 @@ import {
   type OnApplicationShutdown,
 } from "@nestjs/common";
 import { JwtTokenVerifier, type TokenVerifier } from "../auth/token-verifier.js";
+import { TemporalWorkflowSignals, type WorkflowSignals } from "../auctions/workflow-signals.js";
 import type { ApiConfig } from "../config/config.js";
 import type { IdentityAdmin } from "../identity/identity-admin.js";
 import {
@@ -37,6 +38,7 @@ import {
   KMS,
   SMS_SENDER,
   TOKEN_VERIFIER,
+  WORKFLOW_SIGNALS,
 } from "./tokens.js";
 
 export interface InfraOverrides {
@@ -50,6 +52,7 @@ export interface InfraOverrides {
   objectStorage?: ObjectStoragePort;
   plateLookup?: PlateLookupPort;
   documentReader?: DocumentReaderPort;
+  workflowSignals?: WorkflowSignals;
 }
 
 /**
@@ -147,6 +150,15 @@ export class InfraModule {
               kmsEventRecorder(db, "api", () => clock.now()),
             ),
         },
+        {
+          provide: WORKFLOW_SIGNALS,
+          useValue:
+            overrides.workflowSignals ??
+            new TemporalWorkflowSignals(
+              config.TEMPORAL_ADDRESS ?? `127.0.0.1:${config.TEMPORAL_PORT}`,
+              config.TEMPORAL_NAMESPACE,
+            ),
+        },
         DbLifecycle,
       ],
       exports: [
@@ -163,6 +175,7 @@ export class InfraModule {
         PLATE_LOOKUP,
         DOCUMENT_READER,
         KMS,
+        WORKFLOW_SIGNALS,
       ],
     };
   }

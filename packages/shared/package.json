@@ -39,6 +39,10 @@
     "./notifications": {
       "types": "./dist/notifications/index.d.ts",
       "default": "./dist/notifications/index.js"
+    },
+    "./workflows": {
+      "types": "./dist/workflows/index.d.ts",
+      "default": "./dist/workflows/index.js"
     }
   },
   "scripts": {

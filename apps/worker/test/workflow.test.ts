@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { Context } from "@temporalio/activity";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
-import { Worker } from "@temporalio/worker";
+import { DefaultLogger, makeTelemetryFilterString, Runtime, Worker } from "@temporalio/worker";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type {
   AuctionActivities,
@@ -29,6 +29,11 @@ let env: TestWorkflowEnvironment;
 let counter = 0;
 
 beforeAll(async () => {
+  // Errors only: the SDK and the bundler are verbose at INFO.
+  Runtime.install({
+    logger: new DefaultLogger("ERROR"),
+    telemetryOptions: { logging: { filter: makeTelemetryFilterString({ core: "ERROR" }) } },
+  });
   env = await TestWorkflowEnvironment.createTimeSkipping();
 });
 

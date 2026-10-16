@@ -34,6 +34,13 @@ const configSchema = z
       .enum(["true", "false"])
       .default("true")
       .transform((v) => v === "true"),
+    /** Temporal, for the signals to the requests' workflows (ADR 0008). */
+    TEMPORAL_ADDRESS: z.string().min(1).optional(),
+    TEMPORAL_PORT: z.coerce.number().int().min(1).max(65535).default(7233),
+    TEMPORAL_NAMESPACE: z.string().min(1).default("astax"),
+    /** Redis, for the realtime events published by the worker (ADR 0008). */
+    REDIS_URL: z.string().min(1).optional(),
+    REDIS_PORT: z.coerce.number().int().min(1).max(65535).default(6380),
     /** Document storage: SeaweedFS in development (ADR 0003), S3 in the cloud (phase 8). */
     S3_ENDPOINT: z.url().optional(),
     S3_PORT: z.coerce.number().int().min(1).max(65535).default(8333),

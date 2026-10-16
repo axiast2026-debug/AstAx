@@ -1,4 +1,5 @@
 import { condition, defineSignal, log, proxyActivities, setHandler } from "@temporalio/workflow";
+import { SIGNALS } from "@astax/shared/workflows";
 import type { AuctionActivities, BackOfficeAction, RoundTimes } from "../activities/types.js";
 
 /**
@@ -10,16 +11,18 @@ import type { AuctionActivities, BackOfficeAction, RoundTimes } from "../activit
  * and only identifiers, counts and instants pass through (BC-07).
  */
 
-export const approvedSignal = defineSignal("approved");
+export const approvedSignal = defineSignal(SIGNALS.approved);
 /** Development tool (DEV_TOOLS): the next timer fires at once. */
-export const fireNextTimerSignal = defineSignal("fireNextTimer");
-export const auctionExtendedSignal =
-  defineSignal<[{ workingHours: number } & BackOfficeAction]>("auctionExtended");
-export const invitationsAddedSignal =
-  defineSignal<[{ organizationIds: string[] } & BackOfficeAction]>("invitationsAdded");
-export const auctionCancelledSignal = defineSignal<[BackOfficeAction]>("auctionCancelled");
+export const fireNextTimerSignal = defineSignal(SIGNALS.fireNextTimer);
+export const auctionExtendedSignal = defineSignal<[{ workingHours: number } & BackOfficeAction]>(
+  SIGNALS.auctionExtended,
+);
+export const invitationsAddedSignal = defineSignal<
+  [{ organizationIds: string[] } & BackOfficeAction]
+>(SIGNALS.invitationsAdded);
+export const auctionCancelledSignal = defineSignal<[BackOfficeAction]>(SIGNALS.auctionCancelled);
 
-export const workflowIdOf = (requestId: string) => `quote-request-${requestId}`;
+export { workflowIdOf } from "@astax/shared/workflows";
 
 const acts = proxyActivities<AuctionActivities>({
   startToCloseTimeout: "2 minutes",

@@ -23,6 +23,10 @@ import { CustomersService } from "./requests/customers.service.js";
 import { ReferenceService } from "./requests/reference.service.js";
 import { RequestsController } from "./requests/requests.controller.js";
 import { RequestsService } from "./requests/requests.service.js";
+import { AuctionsController } from "./auctions/auctions.controller.js";
+import { AuctionsService } from "./auctions/auctions.service.js";
+import { OffersService } from "./auctions/offers.service.js";
+import { RealtimeHub } from "./realtime/realtime-hub.js";
 import { AgencyPreviewService } from "./verification/agency-preview.service.js";
 import { VerificationController } from "./verification/verification.controller.js";
 import { VerificationService } from "./verification/verification.service.js";
@@ -49,6 +53,7 @@ export class AppModule {
         ConsentLinksController,
         VerificationController,
         NotificationsController,
+        AuctionsController,
       ],
       providers: [
         AuditService,
@@ -65,6 +70,9 @@ export class AppModule {
         CustomersService,
         VerificationService,
         AgencyPreviewService,
+        OffersService,
+        AuctionsService,
+        RealtimeHub,
         IdentitySync,
         { provide: APP_GUARD, useClass: AuthGuard },
         { provide: APP_FILTER, useClass: ProblemFilter },

@@ -23,6 +23,8 @@ interface Endpoint {
   body?: unknown;
   /** Professionals call it without X-AstAx-Context. */
   personal?: boolean;
+  /** Offers: past the guard, the service answers 403 SEALED_BID to all but the owner. */
+  sealed?: boolean;
 }
 
 const ENDPOINTS: Endpoint[] = [
@@ -254,6 +256,79 @@ const ENDPOINTS: Endpoint[] = [
     path: () => `/verification/requests/${randomUUID()}/exclude`,
     body: {},
   },
+  // Fase 3: auctions and offers
+  { action: "auction.viewStatus", method: "GET", path: () => `/requests/${randomUUID()}/auction` },
+  { action: "offers.viewPresented", method: "GET", path: () => `/requests/${randomUUID()}/offers` },
+  { action: "auction.viewStatus", method: "GET", path: () => "/agency/auctions" },
+  {
+    action: "claim.manage",
+    method: "POST",
+    path: () => `/auctions/${randomUUID()}/claim`,
+    body: {},
+  },
+  {
+    action: "claim.manage",
+    method: "POST",
+    path: () => `/auctions/${randomUUID()}/release`,
+    body: {},
+  },
+  {
+    action: "claim.manage",
+    method: "POST",
+    path: () => `/auctions/${randomUUID()}/decline`,
+    body: {},
+  },
+  {
+    action: "offer.submit",
+    method: "POST",
+    path: () => `/auctions/${randomUUID()}/offers`,
+    body: {},
+  },
+  { action: "offer.submit", method: "PUT", path: () => `/offers/${randomUUID()}`, body: {} },
+  {
+    action: "offer.submit",
+    method: "POST",
+    path: () => `/offers/${randomUUID()}/withdraw`,
+    body: {},
+  },
+  // Any role may ask; the service answers 403 SEALED_BID to all but the owner (BC-01).
+  {
+    action: "auction.viewStatus",
+    method: "GET",
+    path: () => `/offers/${randomUUID()}`,
+    sealed: true,
+  },
+  {
+    action: "auction.viewStatus",
+    method: "GET",
+    path: () => `/offers/${randomUUID()}/pdf`,
+    sealed: true,
+  },
+  {
+    action: "auction.viewStatus",
+    method: "GET",
+    path: () => `/auctions/${randomUUID()}/offers`,
+    sealed: true,
+  },
+  { action: "auction.viewStatus", method: "GET", path: () => "/auctions" },
+  {
+    action: "auction.manage",
+    method: "POST",
+    path: () => `/auctions/${randomUUID()}/extend`,
+    body: { workingHours: 1, reason: "motivo" },
+  },
+  {
+    action: "auction.manage",
+    method: "POST",
+    path: () => `/auctions/${randomUUID()}/invite`,
+    body: { organizationIds: [randomUUID()], reason: "motivo" },
+  },
+  {
+    action: "auction.manage",
+    method: "POST",
+    path: () => `/auctions/${randomUUID()}/cancel`,
+    body: { reason: "motivo" },
+  },
 ];
 
 /**
@@ -356,7 +431,12 @@ describe("SIC-01 permission table over HTTP, role by role", () => {
             ...(endpoint.body === undefined ? {} : { body: endpoint.body }),
             ...(org && !endpoint.personal ? { context: membershipId(key, org) } : {}),
           });
-          if (allowed) {
+          if (allowed && endpoint.sealed) {
+            // The guard lets the role through; the service may still refuse the sealed bid.
+            const body = (await response.clone().json()) as { code?: string };
+            expect(body.code, JSON.stringify(body)).not.toBe("FORBIDDEN");
+            expect(response.status).toBeLessThan(500);
+          } else if (allowed) {
             expect(response.status, await response.clone().text()).not.toBe(403);
             expect(response.status).toBeLessThan(500);
           } else {

@@ -42,6 +42,11 @@ export async function createApp(
   // Document uploads send the file itself as the body. The technical cap is
   // generous; the business limit is documents.maxUploadMb, checked by the use case.
   app.use(/^\/requests\/[^/]+\/documents$/, raw({ type: () => true, limit: "60mb" }));
+  // Offers: the PDF quote is the body (the content is sealed at once, BC-02).
+  app.use(
+    /^\/(auctions\/[^/]+\/offers|offers\/[^/]+)$/,
+    raw({ type: "application/pdf", limit: "60mb" }),
+  );
   app.enableShutdownHooks();
 
   const document = buildOpenApi(app);
