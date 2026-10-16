@@ -22,6 +22,7 @@ Questi punti li decidono legale, DPO, commercialista o amministrazione. Il codic
 | Punto | Cosa va deciso | Nel codice intanto |
 | --- | --- | --- |
 | Ruoli privacy | Titolare e responsabile per agenzie e broker, nelle diverse fasi | Registro accessi, filigrane, consensi per versione |
+| Preventivo di un privato per un'altra persona | Dan ha deciso (domanda 12) che un privato può chiedere un preventivo con un'altra persona come contraente (per esempio il coniuge). Va deciso se basta il consenso di chi usa l'account o serve anche quello del contraente, e come si informa il contraente | Il consenso è quello del privato che usa l'account, confermato con il codice; il testo del consenso è un segnaposto |
 | Dati in Albania | Garanzie per il trasferimento fuori UE se il back office opera dall'Albania | Interfaccia in albanese; accessi registrati |
 | Conservazione | Tempi per tipo di dato | 12 mesi per le richieste non concluse, 10 anni per contratti e contabilità |
 | Valutazione d'impatto | Da fare prima del lancio | Mappa dei dati e registro dei fornitori in fase 8 |

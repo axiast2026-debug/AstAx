@@ -16,7 +16,12 @@ const DAVIDE_EMAIL = "davide.galli@example.test";
 beforeAll(async () => {
   h = await startHarness();
   r = requestHelpers(h);
-  for (const key of ["private-davide-galli", "bo-verifier", "agenzia-due-owner"] as const) {
+  for (const key of [
+    "private-davide-galli",
+    "bo-verifier",
+    "agenzia-due-owner",
+    "broker-operator",
+  ] as const) {
     await acceptAllLegal(h, key);
   }
   davide = { token: await h.tokenFor("private-davide-galli") };
@@ -316,28 +321,81 @@ describe("fase 2: verification queue and card", () => {
     }
   });
 
-  it("LEG-04: a correction cannot change the policy holder into someone else", async () => {
-    const request = await r.submittedPrivateRequest(davide, DAVIDE_EMAIL);
-    const card = await r.json<Card>(
-      await r.call(verifier, `/verification/requests/${request.id}`),
+  it("LEG-04: a correction cannot change the holder of a broker's request; a private's may (question 12)", async () => {
+    const otherHolder = (quote: QuoteData, birthDate = "1991-05-12") => {
+      const holder = quote.policyHolder;
+      if (holder.kind !== "PERSON") throw new Error("sample holder is a person");
+      const fiscalCode = buildFiscalCode({
+        surname: holder.surname,
+        givenName: holder.givenName,
+        birthDate,
+        sex: "F",
+        birthPlaceCadastralCode: "F205",
+      });
+      const person = { ...holder, fiscalCode, birthDate };
+      return {
+        ...quote,
+        policyHolder: person,
+        drivers: quote.drivers.map((d) => ({ ...d, person })),
+      };
+    };
+
+    // A private user's request: the holder may be someone else.
+    const own = await r.submittedPrivateRequest(davide, DAVIDE_EMAIL);
+    const ownCard = await r.json<Card>(
+      await r.call(verifier, `/verification/requests/${own.id}`),
       200,
     );
-    const holder = card.quoteData.policyHolder;
-    if (holder.kind !== "PERSON") throw new Error("sample holder is a person");
-    const other = buildFiscalCode({
-      surname: holder.surname,
-      givenName: holder.givenName,
-      birthDate: "1991-05-12",
-      sex: "F",
-      birthPlaceCadastralCode: "F205",
-    });
-    const changed = {
-      ...card.quoteData,
-      policyHolder: { ...holder, fiscalCode: other, birthDate: "1991-05-12" },
+    await r.json(
+      await r.call(verifier, `/verification/requests/${own.id}/corrections`, {
+        body: { quoteData: otherHolder(ownCard.quoteData), reason: "Contraente dal libretto" },
+      }),
+      200,
+    );
+
+    // A broker's request: the holder is the customer who gave the consent.
+    const broker: Who = {
+      token: await h.tokenFor("broker-operator"),
+      context: membershipId("broker-operator", "broker-demo"),
     };
+    // A customer of this test only (the files share the database).
+    const quote = otherHolder(await r.sampleQuote(broker), "1987-08-21");
+    const holder = quote.policyHolder;
+    if (holder.kind !== "PERSON") throw new Error("sample holder is a person");
+    const customer = await r.json<{ id: string }>(
+      await r.call(broker, "/customers", {
+        body: {
+          kind: "PERSON",
+          surname: holder.surname,
+          givenName: holder.givenName,
+          fiscalCode: holder.fiscalCode,
+        },
+      }),
+      201,
+    );
+    const created = await r.json<{ id: string }>(
+      await r.call(broker, "/requests", { body: { customerId: customer.id } }),
+      201,
+    );
+    await r.saveAll(broker, created.id, quote);
+    const consent = await r.json<{ id: string }>(
+      await r.upload(broker, created.id, "CONSENT_FORM", "consenso-firmato.pdf"),
+      201,
+    );
+    await r.json(
+      await r.call(broker, `/requests/${created.id}/consent/uploaded`, {
+        body: { documentId: consent.id },
+      }),
+      200,
+    );
+    await r.json(await r.call(broker, `/requests/${created.id}/submit`, { body: {} }), 200);
+    const card = await r.json<Card>(
+      await r.call(verifier, `/verification/requests/${created.id}`),
+      200,
+    );
     const refused = await r.json<{ errors: { issue: string }[] }>(
-      await r.call(verifier, `/verification/requests/${request.id}/corrections`, {
-        body: { quoteData: changed, reason: "Altro contraente" },
+      await r.call(verifier, `/verification/requests/${created.id}/corrections`, {
+        body: { quoteData: otherHolder(card.quoteData), reason: "Altro contraente" },
       }),
       400,
     );

@@ -30,7 +30,7 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 - Problemi trovati e corretti strada facendo: gli errori del database finivano nel log con i valori della query (ora solo tipo e codice, regola 8); la ricerca del comune dal codice fiscale non funzionava (un carattere perso, ora con test); durante un'integrazione il passo «Conducenti» veniva rifiutato perché manda anche contraente e proprietario (ora accettati se identici); due test dipendevano dall'ordine di esecuzione (ora ogni file usa utenti suoi).
 - Non fatto, rinviato come debito (tabella sotto): client dell'API generato da OpenAPI, TanStack Query e React Hook Form, `prompt=login`, ruoli del back office nel database, ora prevista di chiusura dell'asta nel riepilogo, anteprima delle agenzie nella scheda di verifica.
 - 2026-10-16: verifica indipendente della fase 2 in due giri (sezione qui sotto), problemi corretti; test end-to-end 12 su 12.
-- Prossimo passo: la demo con Dan descritta qui sotto; poi, con la sua conferma, la fase passa a «Chiusa». Domande nuove per Dan: 11 e 12.
+- Prossimo passo: la demo con Dan descritta qui sotto; poi, con la sua conferma, la fase passa a «Chiusa». Domande 11 e 12 risposte da Dan il 2026-10-16 (60 secondi; un privato può chiedere un preventivo per un'altra persona, punto aggiunto per il legale).
 
 ## Criteri della fase in corso
 

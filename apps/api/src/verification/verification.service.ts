@@ -459,8 +459,9 @@ export class VerificationService {
         .filter((p) => startChanged || p !== "START_DATE_IN_THE_PAST")
         .map((p) => ({ path: "quoteData", issue: p })),
     );
-    // LEG-04: the holder stays the customer who gave the consent.
-    if (request.customerId) {
+    // LEG-04: on a broker's request the holder stays the customer who gave the
+    // consent; a private user may hold the request for someone else (question 12).
+    if (request.customerId && request.channel === "BROKER") {
       const customer = await tx.customer.findUniqueOrThrow({
         where: { id: request.customerId },
         include: { person: true },

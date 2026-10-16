@@ -86,7 +86,7 @@
     { "key": "organizations.profInsuranceReminderDays", "value": 30, "description": "Avviso prima della scadenza della RC professionale", "rule": "—" },
     { "key": "otp.validityMinutes", "value": 10, "description": "Validità dei codici OTP inviati da AstAx", "rule": "SIC-05" },
     { "key": "otp.maxAttempts", "value": 5, "description": "Tentativi sbagliati massimi per codice OTP, sommati sui codici chiesti nella stessa finestra di validità", "rule": "SIC-05" },
-    { "key": "otp.resendWaitSeconds", "value": 60, "description": "Attesa minima prima di chiedere un nuovo codice OTP. Valore tecnico proposto (domanda 11)", "rule": "SIC-05" },
+    { "key": "otp.resendWaitSeconds", "value": 60, "description": "Attesa minima prima di chiedere un nuovo codice OTP (domanda 11, confermato da Dan)", "rule": "SIC-05" },
     { "key": "team.inviteValidityDays", "value": 7, "description": "Giorni di validità di un invito a entrare nel team. Valore proposto, da confermare (domanda aperta 4)", "rule": "—" },
     { "key": "vehicle.vintageAgeYears", "value": 30, "description": "Anni compiuti dalla prima immatricolazione alla decorrenza da cui il veicolo è un possibile veicolo d'epoca: controllo rosso, decide il back office (domanda 6)", "rule": "ASTA-10" },
     { "key": "consent.linkValidityDays", "value": 7, "description": "Giorni di validità del link di consenso che il broker manda al cliente (domanda 7)", "rule": "LEG-04" },

@@ -783,10 +783,12 @@ export class RequestsService {
 
   /**
    * True when the holder is the request's customer: same fiscal code (or VAT
-   * number) as the customer's person, by blind index. A private customer's
-   * first request gives their person its identity.
+   * number) as the customer's person, by blind index. Only for a broker's
+   * request: a private user may ask for a policy held by someone else, for
+   * example their spouse (Dan's answer to question 12).
    */
   private async holderIsCustomer(tx: DbTransaction, request: QuoteRequest, quoteData: QuoteData) {
+    if (request.channel === "PRIVATE") return true;
     if (!request.customerId) return false;
     const customer = await tx.customer.findUniqueOrThrow({
       where: { id: request.customerId },
@@ -846,7 +848,9 @@ export class RequestsService {
     request: QuoteRequest,
     quoteData: QuoteData,
   ) {
-    if (!request.customerId) return;
+    // A private customer's person is the account holder, never the policy holder
+    // of one request (question 12): it does not take the holder's data.
+    if (!request.customerId || request.channel === "PRIVATE") return;
     const customer = await tx.customer.findUniqueOrThrow({
       where: { id: request.customerId },
       include: { person: true },

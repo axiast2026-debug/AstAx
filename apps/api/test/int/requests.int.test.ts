@@ -257,6 +257,45 @@ describe("fase 2: a private request from draft to the verification queue", () =>
     );
   });
 
+  it("a private user may ask for a policy held by someone else (question 12)", async () => {
+    const created = await json<{ id: string }>(
+      await call(asLuca(), "/requests", { body: {} }),
+      201,
+    );
+    const quote = await giuliaQuote(asLuca());
+    const holder = quote.policyHolder;
+    if (holder.kind !== "PERSON") throw new Error("sample holder is a person");
+    const spouse = {
+      ...holder,
+      givenName: "Marta",
+      fiscalCode: buildFiscalCode({
+        surname: holder.surname,
+        givenName: "Marta",
+        birthDate: "1988-02-10",
+        sex: "F",
+        birthPlaceCadastralCode: "F205",
+      }),
+      birthDate: "1988-02-10",
+    };
+    await saveAll(asLuca(), created.id, {
+      ...quote,
+      policyHolder: spouse,
+      drivers: quote.drivers.map((d) => ({ ...d, person: spouse })),
+    });
+    await giveConsent(created.id);
+    await json(await call(asLuca(), `/requests/${created.id}/submit`, { body: {} }), 200);
+    // The customer stays the account holder: it does not take the spouse's data.
+    const person = await withContext(h.db, SYSTEM_CONTEXT, async (tx) => {
+      const request = await tx.quoteRequest.findUniqueOrThrow({ where: { id: created.id } });
+      return tx.customer.findUniqueOrThrow({
+        where: { id: request.customerId ?? "" },
+        include: { person: true },
+      });
+    });
+    expect(person.person.givenName).toBe("Luca");
+    expect(person.person.fiscalCodeHash).toBeNull();
+  });
+
   it("after submission the requester cannot change the data (409)", async () => {
     const request = await privateRequestReady();
     await giveConsent(request.id);
