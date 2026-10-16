@@ -55,6 +55,12 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 - Nota: la pausa finisce alle 23:59 ora invernale del giorno scelto, cioè d'estate alle 00:59 del giorno dopo: un'ora in più, mai in meno.
 - Prossimo passo: fase 4, passo 5 (sub-agente).
 
+**2026-10-16 — fase 4, passo 5 (sub-agente).**
+
+- Fatto: selettore delle agenzie nella barra in alto, anche da telefono (spec 05 «Più agenzie»); in «Richieste in arrivo» la riga dice «Hai già preso in carico questa richiesta per Agenzia Uno» o «Hai già offerto per Agenzia Uno» (OFF-02, OFF-03), come già il dettaglio, dove presa in carico e offerta sono bloccate; per l'operatore la home si chiama «Il tuo cruscotto» e conta solo i suoi dati. Il menu ridotto e le regole nell'API c'erano già dalle fasi 1 e 3.
+- Prova: E2E `tests/e2e/specs/S10-sub-agente-due-agenzie.spec.ts` (scenario S10 completo con Marco e Sofia; il back office invita a mano Agenzia Uno e Agenzia Tre, così il test non dipende dalla scelta automatica); `fase1-accessi.spec.ts` aggiornato al nuovo selettore e ora salva i codici TOTP per i test successivi dello stesso giro.
+- Prossimo passo: fase 4, passo 6 (riconferma).
+
 ## Criteri della fase 3
 
 | Criterio | Stato | Prova |

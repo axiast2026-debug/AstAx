@@ -23,7 +23,9 @@
     "menu": "Menu principale",
     "skip": "Vai al contenuto",
     "account": "Il tuo account",
-    "unread": "{count} notifiche non lette"
+    "unread": "{count} notifiche non lette",
+    "switchTo": "Passa a",
+    "switchAction": "Vai"
   },
   "menu": {
     "home": "Home",
@@ -594,7 +596,9 @@
       "all": "Tutti",
       "apply": "Filtra",
       "empty": "Nessuna richiesta in arrivo con questi filtri.",
-      "declined": "Hai rinunciato alla richiesta."
+      "declined": "Hai rinunciato alla richiesta.",
+      "elsewhereClaimed": "Hai già preso in carico questa richiesta per {agency}",
+      "elsewhereOffered": "Hai già offerto per {agency}"
     },
     "columns": {
       "code": "Codice",
@@ -807,7 +811,8 @@
         "averageGapFromWinner": "Distanza media dal vincitore",
         "averageIssuanceTime": "Tempo medio di emissione"
       },
-      "goIncoming": "Vai alle richieste in arrivo"
+      "goIncoming": "Vai alle richieste in arrivo",
+      "personalTitle": "Il tuo cruscotto"
     }
   },
   "agencySettings": {

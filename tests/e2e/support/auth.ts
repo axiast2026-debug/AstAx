@@ -7,7 +7,14 @@ import { expect } from "@playwright/test";
 /** Written by global-setup.ts for this run only (never committed). */
 export interface E2eState {
   password: string;
-  users: { owner: string; marco: string; admin: string; verifier: string; broker: string };
+  users: {
+    owner: string;
+    marco: string;
+    sofia: string;
+    admin: string;
+    verifier: string;
+    broker: string;
+  };
 }
 
 export function e2eState(): E2eState {

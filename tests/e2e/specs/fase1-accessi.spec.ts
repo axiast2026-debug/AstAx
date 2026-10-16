@@ -7,6 +7,7 @@ import {
   loginProfessional,
   loginProfessionalAgain,
   mailCount,
+  saveSecret,
 } from "../support/auth.js";
 
 const WEB = "http://localhost:3000";
@@ -66,6 +67,8 @@ test.describe("fase 1: accessi", () => {
     await page.goto(WEB);
     await page.getByRole("link", { name: "Accesso professionisti" }).click();
     const secret = await loginProfessional(page, users.owner, password, { wrongCodeFirst: true });
+    // Later specs of the same run log in again with this secret.
+    saveSecret(users.owner, secret);
     await acceptLegalIfAsked(page);
 
     await expect(page).toHaveURL(`${WEB}/`);
@@ -87,7 +90,7 @@ test.describe("fase 1: accessi", () => {
   }) => {
     const { users, password } = e2eState();
     await page.goto(`${WEB}/auth/login?as=pro`);
-    await loginProfessional(page, users.marco, password);
+    saveSecret(users.marco, await loginProfessional(page, users.marco, password));
     await acceptLegalIfAsked(page);
 
     await expect(page).toHaveURL(`${WEB}/contesto`);
@@ -96,20 +99,17 @@ test.describe("fase 1: accessi", () => {
       .getByRole("button", { name: "Lavora per questa" })
       .first()
       .click();
-    await expect(page.getByRole("banner").getByText("Agenzia Uno")).toBeVisible();
+    const current = page.getByRole("banner").locator("span", { hasText: /^Agenzia / });
+    await expect(current).toHaveText("Agenzia Uno");
     // Sub-agent menu (spec 05): no team, no accounting.
     const menu = page.getByRole("navigation", { name: "Menu principale" });
     await expect(menu.getByRole("link", { name: "Dashboard personale" })).toBeVisible();
     await expect(menu.getByRole("link", { name: "Team" })).toHaveCount(0);
 
-    await page.getByRole("link", { name: "Cambia" }).click();
-    await page
-      .locator("div", { hasText: "Agenzia Tre" })
-      .getByRole("button", { name: "Lavora per questa" })
-      .last()
-      .click();
-    await expect(page.getByRole("banner").getByText("Agenzia Tre")).toBeVisible();
-    await expect(page.getByRole("banner").getByText("Agenzia Uno")).toHaveCount(0);
+    // Spec 05 «Più agenzie»: the selector at the top switches the context.
+    await page.getByLabel("Passa a").selectOption({ label: "Agenzia Tre" });
+    await page.getByRole("button", { name: "Vai", exact: true }).click();
+    await expect(current).toHaveText("Agenzia Tre");
   });
 
   test("l'amministratore entra nel back office, passa all'albanese e vede il registro", async ({

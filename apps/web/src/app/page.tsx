@@ -31,7 +31,12 @@ export default async function HomePage({
       : null;
   return (
     <AppShell viewer={viewer}>
-      {dashboard ? <AgencyPanel dashboard={dashboard} /> : null}
+      {dashboard ? (
+        <AgencyPanel
+          dashboard={dashboard}
+          personal={viewer.activeMembership?.role === "OPERATOR"}
+        />
+      ) : null}
       <Card>
         <CardTitle>{t("welcome", { name: viewer.me.firstName })}</CardTitle>
         <p className="mt-2 text-warm-600">{isPrivate ? t("privateIntro") : t("proIntro")}</p>
@@ -67,14 +72,20 @@ export default async function HomePage({
 }
 
 /** The agency dashboard (spec 04): counters now, indicators of the last 30 days. */
-async function AgencyPanel({ dashboard }: { dashboard: AgencyDashboard }) {
+async function AgencyPanel({
+  dashboard,
+  personal,
+}: {
+  dashboard: AgencyDashboard;
+  personal: boolean;
+}) {
   const t = await getTranslations("agency.dashboard");
   const show = (value: number | null, percent = false) =>
     value === null ? t("notYet") : percent ? `${Math.round(value * 100)}%` : String(value);
   return (
     <section aria-labelledby="agency-dashboard" className="mb-6">
       <h1 id="agency-dashboard" className="text-2xl font-bold">
-        {t("title")}
+        {personal ? t("personalTitle") : t("title")}
       </h1>
       <div className="mt-4 grid gap-4 sm:grid-cols-3">
         {Object.entries(dashboard.counters).map(([key, value]) => (

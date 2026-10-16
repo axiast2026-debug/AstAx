@@ -152,6 +152,13 @@ export default async function IncomingRequestsPage({
                         ? t("states.CLAIMED_BY", { name: r.claimedBy })
                         : t(`states.${r.state}`)}
                     </Badge>
+                    {r.elsewhere ? (
+                      <p className="mt-1 text-xs text-orange-700">
+                        {r.elsewhere.offered
+                          ? t("incoming.elsewhereOffered", { agency: r.elsewhere.agency })
+                          : t("incoming.elsewhereClaimed", { agency: r.elsewhere.agency })}
+                      </p>
+                    ) : null}
                   </td>
                 </tr>
               ))}

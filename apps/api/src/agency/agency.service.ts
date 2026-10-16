@@ -115,6 +115,39 @@ export class AgencyService {
     return "NEW";
   }
 
+  /**
+   * OFF-02 OFF-03 (spec 05 «Più agenzie»): the auctions this person already
+   * works on for another of their agencies, with that agency and whether they
+   * offered there. Only the caller's own claims and offers are read.
+   */
+  private async elsewhere(
+    tx: DbTransaction,
+    auth: AuthContext,
+    auctionIds: string[],
+  ): Promise<Map<string, { agency: string; offered: boolean }>> {
+    const m = this.agency(auth);
+    return asSystem(tx, async () => {
+      const where = {
+        auctionId: { in: auctionIds },
+        userId: auth.userId,
+        organizationId: { not: m.organizationId },
+      };
+      const [claims, offers] = await Promise.all([
+        tx.claim.findMany({ where: { ...where, releasedAt: null } }),
+        tx.offer.findMany({ where: { ...where, status: { not: "WITHDRAWN" } } }),
+      ]);
+      const orgIds = [...new Set([...claims, ...offers].map((x) => x.organizationId))];
+      const orgs = await tx.organization.findMany({ where: { id: { in: orgIds } } });
+      const name = (id: string) => orgs.find((o) => o.id === id)?.legalName ?? "";
+      const out = new Map<string, { agency: string; offered: boolean }>();
+      for (const c of claims)
+        out.set(c.auctionId, { agency: name(c.organizationId), offered: false });
+      for (const o of offers)
+        out.set(o.auctionId, { agency: name(o.organizationId), offered: true });
+      return out;
+    });
+  }
+
   /** «Richieste in arrivo» (spec 04): in target, ordered by closing, with the columns of the spec. */
   async incoming(auth: AuthContext, filters: IncomingFilters) {
     const m = auth.membership;
@@ -144,6 +177,7 @@ export class AgencyService {
         where: { id: { in: claims.map((c) => c.userId) } },
         select: { id: true, firstName: true, lastName: true },
       });
+      const elsewhere = await this.elsewhere(tx, auth, ids);
       const rows = all.flatMap((i) => {
         const r = requests.find((q) => q.id === i.auction.quoteRequestId);
         if (!r || !this.offers.fitsScope(scope, r, i.auction.openedAt)) return [];
@@ -169,6 +203,7 @@ export class AgencyService {
             scheduledCloseAt: i.auction.scheduledCloseAt.toISOString(),
             state: this.state(i, auth, claim, offer !== undefined),
             claimedBy: holder ? `${holder.firstName} ${holder.lastName}`.trim() : null,
+            elsewhere: elsewhere.get(i.auctionId) ?? null,
             offer: offer ? { id: offer.id, status: offer.status, version: offer.version } : null,
           },
         ];

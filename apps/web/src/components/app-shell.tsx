@@ -2,7 +2,7 @@ import { Badge, menuFor } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { logout } from "@/app/actions";
+import { chooseContext, logout } from "@/app/actions";
 import { api } from "@/lib/auth";
 import type { Viewer } from "@/lib/me";
 
@@ -37,15 +37,33 @@ export async function AppShell({ viewer, children }: { viewer: Viewer; children:
               <span className="text-warm-200">{t("shell.context")}</span>
               <span className="font-medium">{active.organization.name}</span>
               <Badge tone="dark">{t(`roles.${active.role}`)}</Badge>
-              {viewer.me.memberships.length > 1 ? (
-                <Link
-                  href="/contesto"
-                  className="text-orange-500 underline-offset-2 hover:underline"
-                >
-                  {t("shell.switchContext")}
-                </Link>
-              ) : null}
             </div>
+          ) : null}
+          {active && viewer.me.memberships.length > 1 ? (
+            // Spec 05 «Più agenzie»: one user, one context per organization, switched here.
+            <form action={chooseContext} className="flex items-center gap-2 text-sm">
+              <label htmlFor="context-switch" className="sr-only sm:not-sr-only sm:text-warm-200">
+                {t("shell.switchTo")}
+              </label>
+              <select
+                id="context-switch"
+                name="membershipId"
+                defaultValue={active.id}
+                className="rounded-md bg-night-800 px-2 py-1 text-white"
+              >
+                {viewer.me.memberships.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.organization.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="submit"
+                className="rounded-md border border-orange-500 px-2 py-1 text-orange-500 hover:bg-orange-500 hover:text-night-950"
+              >
+                {t("shell.switchAction")}
+              </button>
+            </form>
           ) : null}
           <nav aria-label={t("shell.account")} className="ml-auto flex items-center gap-4 text-sm">
             <Link href="/notifiche" className="flex items-center gap-1 hover:text-orange-500">

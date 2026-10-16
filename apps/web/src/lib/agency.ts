@@ -22,6 +22,8 @@ export interface IncomingRow {
   scheduledCloseAt: string;
   state: IncomingState;
   claimedBy: string | null;
+  /** OFF-02 OFF-03: the person already works on it for another of their agencies. */
+  elsewhere: { agency: string; offered: boolean } | null;
   offer: { id: string; status: string; version: number } | null;
 }
 

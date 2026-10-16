@@ -34,6 +34,15 @@ const E2E_USERS = [
     ],
   },
   {
+    // S10: Marco's colleague in Agenzia Tre.
+    key: "sofia",
+    email: "e2e.sofia@agenzia-tre.test",
+    firstName: "Sofia",
+    lastName: "E2E",
+    kind: "PROFESSIONAL" as const,
+    memberships: [{ org: "agenzia-tre", role: "OPERATOR" as const }],
+  },
+  {
     key: "admin",
     email: "e2e.admin@astax.test",
     firstName: "Admin",
@@ -142,6 +151,7 @@ export default async function globalSetup(): Promise<void> {
     users: {
       owner: emailOf("owner"),
       marco: emailOf("marco"),
+      sofia: emailOf("sofia"),
       admin: emailOf("admin"),
       verifier: emailOf("verifier"),
       broker: emailOf("broker"),
