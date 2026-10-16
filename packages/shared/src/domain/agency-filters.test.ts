@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   AgencyFilterCriteriaSchema,
   filterMismatches,
+  memberFilterProblems,
   type AgencyFilterCriteria,
   type FilterableRequest,
 } from "./agency-filters.js";
@@ -74,5 +75,51 @@ describe("agency filters (ASTA-05)", () => {
       false,
     );
     expect(AgencyFilterCriteriaSchema.safeParse({ ...criteria, extra: 1 }).success).toBe(false);
+  });
+});
+
+describe("member filters inside the agency's (VIS-06)", () => {
+  it("VIS-06 the same filters or narrower ones are accepted", () => {
+    expect(memberFilterProblems(criteria, criteria)).toEqual([]);
+    expect(
+      memberFilterProblems(criteria, {
+        ...criteria,
+        provinces: ["MI"],
+        cuClassMax: 5,
+        maxClaimsLast5y: 0,
+        driverAgeMin: 30,
+        packages: ["BASE"],
+        maxStartDateDays: 10,
+        maxGuaranteeDays: 7,
+      }),
+    ).toEqual([]);
+  });
+
+  it("VIS-06 a member filter can never widen the agency's", () => {
+    expect(
+      memberFilterProblems(criteria, {
+        ...criteria,
+        vehicleTypes: ["CAR", "MOTORCYCLE"],
+        provinces: null,
+        cuClassMin: 1,
+        cuClassMax: 14,
+        maxClaimsLast5y: null,
+        driverAgeMax: 90,
+        packages: ["BASE", "COMPLETE"],
+        companies: ["01a14406-a0d2-7195-bde3-511b8f9ed26f", "01a14406-a0d2-7195-bde3-511b8f9ed270"],
+        maxStartDateDays: 60,
+        maxGuaranteeDays: 30,
+      }),
+    ).toEqual([
+      "VEHICLE_TYPES",
+      "PROVINCES",
+      "CU_CLASS",
+      "CLAIMS",
+      "DRIVER_AGE",
+      "PACKAGES",
+      "COMPANIES",
+      "START_DATE",
+      "GUARANTEE",
+    ]);
   });
 });

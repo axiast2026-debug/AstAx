@@ -96,3 +96,49 @@ export function filterMismatches(
   if (criteria.maxGuaranteeDays < request.minValidityDays) out.push("GUARANTEE");
   return out;
 }
+
+export type MemberFilterProblem =
+  | "VEHICLE_TYPES"
+  | "PROVINCES"
+  | "CU_CLASS"
+  | "CLAIMS"
+  | "DRIVER_AGE"
+  | "PACKAGES"
+  | "COMPANIES"
+  | "START_DATE"
+  | "GUARANTEE";
+
+const subset = (inner: readonly string[], outer: readonly string[]) =>
+  inner.every((v) => outer.includes(v));
+
+/**
+ * VIS-06: a member's filters may only narrow the agency's, never widen them.
+ * Returns the criteria that go beyond the agency's (empty when inside).
+ */
+export function memberFilterProblems(
+  agency: AgencyFilterCriteria,
+  member: AgencyFilterCriteria,
+): MemberFilterProblem[] {
+  const out: MemberFilterProblem[] = [];
+  if (!subset(member.vehicleTypes, agency.vehicleTypes)) out.push("VEHICLE_TYPES");
+  if (agency.provinces && (!member.provinces || !subset(member.provinces, agency.provinces))) {
+    out.push("PROVINCES");
+  }
+  if (member.cuClassMin < agency.cuClassMin || member.cuClassMax > agency.cuClassMax) {
+    out.push("CU_CLASS");
+  }
+  if (
+    agency.maxClaimsLast5y !== null &&
+    (member.maxClaimsLast5y === null || member.maxClaimsLast5y > agency.maxClaimsLast5y)
+  ) {
+    out.push("CLAIMS");
+  }
+  if (member.driverAgeMin < agency.driverAgeMin || member.driverAgeMax > agency.driverAgeMax) {
+    out.push("DRIVER_AGE");
+  }
+  if (!subset(member.packages, agency.packages)) out.push("PACKAGES");
+  if (!subset(member.companies, agency.companies)) out.push("COMPANIES");
+  if (member.maxStartDateDays > agency.maxStartDateDays) out.push("START_DATE");
+  if (member.maxGuaranteeDays > agency.maxGuaranteeDays) out.push("GUARANTEE");
+  return out;
+}

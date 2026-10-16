@@ -9,7 +9,7 @@ Claude Code aggiorna questo file alla fine di ogni sessione di lavoro e alla chi
 | 1. Fondamenta | Chiusa | 2026-10-15 | Criteri soddisfatti; verifica indipendente in due giri; demo vista e chiusura confermata da Dan |
 | 2. Richiesta e verifica | In verifica | | Criteri con prova; verifica indipendente in due giri, problemi corretti; CI verde. Demo provata da Dan il 2026-10-16: «tante cose non tornano», da riprendere in seguito; non chiusa |
 | 3. Motore d'asta | In verifica | | Criteri con prova; verifica indipendente in tre giri, problemi corretti; manca la demo con Dan |
-| 4. Offerte | Da iniziare | | |
+| 4. Offerte | In corso | | Piano approvato da Dan il 2026-10-16 (proposte A-G), con le fasi 2 e 3 ancora aperte |
 | 5. Accettazione | Da iniziare | | |
 | 6. Dopo l'acquisto | Da iniziare | | |
 | 7. Pannelli e notifiche | Da iniziare | | |
@@ -36,7 +36,8 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
   - nel database di sviluppo mancava una migrazione e la chiusura si bloccava: rilanciato `pnpm db:migrate` (la CI parte sempre da un database nuovo).
 - 2026-10-16: verifica indipendente della fase 3 (primo giro): 17 problemi, tutti corretti tranne quelli rinviati come debito (sezione «Verifica indipendente (fase 3)»).
 - Domande nuove per Dan: 13 (stato della richiesta quando il back office annulla un'asta) 14 (ora del promemoria GAR-05) e 15 (prezzi e targa nelle notifiche), in `docs/domande-aperte.md`, con il valore prudente usato intanto.
-- Prossimo passo: la demo con Dan (verifica indipendente in tre giri, problemi chiusi o dichiarati); poi i problemi della demo della fase 2, quando Dan li indica.
+- 2026-10-16: Dan risponde dopo alle domande e alle demo; ha chiesto di passare alla fase 4 e ne ha approvato il piano (proposte A-G).
+- Prossimo passo: fase 4, passo 1; la demo della fase 3 con Dan quando vuole; poi i problemi della demo della fase 2, quando Dan li indica.
 
 ## Criteri della fase 3
 

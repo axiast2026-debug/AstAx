@@ -213,6 +213,14 @@ function buildDataset() {
     { user: "marco-rossi", organization: "agenzia-uno", role: "OPERATOR", ruiNumberE: "E000000099" },
     { user: "marco-rossi", organization: "agenzia-tre", role: "OPERATOR", ruiNumberE: "E000000099" },
   );
+  // Sofia Marchi: Marco's colleague in Agenzia Tre (S10).
+  users.push(user("sofia-marchi", "PROFESSIONAL", "Sofia", "Marchi", "agenzia-tre.test"));
+  memberships.push({
+    user: "sofia-marchi",
+    organization: "agenzia-tre",
+    role: "OPERATOR",
+    ruiNumberE: "E000000098",
+  });
 
   for (const [first, last] of [
     ["Giulia", "Neri"],
