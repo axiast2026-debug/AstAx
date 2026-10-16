@@ -16,6 +16,11 @@ const configSchema = z
     DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
     FIELD_ENCRYPTION_KEY: hexKey,
     BLIND_INDEX_KEY: hexKey,
+    /**
+     * Master key of the fake KMS for the agencies' own copies (BC-04, ADR 0005).
+     * The API never reads SEALED_BIDS_MASTER_KEY: only the worker opens bids.
+     */
+    OFFER_OWNER_MASTER_KEY: hexKey,
     KEYCLOAK_URL: z.url(),
     KEYCLOAK_REALM: z.string().min(1).default("astax"),
     KEYCLOAK_API_ADMIN_SECRET: z.string().min(16),

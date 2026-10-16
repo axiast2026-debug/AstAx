@@ -22,3 +22,4 @@ export {
   settingsAt,
   type AuctionSettingsSnapshot,
 } from "./auction-data.js";
+export { kmsEventRecorder, type KmsEventInput } from "./kms-events.js";

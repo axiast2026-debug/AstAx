@@ -16,6 +16,12 @@ describe("configuration", () => {
     }
   });
 
+  it("BC-03 the configuration of the API never carries the master key of the sealed bids", () => {
+    const config = loadConfig({ ...TEST_ENV, SEALED_BIDS_MASTER_KEY: "8".repeat(64) });
+    expect(JSON.stringify(config)).not.toContain("8".repeat(64));
+    expect(Object.keys(config)).not.toContain("SEALED_BIDS_MASTER_KEY");
+  });
+
   it("rule 13: DEV_TOOLS cannot be on in production", () => {
     expect(() => loadConfig({ ...TEST_ENV, NODE_ENV: "production", DEV_TOOLS: "true" })).toThrow(
       /DEV_TOOLS/,

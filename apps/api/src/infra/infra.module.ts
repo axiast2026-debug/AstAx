@@ -10,7 +10,8 @@ import {
   type ObjectStoragePort,
 } from "@astax/adapters/storage";
 import { FakePlateLookup, type PlateLookupPort } from "@astax/adapters/vehicle-data";
-import { createDbClient, type DbClient } from "@astax/db";
+import { KMS_KEYS, LocalKms } from "@astax/adapters/kms";
+import { createDbClient, kmsEventRecorder, type DbClient } from "@astax/db";
 import { createLogger, type Logger } from "@astax/shared/logging";
 import {
   Global,
@@ -33,6 +34,7 @@ import {
   LOGGER,
   OBJECT_STORAGE,
   PLATE_LOOKUP,
+  KMS,
   SMS_SENDER,
   TOKEN_VERIFIER,
 } from "./tokens.js";
@@ -135,6 +137,16 @@ export class InfraModule {
           provide: DOCUMENT_READER,
           useValue: overrides.documentReader ?? new FakeDocumentReader(clock, plateLookup),
         },
+        {
+          // BC-03, ADR 0005: the API holds only the key of the agencies' own copies.
+          provide: KMS,
+          inject: [DB],
+          useFactory: (db: DbClient) =>
+            new LocalKms(
+              { [KMS_KEYS.offerOwner]: config.OFFER_OWNER_MASTER_KEY },
+              kmsEventRecorder(db, "api", () => clock.now()),
+            ),
+        },
         DbLifecycle,
       ],
       exports: [
@@ -150,6 +162,7 @@ export class InfraModule {
         OBJECT_STORAGE,
         PLATE_LOOKUP,
         DOCUMENT_READER,
+        KMS,
       ],
     };
   }

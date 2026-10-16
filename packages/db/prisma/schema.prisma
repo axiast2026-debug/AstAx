@@ -1067,3 +1067,17 @@ model Ranking {
   publishedAt    DateTime? @db.Timestamptz(3)
   createdAt      DateTime  @default(now()) @db.Timestamptz(3)
 }
+
+/// ADR 0005: every use of a KMS key, the stand-in for CloudTrail (BC-03);
+/// identifiers only in the context. Rows are only added.
+model KmsEvent {
+  seq       BigInt   @id @default(autoincrement())
+  at        DateTime @db.Timestamptz(3)
+  keyId     String
+  operation String
+  context   Json
+  ok        Boolean
+  process   String
+
+  @@index([keyId, at])
+}

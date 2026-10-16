@@ -11,3 +11,4 @@ export const PLATE_LOOKUP = Symbol("PLATE_LOOKUP");
 export const DOCUMENT_READER = Symbol("DOCUMENT_READER");
 export const OBJECT_STORAGE = Symbol("OBJECT_STORAGE");
 export const SMS_SENDER = Symbol("SMS_SENDER");
+export const KMS = Symbol("KMS");

@@ -12,7 +12,7 @@ ADR attesi:
 | 0002 | Autenticazione e accesso dei privati | 1 |
 | 0003 | Storage S3 locale: SeaweedFS invece di MinIO | 1 |
 | 0004 | Accesso dalle app web: token solo sul server | 1 |
-| 0005 | Libreria e formato della busta chiusa | 3 |
+| 0005 | Busta chiusa: libreria, formato e KMS finto | 3 |
 | 0006 | Temporal: Cloud UE o installazione propria | 8 |
 | 0007 | Dati della richiesta cifrati, bozza a sezioni, proprietà delle righe | 2 |
 

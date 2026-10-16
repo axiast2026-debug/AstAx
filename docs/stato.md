@@ -33,7 +33,8 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 - 2026-10-16: Dan ha provato la demo: «tante cose non tornano, ma comunque continua con l'altra fase, le riprendiamo in seguito». La fase 2 resta aperta; l'elenco dei problemi è da raccogliere con Dan. Piano della fase 3 presentato, in attesa di approvazione.
 - 2026-10-16: piano della fase 3 approvato da Dan (proposte A-G). Passo 1 fatto: revoca del consenso (dal profilo del privato, dalla scheda cliente del broker; dopo la revoca il back office non può approvare); nel database il ruolo dell'utenza (parametri, elenchi, festività e testi legali solo dall'amministratore; registro di un'organizzazione solo per il titolare e per supporto, supervisore e amministratore del back office), consensi creati solo dall'API dopo il controllo e modificabili solo per revocarli, notifiche per altri utenti solo dal servizio delle notifiche.
 - Passi 2-4 della fase 3 fatti: calendario lavorativo e regole dell'asta nel dominio; tabelle di compagnie, agenzie, aste e offerte sigillate con le regole del database; scelta delle agenzie (ASTA-05) e anteprima nella scheda di verifica, con esclusione motivata.
-- Prossimo passo: passo 5 della fase 3 (busta chiusa con il KMS finto); i problemi della demo della fase 2 quando Dan li indica. Domande 11 e 12 risposte da Dan il 2026-10-16 (60 secondi; un privato può chiedere un preventivo per un'altra persona, punto aggiunto per il legale).
+- Passo 5 della fase 3 fatto: busta chiusa con libsodium e KMS finto (ADR 0005), registro delle chiavi in `KmsEvent`; l'API ha solo la chiave delle copie per l'agenzia.
+- Prossimo passo: passo 6 della fase 3 (worker delle aste con Temporal); i problemi della demo della fase 2 quando Dan li indica. Domande 11 e 12 risposte da Dan il 2026-10-16 (60 secondi; un privato può chiedere un preventivo per un'altra persona, punto aggiunto per il legale).
 
 ## Criteri della fase in corso
 
@@ -140,4 +141,5 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 | 0002 | [Autenticazione e accesso dei privati](adr/0002-autenticazione-e-accesso-privati.md) | 2026-10-15 |
 | 0003 | [Storage S3 locale: SeaweedFS invece di MinIO](adr/0003-storage-s3-locale.md) | 2026-10-15 |
 | 0004 | [Accesso dalle app web: token solo sul server](adr/0004-accesso-dalle-app-web.md) | 2026-10-15 |
+| 0005 | [Busta chiusa: libreria, formato e KMS finto](adr/0005-busta-chiusa-libreria-e-formato.md) | 2026-10-16 |
 | 0007 | [Dati della richiesta cifrati, bozza a sezioni, proprietà delle righe](adr/0007-dati-della-richiesta-cifrati.md) | 2026-10-15 |
