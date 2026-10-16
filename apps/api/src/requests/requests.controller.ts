@@ -238,6 +238,19 @@ export class RequestsController {
     return this.consents.sendLink(auth, idOf(id));
   }
 
+  @Get("me/consents")
+  @RequirePermission("consent.revoke")
+  ownConsents(@CurrentAuth() auth: AuthContext) {
+    return this.consents.listOwn(auth);
+  }
+
+  @Post("consents/:id/revoke")
+  @HttpCode(200)
+  @RequirePermission("consent.revoke")
+  revokeConsent(@CurrentAuth() auth: AuthContext, @Param("id") id: string) {
+    return this.consents.revoke(auth, idOf(id));
+  }
+
   @Post("requests/:id/consent/uploaded")
   @HttpCode(200)
   @RequirePermission("brokerCustomer.manage")

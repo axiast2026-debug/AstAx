@@ -1,10 +1,18 @@
 import { formatDateTime } from "@astax/shared/format";
 import { Button, Card, CardTitle } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
-import { logoutEverywhere, revokeSession } from "@/app/actions";
+import { logoutEverywhere, revokeConsent, revokeSession } from "@/app/actions";
 import { AppShell } from "@/components/app-shell";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
+
+interface OwnConsent {
+  id: string;
+  method: string;
+  version: number | null;
+  acceptedAt: string;
+  revokedAt: string | null;
+}
 
 interface ActiveSession {
   id: string;
@@ -19,6 +27,7 @@ export default async function ProfilePage() {
   const t = await getTranslations();
   const { body: sessions } = await api<ActiveSession[]>("/me/sessions");
   const { me } = viewer;
+  const consents = me.kind === "PRIVATE" ? (await api<OwnConsent[]>("/me/consents")).body : [];
   const missing = t("profile.missing");
 
   return (
@@ -47,6 +56,45 @@ export default async function ProfilePage() {
                 </li>
               ))}
             </ul>
+          </Card>
+        ) : null}
+
+        {me.kind === "PRIVATE" ? (
+          <Card>
+            <CardTitle>{t("profile.consents")}</CardTitle>
+            <p className="mt-1 text-sm text-warm-600">{t("profile.consentsIntro")}</p>
+            {consents.length === 0 ? (
+              <p className="mt-4 text-sm">{t("profile.noConsents")}</p>
+            ) : (
+              <ul className="mt-4 divide-y divide-warm-200">
+                {consents.map((c) => (
+                  <li key={c.id} className="flex items-center justify-between gap-4 py-3 text-sm">
+                    <div>
+                      <div>
+                        {t("profile.consentLine", {
+                          at: formatDateTime(c.acceptedAt),
+                          version: c.version ?? "—",
+                        })}
+                      </div>
+                      {c.revokedAt ? (
+                        <div className="text-warm-600">
+                          {t("profile.consentRevokedAt", { at: formatDateTime(c.revokedAt) })}
+                        </div>
+                      ) : null}
+                    </div>
+                    {c.revokedAt ? null : (
+                      <form action={revokeConsent}>
+                        <input type="hidden" name="consentId" value={c.id} />
+                        <input type="hidden" name="back" value="/profilo" />
+                        <Button type="submit" variant="outline" size="sm">
+                          {t("profile.revokeConsent")}
+                        </Button>
+                      </form>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
         ) : null}
 

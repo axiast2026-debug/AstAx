@@ -30,6 +30,7 @@ Abilitazioni aggiuntive di un'appartenenza, decise dal titolare:
 | Azione | Chi | Condizioni |
 | --- | --- | --- |
 | Creare e inviare una richiesta | `PRIVATE`; `OWNER` e `OPERATOR` di broker | Consenso presente (LEG-04) |
+| Revocare il consenso alla condivisione con le agenzie | `PRIVATE` (propri consensi); `OWNER` e `OPERATOR` di broker (consensi dei propri clienti) | LEG-04: da allora non si aprono nuove aste per il cliente |
 | Vedere la propria richiesta, la cronologia, i propri documenti | `PRIVATE`; broker | Broker: clienti dell'organizzazione; `OPERATOR` solo i propri, salvo `seesAllClients` |
 | Annullare una richiesta | Richiedente; `BO_SUPERVISOR` | Solo prima dell'accettazione |
 | Vedere i dati del preventivo e i documenti del cliente | Utenti di un'agenzia invitata; `BO_*`; `ADMIN` | `OPERATOR`: solo richieste nei propri filtri. Registrazione (VIS-09) e filigrana (VIS-10) per le agenzie |

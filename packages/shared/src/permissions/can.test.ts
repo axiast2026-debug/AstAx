@@ -29,6 +29,7 @@ const EXPECTED: Record<ActorRole, Action[]> = {
   PRIVATE: [
     ...SELF,
     "request.create",
+    "consent.revoke",
     "request.viewOwn",
     "request.cancel",
     "customer.viewContacts",
@@ -44,6 +45,7 @@ const EXPECTED: Record<ActorRole, Action[]> = {
   BROKER_OWNER: [
     ...PRO_SELF,
     "request.create",
+    "consent.revoke",
     "request.viewOwn",
     "request.cancel",
     "customer.viewContacts",
@@ -61,6 +63,7 @@ const EXPECTED: Record<ActorRole, Action[]> = {
   BROKER_OPERATOR: [
     ...PRO_SELF,
     "request.create",
+    "consent.revoke",
     "request.viewOwn",
     "request.cancel",
     "customer.viewContacts",

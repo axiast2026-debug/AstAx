@@ -207,6 +207,7 @@ export class CustomersService {
           phone: customer.phoneEnc ? this.cipher.decrypt(customer.phoneEnc) : null,
         },
         consents: customer.consents.map((c) => ({
+          id: c.id,
           type: c.type,
           method: c.method,
           legalVersionId: c.legalVersionId,

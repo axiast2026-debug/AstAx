@@ -31,7 +31,8 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 - Non fatto, rinviato come debito (tabella sotto): client dell'API generato da OpenAPI, TanStack Query e React Hook Form, `prompt=login`, ruoli del back office nel database, ora prevista di chiusura dell'asta nel riepilogo, anteprima delle agenzie nella scheda di verifica.
 - 2026-10-16: verifica indipendente della fase 2 in due giri (sezione qui sotto), problemi corretti; test end-to-end 12 su 12.
 - 2026-10-16: Dan ha provato la demo: «tante cose non tornano, ma comunque continua con l'altra fase, le riprendiamo in seguito». La fase 2 resta aperta; l'elenco dei problemi è da raccogliere con Dan. Piano della fase 3 presentato, in attesa di approvazione.
-- Prossimo passo: approvazione del piano della fase 3; i problemi della demo della fase 2 quando Dan li indica. Domande 11 e 12 risposte da Dan il 2026-10-16 (60 secondi; un privato può chiedere un preventivo per un'altra persona, punto aggiunto per il legale).
+- 2026-10-16: piano della fase 3 approvato da Dan (proposte A-G). Passo 1 fatto: revoca del consenso (dal profilo del privato, dalla scheda cliente del broker; dopo la revoca il back office non può approvare); nel database il ruolo dell'utenza (parametri, elenchi, festività e testi legali solo dall'amministratore; registro di un'organizzazione solo per il titolare e per supporto, supervisore e amministratore del back office), consensi creati solo dall'API dopo il controllo e modificabili solo per revocarli, notifiche per altri utenti solo dal servizio delle notifiche.
+- Prossimo passo: passo 2 della fase 3 (calendario e regole di dominio); i problemi della demo della fase 2 quando Dan li indica. Domande 11 e 12 risposte da Dan il 2026-10-16 (60 secondi; un privato può chiedere un preventivo per un'altra persona, punto aggiunto per il legale).
 
 ## Criteri della fase in corso
 
@@ -110,12 +111,10 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 | Scheda di verifica senza l'anteprima delle agenzie selezionate | La selezione delle agenzie nasce in fase 3 | Fase 3 |
 | Correzione del back office su un gruppo di campi (veicolo, classe CU, compagnia, scadenza) | Gli altri dati si correggono chiedendo un'integrazione | Fase 7, con una scheda di correzione completa |
 | Motivi di esclusione solo dall'elenco dei casi esclusi | Nessun «altro» con testo libero | Da decidere con Dan |
-| Revoca del consenso (seconda parte di LEG-04) | Senza aste non ha ancora effetto | Fase 3, prima di aprire le aste |
 | Procedura con al massimo due conducenti | Bastano per i casi del pilota | Quando serve |
 | Archivio documenti del privato: una chiamata all'API per ogni richiesta | Pochi preventivi per persona | Quando cresce, con un endpoint unico |
 | Caricamento in blocco da CSV per i broker | Non era nel piano della fase 2 | Fase 7 |
 | Dashboard del broker con i contatori | Non era nel piano della fase 2 | Fase 7 |
-| Sicurezza a livello di riga: il richiedente può ancora creare un proprio consenso e chiunque può creare notifiche per altri utenti, a livello di database | La prima linea (API) lo impedisce; servono funzioni del database dedicate | Fase 3 |
 | Una richiesta approvata resta nello stato «In verifica» (con la decisione «Approvata») | La fase 3 la porta ad «Asta aperta» | Fase 3 |
 | Approvazione automatica (`verification.autoApproveGreen`, spenta nel pilota) in una transazione separata dopo l'invio | Serve il ruolo di sistema; se fallisce la richiesta va al back office con la notifica | Fase 3, nel worker |
 | Ricerche (codice fiscale, targa) tenute in chiaro sul server (Redis) per 15 minuti accanto alla sessione, legate al contesto attivo e cancellate con «Esci» | Non devono finire nell'indirizzo della pagina (regola 8) | Fase 8, cifrandole con la chiave dei campi |
@@ -124,7 +123,6 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 | Dispatcher dell'outbox nell'API, senza destinatari; gli eventi delle richieste (`RequestSubmitted`, `RequestApproved`…) restano in coda, e il test del team controlla solo i propri | Notifiche e workflow non esistono ancora | Fase 3 (passa al worker) |
 | Eccezione alla regola pnpm sull'età minima dei pacchetti per Next.js 16.4.1 e React 19.3.1 | Correggono vulnerabilità critiche | Da togliere appena superano l'età minima |
 | Testi in albanese del back office da far rileggere a un madrelingua | Tradotti da Claude (anche quelli nuovi della verifica) | Fase 7 |
-| Sicurezza a livello di riga: tutto il back office è «privilegiato» (anche contabilità e assistenza possono scrivere parametri e utenti a livello di database); il registro della propria organizzazione è leggibile da ogni membro | La prima linea (API) distingue i ruoli; il database non conosce ancora il ruolo del back office; non fatto in fase 2 | Fase 3, aggiungendo il ruolo alle variabili di contesto |
 | Blocco dei tentativi di accesso in Keycloak (10 errori, attesa massima 15 minuti) scritto nel file del realm | Valori tecnici di sicurezza, non di business; da decidere se diventano parametri | Fase 8 |
 | Codici via email: al massimo 3 per tentativo di accesso (numero fisso nell'estensione); nessun limite per indirizzo o per rete | Il limite vero di frequenza serve con i fornitori reali | Fase 8 |
 | Accessi registrati dalle app web (`POST /me/logins`), non da un evento di Keycloak | Un accesso fatto fuori dalle nostre app non lascerebbe traccia; oggi le uniche app sono le nostre | Fase 8, con gli eventi di Keycloak verso il registro |

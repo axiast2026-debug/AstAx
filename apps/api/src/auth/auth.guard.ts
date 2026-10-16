@@ -156,6 +156,7 @@ export class AuthGuard implements CanActivate {
         userId: user.id,
         organizationId: membership?.organizationId ?? null,
         isStaff: membership?.organizationType === "ASTAX",
+        role: membership?.role ?? null,
       },
       ip,
       userAgent,

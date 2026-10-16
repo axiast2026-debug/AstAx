@@ -134,3 +134,19 @@ export interface StoredExtraction {
 export function extractionOf(cipher: FieldCipher, value: string | null): StoredExtraction | null {
   return value ? (decryptJson(cipher, value) as StoredExtraction) : null;
 }
+
+/**
+ * LEG-04: the customer's consent to share the request with the agencies is in
+ * force. Once revoked, no new auction opens for that customer.
+ */
+export async function hasSharingConsent(
+  tx: DbTransaction,
+  customerId: string | null,
+): Promise<boolean> {
+  if (!customerId) return false;
+  const consent = await tx.consent.findFirst({
+    where: { customerId, type: "DATA_SHARING_AGENCIES", revokedAt: null },
+    select: { id: true },
+  });
+  return consent !== null;
+}

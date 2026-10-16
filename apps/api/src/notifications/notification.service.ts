@@ -1,6 +1,6 @@
 import type { EmailSender } from "@astax/adapters/email";
 import type { SmsPort } from "@astax/adapters/sms";
-import type { DbTransaction } from "@astax/db";
+import { asSystem, type DbTransaction } from "@astax/db";
 import { errorForLog, type Logger } from "@astax/shared/logging";
 import { Inject, Injectable } from "@nestjs/common";
 import { EMAIL_SENDER, LOGGER, SMS_SENDER } from "../infra/tokens.js";
@@ -41,16 +41,19 @@ export class NotificationService {
     payload: Record<string, string> = {},
   ): Promise<void> {
     if (recipients.length === 0) return;
-    // createMany: the writer may not read other users' notifications.
-    await tx.notification.createMany({
-      data: recipients.map((r) => ({
-        userId: r.userId,
-        eventKey,
-        ...renderInApp(this.#templates, eventKey, r.locale, variables(r.locale)),
-        link,
-        payload,
-      })),
-    });
+    // createMany: the writer may not read other users' notifications. A system
+    // step, because the rows may only be created for oneself otherwise.
+    await asSystem(tx, () =>
+      tx.notification.createMany({
+        data: recipients.map((r) => ({
+          userId: r.userId,
+          eventKey,
+          ...renderInApp(this.#templates, eventKey, r.locale, variables(r.locale)),
+          link,
+          payload,
+        })),
+      }),
+    );
   }
 
   async sendEmail(

@@ -2,6 +2,7 @@ import { createHash, createHmac, randomBytes, randomInt } from "node:crypto";
 import type { Clock } from "@astax/adapters/clock";
 import type { FieldCipher } from "@astax/adapters/crypto";
 import {
+  asSystem,
   SYSTEM_CONTEXT,
   withContext,
   type ConsentMethod,
@@ -25,6 +26,7 @@ import {
   addRequestEvent,
   decryptJson,
   EDITABLE_STATUSES,
+  customerScope,
   requesterScope,
   settingsAt,
 } from "./request-support.js";
@@ -255,19 +257,22 @@ export class ConsentService {
     now: Date,
   ) {
     const text = await this.consentText(tx, now);
-    const consent = await tx.consent.create({
-      data: {
-        customerId: request.customerId ?? "",
-        ownerUserId: request.ownerUserId,
-        ownerOrganizationId: request.ownerOrganizationId,
-        quoteRequestId: request.id,
-        type: "DATA_SHARING_AGENCIES",
-        legalVersionId: text.versionId,
-        method,
-        evidence,
-        acceptedAt: now,
-      },
-    });
+    // The right to record it was checked by the caller (code, link or uploaded form).
+    const consent = await asSystem(tx, () =>
+      tx.consent.create({
+        data: {
+          customerId: request.customerId ?? "",
+          ownerUserId: request.ownerUserId,
+          ownerOrganizationId: request.ownerOrganizationId,
+          quoteRequestId: request.id,
+          type: "DATA_SHARING_AGENCIES",
+          legalVersionId: text.versionId,
+          method,
+          evidence,
+          acceptedAt: now,
+        },
+      }),
+    );
     await addRequestEvent(tx, request, {
       type: "CONSENT_GIVEN",
       actorKind: method === "UPLOADED_BY_BROKER" ? "REQUESTER" : "CUSTOMER",
@@ -550,5 +555,70 @@ export class ConsentService {
       ]);
     }
     return outcome.result;
+  }
+
+  // -------------------------------------------------------------- revocation (LEG-04)
+
+  /** The private user's consents, with date and version of the text (spec 03, «Profilo»). */
+  async listOwn(auth: AuthContext) {
+    // A broker records revocations from the customer card; they have none of their own.
+    if (auth.kind !== "PRIVATE") return [];
+    return withContext(this.db, auth.db, async (tx) => {
+      const consents = await tx.consent.findMany({
+        where: { ownerUserId: auth.userId, ownerOrganizationId: null },
+        orderBy: { acceptedAt: "desc" },
+      });
+      const versionIds = consents.flatMap((c) => (c.legalVersionId ? [c.legalVersionId] : []));
+      const versions = await tx.legalDocumentVersion.findMany({
+        where: { id: { in: versionIds } },
+      });
+      return consents.map((c) => ({
+        id: c.id,
+        type: c.type,
+        method: c.method,
+        version: versions.find((v) => v.id === c.legalVersionId)?.number ?? null,
+        acceptedAt: c.acceptedAt.toISOString(),
+        revokedAt: c.revokedAt?.toISOString() ?? null,
+      }));
+    });
+  }
+
+  /**
+   * LEG-04: the customer withdraws the consent to share data with the agencies.
+   * A private user does it from the profile; a broker records it for their own
+   * customer. Every consent of that kind still in force for the customer ends:
+   * no new auction opens for them until a new consent is given. Auctions
+   * already open go on (they had the consent when they opened).
+   */
+  async revoke(auth: AuthContext, consentId: string) {
+    const now = this.clock.now();
+    return withContext(this.db, auth.db, async (tx) => {
+      const consent = await tx.consent.findFirst({
+        where: auth.membership
+          ? { id: consentId, customer: customerScope(auth) }
+          : { id: consentId, ownerUserId: auth.userId, ownerOrganizationId: null },
+      });
+      if (!consent) {
+        await this.audit.record(actorOf(auth), {
+          action: "ACCESS_DENIED",
+          targetType: "Consent",
+          targetId: consentId,
+        });
+        throw new ProblemError("NOT_FOUND");
+      }
+      const ended = await tx.consent.updateMany({
+        where: { customerId: consent.customerId, type: consent.type, revokedAt: null },
+        data: { revokedAt: now },
+      });
+      if (ended.count > 0) {
+        await this.audit.inTransaction(tx, actorOf(auth), {
+          action: "CONSENT_REVOKED",
+          targetType: "Customer",
+          targetId: consent.customerId,
+          after: { type: consent.type, consents: ended.count },
+        });
+      }
+      return { revokedAt: (consent.revokedAt ?? now).toISOString() };
+    });
   }
 }

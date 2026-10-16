@@ -405,6 +405,34 @@ describe("fase 2: verification queue and card", () => {
     });
   });
 
+  // The revocation ends every consent of Davide given so far; later tests give a new one.
+  it("LEG-04: once the customer revokes the consent, no auction opens: the approval is refused", async () => {
+    const request = await r.submittedPrivateRequest(davide, DAVIDE_EMAIL);
+    const consents = await r.json<
+      { id: string; version: number | null; revokedAt: string | null }[]
+    >(await r.call(davide, "/me/consents"), 200);
+    const active = consents.find((c) => c.revokedAt === null);
+    expect(active?.version).not.toBeNull();
+
+    expect((await r.call(agency, `/consents/${active?.id}/revoke`, { body: {} })).status).toBe(403);
+    await r.json(await r.call(davide, `/consents/${active?.id}/revoke`, { body: {} }), 200);
+    const after = await r.json<{ revokedAt: string | null }[]>(
+      await r.call(davide, "/me/consents"),
+      200,
+    );
+    expect(after.every((c) => c.revokedAt !== null)).toBe(true);
+    const [customer] = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.quoteRequest.findMany({ where: { id: request.id }, select: { customerId: true } }),
+    );
+    expect(await audit("CONSENT_REVOKED", customer?.customerId ?? "")).toHaveLength(1);
+
+    const refused = await r.json<{ errors: { path: string; issue: string }[] }>(
+      await r.call(verifier, `/verification/requests/${request.id}/approve`, { body: {} }),
+      409,
+    );
+    expect(refused.errors).toContainEqual({ path: "consent", issue: "CONSENT_REVOKED" });
+  });
+
   it("a request still in the queue after its start date can be corrected, unless the date itself is changed to the past", async () => {
     const request = await r.submittedPrivateRequest(davide, DAVIDE_EMAIL);
     const card = await r.json<Card>(

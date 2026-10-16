@@ -3,6 +3,7 @@ import { Button, Card, CardTitle } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { revokeConsent } from "@/app/actions";
 import { createBrokerRequest } from "@/app/request-actions";
 import { AppShell } from "@/components/app-shell";
 import { StatusBadge } from "@/components/request-view";
@@ -14,7 +15,7 @@ interface CustomerCard {
   name: string;
   person: { fiscalCode: string | null; vatNumber: string | null };
   contacts: { email: string | null; phone: string | null };
-  consents: { method: string; acceptedAt: string; revokedAt: string | null }[];
+  consents: { id: string; method: string; acceptedAt: string; revokedAt: string | null }[];
   vehicles: { plate: string }[];
   requests: { id: string; code: string; status: string; plate: string | null; createdAt: string }[];
 }
@@ -51,13 +52,27 @@ export default async function CustomerPage({ params }: { params: Promise<{ id: s
           {c.consents.length === 0 ? (
             <p className="mt-2 text-sm">{t("noConsent")}</p>
           ) : (
-            <ul className="mt-3 space-y-1 text-sm">
+            <ul className="mt-3 space-y-2 text-sm">
               {c.consents.map((consent) => (
-                <li key={consent.acceptedAt}>
-                  {t("consentLine", {
-                    method: tm(consent.method),
-                    at: formatDateTime(consent.acceptedAt),
-                  })}
+                <li key={consent.id} className="flex flex-wrap items-center justify-between gap-2">
+                  <span>
+                    {t("consentLine", {
+                      method: tm(consent.method),
+                      at: formatDateTime(consent.acceptedAt),
+                    })}
+                    {consent.revokedAt
+                      ? ` · ${t("consentRevokedAt", { at: formatDateTime(consent.revokedAt) })}`
+                      : null}
+                  </span>
+                  {consent.revokedAt ? null : (
+                    <form action={revokeConsent}>
+                      <input type="hidden" name="consentId" value={consent.id} />
+                      <input type="hidden" name="back" value={`/clienti/${c.id}`} />
+                      <Button type="submit" variant="outline" size="sm">
+                        {t("recordRevocation")}
+                      </Button>
+                    </form>
+                  )}
                 </li>
               ))}
             </ul>

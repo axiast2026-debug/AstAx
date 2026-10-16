@@ -36,6 +36,7 @@ import {
   decryptJson,
   encryptJson,
   extractionOf,
+  hasSharingConsent,
   settingsAt,
   sha256Of,
 } from "../requests/request-support.js";
@@ -481,6 +482,11 @@ export class VerificationService {
     const now = this.clock.now();
     return withContext(this.db, auth.db, async (tx) => {
       const { request, round } = await this.openRound(tx, id);
+      if (!(await hasSharingConsent(tx, request.customerId))) {
+        throw new ProblemError("CONFLICT", undefined, [
+          { path: "consent", issue: "CONSENT_REVOKED" },
+        ]);
+      }
       await tx.verification.update({
         where: { id: round.id },
         data: {

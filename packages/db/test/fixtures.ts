@@ -77,11 +77,17 @@ export async function createWorld(db: DbClient): Promise<World> {
   });
 }
 
-export const asMember = (userId: string, organizationId: string, isStaff = false): DbContext => ({
+export const asMember = (
+  userId: string,
+  organizationId: string,
+  isStaff = false,
+  role: string = isStaff ? "ADMIN" : "OWNER",
+): DbContext => ({
   kind: "USER",
   userId,
   organizationId,
   isStaff,
+  role,
 });
 
 export const asPrivate = (userId: string): DbContext => ({
@@ -89,4 +95,5 @@ export const asPrivate = (userId: string): DbContext => ({
   userId,
   organizationId: null,
   isStaff: false,
+  role: null,
 });

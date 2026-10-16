@@ -107,6 +107,13 @@ const ENDPOINTS: Endpoint[] = [
   { action: "profile.view", method: "GET", path: () => "/reference/municipalities?q=Mi" },
   { action: "request.create", method: "POST", path: () => "/vehicle-data/lookup", body: {} },
   { action: "request.viewOwn", method: "GET", path: () => "/requests" },
+  { action: "consent.revoke", method: "GET", path: () => "/me/consents" },
+  {
+    action: "consent.revoke",
+    method: "POST",
+    path: () => `/consents/${randomUUID()}/revoke`,
+    body: {},
+  },
   { action: "request.create", method: "POST", path: () => "/requests", body: { customerId: "x" } },
   { action: "request.viewOwn", method: "GET", path: () => `/requests/${randomUUID()}` },
   {

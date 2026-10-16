@@ -117,6 +117,12 @@
     "revoke": "Disconnetti",
     "logoutAll": "Disconnetti tutti i dispositivi",
     "noSessions": "Nessun accesso attivo.",
+    "consents": "Consensi",
+    "consentsIntro": "Il consenso a condividere i dati delle tue richieste con le agenzie invitate. Se lo revochi, non si aprono nuove aste per te finché non lo dai di nuovo; le aste già aperte continuano.",
+    "noConsents": "Non hai ancora dato consensi.",
+    "consentLine": "Condivisione con le agenzie, il {at} (testo versione {version})",
+    "consentRevokedAt": "Revocato il {at}",
+    "revokeConsent": "Revoca",
     "missing": "Non indicato"
   },
   "notifications": {
@@ -205,6 +211,8 @@
     "consents": "Consensi",
     "noConsent": "Nessun consenso raccolto.",
     "consentLine": "{method}, il {at}",
+    "consentRevokedAt": "revocato il {at}",
+    "recordRevocation": "Registra la revoca",
     "requests": "Richieste",
     "newRequest": "Nuova richiesta"
   },

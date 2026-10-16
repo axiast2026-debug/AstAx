@@ -36,3 +36,14 @@ export async function logout(): Promise<void> {
   (await cookies()).delete(SESSION_COOKIE);
   redirect(target);
 }
+
+/** LEG-04: revokes the consent to share data with the agencies, then goes back. */
+export async function revokeConsent(formData: FormData): Promise<void> {
+  const consentId = String(formData.get("consentId") ?? "");
+  const back = String(formData.get("back") ?? "");
+  const target = back === "/profilo" || /^\/clienti\/[0-9a-f-]{36}$/i.test(back) ? back : "/";
+  if (/^[0-9a-f-]{36}$/i.test(consentId)) {
+    await api(`/consents/${consentId}/revoke`, { method: "POST", body: "{}" });
+  }
+  redirect(target);
+}

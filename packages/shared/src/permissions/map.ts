@@ -51,6 +51,10 @@ export const PERMISSIONS = {
     grants: ["PRIVATE", ...BROKER_USERS],
     conditions: "consent present (LEG-04)",
   },
+  "consent.revoke": {
+    grants: ["PRIVATE", ...BROKER_USERS],
+    conditions: "private: own consents; broker: consents of own customers (LEG-04)",
+  },
   "request.viewOwn": {
     grants: ["PRIVATE", ...BROKER_USERS],
     conditions:

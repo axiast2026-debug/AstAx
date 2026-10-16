@@ -44,6 +44,7 @@ export type AuditAction =
   | "CUSTOMER_VIEWED"
   | "CONSENT_GIVEN"
   | "CONSENT_LINK_SENT"
+  | "CONSENT_REVOKED"
   | "OTP_FAILED";
 
 export interface AuditEvent {
