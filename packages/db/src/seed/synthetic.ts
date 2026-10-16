@@ -1,5 +1,9 @@
 import type { FieldCipher } from "@astax/adapters/crypto";
-import { buildVatNumber } from "@astax/shared/domain";
+import {
+  AgencyFilterCriteriaSchema,
+  buildVatNumber,
+  type AgencyFilterCriteria,
+} from "@astax/shared/domain";
 import type { DbTransaction } from "../client.js";
 import type { Locale, MembershipRole, OrganizationType, UserKind } from "../generated/prisma/client.js";
 import { deterministicUuid } from "./deterministic-id.js";
@@ -39,6 +43,40 @@ export interface SyntheticMembership {
   canSeeAccounting?: boolean;
   seesAllClients?: boolean;
 }
+
+/** Invented companies of «Dati comuni» (rule 11). */
+export const COMPANY_NAMES = ["Alfa", "Beta", "Gamma", "Delta"] as const;
+
+/**
+ * Mandates of the agencies: Uno-Cinque as in «Dati comuni», Sei-Dieci for the
+ * tests on invitations.
+ */
+export const AGENCY_MANDATES: Record<string, readonly (typeof COMPANY_NAMES)[number][]> = {
+  uno: ["Alfa", "Beta"],
+  due: ["Alfa"],
+  tre: ["Beta", "Gamma"],
+  quattro: ["Gamma"],
+  cinque: ["Beta", "Delta"],
+  sei: ["Alfa"],
+  sette: ["Beta"],
+  otto: ["Gamma"],
+  nove: ["Delta"],
+  dieci: ["Alfa", "Delta"],
+};
+
+/** S04: only these agencies take motorcycles and mopeds; the others cars only. */
+export const TWO_WHEELER_AGENCIES = ["uno", "tre", "quattro", "nove"] as const;
+
+/** Reception hours of the synthetic agencies: the working hours of ASTA-02. */
+const RECEPTION_HOURS = {
+  mon: [["09:00", "19:00"]],
+  tue: [["09:00", "19:00"]],
+  wed: [["09:00", "19:00"]],
+  thu: [["09:00", "19:00"]],
+  fri: [["09:00", "19:00"]],
+  sat: [["09:00", "13:00"]],
+  sun: [],
+};
 
 const AGENCY_NAMES = ["Uno", "Due", "Tre", "Quattro", "Cinque", "Sei", "Sette", "Otto", "Nove", "Dieci"];
 const OWNER_NAMES: [string, string][] = [
@@ -191,7 +229,11 @@ function buildDataset() {
 
 export const SYNTHETIC = buildDataset();
 
-export const syntheticId = (seed: string, kind: "org" | "user" | "membership", key: string) =>
+export const syntheticId = (
+  seed: string,
+  kind: "org" | "user" | "membership" | "company",
+  key: string,
+) =>
   deterministicUuid(seed, `${kind}:${key}`);
 
 export interface SyntheticCounts {
@@ -264,9 +306,83 @@ export async function seedSynthetic(
     });
   }
 
+  await seedAgencies(tx, seed);
+
   return {
     organizations: SYNTHETIC.organizations.length,
     users: SYNTHETIC.users.length,
     memberships: SYNTHETIC.memberships.length,
   };
+}
+
+/**
+ * Companies, mandates, one product per mandate, filters and capacity of the
+ * synthetic agencies (ASTA-05). Rerunning the seed leaves later changes alone.
+ */
+async function seedAgencies(tx: DbTransaction, seed: string): Promise<void> {
+  // Companies are found by name: one list for every seed in the same database.
+  const companyId = new Map<string, string>();
+  for (const name of COMPANY_NAMES) {
+    const company = await tx.insuranceCompany.upsert({
+      where: { name: `Compagnia ${name}` },
+      create: {
+        id: syntheticId(seed, "company", name.toLowerCase()),
+        name: `Compagnia ${name}`,
+      },
+      update: {},
+    });
+    companyId.set(name, company.id);
+  }
+  for (const [agency, companies] of Object.entries(AGENCY_MANDATES)) {
+    const organizationId = syntheticId(seed, "org", `agenzia-${agency}`);
+    const companyIds = companies.map((c) => companyId.get(c) ?? "");
+    for (const [i, companyId] of companyIds.entries()) {
+      await tx.agencyMandate.upsert({
+        where: { organizationId_companyId: { organizationId, companyId } },
+        create: {
+          organizationId,
+          companyId,
+          source: "MANUAL",
+          verifiedAt: new Date("2026-01-01T00:00:00.000Z"),
+        },
+        update: {},
+      });
+      await tx.insuranceProduct.upsert({
+        where: {
+          organizationId_companyId_name_version: {
+            organizationId,
+            companyId,
+            name: `RC Auto ${companies[i] ?? ""}`,
+            version: 1,
+          },
+        },
+        create: { organizationId, companyId, name: `RC Auto ${companies[i] ?? ""}` },
+        update: {},
+      });
+    }
+    const twoWheels = (TWO_WHEELER_AGENCIES as readonly string[]).includes(agency);
+    const criteria: AgencyFilterCriteria = {
+      vehicleTypes: twoWheels ? ["CAR", "MOTORCYCLE", "MOPED"] : ["CAR"],
+      provinces: null,
+      cuClassMin: 1,
+      cuClassMax: 18,
+      maxClaimsLast5y: null,
+      driverAgeMin: 18,
+      driverAgeMax: 99,
+      packages: ["BASE", "PLUS", "COMPLETE"],
+      companies: companyIds as [string, ...string[]],
+      maxStartDateDays: 60,
+      maxGuaranteeDays: 30,
+    };
+    await tx.agencyFilter.upsert({
+      where: { organizationId },
+      create: { organizationId, criteria: AgencyFilterCriteriaSchema.parse(criteria) },
+      update: {},
+    });
+    await tx.agencyCapacity.upsert({
+      where: { organizationId },
+      create: { organizationId, dailyMax: null, receptionHours: RECEPTION_HOURS },
+      update: {},
+    });
+  }
 }

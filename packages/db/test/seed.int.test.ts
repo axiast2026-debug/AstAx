@@ -85,6 +85,27 @@ describe("fase 1 passo 4: seed", () => {
     ]);
   });
 
+  it("phase 3: invented companies, the mandates of «Dati comuni» and the filters of S04", async () => {
+    const uno = syntheticId(SEED, "org", "agenzia-uno");
+    const due = syntheticId(SEED, "org", "agenzia-due");
+    const { mandates, filters } = await withContext(db, SYSTEM_CONTEXT, async (tx) => ({
+      mandates: await tx.agencyMandate.findMany({
+        where: { organizationId: uno },
+        include: { company: true },
+      }),
+      filters: await tx.agencyFilter.findMany({ where: { organizationId: { in: [uno, due] } } }),
+    }));
+    expect(mandates.map((m) => m.company.name).sort()).toEqual([
+      "Compagnia Alfa",
+      "Compagnia Beta",
+    ]);
+    const types = (id: string) =>
+      (filters.find((f) => f.organizationId === id)?.criteria as { vehicleTypes: string[] })
+        .vehicleTypes;
+    expect(types(uno)).toContain("MOTORCYCLE");
+    expect(types(due)).toEqual(["CAR"]);
+  });
+
   it("is idempotent: running it again changes nothing", async () => {
     const count = () =>
       withContext(db, SYSTEM_CONTEXT, async (tx) => [

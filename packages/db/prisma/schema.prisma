@@ -558,6 +558,7 @@ model QuoteRequest {
   verifications     Verification[]
   events            QuoteRequestEvent[]
   consentLinks      ConsentLink[]
+  auctions          Auction[]
 
   @@index([ownerUserId, status])
   @@index([ownerOrganizationId, status])
@@ -786,4 +787,283 @@ model Notification {
   updatedAt DateTime           @default(now()) @db.Timestamptz(3)
 
   @@index([userId, status, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Companies and agencies (phase 3; screens of the agencies in phase 4)
+// ---------------------------------------------------------------------------
+
+/// Insurance companies; in development and tests only invented names (rule 11).
+model InsuranceCompany {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  name      String   @unique
+  ivassCode String?  @unique
+  group     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @db.Timestamptz(3)
+
+  mandates AgencyMandate[]
+  products InsuranceProduct[]
+}
+
+enum MandateSource {
+  RUI
+  MANUAL
+}
+
+/// OFF-04: an agency offers only with the companies of its verified mandates.
+model AgencyMandate {
+  id             String        @id @default(uuid(7)) @db.Uuid
+  organizationId String        @db.Uuid
+  companyId      String        @db.Uuid
+  source         MandateSource
+  verifiedAt     DateTime?     @db.Timestamptz(3)
+  createdAt      DateTime      @default(now()) @db.Timestamptz(3)
+
+  company InsuranceCompany @relation(fields: [companyId], references: [id])
+
+  @@unique([organizationId, companyId])
+}
+
+/// Decision 17: the agency's product library; the information set arrives in phase 4.
+model InsuranceProduct {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  organizationId String   @db.Uuid
+  companyId      String   @db.Uuid
+  name           String
+  version        Int      @default(1)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+
+  company InsuranceCompany @relation(fields: [companyId], references: [id])
+
+  @@unique([organizationId, companyId, name, version])
+}
+
+/// ASTA-05: the requests the agency wants to receive (criteria: AgencyFilterCriteria).
+model AgencyFilter {
+  organizationId  String   @id @db.Uuid
+  criteria        Json
+  updatedByUserId String?  @db.Uuid
+  updatedAt       DateTime @default(now()) @db.Timestamptz(3)
+}
+
+/// VIS-06: a member's filters, always inside the agency's.
+model MemberFilter {
+  membershipId String   @id @db.Uuid
+  criteria     Json
+  updatedAt    DateTime @default(now()) @db.Timestamptz(3)
+}
+
+enum RequestDistribution {
+  ALL_USERS
+  BY_MEMBER_FILTERS
+}
+
+/// ASTA-05: daily capacity (invitations per calendar day, Rome; null = no limit),
+/// reception hours (WeeklyHours), pause and distribution among the members.
+model AgencyCapacity {
+  organizationId String              @id @db.Uuid
+  dailyMax       Int?
+  receptionHours Json
+  pausedUntil    DateTime?           @db.Timestamptz(3)
+  distribution   RequestDistribution @default(ALL_USERS)
+  updatedAt      DateTime            @default(now()) @db.Timestamptz(3)
+}
+
+// ---------------------------------------------------------------------------
+// Auctions and offers (phase 3)
+// ---------------------------------------------------------------------------
+
+enum AuctionKind {
+  MAIN
+  REOPEN
+  RECONFIRMATION
+}
+
+enum AuctionStatus {
+  OPEN
+  CLOSING
+  CLOSED
+  CANCELLED
+}
+
+/// One row per round (docs/busta-chiusa.md). The owner columns repeat the
+/// request's, for row level security.
+model Auction {
+  id                  String        @id @default(uuid(7)) @db.Uuid
+  quoteRequestId      String        @db.Uuid
+  ownerUserId         String?       @db.Uuid
+  ownerOrganizationId String?       @db.Uuid
+  kind                AuctionKind
+  round               Int
+  status              AuctionStatus @default(OPEN)
+  openedAt            DateTime      @db.Timestamptz(3)
+  scheduledCloseAt    DateTime      @db.Timestamptz(3)
+  originalCloseAt     DateTime      @db.Timestamptz(3)
+  closedAt            DateTime?     @db.Timestamptz(3)
+  /// GAR-01, Rome calendar date.
+  minGuaranteeDate    DateTime      @db.Date
+  durationHours       Int
+  /// ASTA-09: parameters in force at the opening.
+  settingsSnapshot    Json
+  /// X25519 public key of the round; the private one only wrapped by the KMS.
+  publicKey           String
+  wrappedPrivateKey   String
+  kmsKeyRef           String
+  /// Extensions by the back office, each with reason and author (ASTA-06).
+  extensions          Json          @default("[]")
+  cancelReason        String?
+  createdAt           DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime      @default(now()) @db.Timestamptz(3)
+
+  quoteRequest QuoteRequest @relation(fields: [quoteRequestId], references: [id])
+  invitations  Invitation[]
+  claims       Claim[]
+  offers       Offer[]
+
+  @@unique([quoteRequestId, round])
+  @@index([status, scheduledCloseAt])
+}
+
+enum InvitationSource {
+  AUTO
+  TOP_UP
+  BACK_OFFICE
+  RENEWAL
+  REOPEN
+  RECONFIRMATION
+}
+
+enum InvitationStatus {
+  INVITED
+  VIEWED
+  CLAIMED
+  OFFERED
+  DECLINED
+}
+
+model Invitation {
+  id              String           @id @default(uuid(7)) @db.Uuid
+  auctionId       String           @db.Uuid
+  organizationId  String           @db.Uuid
+  source          InvitationSource
+  invitedAt       DateTime         @db.Timestamptz(3)
+  invitedByUserId String?          @db.Uuid
+  firstViewedAt   DateTime?        @db.Timestamptz(3)
+  status          InvitationStatus @default(INVITED)
+  declineReason   String?
+
+  auction Auction @relation(fields: [auctionId], references: [id])
+
+  @@unique([auctionId, organizationId])
+  @@index([organizationId, invitedAt])
+}
+
+/// ASTA-06: an agency the back office left out of the preview, with the reason.
+model InvitationExclusion {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  quoteRequestId String   @db.Uuid
+  organizationId String   @db.Uuid
+  reason         String
+  byUserId       String   @db.Uuid
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([quoteRequestId, organizationId])
+}
+
+/// OFF-03: the claim locks the request for the colleagues of the same agency.
+/// One natural person is one user (OFF-02): `userId` identifies the person.
+model Claim {
+  id               String    @id @default(uuid(7)) @db.Uuid
+  auctionId        String    @db.Uuid
+  organizationId   String    @db.Uuid
+  membershipId     String    @db.Uuid
+  userId           String    @db.Uuid
+  claimedAt        DateTime  @db.Timestamptz(3)
+  releasedAt       DateTime? @db.Timestamptz(3)
+  releasedByUserId String?   @db.Uuid
+
+  auction Auction @relation(fields: [auctionId], references: [id])
+
+  @@index([auctionId])
+}
+
+enum OfferStatus {
+  SUBMITTED
+  WITHDRAWN
+  EXCLUDED
+  AWAITING_CUSTOMER
+  WINNING
+  ISSUED
+  NOT_CHOSEN
+  EXPIRED
+  MISSED_ISSUANCE
+}
+
+/// BC-02: before the closing only sealed values; the plain columns are filled
+/// by the closing activity of the worker.
+model Offer {
+  id                      String      @id @default(uuid(7)) @db.Uuid
+  auctionId               String      @db.Uuid
+  organizationId          String      @db.Uuid
+  membershipId            String      @db.Uuid
+  userId                  String      @db.Uuid
+  status                  OfferStatus @default(SUBMITTED)
+  submittedAt             DateTime    @db.Timestamptz(3)
+  /// PRES-01: server time of the submission or of the last change.
+  lastChangedAt           DateTime    @db.Timestamptz(3)
+  withdrawnAt             DateTime?   @db.Timestamptz(3)
+  version                 Int         @default(1)
+  sealedPayload           String
+  sealedPdfKey            String?
+  sealedPdfDataKey        String?
+  /// BC-04: copy for the agency, under a separate key.
+  ownerCopy               String
+  annualGrossPremiumCents Int?
+  companyId               String?     @db.Uuid
+  productId               String?     @db.Uuid
+  coverage                Json?
+  guaranteeUntil          DateTime?   @db.Date
+  notes                   String?
+  pdfDocumentId           String?     @db.Uuid
+  exclusionReason         String?
+  reviewFlags             Json?
+  rank                    Int?
+  createdAt               DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime    @default(now()) @db.Timestamptz(3)
+
+  auction  Auction        @relation(fields: [auctionId], references: [id])
+  versions OfferVersion[]
+
+  @@index([auctionId])
+  @@index([organizationId, status])
+}
+
+/// Earlier versions of an offer, always sealed; rows are only added.
+model OfferVersion {
+  id               String   @id @default(uuid(7)) @db.Uuid
+  offerId          String   @db.Uuid
+  organizationId   String   @db.Uuid
+  version          Int
+  sealedPayload    String
+  sealedPdfKey     String?
+  sealedPdfDataKey String?
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+
+  offer Offer @relation(fields: [offerId], references: [id])
+
+  @@unique([offerId, version])
+}
+
+/// CLA-01: the valid offers of the round in order; published by CLA-02.
+model Ranking {
+  id             String    @id @default(uuid(7)) @db.Uuid
+  quoteRequestId String    @db.Uuid
+  auctionId      String    @unique @db.Uuid
+  entries        Json
+  validCount     Int
+  publishedAt    DateTime? @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
 }
