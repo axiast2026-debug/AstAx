@@ -122,3 +122,15 @@ export async function addRequestEvent(
 
 /** Statuses in which the requester may still change the data. */
 export const EDITABLE_STATUSES = ["DRAFT", "INTEGRATION_REQUESTED"] as const;
+
+/** Fields read from a document, decrypted (ADR 0007: stored encrypted). */
+export interface StoredExtraction {
+  fields: Record<string, { value: string | number | boolean | null; confidence: number }>;
+  warnings?: string[];
+  model?: string;
+  promptVersion?: string;
+}
+
+export function extractionOf(cipher: FieldCipher, value: string | null): StoredExtraction | null {
+  return value ? (decryptJson(cipher, value) as StoredExtraction) : null;
+}

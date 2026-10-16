@@ -3,7 +3,9 @@ import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { Field } from "@/components/form";
+import { search } from "@/app/request-actions";
 import { api } from "@/lib/auth";
+import { readSearch } from "@/lib/search";
 import { requireViewer } from "@/lib/me";
 
 interface CustomerRow {
@@ -16,16 +18,13 @@ interface CustomerRow {
 }
 
 /** The broker's customers (spec 02 «Clienti»): exact search by fiscal code or by name. */
-export default async function CustomersPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string }>;
-}) {
+export default async function CustomersPage() {
   const viewer = await requireViewer();
   const t = await getTranslations("customers");
-  const { q } = await searchParams;
-  const search = q ? `?q=${encodeURIComponent(q.slice(0, 40))}` : "";
-  const { body: customers } = await api<CustomerRow[]>(`/customers${search}`);
+  const { q } = await readSearch("clienti");
+  const { body: customers } = q
+    ? await api<CustomerRow[]>("/customers/search", { method: "POST", body: JSON.stringify({ q }) })
+    : await api<CustomerRow[]>("/customers");
   return (
     <AppShell viewer={viewer}>
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -34,7 +33,8 @@ export default async function CustomersPage({
           {t("new")}
         </Link>
       </div>
-      <form className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end">
+      <form action={search} className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end">
+        <input type="hidden" name="scope" value="clienti" />
         <Field
           label={t("search")}
           name="q"

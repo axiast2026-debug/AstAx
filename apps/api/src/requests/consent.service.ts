@@ -81,13 +81,23 @@ export class ConsentService {
     };
   }
 
+  /** A denied access to a request, written to the audit log (rule 4). */
+  private async denied(auth: AuthContext, id: string, code: "NOT_FOUND" | "FORBIDDEN") {
+    await this.audit.record(actorOf(auth), {
+      action: "ACCESS_DENIED",
+      targetType: "QuoteRequest",
+      targetId: id,
+    });
+    return new ProblemError(code);
+  }
+
   private async findEditable(
     tx: DbTransaction,
     auth: AuthContext,
     id: string,
   ): Promise<QuoteRequest> {
     const request = await tx.quoteRequest.findFirst({ where: { id, ...requesterScope(auth) } });
-    if (!request) throw new ProblemError("NOT_FOUND");
+    if (!request) throw await this.denied(auth, id, "NOT_FOUND");
     if (!(EDITABLE_STATUSES as readonly string[]).includes(request.status)) {
       throw new ProblemError("CONFLICT", "The request is no longer editable");
     }
@@ -107,7 +117,7 @@ export class ConsentService {
     const now = this.clock.now();
     return withContext(this.db, auth.db, async (tx) => {
       const request = await tx.quoteRequest.findFirst({ where: { id, ...requesterScope(auth) } });
-      if (!request?.customerId) throw new ProblemError("NOT_FOUND");
+      if (!request?.customerId) throw await this.denied(auth, id, "NOT_FOUND");
       const consent = await tx.consent.findFirst({
         where: { customerId: request.customerId, type: "DATA_SHARING_AGENCIES", revokedAt: null },
         orderBy: { acceptedAt: "desc" },
@@ -135,7 +145,29 @@ export class ConsentService {
     owner: { ownerUserId: string | null; ownerOrganizationId: string | null },
     now: Date,
   ): Promise<{ code: string; minutes: number }> {
-    const settings = await settingsAt(tx, ["otp.validityMinutes", "otp.maxAttempts"], now);
+    const settings = await settingsAt(
+      tx,
+      ["otp.validityMinutes", "otp.maxAttempts", "otp.resendWaitSeconds"],
+      now,
+    );
+    // SIC-05: asking for a new code does not reset the wrong attempts of the
+    // last validity window, and codes cannot be asked for in a loop.
+    // Times from Clock only (rule 6): a code was issued validityMinutes before it expires.
+    const validityMs = settings["otp.validityMinutes"] * MINUTE_MS;
+    const recent = await tx.otpChallenge.findMany({
+      where: { subjectId, purpose, expiresAt: { gt: now } },
+      orderBy: { expiresAt: "desc" },
+    });
+    const failed = Math.max(0, ...recent.map((c) => c.attempts));
+    const last = recent[0];
+    const lastIssuedAt = last ? last.expiresAt.getTime() - validityMs : null;
+    if (
+      failed >= settings["otp.maxAttempts"] ||
+      (lastIssuedAt !== null &&
+        now.getTime() - lastIssuedAt < settings["otp.resendWaitSeconds"] * 1000)
+    ) {
+      throw new ProblemError("RATE_LIMITED", "Wait before asking for a new code");
+    }
     // A new code replaces the previous ones for the same subject.
     await tx.otpChallenge.updateMany({
       where: { subjectId, purpose, consumedAt: null },
@@ -148,6 +180,7 @@ export class ConsentService {
         ...owner,
         codeHash: "",
         expiresAt: new Date(now.getTime() + settings["otp.validityMinutes"] * MINUTE_MS),
+        attempts: failed,
         maxAttempts: settings["otp.maxAttempts"],
       },
     });
@@ -253,7 +286,7 @@ export class ConsentService {
     const now = this.clock.now();
     const { code, minutes, contacts } = await withContext(this.db, auth.db, async (tx) => {
       const request = await this.findEditable(tx, auth, id);
-      if (request.channel !== "PRIVATE") throw new ProblemError("FORBIDDEN");
+      if (request.channel !== "PRIVATE") throw await this.denied(auth, id, "FORBIDDEN");
       const challenge = await this.newChallenge(
         tx,
         "PRIVATE_CONSENT",
@@ -270,7 +303,7 @@ export class ConsentService {
     const now = this.clock.now();
     const outcome = await withContext(this.db, auth.db, async (tx) => {
       const request = await this.findEditable(tx, auth, id);
-      if (request.channel !== "PRIVATE") throw new ProblemError("FORBIDDEN");
+      if (request.channel !== "PRIVATE") throw await this.denied(auth, id, "FORBIDDEN");
       const challenge = await this.verifyChallenge(tx, "PRIVATE_CONSENT", id, code, now);
       if (!challenge) return null;
       return this.recordConsent(
@@ -302,7 +335,7 @@ export class ConsentService {
     const now = this.clock.now();
     return withContext(this.db, auth.db, async (tx) => {
       const request = await this.findEditable(tx, auth, id);
-      if (request.channel !== "BROKER") throw new ProblemError("FORBIDDEN");
+      if (request.channel !== "BROKER") throw await this.denied(auth, id, "FORBIDDEN");
       const document = await tx.document.findFirst({
         where: { id: documentId, quoteRequestId: id, kind: "CONSENT_FORM", deletedAt: null },
       });
@@ -324,7 +357,7 @@ export class ConsentService {
     const sent = await withContext(this.db, auth.db, async (tx) => {
       const request = await this.findEditable(tx, auth, id);
       if (request.channel !== "BROKER" || !request.ownerOrganizationId)
-        throw new ProblemError("FORBIDDEN");
+        throw await this.denied(auth, id, "FORBIDDEN");
       const contacts = await this.contactsOf(tx, request.customerId ?? "");
       if (!contacts.email && !contacts.phone) {
         throw new ProblemError("VALIDATION_FAILED", "The customer has no email or phone", [
@@ -427,7 +460,11 @@ export class ConsentService {
         where: { id: link.ownerOrganizationId },
       });
       return {
-        status: link.status,
+        status:
+          link.status === "SENT" &&
+          !(EDITABLE_STATUSES as readonly string[]).includes(link.quoteRequest.status)
+            ? "REVOKED"
+            : link.status,
         broker: organization.legalName,
         vehicle: this.vehicleLabel(link.quoteRequest),
         expiresAt: link.expiresAt.toISOString(),
@@ -440,7 +477,13 @@ export class ConsentService {
     const now = this.clock.now();
     const prepared = await withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
       const link = await this.linkByToken(tx, token, now);
-      if (link.status !== "SENT") throw new ProblemError("CONFLICT", "The link is no longer valid");
+      // Only while the request can still change: never after submission or cancellation.
+      if (
+        link.status !== "SENT" ||
+        !(EDITABLE_STATUSES as readonly string[]).includes(link.quoteRequest.status)
+      ) {
+        throw new ProblemError("CONFLICT", "The link is no longer valid");
+      }
       const challenge = await this.newChallenge(
         tx,
         "LINK_CONSENT",
@@ -464,7 +507,13 @@ export class ConsentService {
     const actor: AuditActor = { userId: null, membershipId: null, organizationId: null, ...client };
     const outcome = await withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
       const link = await this.linkByToken(tx, token, now);
-      if (link.status !== "SENT") throw new ProblemError("CONFLICT", "The link is no longer valid");
+      // Only while the request can still change: never after submission or cancellation.
+      if (
+        link.status !== "SENT" ||
+        !(EDITABLE_STATUSES as readonly string[]).includes(link.quoteRequest.status)
+      ) {
+        throw new ProblemError("CONFLICT", "The link is no longer valid");
+      }
       const challenge = await this.verifyChallenge(tx, "LINK_CONSENT", link.id, code, now);
       if (!challenge) return { linkId: link.id, result: null };
       await tx.consentLink.update({

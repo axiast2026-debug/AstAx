@@ -165,6 +165,8 @@ const ENDPOINTS: Endpoint[] = [
     body: {},
   },
   { action: "brokerCustomer.manage", method: "GET", path: () => "/customers" },
+  { action: "brokerCustomer.manage", method: "POST", path: () => "/customers/search", body: {} },
+  { action: "request.viewOwn", method: "POST", path: () => "/requests/search", body: { q: 1 } },
   { action: "brokerCustomer.manage", method: "POST", path: () => "/customers", body: {} },
   { action: "brokerCustomer.manage", method: "GET", path: () => `/customers/${randomUUID()}` },
   {
@@ -183,12 +185,12 @@ const ENDPOINTS: Endpoint[] = [
   // Fase 2: back office verification
   { action: "verification.viewQueue", method: "GET", path: () => "/verification/queue" },
   {
-    action: "request.viewQuoteData",
+    action: "verification.viewQueue",
     method: "GET",
     path: () => `/verification/requests/${randomUUID()}`,
   },
   {
-    action: "request.viewQuoteData",
+    action: "verification.viewQueue",
     method: "GET",
     path: () => `/verification/requests/${randomUUID()}/documents/${randomUUID()}/file`,
   },

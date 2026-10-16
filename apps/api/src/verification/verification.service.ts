@@ -12,13 +12,14 @@ import {
 import {
   derivedColumns,
   QuoteDataSchema,
+  submissionProblems,
   worstOutcome,
   type ChecklistItem,
   type QuoteData,
   type QuoteDraft,
   type QuoteDraftSection,
 } from "@astax/shared/domain";
-import { calendarDateToDbDate } from "@astax/shared/format";
+import { calendarDateToDbDate, romeCalendarDate } from "@astax/shared/format";
 import type { Logger } from "@astax/shared/logging";
 import { Inject, Injectable } from "@nestjs/common";
 import { actorOf, AuditService } from "../audit/audit.service.js";
@@ -28,10 +29,14 @@ import { ProblemError } from "../http/problem.js";
 import { CLOCK, CONFIG, DB, FIELD_CIPHER, LOGGER, OBJECT_STORAGE } from "../infra/tokens.js";
 import { NotificationService } from "../notifications/notification.service.js";
 import { AutoCheckService } from "../requests/auto-check.service.js";
+import { listCodeProblems } from "../requests/list-codes.js";
+import { ReferenceService } from "../requests/reference.service.js";
 import {
   addRequestEvent,
   decryptJson,
   encryptJson,
+  extractionOf,
+  settingsAt,
   sha256Of,
 } from "../requests/request-support.js";
 import { customerName } from "../requests/requests.service.js";
@@ -61,6 +66,7 @@ export class VerificationService {
     @Inject(FIELD_CIPHER) private readonly cipher: FieldCipher,
     @Inject(OBJECT_STORAGE) private readonly storage: ObjectStoragePort,
     @Inject(AutoCheckService) private readonly autoCheck: AutoCheckService,
+    @Inject(ReferenceService) private readonly reference: ReferenceService,
     @Inject(NotificationService) private readonly notifications: NotificationService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(LOGGER) private readonly logger: Logger,
@@ -213,7 +219,7 @@ export class VerificationService {
           fileName: d.fileName,
           mime: d.mime,
           size: d.size,
-          extraction: d.extraction,
+          extraction: extractionOf(this.cipher, d.extractionEnc),
           uploadedAt: d.createdAt.toISOString(),
         })),
         timeline: events.map((e) => ({
@@ -287,12 +293,24 @@ export class VerificationService {
       if (!item) throw new ProblemError("NOT_FOUND");
       const updated = items.map((i) =>
         i.code === code
-          ? { ...i, correction: input.correction ?? i.correction, note: input.note ?? i.note }
+          ? {
+              ...i,
+              // An empty field clears the value.
+              correction: input.correction === undefined ? i.correction : input.correction || null,
+              note: input.note === undefined ? i.note : input.note || null,
+            }
           : i,
       );
       await tx.verification.update({
         where: { id: round.id },
         data: { checklist: updated as never },
+      });
+      // The texts may hold personal data: the log keeps which item changed, not the words.
+      await this.audit.inTransaction(tx, actorOf(auth), {
+        action: "VERIFICATION_CHECKLIST_UPDATED",
+        targetType: "QuoteRequest",
+        targetId: id,
+        after: { round: round.round, item: code },
       });
       return updated.find((i) => i.code === code);
     });
@@ -313,6 +331,7 @@ export class VerificationService {
       const after = parsed.data;
       const changed = changedPaths(before, after);
       if (changed.length === 0) throw new ProblemError("VALIDATION_FAILED", "Nothing changed");
+      await this.checkLikeSubmission(tx, after, now);
       const version = (request.quoteDataVersion ?? 0) + 1;
       await tx.quoteDataVersion.create({
         data: {
@@ -380,6 +399,54 @@ export class VerificationService {
       });
       return { quoteDataVersion: version, changedFields: changed, autoOutcome: outcome };
     });
+  }
+
+  /**
+   * A corrected quoteData must pass the same checks as a submission: active
+   * list codes, an existing package, options in force (rule 7), drivers.
+   */
+  private async checkLikeSubmission(tx: DbTransaction, data: QuoteData, now: Date) {
+    const codes = await this.reference.activeCodes(tx);
+    const draft: QuoteDraft = {
+      policyHolder: data.policyHolder,
+      vehicleOwner: data.vehicleOwner,
+      vehicle: data.vehicle,
+      history: data.history,
+      driving: { drivers: data.drivers, drivingFormula: data.drivingFormula },
+      request: data.request,
+    };
+    const errors: { path: string; issue: string }[] = listCodeProblems(draft, codes);
+    if (
+      !(await this.reference.packageExists(
+        tx,
+        data.request.packageCode,
+        data.request.packageVersion,
+      ))
+    ) {
+      errors.push({ path: "request.packageVersion", issue: "unknown_package" });
+    }
+    const settings = await settingsAt(
+      tx,
+      [
+        "drivingFormula.expertMinAge",
+        "auction.durationsWorkingHours",
+        "guarantee.minValidityDaysOptions",
+      ],
+      now,
+    );
+    const problems = submissionProblems(data, {
+      today: romeCalendarDate(now),
+      expertMinAge: settings["drivingFormula.expertMinAge"],
+      auctionDurations: settings["auction.durationsWorkingHours"],
+      minValidityDaysOptions: settings["guarantee.minValidityDaysOptions"],
+      packageIncludesTheft: await this.reference.packageIncludesTheft(
+        tx,
+        data.request.packageCode,
+        data.request.packageVersion,
+      ),
+    });
+    errors.push(...problems.map((p) => ({ path: "quoteData", issue: p })));
+    if (errors.length > 0) throw new ProblemError("VALIDATION_FAILED", undefined, errors);
   }
 
   async approve(auth: AuthContext, id: string, note: string | undefined) {

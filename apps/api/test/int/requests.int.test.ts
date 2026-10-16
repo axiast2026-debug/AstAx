@@ -164,6 +164,32 @@ describe("fase 2: options from the parameters", () => {
     expect(options.specialUses.map((s) => s.code)).toContain("TAXI");
   });
 
+  it("rule 7: a new version of the parameter changes the options, with no code change", async () => {
+    const setDurations = (value: number[]) =>
+      withContext(h.db, SYSTEM_CONTEXT, async (tx) => {
+        const count = await tx.setting.count({ where: { key: "auction.durationsWorkingHours" } });
+        await tx.setting.create({
+          data: {
+            key: "auction.durationsWorkingHours",
+            value,
+            version: count + 1,
+            validFrom: new Date(h.clock.now().getTime() - 1000),
+            reason: "test",
+          },
+        });
+      });
+    await setDurations([3, 6]);
+    try {
+      const options = await json<{ auctionDurationsHours: number[] }>(
+        await call(asLuca(), "/reference/request-options"),
+        200,
+      );
+      expect(options.auctionDurationsHours).toEqual([3, 6]);
+    } finally {
+      await setDurations([1, 2, 5, 24]);
+    }
+  });
+
   it("finds municipalities by name", async () => {
     const found = await json<{ istatCode: string; name: string }[]>(
       await call(asLuca(), "/reference/municipalities?q=Milan"),
@@ -190,11 +216,6 @@ describe("fase 2: a private request from draft to the verification queue", () =>
     );
     expect(noConsent.errors).toEqual([{ path: "consent", issue: "CONSENT_REQUIRED" }]);
 
-    await json(await call(asLuca(), `/requests/${request.id}/consent/code`, { body: {} }), 204);
-    const wrong = await call(asLuca(), `/requests/${request.id}/consent/confirm`, {
-      body: { code: "000000" },
-    });
-    expect(wrong.status).toBe(lastCode("luca.ferri@example.test") === "000000" ? 200 : 400);
     await giveConsent(request.id);
 
     const submitted = await json<{ status: string; autoOutcome: string }>(
@@ -310,6 +331,71 @@ describe("fase 2: a private request from draft to the verification queue", () =>
     expect((await call({ token: elena }, `/requests/${request.id}`)).status).toBe(404);
     const list = await json<{ id: string }[]>(await call({ token: elena }, "/requests"), 200);
     expect(list.map((r) => r.id)).not.toContain(request.id);
+    const denied = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.auditLog.count({ where: { action: "ACCESS_DENIED", targetId: request.id } }),
+    );
+    expect(denied).toBe(1);
+  });
+});
+
+describe("fase 2: one-time codes for the consent (SIC-05)", () => {
+  const wrongOf = (code: string) => (code === "000000" ? "111111" : "000000");
+  const send = (id: string) => call(asLuca(), `/requests/${id}/consent/code`, { body: {} });
+  const confirm = (id: string, code: string) =>
+    call(asLuca(), `/requests/${id}/consent/confirm`, { body: { code } });
+  /** Moves the clock and renews the token, which has a short life. */
+  async function later(minutes: number) {
+    h.clock.advanceMinutes(minutes);
+    luca = await h.tokenFor("private-luca-ferri");
+    paolo = await h.tokenFor("broker-operator");
+    laura = await h.tokenFor("broker-owner");
+  }
+
+  it("a wrong code is refused and logged; the right one works once", async () => {
+    const request = await privateRequestReady();
+    await json(await send(request.id), 204);
+    const right = lastCode("luca.ferri@example.test");
+    expect((await confirm(request.id, wrongOf(right))).status).toBe(400);
+    const failures = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.auditLog.count({ where: { action: "OTP_FAILED", targetId: request.id } }),
+    );
+    expect(failures).toBe(1);
+    await json(await confirm(request.id, right), 200);
+    // Consumed: the same code does not work a second time.
+    expect((await confirm(request.id, right)).status).toBe(400);
+  });
+
+  it("asking for a new code neither resets the wrong attempts nor can be repeated at once", async () => {
+    const request = await privateRequestReady();
+    await json(await send(request.id), 204);
+    expect((await send(request.id)).status).toBe(429);
+    for (let i = 0; i < 3; i += 1) {
+      expect((await confirm(request.id, wrongOf(lastCode("luca.ferri@example.test")))).status).toBe(
+        400,
+      );
+    }
+    await later(1.1);
+    await json(await send(request.id), 204);
+    for (let i = 0; i < 2; i += 1) {
+      expect((await confirm(request.id, wrongOf(lastCode("luca.ferri@example.test")))).status).toBe(
+        400,
+      );
+    }
+    // Five wrong attempts in the validity window: even the right code is refused now.
+    expect((await confirm(request.id, lastCode("luca.ferri@example.test"))).status).toBe(400);
+    await later(1.1);
+    expect((await send(request.id)).status).toBe(429);
+    await later(11);
+    await json(await send(request.id), 204);
+    await json(await confirm(request.id, lastCode("luca.ferri@example.test")), 200);
+  });
+
+  it("an expired code is refused", async () => {
+    const request = await privateRequestReady();
+    await json(await send(request.id), 204);
+    const code = lastCode("luca.ferri@example.test");
+    await later(11);
+    expect((await confirm(request.id, code)).status).toBe(400);
   });
 });
 
@@ -347,7 +433,7 @@ describe("fase 2: broker requests and the customer's consent", () => {
     expect(cipher.decrypt(stored.person.fiscalCodeEnc ?? "")).toBe(annaFiscalCode);
 
     const found = await json<{ id: string }[]>(
-      await call(asPaolo(), `/customers?q=${annaFiscalCode.toLowerCase()}`),
+      await call(asPaolo(), "/customers/search", { body: { q: annaFiscalCode.toLowerCase() } }),
       200,
     );
     expect(found.map((c) => c.id)).toEqual([annaId]);
@@ -491,6 +577,92 @@ describe("fase 2: broker requests and the customer's consent", () => {
     );
   });
 
+  it("LEG-04 the policy holder must be the customer who gave the consent", async () => {
+    const request = await json<{ id: string }>(
+      await call(asPaolo(), "/requests", { body: { customerId: annaId } }),
+      201,
+    );
+    // Anna has already confirmed her consent: the data are Giulia's.
+    await saveAll(asPaolo(), request.id, await giuliaQuote(asPaolo(), "AR456CD"));
+    const refused = await json<{ errors: { issue: string }[] }>(
+      await call(asPaolo(), `/requests/${request.id}/submit`, { body: {} }),
+      400,
+    );
+    expect(refused.errors).toEqual([
+      { path: "policyHolder.fiscalCode", issue: "HOLDER_NOT_CUSTOMER" },
+    ]);
+    const person = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.customer.findUniqueOrThrow({ where: { id: annaId }, include: { person: true } }),
+    );
+    expect(cipher.decrypt(person.person.fiscalCodeEnc ?? "")).toBe(annaFiscalCode);
+  });
+
+  it("a consent link stops working when its request is cancelled", async () => {
+    const mario = buildFiscalCode({
+      surname: "Prova",
+      givenName: "Mario",
+      birthDate: "1978-02-20",
+      sex: "M",
+      birthPlaceCadastralCode: "L219",
+    });
+    const customer = await json<{ id: string }>(
+      await call(asPaolo(), "/customers", {
+        body: {
+          kind: "PERSON",
+          surname: "Prova",
+          givenName: "Mario",
+          fiscalCode: mario,
+          email: "mario.prova@example.test",
+        },
+      }),
+      201,
+    );
+    const request = await json<{ id: string }>(
+      await call(asPaolo(), "/requests", { body: { customerId: customer.id } }),
+      201,
+    );
+    await json(await call(asPaolo(), `/requests/${request.id}/consent/link`, { body: {} }), 200);
+    const email = [...h.email.sent].reverse().find((m) => m.to === "mario.prova@example.test");
+    const token = /\/consenso\/([A-Za-z0-9_-]+)/.exec(email?.text ?? "")?.[1] ?? "";
+    await json(await call(asPaolo(), `/requests/${request.id}/cancel`, { body: {} }), 200);
+    const summary = await json<{ status: string }>(await h.call(`/consent-links/${token}`), 200);
+    expect(summary.status).toBe("REVOKED");
+    expect((await h.call(`/consent-links/${token}/code`, { body: {} })).status).toBe(409);
+  });
+
+  it("SIC-03 a company's VAT number is stored encrypted, unique and searchable by blind index", async () => {
+    const vat = "07741040260";
+    const created = await json<{ id: string }>(
+      await call(asPaolo(), "/customers", {
+        body: { kind: "COMPANY", companyName: "Officina Esempio Srl", vatNumber: vat },
+      }),
+      201,
+    );
+    const stored = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.customer.findUniqueOrThrow({ where: { id: created.id }, include: { person: true } }),
+    );
+    expect(stored.person.vatNumberEnc).not.toContain(vat);
+    expect(cipher.decrypt(stored.person.vatNumberEnc ?? "")).toBe(vat);
+    const again = await call(asPaolo(), "/customers", {
+      body: { kind: "COMPANY", companyName: "Altro nome", vatNumber: `IT${vat}` },
+    });
+    expect(again.status).toBe(409);
+    const found = await json<{ id: string }[]>(
+      await call(asPaolo(), "/customers/search", { body: { q: vat } }),
+      200,
+    );
+    expect(found.map((c) => c.id)).toEqual([created.id]);
+  });
+
+  it("the plate filter of the requests travels in the body, not in the URL", async () => {
+    const found = await json<{ plate: string | null }[]>(
+      await call(asPaolo(), "/requests/search", { body: { q: "ar456" } }),
+      200,
+    );
+    expect(found.length).toBeGreaterThan(0);
+    expect(found.every((r) => r.plate === "AR456CD")).toBe(true);
+  });
+
   it("VIS-13 an operator sees only own customers; the owner sees all of the broker", async () => {
     const lauras = await json<{ id: string }>(
       await call({ token: laura, context: lauraContext() }, "/customers", {
@@ -501,6 +673,11 @@ describe("fase 2: broker requests and the customer's consent", () => {
     const paoloSees = await json<{ id: string }[]>(await call(asPaolo(), "/customers"), 200);
     expect(paoloSees.map((c) => c.id)).not.toContain(lauras.id);
     expect((await call(asPaolo(), `/customers/${lauras.id}`)).status).toBe(404);
+    // Rule 4: the denied opening is in the audit log.
+    const denied = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.auditLog.count({ where: { action: "ACCESS_DENIED", targetId: lauras.id } }),
+    );
+    expect(denied).toBe(1);
     const lauraSees = await json<{ id: string }[]>(
       await call({ token: laura, context: lauraContext() }, "/customers"),
       200,

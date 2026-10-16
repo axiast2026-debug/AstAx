@@ -3,10 +3,12 @@
 import { SystemClock } from "@astax/adapters/clock";
 import { decodeFiscalCode } from "@astax/shared/domain";
 import { romeCalendarDate } from "@astax/shared/format";
+import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { api, sessionId, webAuth, browserClient } from "@/lib/auth";
 import { claimYears, requestOptions } from "@/lib/requests";
+import { SEARCH_SCOPES, writeSearch, type SearchScope } from "@/lib/search";
 import {
   checked,
   historyFromForm,
@@ -457,4 +459,25 @@ export async function markNotificationRead(formData: FormData): Promise<void> {
   const link = text(formData, "link");
   await api(`/me/notifications/${id}/read`, { method: "POST", body: "{}" });
   redirect(link?.startsWith("/") && !link.startsWith("//") ? link : "/notifiche");
+}
+
+/** Search forms (customers, plates): the terms go in a server-only cookie, not in the URL. */
+export async function search(formData: FormData): Promise<void> {
+  const scope = text(formData, "scope");
+  const targets: Record<SearchScope, string> = {
+    clienti: "/clienti",
+    "nuova-richiesta": "/richieste/nuova",
+    richieste: "/richieste",
+  };
+  if (!scope || !(SEARCH_SCOPES as readonly string[]).includes(scope)) redirect("/");
+  const typed = scope as SearchScope;
+  await writeSearch(
+    typed,
+    typed === "richieste"
+      ? { q: (text(formData, "q") ?? "").slice(0, 20), status: text(formData, "stato") ?? "" }
+      : { q: (text(formData, "q") ?? "").slice(0, 40) },
+  );
+  // The page that follows is the same one: drop its cached version so it reads the new terms.
+  revalidatePath(targets[typed]);
+  redirect(targets[typed]);
 }

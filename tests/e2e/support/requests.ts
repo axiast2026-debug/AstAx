@@ -49,10 +49,18 @@ export async function vehicleStep(
 }
 
 /** Step «Conducenti»: the holder comes from the libretto, the licence from its photo. */
-export async function driversStep(page: Page, licence: string): Promise<void> {
+export async function driversStep(
+  page: Page,
+  licence: string,
+  options: { holderFiscalCode?: string } = {},
+): Promise<void> {
   await expect(page).toHaveURL(/\/conducenti$/);
   await upload(page, "Patente del conducente abituale", licence);
   await expect(page.getByLabel("Codice fiscale").first()).not.toHaveValue("");
+  // The holder must be the customer (LEG-04): a broker's customer of this run.
+  if (options.holderFiscalCode) {
+    await page.getByLabel("Codice fiscale").first().fill(options.holderFiscalCode);
+  }
   await page.getByLabel(/Guida libera/).check();
   await saveAndContinue(page);
 }

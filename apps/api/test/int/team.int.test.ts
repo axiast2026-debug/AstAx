@@ -206,7 +206,7 @@ describe("fase 1 passo 9: events of team changes", () => {
 
     await h.app.get(OutboxRunner).tick();
     const pending = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
-      tx.outboxEvent.count({ where: { status: "PENDING" } }),
+      tx.outboxEvent.count({ where: { status: "PENDING", type: "membership.updated" } }),
     );
     expect(pending).toBe(0);
   });

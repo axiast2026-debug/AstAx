@@ -119,6 +119,7 @@ export const settingSchemas = {
   "organizations.profInsuranceReminderDays": positiveInt,
   "otp.validityMinutes": positiveInt,
   "otp.maxAttempts": positiveInt,
+  "otp.resendWaitSeconds": positiveInt,
   "team.inviteValidityDays": positiveInt,
   "vehicle.vintageAgeYears": positiveInt,
   "consent.linkValidityDays": positiveInt,

@@ -9,9 +9,10 @@ import {
 import { romeCalendarDate } from "@astax/shared/format";
 import type { PlateLookupPort } from "@astax/adapters/vehicle-data";
 import { Inject, Injectable } from "@nestjs/common";
-import { PLATE_LOOKUP } from "../infra/tokens.js";
+import type { FieldCipher } from "@astax/adapters/crypto";
+import { FIELD_CIPHER, PLATE_LOOKUP } from "../infra/tokens.js";
 import { ReferenceService } from "./reference.service.js";
-import { settingsAt } from "./request-support.js";
+import { extractionOf, settingsAt } from "./request-support.js";
 
 /**
  * Runs the automatic check (green, yellow, red) of a request on its current
@@ -22,6 +23,7 @@ export class AutoCheckService {
   constructor(
     @Inject(ReferenceService) private readonly reference: ReferenceService,
     @Inject(PLATE_LOOKUP) private readonly plates: PlateLookupPort,
+    @Inject(FIELD_CIPHER) private readonly cipher: FieldCipher,
   ) {}
 
   async check(
@@ -54,7 +56,7 @@ export class AutoCheckService {
     const extracted: ExtractedDocument[] = documents.map((d) => ({
       kind: d.kind,
       ...(d.driverIndex === null ? {} : { driverIndex: d.driverIndex }),
-      fields: (d.extraction as { fields?: ExtractedDocument["fields"] } | null)?.fields ?? {},
+      fields: extractionOf(this.cipher, d.extractionEnc)?.fields ?? {},
     }));
     const lookup = await this.plates.lookup({ plate: quoteData.vehicle.plate });
     return runAutoCheck({

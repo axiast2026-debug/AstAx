@@ -9,6 +9,9 @@ import * as oidc from "openid-client";
  */
 export type LoginKind = "private" | "pro" | "staff";
 
+/** How long the search terms of a page are kept (technical, not a business number). */
+const SEARCH_TTL_SECONDS = 900;
+
 export interface WebSession {
   kind: LoginKind;
   accessToken: string;
@@ -181,6 +184,36 @@ export class WebAuth {
       // Revoked or idle beyond the session limits (SIC-05): log in again.
       await this.options.store.delete(`session:${id}`);
       return null;
+    }
+  }
+
+  /**
+   * Search terms of a page (a fiscal code, a plate) kept on the server for a
+   * few minutes, next to the session: they never travel in a URL (CLAUDE.md
+   * rule 8) and are readable in the same response that follows the search.
+   */
+  async setSearch(
+    id: string | undefined,
+    scope: string,
+    value: Record<string, string>,
+  ): Promise<void> {
+    if (!id || !(await this.session(id))) throw new SessionExpiredError();
+    const key = `search:${id}:${scope}`;
+    if (Object.values(value).every((v) => v === "")) await this.options.store.delete(key);
+    else await this.options.store.set(key, JSON.stringify(value), SEARCH_TTL_SECONDS);
+  }
+
+  async search(id: string | undefined, scope: string): Promise<Record<string, string>> {
+    if (!id) return {};
+    const raw = await this.options.store.get(`search:${id}:${scope}`);
+    if (!raw) return {};
+    try {
+      const value = JSON.parse(raw) as Record<string, unknown>;
+      return Object.fromEntries(
+        Object.entries(value).filter((e): e is [string, string] => typeof e[1] === "string"),
+      );
+    } catch {
+      return {};
     }
   }
 

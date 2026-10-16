@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Inject, Param, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Inject, Param, Post } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { z } from "zod";
 import type { AuthContext } from "../auth/auth-context.js";
@@ -13,6 +13,7 @@ const contacts = {
     .regex(/^\+?[\d\s-]{6,20}$/)
     .optional(),
 };
+const searchSchema = z.strictObject({ q: z.string().trim().max(40) });
 const createSchema = z.discriminatedUnion("kind", [
   z.strictObject({
     kind: z.literal("PERSON"),
@@ -38,8 +39,16 @@ export class CustomersController {
 
   @Get()
   @RequirePermission("brokerCustomer.manage")
-  list(@CurrentAuth() auth: AuthContext, @Query("q") q: string | undefined) {
-    return this.customers.list(auth, q);
+  list(@CurrentAuth() auth: AuthContext) {
+    return this.customers.list(auth, undefined);
+  }
+
+  /** Search in the body: a fiscal code never travels in a URL (rule 8). */
+  @Post("search")
+  @HttpCode(200)
+  @RequirePermission("brokerCustomer.manage")
+  search(@CurrentAuth() auth: AuthContext, @Body() body: unknown) {
+    return this.customers.list(auth, parseInput(searchSchema, body).q);
   }
 
   @Post()

@@ -24,7 +24,7 @@ export default async function ConsentLinkPage({
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ codice?: string; errore?: string; fatto?: string }>;
+  searchParams: Promise<{ codice?: string; errore?: string }>;
 }) {
   const { token } = await params;
   if (!/^[A-Za-z0-9_-]{20,100}$/.test(token)) notFound();
@@ -42,7 +42,7 @@ export default async function ConsentLinkPage({
       <div className="mt-6">
         <ErrorSummary codes={query.errore} />
       </div>
-      {link.status === "COMPLETED" || query.fatto === "1" ? (
+      {link.status === "COMPLETED" ? (
         <Card className="mt-6">
           <CardTitle>{t("doneTitle")}</CardTitle>
           <p className="mt-2 text-sm">{t("doneText", { broker: link.broker })}</p>

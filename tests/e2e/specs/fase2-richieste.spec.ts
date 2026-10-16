@@ -202,72 +202,85 @@ test.describe.serial("fase 2: richiesta e verifica", () => {
     await expect(page.getByRole("heading", { name: "Il veicolo" })).toBeVisible();
   }
 
-  test("Paolo crea una richiesta per Anna Riva e le manda il link di consenso; Anna conferma con il codice", async ({
+  /**
+   * A synthetic person new at every run: a random birth date (about 13,000
+   * possible) changes the fiscal code, so two runs almost never collide.
+   */
+  function newPerson(surname: string, givenName: string, sex: "M" | "F", place: string) {
+    const [a = 0, b = 0, c = 0] = randomBytes(3);
+    const month = String(1 + (b % 12)).padStart(2, "0");
+    const day = String(1 + (c % 28)).padStart(2, "0");
+    return buildFiscalCode({
+      surname,
+      givenName,
+      birthDate: `${1960 + (a % 40)}-${month}-${day}`,
+      sex,
+      birthPlaceCadastralCode: place,
+    });
+  }
+
+  test("Paolo crea una richiesta per Anna Riva e le manda il link di consenso; Anna conferma con il codice; il back office approva", async ({
     browser,
   }) => {
     const page = await browser.newPage();
     await broker(page);
-    const anna = "e2e.anna.riva@example.test";
-    // Anna Riva has a fixed fiscal code (the synthetic documents carry it): after the
-    // first run she already exists, and the request starts from her card.
-    await brokerCustomer(page, {
-      surname: "Riva",
-      givenName: "Anna",
-      fiscalCode: "RVINNA85P43H501J",
-      email: anna,
-    }).catch(() => undefined);
-    if (!page.url().endsWith("/veicolo")) {
-      // Anna already exists from an earlier run: start from her card.
-      await page.goto(`${WEB}/clienti?q=RVINNA85P43H501J`);
-      await page.getByRole("link", { name: "Anna Riva" }).click();
-      await page.getByRole("button", { name: "Nuova richiesta" }).click();
-    }
+    const anna = `e2e.anna.${randomBytes(4).toString("hex")}@example.test`;
+    const fiscalCode = newPerson("Riva", "Anna", "F", "H501");
+    await brokerCustomer(page, { surname: "Riva", givenName: "Anna", fiscalCode, email: anna });
     await vehicleStep(page, {
       libretto: "libretto-anna-riva.jpg",
       attestato: "attestato-anna-riva.pdf",
     });
-    await driversStep(page, "patente-anna-riva.jpg");
+    await driversStep(page, "patente-anna-riva.jpg", { holderFiscalCode: fiscalCode });
     await coverageAndAuctionSteps(page);
     await expect(page.getByRole("heading", { name: "Il consenso del cliente" })).toBeVisible();
 
-    if (await page.getByRole("button", { name: /Manda (il|un nuovo) link/ }).isVisible()) {
-      const sentAt = clock.now().getTime() - 1000;
-      await page.getByRole("button", { name: /Manda (il|un nuovo) link/ }).click();
-      await expect(page.getByText("Link inviato al cliente.")).toBeVisible();
-      const mail = await latestMail(anna, /ti chiede il consenso/, sentAt);
-      const link = /http:\/\/localhost:3000\/consenso\/[A-Za-z0-9_-]+/.exec(mail.text)?.[0] ?? "";
+    const sentAt = clock.now().getTime() - 1000;
+    await page.getByRole("button", { name: "Manda il link" }).click();
+    await expect(page.getByText("Link inviato al cliente.")).toBeVisible();
+    const mail = await latestMail(anna, /ti chiede il consenso/, sentAt);
+    const link = /http:\/\/localhost:3000\/consenso\/[A-Za-z0-9_-]+/.exec(mail.text)?.[0] ?? "";
 
-      const customer = await browser.newPage();
-      await customer.goto(link);
-      await expect(customer.getByRole("heading", { name: /ti chiede il consenso/ })).toBeVisible();
-      await expect(customer.getByText(anna)).toHaveCount(0);
-      const codeAt = clock.now().getTime() - 1000;
-      await customer.getByRole("button", { name: "Mandami il codice" }).click();
-      await customer.getByLabel("Codice ricevuto").fill(await codeFromMail(anna, codeAt));
-      await customer.getByRole("button", { name: "Confermo il consenso" }).click();
-      await expect(customer.getByText("Grazie, consenso confermato")).toBeVisible();
-      await page.reload();
-    }
+    const customer = await browser.newPage();
+    await customer.goto(link);
+    await expect(customer.getByRole("heading", { name: /ti chiede il consenso/ })).toBeVisible();
+    await expect(customer.getByText(anna)).toHaveCount(0);
+    const codeAt = clock.now().getTime() - 1000;
+    await customer.getByRole("button", { name: "Mandami il codice" }).click();
+    await customer.getByLabel("Codice ricevuto").fill(await codeFromMail(anna, codeAt));
+    await customer.getByRole("button", { name: "Confermo il consenso" }).click();
+    await expect(customer.getByText("Grazie, consenso confermato")).toBeVisible();
+
+    await page.reload();
     await expect(page.getByText(/Consenso registrato il/)).toBeVisible();
     await page.getByRole("link", { name: "Riepilogo" }).click();
     await page.getByRole("button", { name: "Invia la richiesta" }).click();
     await expect(page.getByText("Richiesta inviata. La verifichiamo")).toBeVisible();
+    const code = await requestCode(page);
+
+    const operator = await browser.newPage();
+    await backOffice(operator);
+    await openCard(operator, code);
+    await operator.getByRole("button", { name: "Approva e apri l'asta" }).click();
+    await expect(operator.getByText("Richiesta approvata")).toBeVisible();
+    await page.reload();
+    await expect(page.locator("ol").getByText("Verifica superata", { exact: true })).toBeVisible();
+
+    // Exact search by fiscal code, with nothing in the address of the page (rule 8).
+    await page.goto(`${WEB}/clienti`);
+    await page.getByLabel("Cerca").fill(fiscalCode);
+    await page.getByRole("button", { name: "Cerca" }).click();
+    // Waits for the results of the search: one customer, the new Anna.
+    await expect(page.getByRole("link", { name: "Anna Riva" })).toHaveCount(1);
+    expect(page.url()).not.toContain(fiscalCode);
   });
 
-  test("Paolo crea un'altra richiesta caricando il consenso già raccolto: il back office lo controlla", async ({
+  test("Paolo crea un'altra richiesta caricando il consenso già raccolto: il back office lo controlla e approva", async ({
     browser,
   }) => {
     const page = await browser.newPage();
     await broker(page);
-    // A new person each run: a fiscal code built from a random birth day.
-    const day = 1 + ((randomBytes(1)[0] ?? 0) % 28);
-    const fiscalCode = buildFiscalCode({
-      surname: "Prova",
-      givenName: "Mario",
-      birthDate: `1978-02-${String(day).padStart(2, "0")}`,
-      sex: "M",
-      birthPlaceCadastralCode: "L219",
-    });
+    const fiscalCode = newPerson("Prova", "Mario", "M", "L219");
     await brokerCustomer(page, {
       surname: "Prova",
       givenName: "Mario",
@@ -275,9 +288,7 @@ test.describe.serial("fase 2: richiesta e verifica", () => {
       email: `e2e.mario.${randomBytes(4).toString("hex")}@example.test`,
     });
     await vehicleStep(page, { libretto: "libretto-mario.jpg", attestato: "attestato-mario.pdf" });
-    await expect(page).toHaveURL(/\/conducenti$/);
-    await page.getByLabel("Codice fiscale").first().fill(fiscalCode);
-    await driversStep(page, "patente-mario.jpg");
+    await driversStep(page, "patente-mario.jpg", { holderFiscalCode: fiscalCode });
     await coverageAndAuctionSteps(page);
     const form = page.locator("form", {
       has: page.getByRole("heading", { name: "Ho già il consenso firmato" }),
@@ -299,5 +310,93 @@ test.describe.serial("fase 2: richiesta e verifica", () => {
     await expect(
       operator.getByText("Consenso caricato dal broker: controlla firma e data"),
     ).toBeVisible();
+    await operator.getByRole("button", { name: "Approva e apri l'asta" }).click();
+    await expect(operator.getByText("Richiesta approvata")).toBeVisible();
+  });
+
+  test("un documento poco leggibile arriva giallo con i campi evidenziati; il back office esclude la richiesta e il cliente lo vede", async ({
+    browser,
+  }) => {
+    const customer = await browser.newPage();
+    const email = await newPrivate(customer);
+    await customer.getByRole("button", { name: "Nuovo preventivo" }).click();
+    await vehicleStep(customer, {
+      libretto: "libretto-giulia-neri.jpg",
+      attestato: "attestato-giulia-neri.pdf",
+    });
+    await driversStep(customer, "patente-giulia-neri-low-confidence.jpg");
+    await coverageAndAuctionSteps(customer);
+    const sentAt = clock.now().getTime() - 1000;
+    await customer.getByRole("button", { name: "Mandami il codice" }).click();
+    await customer.getByLabel("Codice ricevuto").fill(await codeFromMail(email, sentAt));
+    await customer.getByRole("button", { name: "Confermo" }).click();
+    await customer.getByRole("button", { name: "Invia la richiesta" }).click();
+    await expect(customer.getByText("Richiesta inviata. La verifichiamo")).toBeVisible();
+    const code = await requestCode(customer);
+    const url = customer.url().split("?")[0] ?? "";
+
+    const operator = await browser.newPage();
+    await backOffice(operator);
+    await operator.goto(`${ADMIN}/verifiche`);
+    await expect(
+      operator.getByRole("row", { name: new RegExp(code) }).getByText("Giallo"),
+    ).toBeVisible();
+    await openCard(operator, code);
+    await expect(
+      operator.getByText("Campi letti con bassa confidenza (evidenziati)"),
+    ).toBeVisible();
+    // The fields below the threshold are marked in the document column.
+    await expect(operator.locator("dl .text-red-700").first()).toBeVisible();
+    await operator.getByLabel("Motivo", { exact: true }).selectOption("VINTAGE");
+    await operator
+      .getByLabel("Messaggio al richiedente")
+      .last()
+      .fill("Il veicolo risulta storico.");
+    await operator.getByRole("button", { name: "Escludi", exact: true }).click();
+    await expect(operator.getByText("Richiesta esclusa")).toBeVisible();
+
+    await customer.goto(url);
+    await expect(customer.getByText("Questa richiesta non può andare all'asta")).toBeVisible();
+    await expect(customer.getByText("Il veicolo risulta storico.")).toBeVisible();
+    const mail = await latestMail(email, /non può andare all'asta/);
+    expect(mail.text).toContain("veicolo d'epoca o storico");
+  });
+
+  test("sul telefono la procedura non scorre di lato, ha la barra in basso e ogni campo ha un'etichetta", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({
+      viewport: { width: 375, height: 812 },
+      isMobile: true,
+      hasTouch: true,
+    });
+    const page = await context.newPage();
+    await newPrivate(page);
+    await page.getByRole("button", { name: "Nuovo preventivo" }).click();
+    await expect(page.getByRole("heading", { name: "Il veicolo" })).toBeVisible();
+    const id = /\/preventivi\/([0-9a-f-]{36})\//.exec(page.url())?.[1] ?? "";
+    for (const step of ["veicolo", "conducenti", "copertura", "asta", "consensi", "riepilogo"]) {
+      await page.goto(`${WEB}/preventivi/${id}/${step}`);
+      const report = await page.evaluate(() => {
+        const fields = [...document.querySelectorAll("input:not([type=hidden]), select, textarea")];
+        const unlabeled = fields.filter((el) => {
+          const input = el as HTMLInputElement;
+          return !(input.labels && input.labels.length > 0) && !el.getAttribute("aria-label");
+        });
+        const ids = [...document.querySelectorAll("[id]")].map((e) => e.id);
+        return {
+          overflow: document.documentElement.scrollWidth - window.innerWidth,
+          unlabeled: unlabeled.map((el) => (el as HTMLInputElement).name),
+          duplicateIds: ids.filter((x, i) => ids.indexOf(x) !== i),
+        };
+      });
+      expect(report, step).toEqual({ overflow: 0, unlabeled: [], duplicateIds: [] });
+    }
+    const bottomBar = page.getByRole("navigation", { name: "Menu principale" });
+    await expect(bottomBar.getByRole("link", { name: "Preventivi" })).toBeVisible();
+    // Keyboard: the first Tab reaches the link that skips to the content.
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("link", { name: "Vai al contenuto" })).toBeFocused();
+    await context.close();
   });
 });

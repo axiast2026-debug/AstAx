@@ -16,7 +16,13 @@ export async function sendLinkCode(formData: FormData): Promise<void> {
     method: "POST",
     body: "{}",
   });
-  redirect(`/consenso/${token}?${status === 204 ? "codice=inviato" : "errore=LINK_INVALID"}`);
+  const outcome =
+    status === 204
+      ? "codice=inviato"
+      : status === 429
+        ? "codice=inviato&errore=RATE_LIMITED"
+        : "errore=LINK_INVALID";
+  redirect(`/consenso/${token}?${outcome}`);
 }
 
 export async function confirmLink(formData: FormData): Promise<void> {
@@ -27,6 +33,6 @@ export async function confirmLink(formData: FormData): Promise<void> {
     body: JSON.stringify({ code }),
   });
   redirect(
-    `/consenso/${token}?${status === 200 ? "fatto=1" : "codice=inviato&errore=OTP_INVALID"}`,
+    status === 200 ? `/consenso/${token}` : `/consenso/${token}?codice=inviato&errore=OTP_INVALID`,
   );
 }

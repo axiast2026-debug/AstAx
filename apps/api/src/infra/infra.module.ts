@@ -55,7 +55,13 @@ export interface InfraOverrides {
  * storage) the documents stay in memory.
  */
 function objectStorageFor(config: ApiConfig): ObjectStoragePort {
-  if (!config.S3_ACCESS_KEY || !config.S3_SECRET_KEY) return new InMemoryObjectStorage();
+  if (!config.S3_ACCESS_KEY || !config.S3_SECRET_KEY) {
+    // In production the documents must never live in memory: refuse to start.
+    if (config.NODE_ENV === "production") {
+      throw new Error("S3_ACCESS_KEY and S3_SECRET_KEY are required in production");
+    }
+    return new InMemoryObjectStorage();
+  }
   return new S3ObjectStorage({
     endpoint: config.S3_ENDPOINT ?? `http://127.0.0.1:${config.S3_PORT}`,
     region: config.S3_REGION,

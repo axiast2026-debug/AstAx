@@ -81,13 +81,13 @@ export class VerificationController {
   }
 
   @Get("requests/:id")
-  @RequirePermission("request.viewQuoteData")
+  @RequirePermission("verification.viewQueue")
   card(@CurrentAuth() auth: AuthContext, @Param("id") id: string) {
     return this.verification.card(auth, parseInput(uuid, id));
   }
 
   @Get("requests/:id/documents/:documentId/file")
-  @RequirePermission("request.viewQuoteData")
+  @RequirePermission("verification.viewQueue")
   async file(
     @CurrentAuth() auth: AuthContext,
     @Param("id") id: string,

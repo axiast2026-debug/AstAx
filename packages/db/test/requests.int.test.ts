@@ -228,6 +228,51 @@ describe("fase 2: quoteData versions and timeline are append only", () => {
   });
 });
 
+describe("fase 2: what a requester may not do even with direct database access", () => {
+  it("cannot move a request to a back office status or set its outcome outside a submission", async () => {
+    await expect(
+      withContext(db, asPrivate(w.giuliaNeri), (tx) =>
+        tx.quoteRequest.update({ where: { id: privateRequestId }, data: { status: "EXCLUDED" } }),
+      ),
+    ).rejects.toThrow(/reserved to the back office/);
+    await expect(
+      withContext(db, asPrivate(w.giuliaNeri), (tx) =>
+        tx.quoteRequest.update({ where: { id: privateRequestId }, data: { autoOutcome: "GREEN" } }),
+      ),
+    ).rejects.toThrow(/only on submission/);
+    // The back office may.
+    await withContext(db, asMember(w.boVerifier, w.astax, true), (tx) =>
+      tx.quoteRequest.update({
+        where: { id: privateRequestId },
+        data: { status: "INTEGRATION_REQUESTED" },
+      }),
+    );
+    await withContext(db, asMember(w.boVerifier, w.astax, true), (tx) =>
+      tx.quoteRequest.update({ where: { id: privateRequestId }, data: { status: "DRAFT" } }),
+    );
+  });
+
+  it("cannot insert a verification round that already carries a decision", async () => {
+    await expect(
+      withContext(db, asPrivate(w.giuliaNeri), (tx) =>
+        tx.verification.createMany({
+          data: [
+            {
+              quoteRequestId: privateRequestId,
+              ownerUserId: w.giuliaNeri,
+              round: 99,
+              quoteDataVersion: 1,
+              autoOutcome: "GREEN",
+              checklist: [],
+              decision: "APPROVED",
+            },
+          ],
+        }),
+      ),
+    ).rejects.toThrow(/row-level security/);
+  });
+});
+
 describe("fase 2: encryption and blind index (SIC-03)", () => {
   it("fiscal code, phone and email are stored encrypted; exact search uses the blind index", async () => {
     await withContext(db, asPrivate(w.giuliaNeri), async (tx) => {

@@ -1,10 +1,11 @@
 import { Button, buttonVariants, Card, CardTitle } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
-import { createBrokerRequest } from "@/app/request-actions";
+import { createBrokerRequest, search } from "@/app/request-actions";
 import { AppShell } from "@/components/app-shell";
 import { ErrorSummary, Field } from "@/components/form";
 import { api } from "@/lib/auth";
+import { readSearch } from "@/lib/search";
 import { requireViewer } from "@/lib/me";
 
 interface CustomerRow {
@@ -19,13 +20,15 @@ interface CustomerRow {
 export default async function NewBrokerRequestPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; errore?: string }>;
+  searchParams: Promise<{ errore?: string }>;
 }) {
   const viewer = await requireViewer();
   const t = await getTranslations("newBrokerRequest");
-  const { q, errore } = await searchParams;
-  const search = q ? `?q=${encodeURIComponent(q.slice(0, 40))}` : "";
-  const { body: customers } = await api<CustomerRow[]>(`/customers${search}`);
+  const { errore } = await searchParams;
+  const { q } = await readSearch("nuova-richiesta");
+  const { body: customers } = q
+    ? await api<CustomerRow[]>("/customers/search", { method: "POST", body: JSON.stringify({ q }) })
+    : await api<CustomerRow[]>("/customers");
   return (
     <AppShell viewer={viewer}>
       <h1 className="text-2xl font-bold">{t("title")}</h1>
@@ -33,7 +36,8 @@ export default async function NewBrokerRequestPage({
       <div className="mt-6">
         <ErrorSummary codes={errore} />
       </div>
-      <form className="flex flex-col gap-3 sm:flex-row sm:items-end">
+      <form action={search} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <input type="hidden" name="scope" value="nuova-richiesta" />
         <Field
           label={t("search")}
           name="q"

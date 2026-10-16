@@ -43,6 +43,13 @@ const listSchema = z.object({
     .string()
     .regex(/^[A-Z_]+$/)
     .optional(),
+});
+/** The plate filter travels in the body, never in a URL (rule 8). */
+const searchSchema = z.strictObject({
+  status: z
+    .string()
+    .regex(/^[A-Z_]+$/)
+    .optional(),
   q: z.string().max(20).optional(),
 });
 
@@ -88,6 +95,13 @@ export class RequestsController {
   @RequirePermission("request.viewOwn")
   list(@CurrentAuth() auth: AuthContext, @Query() query: unknown) {
     return this.requests.list(auth, parseInput(listSchema, query));
+  }
+
+  @Post("requests/search")
+  @HttpCode(200)
+  @RequirePermission("request.viewOwn")
+  search(@CurrentAuth() auth: AuthContext, @Body() body: unknown) {
+    return this.requests.list(auth, parseInput(searchSchema, body));
   }
 
   @Post("requests")

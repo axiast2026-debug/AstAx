@@ -317,7 +317,10 @@
     "NO_CONTACTS": "Il cliente non ha email né telefono: aggiungili nella sua scheda.",
     "size": "Il file è vuoto o troppo grande.",
     "not_allowed": "Formato non ammesso: carica una foto (JPG, PNG) o un PDF.",
-    "required": "Questo campo è obbligatorio."
+    "required": "Questo campo è obbligatorio.",
+    "RATE_LIMITED": "Hai chiesto un codice da poco, o hai sbagliato troppe volte: aspetta qualche minuto e riprova.",
+    "HOLDER_NOT_CUSTOMER": "Il contraente deve essere il cliente della richiesta (lo stesso codice fiscale o la stessa partita IVA).",
+    "INVALID_VAT_NUMBER": "La partita IVA non è valida."
   },
   "wizard": {
     "choose": "Scegli",

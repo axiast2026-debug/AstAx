@@ -105,6 +105,9 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 | Archivio documenti del privato: una chiamata all'API per ogni richiesta | Pochi preventivi per persona | Quando cresce, con un endpoint unico |
 | Caricamento in blocco da CSV per i broker | Non era nel piano della fase 2 | Fase 7 |
 | Dashboard del broker con i contatori | Non era nel piano della fase 2 | Fase 7 |
+| Sicurezza a livello di riga: il richiedente può ancora creare un proprio consenso e chiunque può creare notifiche per altri utenti, a livello di database | La prima linea (API) lo impedisce; servono funzioni del database dedicate | Fase 3 |
+| Una richiesta approvata resta nello stato «In verifica» (con la decisione «Approvata») | La fase 3 la porta ad «Asta aperta» | Fase 3 |
+| Ricerche (codice fiscale, targa) tenute sul server per 15 minuti accanto alla sessione | Non devono finire nell'indirizzo della pagina (regola 8); restano anche dopo «Esci» fino alla scadenza | — |
 | Guscio delle schermate duplicato tra `apps/web` e `apps/admin` | Piccole differenze (contesto, lingua) | Quando cresce, in `packages/ui` |
 | Tentativi di accesso con token non validi solo nel log (non nel registro), senza limite di frequenza; nessun limite di frequenza sulla pagina pubblica del consenso | Non riempire il registro a catena (dubbio 6); i codici hanno comunque un massimo di tentativi | Fase 8, con il limite di frequenza |
 | Dispatcher dell'outbox nell'API, senza destinatari | Notifiche e workflow non esistono ancora | Fase 3 (passa al worker) |

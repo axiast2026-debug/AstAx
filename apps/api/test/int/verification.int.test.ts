@@ -81,7 +81,7 @@ describe("fase 2: verification queue and card", () => {
 
   it("an agency cannot open the card of a request it is not invited to", async () => {
     const request = await r.submittedPrivateRequest(davide, DAVIDE_EMAIL);
-    expect((await r.call(agency, `/verification/requests/${request.id}`)).status).toBe(404);
+    expect((await r.call(agency, `/verification/requests/${request.id}`)).status).toBe(403);
   });
 
   it("a correction by the back office is a new recorded version, with the changed paths and no values", async () => {
@@ -239,5 +239,80 @@ describe("fase 2: verification queue and card", () => {
       200,
     );
     expect(queue.map((q) => q.requestId)).not.toContain(request.id);
+  });
+
+  it("rule 7: a correction must pass the same checks as a submission", async () => {
+    const request = await r.submittedPrivateRequest(davide, DAVIDE_EMAIL);
+    const card = await r.json<Card>(
+      await r.call(verifier, `/verification/requests/${request.id}`),
+      200,
+    );
+    const odd = {
+      ...card.quoteData,
+      request: { ...card.quoteData.request, auctionDurationHours: 3 },
+    };
+    const refused = await r.json<{ errors: { issue: string }[] }>(
+      await r.call(verifier, `/verification/requests/${request.id}/corrections`, {
+        body: { quoteData: odd, reason: "Durata diversa" },
+      }),
+      400,
+    );
+    expect(refused.errors).toContainEqual({
+      path: "quoteData",
+      issue: "AUCTION_DURATION_NOT_ALLOWED",
+    });
+    const badCode = { ...card.quoteData, vehicle: { ...card.quoteData.vehicle, fuel: "STEAM" } };
+    expect(
+      (
+        await r.call(verifier, `/verification/requests/${request.id}/corrections`, {
+          body: { quoteData: badCode, reason: "Alimentazione" },
+        })
+      ).status,
+    ).toBe(400);
+  });
+
+  it("rule 4: a correction or a note on the checklist is logged, without its words", async () => {
+    const request = await r.submittedPrivateRequest(davide, DAVIDE_EMAIL);
+    await r.json(
+      await r.call(verifier, `/verification/requests/${request.id}/checklist/DOCUMENTS`, {
+        method: "PUT",
+        body: { note: "Patente letta bene" },
+      }),
+      200,
+    );
+    const [entry] = await audit("VERIFICATION_CHECKLIST_UPDATED", request.id);
+    expect(entry?.after).toMatchObject({ item: "DOCUMENTS" });
+    expect(JSON.stringify({ ...entry, seq: null })).not.toContain("Patente letta bene");
+  });
+
+  it("verification.autoApproveGreen switched on: a green request is approved by the system", async () => {
+    const setValue = (value: boolean) =>
+      withContext(h.db, SYSTEM_CONTEXT, async (tx) => {
+        const count = await tx.setting.count({ where: { key: "verification.autoApproveGreen" } });
+        await tx.setting.create({
+          data: {
+            key: "verification.autoApproveGreen",
+            value,
+            version: count + 1,
+            validFrom: new Date(h.clock.now().getTime() - 1000),
+            reason: "test",
+          },
+        });
+      });
+    await setValue(true);
+    try {
+      const request = await r.submittedPrivateRequest(davide, DAVIDE_EMAIL);
+      expect(request.autoOutcome).toBe("GREEN");
+      const round = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+        tx.verification.findFirstOrThrow({ where: { quoteRequestId: request.id } }),
+      );
+      expect(round.decision).toBe("APPROVED");
+      const events = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+        tx.domainEvent.count({ where: { aggregateId: request.id, type: "RequestApproved" } }),
+      );
+      expect(events).toBe(1);
+    } finally {
+      await setValue(false);
+    }
   });
 });

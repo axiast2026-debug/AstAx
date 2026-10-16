@@ -56,6 +56,7 @@ import {
   decryptJson,
   EDITABLE_STATUSES,
   encryptJson,
+  extractionOf,
   ownerOf,
   requesterScope,
   settingsAt,
@@ -105,9 +106,17 @@ export class RequestsService {
 
   // -------------------------------------------------------------- reading
 
+  /** A request of the caller; any other id is a denied access, logged (rule 4). */
   private async findOwn(tx: DbTransaction, auth: AuthContext, id: string): Promise<QuoteRequest> {
     const request = await tx.quoteRequest.findFirst({ where: { id, ...requesterScope(auth) } });
-    if (!request) throw new ProblemError("NOT_FOUND");
+    if (!request) {
+      await this.audit.record(actorOf(auth), {
+        action: "ACCESS_DENIED",
+        targetType: "QuoteRequest",
+        targetId: id,
+      });
+      throw new ProblemError("NOT_FOUND");
+    }
     return request;
   }
 
@@ -223,7 +232,7 @@ export class RequestsService {
           mime: d.mime,
           size: d.size,
           uploadedAt: d.createdAt.toISOString(),
-          extraction: d.extraction,
+          extraction: extractionOf(this.cipher, d.extractionEnc),
         })),
         timeline: events.map((e) => ({
           type: e.type,
@@ -383,8 +392,19 @@ export class RequestsService {
 
   async saveSpecialUses(auth: AuthContext, id: string, specialUses: string[]) {
     return withContext(this.db, auth.db, async (tx) => {
-      const { request } = await this.requireEditable(tx, auth, id);
-      const draft = { ...this.draftOf(request), specialUses };
+      const { request, scope } = await this.requireEditable(tx, auth, id);
+      const current = this.draftOf(request);
+      // The special uses belong to the vehicle step (question 9 during an integration).
+      if (scope && !scope.sections.includes("vehicle")) {
+        if (
+          sha256Of([...(current.specialUses ?? [])].sort()) !== sha256Of([...specialUses].sort())
+        ) {
+          throw new ProblemError("CONFLICT", "The back office did not ask to change this section");
+        }
+      }
+      const problems = listCodeProblems({ specialUses }, await this.reference.activeCodes(tx));
+      if (problems.length > 0) throw new ProblemError("VALIDATION_FAILED", undefined, problems);
+      const draft = { ...current, specialUses };
       await tx.quoteRequest.update({
         where: { id },
         data: { draftEnc: encryptJson(this.cipher, draft) },
@@ -461,14 +481,15 @@ export class RequestsService {
           size: input.body.byteLength,
           fileName: input.fileName,
           uploadedByUserId: auth.userId,
-          extraction: extraction
-            ? {
+          // Names, fiscal codes, licence numbers: stored encrypted (ADR 0007).
+          extractionEnc: extraction
+            ? encryptJson(this.cipher, {
                 fields: extraction.fields,
                 warnings: extraction.warnings,
                 model: extraction.model,
                 promptVersion: extraction.promptVersion,
-              }
-            : undefined,
+              })
+            : null,
           extractedAt: extraction ? now : null,
         },
       });
@@ -582,6 +603,13 @@ export class RequestsService {
           [{ path: "consent", issue: "CONSENT_REQUIRED" }],
         );
       }
+      // LEG-04: the consent belongs to the customer, so the holder must be that
+      // customer, never another person under the same consent.
+      if (!(await this.holderIsCustomer(tx, request, quoteData))) {
+        throw new ProblemError("VALIDATION_FAILED", "The policy holder is not the customer", [
+          { path: "policyHolder.fiscalCode", issue: "HOLDER_NOT_CUSTOMER" },
+        ]);
+      }
 
       const resubmission = request.status === "INTEGRATION_REQUESTED";
       const version = (request.quoteDataVersion ?? 0) + 1;
@@ -683,10 +711,79 @@ export class RequestsService {
         code: request.code,
         status: "IN_VERIFICATION" as const,
         autoOutcome: check.outcome,
+        round,
+        quoteDataVersion: version,
+        autoApprove: settings["verification.autoApproveGreen"] && check.outcome === "GREEN",
       };
     });
     this.logger.info({ requestId: id, outcome: result.autoOutcome }, "request submitted");
-    return result;
+    if (result.autoApprove) await this.autoApprove(id, result.round, result.quoteDataVersion, now);
+    return {
+      id: result.id,
+      code: result.code,
+      status: result.status,
+      autoOutcome: result.autoOutcome,
+    };
+  }
+
+  /**
+   * verification.autoApproveGreen (off during the pilot, decision 18b): a green
+   * request is approved by the system, with the same records as a decision of
+   * the back office.
+   */
+  private async autoApprove(id: string, round: number, quoteDataVersion: number, now: Date) {
+    await withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
+      const request = await tx.quoteRequest.findUniqueOrThrow({ where: { id } });
+      await tx.verification.update({
+        where: { quoteRequestId_round: { quoteRequestId: id, round } },
+        data: { decision: "APPROVED", decidedAt: now },
+      });
+      await addRequestEvent(tx, request, {
+        type: "APPROVED",
+        actorKind: "SYSTEM",
+        actorUserId: null,
+        at: now,
+        details: { automatic: true },
+      });
+      await recordDomainEvent(tx, {
+        aggregateType: "QuoteRequest",
+        aggregateId: id,
+        type: "RequestApproved",
+        at: now,
+        actorUserId: null,
+        data: { round, quoteDataVersion, automatic: true },
+      });
+      await this.audit.inTransaction(
+        tx,
+        { userId: null, membershipId: null, organizationId: null, ip: null, userAgent: null },
+        {
+          action: "VERIFICATION_DECIDED",
+          targetType: "QuoteRequest",
+          targetId: id,
+          after: { decision: "APPROVED", round, automatic: true },
+        },
+      );
+    });
+  }
+
+  /**
+   * True when the holder is the request's customer: same fiscal code (or VAT
+   * number) as the customer's person, by blind index. A private customer's
+   * first request gives their person its identity.
+   */
+  private async holderIsCustomer(tx: DbTransaction, request: QuoteRequest, quoteData: QuoteData) {
+    if (!request.customerId) return false;
+    const customer = await tx.customer.findUniqueOrThrow({
+      where: { id: request.customerId },
+      include: { person: true },
+    });
+    const person = customer.person;
+    const holder = quoteData.policyHolder;
+    if (!person.fiscalCodeHash && !person.vatNumberHash) return true;
+    if (holder.kind === "PERSON") {
+      return person.fiscalCodeHash === this.cipher.blindIndex("fiscalCode", holder.fiscalCode);
+    }
+    return person.vatNumberHash === this.cipher.blindIndex("vatNumber", holder.vatNumber);
   }
 
   /** request.submitted.bo, in-app, to the verification operators and supervisors. */
@@ -735,27 +832,41 @@ export class RequestsService {
     quoteData: QuoteData,
   ) {
     if (!request.customerId) return;
-    const customer = await tx.customer.findUniqueOrThrow({ where: { id: request.customerId } });
+    const customer = await tx.customer.findUniqueOrThrow({
+      where: { id: request.customerId },
+      include: { person: true },
+    });
     const holder = quoteData.policyHolder;
+    // The identity is set once (holderIsCustomer checked it); the address follows the request.
+    const identitySet = Boolean(customer.person.fiscalCodeHash || customer.person.vatNumberHash);
     await tx.person.update({
       where: { id: customer.personId },
       data:
         holder.kind === "PERSON"
           ? {
-              kind: "PERSON",
-              surname: holder.surname,
-              givenName: holder.givenName,
-              fiscalCodeEnc: this.cipher.encrypt(holder.fiscalCode),
-              fiscalCodeHash: this.cipher.blindIndex("fiscalCode", holder.fiscalCode),
+              ...(identitySet
+                ? {}
+                : {
+                    kind: "PERSON" as const,
+                    surname: holder.surname,
+                    givenName: holder.givenName,
+                    fiscalCodeEnc: this.cipher.encrypt(holder.fiscalCode),
+                    fiscalCodeHash: this.cipher.blindIndex("fiscalCode", holder.fiscalCode),
+                  }),
               birthDate: calendarDateToDbDate(holder.birthDate),
               birthPlace: holder.birthPlace,
               sex: holder.sex,
               residence: holder.residence,
             }
           : {
-              kind: "COMPANY",
-              companyName: holder.companyName,
-              vatNumber: holder.vatNumber,
+              ...(identitySet
+                ? {}
+                : {
+                    kind: "COMPANY" as const,
+                    companyName: holder.companyName,
+                    vatNumberEnc: this.cipher.encrypt(holder.vatNumber),
+                    vatNumberHash: this.cipher.blindIndex("vatNumber", holder.vatNumber),
+                  }),
               residence: holder.registeredOffice,
             },
     });
@@ -799,6 +910,11 @@ export class RequestsService {
       await tx.quoteRequest.update({
         where: { id },
         data: { status: "CANCELLED", cancelledAt: now },
+      });
+      // A consent link of a cancelled request cannot be used any more.
+      await tx.consentLink.updateMany({
+        where: { quoteRequestId: id, status: "SENT" },
+        data: { status: "REVOKED" },
       });
       await addRequestEvent(tx, request, {
         type: "CANCELLED",

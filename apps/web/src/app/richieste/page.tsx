@@ -5,26 +5,29 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { Field, SelectField } from "@/components/form";
 import { StatusBadge } from "@/components/request-view";
+import { search } from "@/app/request-actions";
 import { api } from "@/lib/auth";
+import { readSearch } from "@/lib/search";
 import { requireViewer } from "@/lib/me";
 import type { RequestSummary } from "@/lib/requests";
 
 const STATUSES = ["DRAFT", "IN_VERIFICATION", "INTEGRATION_REQUESTED", "EXCLUDED", "CANCELLED"];
 
 /** The broker's requests with filters (spec 02 «Richieste»). */
-export default async function BrokerRequestsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ stato?: string; targa?: string }>;
-}) {
+export default async function BrokerRequestsPage() {
   const viewer = await requireViewer();
   const t = await getTranslations("brokerRequests");
   const ts = await getTranslations("requestStatus");
-  const query = await searchParams;
-  const params = new URLSearchParams();
-  if (query.stato && STATUSES.includes(query.stato)) params.set("status", query.stato);
-  if (query.targa) params.set("q", query.targa.slice(0, 20));
-  const { body: requests } = await api<RequestSummary[]>(`/requests?${params.toString()}`);
+  const saved = await readSearch("richieste");
+  const query = { stato: saved.status ?? "", targa: saved.q ?? "" };
+  const filter = {
+    ...(STATUSES.includes(query.stato) ? { status: query.stato } : {}),
+    ...(query.targa ? { q: query.targa } : {}),
+  };
+  const { body: requests } = await api<RequestSummary[]>("/requests/search", {
+    method: "POST",
+    body: JSON.stringify(filter),
+  });
   return (
     <AppShell viewer={viewer}>
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -33,7 +36,11 @@ export default async function BrokerRequestsPage({
           {t("new")}
         </Link>
       </div>
-      <form className="mt-6 grid gap-4 rounded-xl border border-warm-200 bg-white p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+      <form
+        action={search}
+        className="mt-6 grid gap-4 rounded-xl border border-warm-200 bg-white p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+      >
+        <input type="hidden" name="scope" value="richieste" />
         <SelectField
           label={t("status")}
           name="stato"
@@ -41,7 +48,7 @@ export default async function BrokerRequestsPage({
           options={STATUSES.map((code) => ({ code, label: ts(code) }))}
           defaultValue={query.stato}
         />
-        <Field label={t("plate")} name="targa" defaultValue={query.targa} />
+        <Field label={t("plate")} name="q" defaultValue={query.targa} />
         <Button type="submit" variant="outline">
           {t("filter")}
         </Button>

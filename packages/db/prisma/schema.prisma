@@ -455,7 +455,8 @@ model Person {
   companyName         String?
   fiscalCodeEnc       String?
   fiscalCodeHash      String?
-  vatNumber           String?
+  vatNumberEnc        String?
+  vatNumberHash       String?
   birthDate           DateTime?  @db.Date
   birthPlace          String?
   sex                 String?
@@ -470,6 +471,7 @@ model Person {
   customers Customer[]
 
   @@index([fiscalCodeHash])
+  @@index([vatNumberHash])
   @@index([ownerOrganizationId])
 }
 
@@ -694,8 +696,9 @@ model Document {
   fileName            String
   encryption          String       @default("SSE_KMS")
   uploadedByUserId    String       @db.Uuid
-  /// Fields read by the document reader, with confidence.
-  extraction          Json?
+  /// Fields read by the document reader, with confidence, encrypted (ADR 0007):
+  /// they hold names, fiscal codes and licence numbers.
+  extractionEnc       String?
   extractedAt         DateTime?    @db.Timestamptz(3)
   retainUntil         DateTime?    @db.Timestamptz(3)
   deletedAt           DateTime?    @db.Timestamptz(3)

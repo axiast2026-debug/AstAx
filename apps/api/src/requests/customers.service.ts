@@ -55,14 +55,20 @@ export class CustomersService {
     }
     const owner = { ownerOrganizationId: membership.organizationId };
     return withContext(this.db, auth.db, async (tx) => {
-      if (input.kind === "PERSON") {
-        const hash = this.cipher.blindIndex("fiscalCode", input.fiscalCode);
-        const existing = await tx.customer.findFirst({
-          where: { ...owner, person: { fiscalCodeHash: hash } },
-          select: { id: true },
-        });
-        if (existing)
-          throw new ProblemError("CONFLICT", "A customer with this fiscal code already exists");
+      // One customer per fiscal code or VAT number in the organization (blind index).
+      const identity =
+        input.kind === "PERSON"
+          ? { fiscalCodeHash: this.cipher.blindIndex("fiscalCode", input.fiscalCode) }
+          : { vatNumberHash: this.cipher.blindIndex("vatNumber", input.vatNumber) };
+      const existing = await tx.customer.findFirst({
+        where: { ...owner, person: identity },
+        select: { id: true },
+      });
+      if (existing) {
+        throw new ProblemError(
+          "CONFLICT",
+          "A customer with this fiscal code or VAT number already exists",
+        );
       }
       const person = await tx.person.create({
         data:
@@ -79,7 +85,10 @@ export class CustomersService {
                 ...owner,
                 kind: "COMPANY",
                 companyName: input.companyName,
-                vatNumber: input.vatNumber,
+                vatNumberEnc: this.cipher.encrypt(
+                  input.vatNumber.replace(/\s/g, "").replace(/^IT/i, ""),
+                ),
+                vatNumberHash: this.cipher.blindIndex("vatNumber", input.vatNumber),
               },
       });
       const customer = await tx.customer.create({
@@ -122,15 +131,17 @@ export class CustomersService {
             ? {}
             : /^[A-Z0-9]{16}$/.test(fiscal)
               ? { person: { fiscalCodeHash: this.cipher.blindIndex("fiscalCode", fiscal) } }
-              : {
-                  person: {
-                    OR: [
-                      { surname: { startsWith: q, mode: "insensitive" } },
-                      { givenName: { startsWith: q, mode: "insensitive" } },
-                      { companyName: { startsWith: q, mode: "insensitive" } },
-                    ],
-                  },
-                }),
+              : /^(IT)?\d{11}$/.test(fiscal)
+                ? { person: { vatNumberHash: this.cipher.blindIndex("vatNumber", fiscal) } }
+                : {
+                    person: {
+                      OR: [
+                        { surname: { startsWith: q, mode: "insensitive" } },
+                        { givenName: { startsWith: q, mode: "insensitive" } },
+                        { companyName: { startsWith: q, mode: "insensitive" } },
+                      ],
+                    },
+                  }),
         },
         include: {
           person: true,
@@ -145,7 +156,7 @@ export class CustomersService {
         name: customerName(c.person),
         kind: c.person.kind,
         fiscalCode: c.person.fiscalCodeEnc ? this.cipher.decrypt(c.person.fiscalCodeEnc) : null,
-        vatNumber: c.person.vatNumber,
+        vatNumber: c.person.vatNumberEnc ? this.cipher.decrypt(c.person.vatNumberEnc) : null,
         vehicles: c.vehicles.map((v) => v.plate),
         requests: c._count.quoteRequests,
       }));
@@ -164,7 +175,14 @@ export class CustomersService {
           quoteRequests: { orderBy: { createdAt: "desc" } },
         },
       });
-      if (!customer) throw new ProblemError("NOT_FOUND");
+      if (!customer) {
+        await this.audit.record(actorOf(auth), {
+          action: "ACCESS_DENIED",
+          targetType: "Customer",
+          targetId: id,
+        });
+        throw new ProblemError("NOT_FOUND");
+      }
       await this.audit.inTransaction(tx, actorOf(auth), {
         action: "CUSTOMER_VIEWED",
         targetType: "Customer",
@@ -180,7 +198,7 @@ export class CustomersService {
           givenName: p.givenName,
           companyName: p.companyName,
           fiscalCode: p.fiscalCodeEnc ? this.cipher.decrypt(p.fiscalCodeEnc) : null,
-          vatNumber: p.vatNumber,
+          vatNumber: p.vatNumberEnc ? this.cipher.decrypt(p.vatNumberEnc) : null,
           birthDate: p.birthDate?.toISOString().slice(0, 10) ?? null,
           residence: p.residence,
         },
