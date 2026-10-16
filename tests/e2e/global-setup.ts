@@ -41,6 +41,22 @@ const E2E_USERS = [
     kind: "STAFF" as const,
     memberships: [{ org: "astax", role: "ADMIN" as const }],
   },
+  {
+    key: "verifier",
+    email: "e2e.verifica@astax.test",
+    firstName: "Verifica",
+    lastName: "E2E",
+    kind: "STAFF" as const,
+    memberships: [{ org: "astax", role: "BO_VERIFIER" as const }],
+  },
+  {
+    key: "broker",
+    email: "e2e.paolo@broker-demo.test",
+    firstName: "Paolo",
+    lastName: "E2E",
+    kind: "PROFESSIONAL" as const,
+    memberships: [{ org: "broker-demo", role: "OPERATOR" as const }],
+  },
 ];
 
 const emailOf = (key: string): string => {
@@ -123,7 +139,13 @@ export default async function globalSetup(): Promise<void> {
   mkdirSync(new URL("./.state/", import.meta.url), { recursive: true });
   const state: E2eState = {
     password,
-    users: { owner: emailOf("owner"), marco: emailOf("marco"), admin: emailOf("admin") },
+    users: {
+      owner: emailOf("owner"),
+      marco: emailOf("marco"),
+      admin: emailOf("admin"),
+      verifier: emailOf("verifier"),
+      broker: emailOf("broker"),
+    },
   };
   writeFileSync(new URL("./.state/users.json", import.meta.url), JSON.stringify(state), {
     mode: 0o600,

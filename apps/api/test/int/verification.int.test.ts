@@ -152,9 +152,15 @@ describe("fase 2: verification queue and card", () => {
     // Question 9: only what the back office asked for.
     const notAsked = await r.call(davide, `/requests/${request.id}/draft/history`, {
       method: "PUT",
-      body: { value: request.quote.history },
+      body: { value: { ...request.quote.history, cuClass: 9 } },
     });
     expect(notAsked.status).toBe(409);
+    // The same section sent back unchanged (a step form sends all its sections) is accepted.
+    const unchanged = await r.call(davide, `/requests/${request.id}/draft/policyHolder`, {
+      method: "PUT",
+      body: { value: request.quote.policyHolder },
+    });
+    expect(unchanged.status).toBe(200);
     expect((await r.upload(davide, request.id, "RISK_CERTIFICATE", "attestato.pdf")).status).toBe(
       409,
     );

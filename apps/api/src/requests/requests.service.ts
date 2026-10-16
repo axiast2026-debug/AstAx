@@ -350,6 +350,12 @@ export class RequestsService {
     return withContext(this.db, auth.db, async (tx) => {
       const { request, scope } = await this.requireEditable(tx, auth, id);
       if (scope && !scope.sections.includes(section)) {
+        // A step form sends all its sections: one the back office did not ask
+        // for may come back unchanged, never changed (question 9).
+        const current = this.draftOf(request)[section];
+        if (sha256Of(current ?? null) === sha256Of(parsed.data[section] ?? null)) {
+          return { missingSections: missingDraftSections(this.draftOf(request)) };
+        }
         throw new ProblemError("CONFLICT", "The back office did not ask to change this section");
       }
       const codes = await this.reference.activeCodes(tx);
