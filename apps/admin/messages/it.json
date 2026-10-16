@@ -329,6 +329,14 @@
     "agency": "Agenzia",
     "extend": "Prolunga",
     "invite": "Invita",
-    "cancel": "Annulla l'asta"
+    "cancel": "Annulla l'asta",
+    "dev": {
+      "title": "Strumenti di sviluppo",
+      "intro": "Solo in sviluppo e collaudo, mai in produzione: servono alle demo e alle prove a mano.",
+      "minutes": "Minuti",
+      "advanceClock": "Sposta avanti l'orologio",
+      "testOffers": "Invia 3 offerte di prova",
+      "fireNextTimer": "Fai scattare il prossimo passo"
+    }
   }
 }

@@ -1,3 +1,4 @@
+import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
 import { DEV_CLOCK_OFFSET_KEY, OffsetClock, SystemClock } from "@astax/adapters/clock";
 import { LocalFieldCipher } from "@astax/adapters/crypto";
@@ -118,10 +119,18 @@ const outboxTimer =
 const stop = () => {
   clearInterval(outboxTimer);
   clearInterval(devClockTimer);
+  health?.close();
   worker.shutdown();
 };
 process.once("SIGINT", stop);
 process.once("SIGTERM", stop);
+
+const health =
+  config.WORKER_HEALTH_PORT === 0
+    ? undefined
+    : createServer((_request, response) => {
+        response.writeHead(worker.getState() === "RUNNING" ? 200 : 503).end();
+      }).listen(config.WORKER_HEALTH_PORT, "127.0.0.1");
 
 logger.info(
   { taskQueue: config.TEMPORAL_TASK_QUEUE, namespace: config.TEMPORAL_NAMESPACE },

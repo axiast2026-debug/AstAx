@@ -118,7 +118,12 @@ test.describe.serial("fase 2: richiesta e verifica", () => {
     ]) {
       await expect(customer.locator("ol").getByText(step, { exact: true }).first()).toBeVisible();
     }
-    await expect(customer.getByText("La richiesta è pronta")).toBeVisible();
+    // Phase 3: the worker opens the auction right after the approval.
+    await expect(
+      customer
+        .getByText("La richiesta è pronta")
+        .or(customer.getByRole("heading", { name: "Asta" })),
+    ).toBeVisible();
   });
 
   test("un caso escluso dichiarato nella procedura (taxi) blocca l'invio con un messaggio chiaro", async ({

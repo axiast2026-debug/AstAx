@@ -29,6 +29,8 @@ const configSchema = z
     EMAIL_FROM: z.email().default("noreply@astax.test"),
     REDIS_URL: z.string().min(1).optional(),
     REDIS_PORT: z.coerce.number().int().min(1).max(65535).default(6380),
+    /** Local health check (127.0.0.1 only): 200 while the worker runs. 0 switches it off. */
+    WORKER_HEALTH_PORT: z.coerce.number().int().min(0).max(65535).default(4100),
     OUTBOX_DISPATCH_INTERVAL_MS: z.coerce.number().int().min(0).default(2000),
     S3_ENDPOINT: z.url().optional(),
     S3_PORT: z.coerce.number().int().min(1).max(65535).default(8333),

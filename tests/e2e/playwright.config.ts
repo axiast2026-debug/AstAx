@@ -29,6 +29,14 @@ export default defineConfig({
       cwd: "../..",
     },
     {
+      // The auction worker (ADR 0008): opens and closes the auctions.
+      command: "pnpm --filter @astax/worker dev",
+      url: "http://127.0.0.1:4100/",
+      reuseExistingServer: true,
+      timeout: 120_000,
+      cwd: "../..",
+    },
+    {
       command: "pnpm --filter @astax/web dev",
       url: "http://localhost:3000",
       reuseExistingServer: true,

@@ -7,7 +7,17 @@ import { AppShell } from "@/components/app-shell";
 import { LiveRefresh } from "@/components/live-refresh";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
-import { cancelAuction, extendAuction, inviteAgencies } from "./actions";
+import {
+  advanceClock,
+  cancelAuction,
+  extendAuction,
+  fireNextTimer,
+  inviteAgencies,
+  sendTestOffers,
+} from "./actions";
+
+/** Development tools: only with DEV_TOOLS=true, never in production (rule 13). */
+const DEV_TOOLS = process.env.DEV_TOOLS === "true" && process.env.NODE_ENV !== "production";
 
 interface AuctionRow {
   auctionId: string;
@@ -66,6 +76,27 @@ export default async function AuctionsPage({
           {t("error", { code: query.errore })}
         </p>
       ) : null}
+      {DEV_TOOLS ? (
+        <Card className="mt-6 border-dashed border-orange-500">
+          <p className="text-sm font-semibold">{t("dev.title")}</p>
+          <p className="mt-1 text-xs text-warm-600">{t("dev.intro")}</p>
+          <form action={advanceClock} className="mt-3 flex flex-wrap items-end gap-2">
+            <label className="text-sm">
+              {t("dev.minutes")}
+              <input
+                name="minutes"
+                type="number"
+                min={1}
+                defaultValue={60}
+                className={`${INPUT} ml-2 w-24`}
+              />
+            </label>
+            <Button type="submit" size="sm" variant="outline">
+              {t("dev.advanceClock")}
+            </Button>
+          </form>
+        </Card>
+      ) : null}
       {body.auctions.length === 0 ? (
         <Card className="mt-6">
           <p className="text-sm">{t("empty")}</p>
@@ -73,7 +104,7 @@ export default async function AuctionsPage({
       ) : (
         <div className="mt-6 space-y-4">
           {body.auctions.map((a) => (
-            <Card key={a.auctionId}>
+            <Card key={a.auctionId} role="region" aria-label={a.code}>
               <div className="flex flex-wrap items-center gap-3">
                 <span className="font-semibold">{a.code}</span>
                 <Badge tone={TONE[a.status as keyof typeof TONE] ?? "neutral"}>
@@ -100,6 +131,25 @@ export default async function AuctionsPage({
                   </>
                 ) : null}
               </dl>
+              {DEV_TOOLS && ["AUCTION_OPEN", "OFFERS_AVAILABLE"].includes(a.requestStatus) ? (
+                <div className="mt-4 flex flex-wrap gap-2 border-t border-dashed border-orange-500 pt-3">
+                  {a.status === "OPEN" ? (
+                    <form action={sendTestOffers}>
+                      <input type="hidden" name="auctionId" value={a.auctionId} />
+                      <input type="hidden" name="count" value={3} />
+                      <Button type="submit" size="sm" variant="outline">
+                        {t("dev.testOffers")}
+                      </Button>
+                    </form>
+                  ) : null}
+                  <form action={fireNextTimer}>
+                    <input type="hidden" name="requestId" value={a.requestId} />
+                    <Button type="submit" size="sm" variant="outline">
+                      {t("dev.fireNextTimer")}
+                    </Button>
+                  </form>
+                </div>
+              ) : null}
               {a.status === "OPEN" ? (
                 <div className="mt-4 grid gap-3 lg:grid-cols-3">
                   <form action={extendAuction} className="flex flex-wrap items-end gap-2">

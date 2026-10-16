@@ -329,6 +329,14 @@
     "agency": "Agjencia",
     "extend": "Zgjat",
     "invite": "Fto",
-    "cancel": "Anulo ankandin"
+    "cancel": "Anulo ankandin",
+    "dev": {
+      "title": "Mjete zhvillimi",
+      "intro": "Vetëm në zhvillim dhe testim, kurrë në prodhim: shërbejnë për demo dhe prova manuale.",
+      "minutes": "Minuta",
+      "advanceClock": "Çoje orën përpara",
+      "testOffers": "Dërgo 3 oferta prove",
+      "fireNextTimer": "Kalo menjëherë në hapin tjetër"
+    }
   }
 }
