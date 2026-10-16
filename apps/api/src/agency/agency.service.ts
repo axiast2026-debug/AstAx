@@ -250,6 +250,13 @@ export class AgencyService {
         const org = await tx.organization.findUnique({ where: { id: orgId } });
         return { agency: org?.legalName ?? "", offered: offered !== null };
       });
+      // OFF-03: who the owner or a supervisor may give the claim to.
+      const members = can(auth.actor, "claim.override")
+        ? await tx.membership.findMany({
+            where: { organizationId: m.organizationId, status: "ACTIVE" },
+            include: { user: { select: { firstName: true, lastName: true } } },
+          })
+        : [];
       const holder = claim
         ? await tx.user.findUnique({
             where: { id: claim.userId },
@@ -294,6 +301,10 @@ export class AgencyService {
         companies: mandates.map((x) => ({ id: x.companyId, name: x.company.name })),
         products: products.map((p) => ({ id: p.id, companyId: p.companyId, name: p.name })),
         documents: documents.map((d) => ({ id: d.id, kind: d.kind, driverIndex: d.driverIndex })),
+        members: members.map((x) => ({
+          membershipId: x.id,
+          name: `${x.user.firstName} ${x.user.lastName}`.trim(),
+        })),
         accessLogged: true,
       };
     });

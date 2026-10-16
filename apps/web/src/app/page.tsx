@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createPrivateRequest } from "@/app/request-actions";
 import { StatusBadge } from "@/components/request-view";
 import { api, sessionId, webAuth } from "@/lib/auth";
+import type { AgencyDashboard } from "@/lib/agency";
 import type { RequestSummary } from "@/lib/requests";
 import { requireViewer } from "@/lib/me";
 
@@ -24,8 +25,13 @@ export default async function HomePage({
         (r) => !["CANCELLED", "EXCLUDED"].includes(r.status),
       )
     : undefined;
+  const dashboard =
+    viewer.activeMembership?.organization.type === "AGENCY"
+      ? (await api<AgencyDashboard>("/agency/dashboard")).body
+      : null;
   return (
     <AppShell viewer={viewer}>
+      {dashboard ? <AgencyPanel dashboard={dashboard} /> : null}
       <Card>
         <CardTitle>{t("welcome", { name: viewer.me.firstName })}</CardTitle>
         <p className="mt-2 text-warm-600">{isPrivate ? t("privateIntro") : t("proIntro")}</p>
@@ -57,6 +63,40 @@ export default async function HomePage({
         </Card>
       ) : null}
     </AppShell>
+  );
+}
+
+/** The agency dashboard (spec 04): counters now, indicators of the last 30 days. */
+async function AgencyPanel({ dashboard }: { dashboard: AgencyDashboard }) {
+  const t = await getTranslations("agency.dashboard");
+  const show = (value: number | null, percent = false) =>
+    value === null ? t("notYet") : percent ? `${Math.round(value * 100)}%` : String(value);
+  return (
+    <section aria-labelledby="agency-dashboard" className="mb-6">
+      <h1 id="agency-dashboard" className="text-2xl font-bold">
+        {t("title")}
+      </h1>
+      <div className="mt-4 grid gap-4 sm:grid-cols-3">
+        {Object.entries(dashboard.counters).map(([key, value]) => (
+          <Card key={key}>
+            <p className="text-sm text-warm-600">{t(`counters.${key}`)}</p>
+            <p className="mt-1 text-2xl font-bold tabular">{show(value)}</p>
+          </Card>
+        ))}
+      </div>
+      <h2 className="mt-6 text-lg font-semibold">{t("last30Days")}</h2>
+      <dl className="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-[16rem_1fr]">
+        {Object.entries(dashboard.last30Days).map(([key, value]) => (
+          <div key={key} className="contents">
+            <dt className="text-warm-600">{t(`indicators.${key}`)}</dt>
+            <dd className="tabular">{show(value, key.endsWith("Rate"))}</dd>
+          </div>
+        ))}
+      </dl>
+      <Link href="/richieste-in-arrivo" className="mt-4 inline-block font-medium underline">
+        {t("goIncoming")}
+      </Link>
+    </section>
   );
 }
 

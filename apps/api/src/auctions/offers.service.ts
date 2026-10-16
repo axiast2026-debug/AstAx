@@ -15,6 +15,8 @@ import {
 } from "@astax/db";
 import {
   AgencyFilterCriteriaSchema,
+  coverageShortfalls,
+  PackageRequirementsSchema,
   filterMismatches,
   guaranteeDateAccepted,
   noteProblems,
@@ -302,6 +304,30 @@ export class OffersService {
     return payload;
   }
 
+  /**
+   * OFF-06: the items of the package the declared coverage does not reach.
+   * The offer is accepted, the agency is warned at once, and the closing
+   * excludes it with the reason.
+   */
+  private async coverageWarnings(tx: DbTransaction, auction: Auction, payload: OfferPayload) {
+    const request = await asSystem(tx, () =>
+      tx.quoteRequest.findUniqueOrThrow({ where: { id: auction.quoteRequestId } }),
+    );
+    const version = await tx.coveragePackageVersion.findFirst({
+      where: { packageCode: request.packageCode ?? "", validFrom: { lte: auction.openedAt } },
+      orderBy: { version: "desc" },
+    });
+    const requirements = PackageRequirementsSchema.safeParse(version?.requirements);
+    if (!requirements.success) return [];
+    const legal = (await settingsAt(tx, ["rca.legalMinimums"], auction.openedAt))[
+      "rca.legalMinimums"
+    ];
+    return coverageShortfalls(requirements.data, payload.coverage, {
+      rcaBodilyInjuryPerClaimEur: legal.bodilyInjuryPerClaimEur,
+      rcaPropertyDamagePerClaimEur: legal.propertyDamagePerClaimEur,
+    });
+  }
+
   /** Seals the content and the PDF with the auction's key, and makes the owner copy. */
   private async sealAll(
     auction: Auction,
@@ -466,10 +492,16 @@ export class OffersService {
         version: 1,
         submittedAt: now.toISOString(),
         requestId: auction.quoteRequestId,
+        coverageWarnings: await this.coverageWarnings(tx, auction, payload),
       };
     });
     await this.realtime.auctionChanged(result.requestId);
-    return { id: result.id, version: result.version, submittedAt: result.submittedAt };
+    return {
+      id: result.id,
+      version: result.version,
+      submittedAt: result.submittedAt,
+      coverageWarnings: result.coverageWarnings,
+    };
   }
 
   /**
@@ -575,10 +607,15 @@ export class OffersService {
         targetId: offer.id,
         after: { version: offer.version + 1 },
       });
-      return { id: offer.id, version: offer.version + 1, requestId: auction.quoteRequestId };
+      return {
+        id: offer.id,
+        version: offer.version + 1,
+        requestId: auction.quoteRequestId,
+        coverageWarnings: await this.coverageWarnings(tx, auction, payload),
+      };
     });
     await this.realtime.auctionChanged(result.requestId);
-    return { id: result.id, version: result.version };
+    return { id: result.id, version: result.version, coverageWarnings: result.coverageWarnings };
   }
 
   /** OFF-07: a withdrawal until the closing. */

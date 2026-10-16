@@ -38,8 +38,8 @@ const BROKER_MENU: MenuItem[] = [
 /** 04 — agency owner and supervisor. */
 const AGENCY_MENU: MenuItem[] = [
   item("dashboard", "/", "request.viewQuoteData"),
-  item("incomingRequests", "/richieste", "request.viewQuoteData"),
-  item("myOffers", "/offerte", "offer.submit"),
+  item("incomingRequests", "/richieste-in-arrivo", "request.viewQuoteData"),
+  item("myOffers", "/le-mie-offerte", "offer.submit"),
   item("toIssue", "/da-emettere", "issuance.manage"),
   item("issuedPolicies", "/polizze", "issuance.manage"),
   item("results", "/risultati", "ranking.view"),
@@ -52,8 +52,8 @@ const AGENCY_MENU: MenuItem[] = [
 /** 05 — agency operator (sub-agent). */
 const SUB_AGENT_MENU: MenuItem[] = [
   item("personalDashboard", "/", "request.viewQuoteData"),
-  item("incomingRequests", "/richieste", "request.viewQuoteData"),
-  item("myOffers", "/offerte", "offer.submit"),
+  item("incomingRequests", "/richieste-in-arrivo", "request.viewQuoteData"),
+  item("myOffers", "/le-mie-offerte", "offer.submit"),
   item("toIssue", "/da-emettere", "issuance.manage"),
   item("myResults", "/risultati", "ranking.view"),
   item("myFilters", "/filtri", "memberFilters.manageOwn"),

@@ -39,6 +39,14 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 - 2026-10-16: Dan risponde dopo alle domande e alle demo; ha chiesto di passare alla fase 4 e ne ha approvato il piano (proposte A-G).
 - Prossimo passo: fase 4, passo 1; la demo della fase 3 con Dan quando vuole; poi i problemi della demo della fase 2, quando Dan li indica.
 
+**2026-10-16 — fase 4, passi 1-3** (piano approvato da Dan il 2026-10-16).
+
+- Fatto: API dell'area agenzia (cruscotto, «Richieste in arrivo» con filtri, dettaglio senza contatti e con l'apertura registrata, documenti sempre in PDF con filigrana, affidamento della presa in carico, «Le mie offerte»); avviso sulle coperture sotto il pacchetto all'invio dell'offerta; schermate del sito: cruscotto dell'agenzia in home, «Richieste in arrivo», dettaglio con presa in carico, rilascio, affidamento, rinuncia con motivo e modulo d'offerta (premio, compagnia e prodotto dei mandati, coperture voce per voce con quello che chiede il pacchetto, data di garanzia, PDF, note, conferma del vincolo), modifica e ritiro, «Le mie offerte» con le viste per stato e le offerte aperte.
+- Prova: E2E `tests/e2e/specs/fase4-agenzia.spec.ts` (l'agenzia trova la richiesta, la prende in carico e invia l'offerta, che resta sigillata); `apps/api/test/int/agency.int.test.ts`.
+- Nota: dopo una modifica a `packages/ui` serve `pnpm --filter @astax/ui build` perché il sito veda i menu nuovi (`pnpm dev` non ricompila i pacchetti).
+- Debito: le pagine dell'agenzia non si aggiornano in tempo reale (il conto alla rovescia sì; un prolungamento si vede ricaricando la pagina).
+- Prossimo passo: fase 4, passo 4 (filtri e capacità, prodotti, team, registro accessi per il titolare).
+
 ## Criteri della fase 3
 
 | Criterio | Stato | Prova |
