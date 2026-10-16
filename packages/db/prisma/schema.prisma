@@ -660,6 +660,8 @@ model OtpChallenge {
   ownerUserId         String?    @db.Uuid
   ownerOrganizationId String?    @db.Uuid
   codeHash            String
+  /// When the code was sent, from Clock (rule 6): the wait before a new code.
+  issuedAt            DateTime?  @db.Timestamptz(3)
   expiresAt           DateTime   @db.Timestamptz(3)
   attempts            Int        @default(0)
   maxAttempts         Int

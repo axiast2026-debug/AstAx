@@ -1,5 +1,5 @@
 import { SYSTEM_CONTEXT, withContext } from "@astax/db";
-import type { QuoteData } from "@astax/shared/domain";
+import { buildFiscalCode, type QuoteData } from "@astax/shared/domain";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { acceptAllLegal, membershipId, startHarness, type Harness } from "./fixtures.js";
 import { requestHelpers, type Who } from "./request-helpers.js";
@@ -314,5 +314,66 @@ describe("fase 2: verification queue and card", () => {
     } finally {
       await setValue(false);
     }
+  });
+
+  it("LEG-04: a correction cannot change the policy holder into someone else", async () => {
+    const request = await r.submittedPrivateRequest(davide, DAVIDE_EMAIL);
+    const card = await r.json<Card>(
+      await r.call(verifier, `/verification/requests/${request.id}`),
+      200,
+    );
+    const holder = card.quoteData.policyHolder;
+    if (holder.kind !== "PERSON") throw new Error("sample holder is a person");
+    const other = buildFiscalCode({
+      surname: holder.surname,
+      givenName: holder.givenName,
+      birthDate: "1991-05-12",
+      sex: "F",
+      birthPlaceCadastralCode: "F205",
+    });
+    const changed = {
+      ...card.quoteData,
+      policyHolder: { ...holder, fiscalCode: other, birthDate: "1991-05-12" },
+    };
+    const refused = await r.json<{ errors: { issue: string }[] }>(
+      await r.call(verifier, `/verification/requests/${request.id}/corrections`, {
+        body: { quoteData: changed, reason: "Altro contraente" },
+      }),
+      400,
+    );
+    expect(refused.errors).toContainEqual({
+      path: "policyHolder.fiscalCode",
+      issue: "HOLDER_NOT_CUSTOMER",
+    });
+  });
+
+  it("a request still in the queue after its start date can be corrected, unless the date itself is changed to the past", async () => {
+    const request = await r.submittedPrivateRequest(davide, DAVIDE_EMAIL);
+    const card = await r.json<Card>(
+      await r.call(verifier, `/verification/requests/${request.id}`),
+      200,
+    );
+    // The sample starts on 2026-11-30: two weeks and more later.
+    h.clock.advanceMinutes(20 * 24 * 60);
+    davide = { token: await h.tokenFor("private-davide-galli") };
+    verifier = { ...verifier, token: await h.tokenFor("bo-verifier") };
+    const version = {
+      ...card.quoteData,
+      vehicle: { ...card.quoteData.vehicle, version: "Allestimento" },
+    };
+    await r.json(
+      await r.call(verifier, `/verification/requests/${request.id}/corrections`, {
+        body: { quoteData: version, reason: "Allestimento dal libretto" },
+      }),
+      200,
+    );
+    const pastStart = { ...version, request: { ...version.request, startDate: "2026-12-01" } };
+    const refused = await r.json<{ errors: { issue: string }[] }>(
+      await r.call(verifier, `/verification/requests/${request.id}/corrections`, {
+        body: { quoteData: pastStart, reason: "Decorrenza" },
+      }),
+      400,
+    );
+    expect(refused.errors).toContainEqual({ path: "quoteData", issue: "START_DATE_IN_THE_PAST" });
   });
 });

@@ -331,7 +331,7 @@ export class VerificationService {
       const after = parsed.data;
       const changed = changedPaths(before, after);
       if (changed.length === 0) throw new ProblemError("VALIDATION_FAILED", "Nothing changed");
-      await this.checkLikeSubmission(tx, after, now);
+      await this.checkLikeSubmission(tx, request, before, after, now);
       const version = (request.quoteDataVersion ?? 0) + 1;
       await tx.quoteDataVersion.create({
         data: {
@@ -405,7 +405,13 @@ export class VerificationService {
    * A corrected quoteData must pass the same checks as a submission: active
    * list codes, an existing package, options in force (rule 7), drivers.
    */
-  private async checkLikeSubmission(tx: DbTransaction, data: QuoteData, now: Date) {
+  private async checkLikeSubmission(
+    tx: DbTransaction,
+    request: QuoteRequest,
+    before: QuoteData | null,
+    data: QuoteData,
+    now: Date,
+  ) {
     const codes = await this.reference.activeCodes(tx);
     const draft: QuoteDraft = {
       policyHolder: data.policyHolder,
@@ -445,7 +451,28 @@ export class VerificationService {
         data.request.packageVersion,
       ),
     });
-    errors.push(...problems.map((p) => ({ path: "quoteData", issue: p })));
+    // A request waiting past its start date can still be corrected: the date
+    // is checked only when the correction changes it.
+    const startChanged = before?.request.startDate !== data.request.startDate;
+    errors.push(
+      ...problems
+        .filter((p) => startChanged || p !== "START_DATE_IN_THE_PAST")
+        .map((p) => ({ path: "quoteData", issue: p })),
+    );
+    // LEG-04: the holder stays the customer who gave the consent.
+    if (request.customerId) {
+      const customer = await tx.customer.findUniqueOrThrow({
+        where: { id: request.customerId },
+        include: { person: true },
+      });
+      const holder = data.policyHolder;
+      const same =
+        holder.kind === "PERSON"
+          ? customer.person.fiscalCodeHash ===
+            this.cipher.blindIndex("fiscalCode", holder.fiscalCode)
+          : customer.person.vatNumberHash === this.cipher.blindIndex("vatNumber", holder.vatNumber);
+      if (!same) errors.push({ path: "policyHolder.fiscalCode", issue: "HOLDER_NOT_CUSTOMER" });
+    }
     if (errors.length > 0) throw new ProblemError("VALIDATION_FAILED", undefined, errors);
   }
 

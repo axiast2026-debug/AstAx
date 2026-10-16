@@ -31,7 +31,7 @@ import {
   type QuoteDraftSection,
 } from "@astax/shared/domain";
 import { calendarDateToDbDate, romeCalendarDate } from "@astax/shared/format";
-import type { Logger } from "@astax/shared/logging";
+import { errorForLog, type Logger } from "@astax/shared/logging";
 import { Inject, Injectable } from "@nestjs/common";
 import { actorOf, AuditService } from "../audit/audit.service.js";
 import type { AuthContext } from "../auth/auth-context.js";
@@ -705,7 +705,9 @@ export class RequestsService {
           sha256: sha256Of(quoteData),
         },
       });
-      await this.notifyBackOffice(tx, request, quoteData, check.outcome);
+      const autoApprove = settings["verification.autoApproveGreen"] && check.outcome === "GREEN";
+      // A request approved by the system does not wait in the back office queue.
+      if (!autoApprove) await this.notifyBackOffice(tx, request, quoteData, check.outcome);
       return {
         id,
         code: request.code,
@@ -713,11 +715,24 @@ export class RequestsService {
         autoOutcome: check.outcome,
         round,
         quoteDataVersion: version,
-        autoApprove: settings["verification.autoApproveGreen"] && check.outcome === "GREEN",
+        autoApprove,
+        request,
+        quoteData,
       };
     });
     this.logger.info({ requestId: id, outcome: result.autoOutcome }, "request submitted");
-    if (result.autoApprove) await this.autoApprove(id, result.round, result.quoteDataVersion, now);
+    if (result.autoApprove) {
+      // The approval needs the system's rights, so it runs after the submission.
+      // If it fails the submission stands and the request goes to the back office.
+      try {
+        await this.autoApprove(id, result.round, result.quoteDataVersion, now);
+      } catch (error) {
+        this.logger.error({ requestId: id, err: errorForLog(error) }, "automatic approval failed");
+        await withContext(this.db, SYSTEM_CONTEXT, (tx) =>
+          this.notifyBackOffice(tx, result.request, result.quoteData, result.autoOutcome),
+        );
+      }
+    }
     return {
       id: result.id,
       code: result.code,

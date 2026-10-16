@@ -7,7 +7,7 @@ Claude Code aggiorna questo file alla fine di ogni sessione di lavoro e alla chi
 | Fase | Stato | Chiusa il | Note |
 | --- | --- | --- | --- |
 | 1. Fondamenta | Chiusa | 2026-10-15 | Criteri soddisfatti; verifica indipendente in due giri; demo vista e chiusura confermata da Dan |
-| 2. Richiesta e verifica | In corso | | Piano approvato da Dan il 2026-10-15; lavoro fatto, criteri con prova; manca la verifica indipendente (`/chiudi-fase 2`) e la demo con Dan |
+| 2. Richiesta e verifica | In verifica | | Criteri con prova; verifica indipendente in due giri, problemi corretti; manca la demo con Dan |
 | 3. Motore d'asta | Da iniziare | | |
 | 4. Offerte | Da iniziare | | |
 | 5. Accettazione | Da iniziare | | |
@@ -29,7 +29,8 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
   - schermate: procedura del privato (anche su telefono, con la barra in basso), procedura del broker, clienti, pagina del consenso per il cliente del broker, centro notifiche, coda e scheda di verifica del back office in italiano e albanese.
 - Problemi trovati e corretti strada facendo: gli errori del database finivano nel log con i valori della query (ora solo tipo e codice, regola 8); la ricerca del comune dal codice fiscale non funzionava (un carattere perso, ora con test); durante un'integrazione il passo «Conducenti» veniva rifiutato perché manda anche contraente e proprietario (ora accettati se identici); due test dipendevano dall'ordine di esecuzione (ora ogni file usa utenti suoi).
 - Non fatto, rinviato come debito (tabella sotto): client dell'API generato da OpenAPI, TanStack Query e React Hook Form, `prompt=login`, ruoli del back office nel database, ora prevista di chiusura dell'asta nel riepilogo, anteprima delle agenzie nella scheda di verifica.
-- Prossimo passo: `/chiudi-fase 2` (verifica indipendente) e la demo con Dan descritta qui sotto.
+- 2026-10-16: verifica indipendente della fase 2 in due giri (sezione qui sotto), problemi corretti; test end-to-end 12 su 12.
+- Prossimo passo: la demo con Dan descritta qui sotto; poi, con la sua conferma, la fase passa a «Chiusa». Domande nuove per Dan: 11 e 12.
 
 ## Criteri della fase in corso
 
@@ -62,6 +63,14 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 5. **Veicolo d'epoca.** Nuova richiesta con il libretto `libretto-epoca.jpg` (veicolo del 1990): in coda arriva rosso, con il motivo «Possibile veicolo d'epoca o storico».
 6. **Broker.** In incognito, «Accesso professionisti» → `paolo.verdi@broker-demo.test` → «Nuova richiesta» → «Nuovo cliente»: Anna Riva, codice fiscale `RVINNA85P43H501J`, un'email inventata. Documenti `libretto-anna-riva.jpg`, `attestato-anna-riva.pdf`, `patente-anna-riva.jpg`. Al passo «Consenso» «Manda il link»: in Mailpit l'email per Anna; aprendo il link si vede la pagina del consenso, senza contatti; «Mandami il codice», conferma. Poi «Invia la richiesta». In «Clienti» la ricerca per codice fiscale esatto ritrova Anna.
 7. **Registro.** Con `paola.ricci@astax.test` → «Registro delle attività»: aperture della scheda (`QUOTE_DATA_VIEWED`), dei documenti (`DOCUMENT_VIEWED`), correzioni, decisioni.
+
+## Verifica indipendente (chiusura della fase 2)
+
+Il comando `/chiudi-fase` e il sottoagente `verificatore` non si caricano nella sessione (aperta nella cartella superiore): i passi sono stati eseguiti a mano il 2026-10-16, con un revisore indipendente con le stesse istruzioni del `verificatore`.
+
+1. Primo giro: 17 problemi. I più gravi: il codice fiscale restava in chiaro nei campi letti dai documenti; un broker poteva usare il consenso di un cliente per un contraente diverso; il codice fiscale cercato finiva nell'indirizzo della pagina; i tentativi dei codici OTP si azzeravano chiedendo un nuovo codice; le correzioni del back office saltavano i controlli dell'invio; gli accessi negati non andavano nel registro. Corretti nel commit `8cbf65f`, con test.
+2. Secondo giro: 15 punti risolti, 2 debiti dichiarati (richiesta approvata ancora «In verifica», consensi e notifiche a livello di database). Nuovi problemi corretti: una correzione poteva cambiare il contraente; una richiesta in coda oltre la decorrenza non si poteva più correggere; l'approvazione automatica mandava comunque l'avviso al back office e, se falliva, dava errore al richiedente; due varchi nelle regole di riga; le ricerche restavano dopo «Esci» e passavano tra contesti; l'attesa tra due codici dipendeva dal valore attuale del parametro. Un caso di business è diventato la domanda 12.
+3. `pnpm check` verde (32 task) e test end-to-end 12 su 12.
 
 ## Verifica indipendente (chiusura della fase 1)
 
@@ -107,10 +116,11 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 | Dashboard del broker con i contatori | Non era nel piano della fase 2 | Fase 7 |
 | Sicurezza a livello di riga: il richiedente può ancora creare un proprio consenso e chiunque può creare notifiche per altri utenti, a livello di database | La prima linea (API) lo impedisce; servono funzioni del database dedicate | Fase 3 |
 | Una richiesta approvata resta nello stato «In verifica» (con la decisione «Approvata») | La fase 3 la porta ad «Asta aperta» | Fase 3 |
-| Ricerche (codice fiscale, targa) tenute sul server per 15 minuti accanto alla sessione | Non devono finire nell'indirizzo della pagina (regola 8); restano anche dopo «Esci» fino alla scadenza | — |
+| Approvazione automatica (`verification.autoApproveGreen`, spenta nel pilota) in una transazione separata dopo l'invio | Serve il ruolo di sistema; se fallisce la richiesta va al back office con la notifica | Fase 3, nel worker |
+| Ricerche (codice fiscale, targa) tenute in chiaro sul server (Redis) per 15 minuti accanto alla sessione, legate al contesto attivo e cancellate con «Esci» | Non devono finire nell'indirizzo della pagina (regola 8) | Fase 8, cifrandole con la chiave dei campi |
 | Guscio delle schermate duplicato tra `apps/web` e `apps/admin` | Piccole differenze (contesto, lingua) | Quando cresce, in `packages/ui` |
 | Tentativi di accesso con token non validi solo nel log (non nel registro), senza limite di frequenza; nessun limite di frequenza sulla pagina pubblica del consenso | Non riempire il registro a catena (dubbio 6); i codici hanno comunque un massimo di tentativi | Fase 8, con il limite di frequenza |
-| Dispatcher dell'outbox nell'API, senza destinatari | Notifiche e workflow non esistono ancora | Fase 3 (passa al worker) |
+| Dispatcher dell'outbox nell'API, senza destinatari; gli eventi delle richieste (`RequestSubmitted`, `RequestApproved`…) restano in coda, e il test del team controlla solo i propri | Notifiche e workflow non esistono ancora | Fase 3 (passa al worker) |
 | Eccezione alla regola pnpm sull'età minima dei pacchetti per Next.js 16.4.1 e React 19.3.1 | Correggono vulnerabilità critiche | Da togliere appena superano l'età minima |
 | Testi in albanese del back office da far rileggere a un madrelingua | Tradotti da Claude (anche quelli nuovi della verifica) | Fase 7 |
 | Sicurezza a livello di riga: tutto il back office è «privilegiato» (anche contabilità e assistenza possono scrivere parametri e utenti a livello di database); il registro della propria organizzazione è leggibile da ogni membro | La prima linea (API) distingue i ruoli; il database non conosce ancora il ruolo del back office; non fatto in fase 2 | Fase 3, aggiungendo il ruolo alle variabili di contesto |

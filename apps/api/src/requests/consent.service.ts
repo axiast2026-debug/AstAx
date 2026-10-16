@@ -160,7 +160,10 @@ export class ConsentService {
     });
     const failed = Math.max(0, ...recent.map((c) => c.attempts));
     const last = recent[0];
-    const lastIssuedAt = last ? last.expiresAt.getTime() - validityMs : null;
+    // issuedAt comes from Clock; older rows without it fall back on the expiry.
+    const lastIssuedAt = last
+      ? (last.issuedAt?.getTime() ?? last.expiresAt.getTime() - validityMs)
+      : null;
     if (
       failed >= settings["otp.maxAttempts"] ||
       (lastIssuedAt !== null &&
@@ -179,6 +182,7 @@ export class ConsentService {
         subjectId,
         ...owner,
         codeHash: "",
+        issuedAt: now,
         expiresAt: new Date(now.getTime() + settings["otp.validityMinutes"] * MINUTE_MS),
         attempts: failed,
         maxAttempts: settings["otp.maxAttempts"],

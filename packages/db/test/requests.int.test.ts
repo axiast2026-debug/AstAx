@@ -252,6 +252,25 @@ describe("fase 2: what a requester may not do even with direct database access",
     );
   });
 
+  it("cannot cancel from a state where cancelling is not allowed, nor change the data version outside a submission", async () => {
+    await expect(
+      withContext(db, asPrivate(w.giuliaNeri), (tx) =>
+        tx.quoteRequest.update({ where: { id: privateRequestId }, data: { quoteDataVersion: 7 } }),
+      ),
+    ).rejects.toThrow(/only on submission/);
+    await withContext(db, asMember(w.boVerifier, w.astax, true), (tx) =>
+      tx.quoteRequest.update({ where: { id: privateRequestId }, data: { status: "ISSUED" } }),
+    );
+    await expect(
+      withContext(db, asPrivate(w.giuliaNeri), (tx) =>
+        tx.quoteRequest.update({ where: { id: privateRequestId }, data: { status: "CANCELLED" } }),
+      ),
+    ).rejects.toThrow(/reserved to the back office/);
+    await withContext(db, asMember(w.boVerifier, w.astax, true), (tx) =>
+      tx.quoteRequest.update({ where: { id: privateRequestId }, data: { status: "DRAFT" } }),
+    );
+  });
+
   it("cannot insert a verification round that already carries a decision", async () => {
     await expect(
       withContext(db, asPrivate(w.giuliaNeri), (tx) =>

@@ -190,28 +190,53 @@ export class WebAuth {
   /**
    * Search terms of a page (a fiscal code, a plate) kept on the server for a
    * few minutes, next to the session: they never travel in a URL (CLAUDE.md
-   * rule 8) and are readable in the same response that follows the search.
+   * rule 8). They belong to the active context and are deleted at logout.
    */
   async setSearch(
     id: string | undefined,
     scope: string,
     value: Record<string, string>,
   ): Promise<void> {
-    if (!id || !(await this.session(id))) throw new SessionExpiredError();
-    const key = `search:${id}:${scope}`;
-    if (Object.values(value).every((v) => v === "")) await this.options.store.delete(key);
-    else await this.options.store.set(key, JSON.stringify(value), SEARCH_TTL_SECONDS);
+    const session = id ? await this.session(id) : null;
+    if (!id || !session) throw new SessionExpiredError();
+    const saved = await this.searches(id, session.contextId);
+    const empty = Object.values(value).every((v) => v === "");
+    const scopes = Object.fromEntries([
+      ...Object.entries(saved).filter(([key]) => key !== scope),
+      ...(empty ? [] : [[scope, value] as const]),
+    ]);
+    await this.options.store.set(
+      `search:${id}`,
+      JSON.stringify({ contextId: session.contextId, scopes }),
+      SEARCH_TTL_SECONDS,
+    );
   }
 
   async search(id: string | undefined, scope: string): Promise<Record<string, string>> {
-    if (!id) return {};
-    const raw = await this.options.store.get(`search:${id}:${scope}`);
+    const session = id ? await this.session(id) : null;
+    if (!id || !session) return {};
+    return (await this.searches(id, session.contextId))[scope] ?? {};
+  }
+
+  /** The saved searches of the session, only if made in the same context. */
+  private async searches(
+    id: string,
+    contextId: string | null,
+  ): Promise<Record<string, Record<string, string>>> {
+    const raw = await this.options.store.get(`search:${id}`);
     if (!raw) return {};
     try {
-      const value = JSON.parse(raw) as Record<string, unknown>;
-      return Object.fromEntries(
-        Object.entries(value).filter((e): e is [string, string] => typeof e[1] === "string"),
-      );
+      const value = JSON.parse(raw) as { contextId?: unknown; scopes?: unknown };
+      if (value.contextId !== contextId || typeof value.scopes !== "object" || !value.scopes)
+        return {};
+      const result: Record<string, Record<string, string>> = {};
+      for (const [scope, terms] of Object.entries(value.scopes as Record<string, unknown>)) {
+        if (typeof terms !== "object" || !terms) continue;
+        result[scope] = Object.fromEntries(
+          Object.entries(terms).filter((e): e is [string, string] => typeof e[1] === "string"),
+        );
+      }
+      return result;
     } catch {
       return {};
     }
@@ -260,7 +285,10 @@ export class WebAuth {
   /** Ends the session here and at the identity provider; returns where to send the browser. */
   async logout(id: string | undefined): Promise<string> {
     const session = await this.session(id);
-    if (id) await this.options.store.delete(`session:${id}`);
+    if (id) {
+      await this.options.store.delete(`session:${id}`);
+      await this.options.store.delete(`search:${id}`);
+    }
     if (!session) return this.options.postLogoutRedirectUri;
     const url = oidc.buildEndSessionUrl(await this.config(session.kind), {
       post_logout_redirect_uri: this.options.postLogoutRedirectUri,
