@@ -532,7 +532,8 @@
       "incomplete": "Prima dell'invio completa:",
       "excluded": "Hai indicato un uso particolare: questo veicolo non può andare all'asta.",
       "afterSubmit": "Dopo l'invio il back office verifica la richiesta; l'asta parte appena è approvata e dura le ore lavorative che hai scelto.",
-      "submit": "Invia la richiesta"
+      "submit": "Invia la richiesta",
+      "closeIfApprovedNow": "Chiusura dell'asta se approvata ora"
     }
   },
   "auctionView": {

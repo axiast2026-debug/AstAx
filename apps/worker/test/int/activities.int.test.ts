@@ -433,3 +433,71 @@ describe("deserted and back office actions (ASTA-06, ASTA-08)", () => {
     expect(status.status).toBe("DESERTED");
   });
 });
+
+describe("S04 — asta deserta (ASTA-04, ASTA-07, ASTA-08)", () => {
+  it("S04 a motorcycle approved Thursday 19/11/2026 at 17:30 for 1 hour, Nove paused until 18:15", async () => {
+    const nove = orgId("agenzia-nove");
+    await read((tx) =>
+      tx.agencyCapacity.update({
+        where: { organizationId: nove },
+        data: { pausedUntil: new Date("2026-11-19T17:15:00.000Z") },
+      }),
+    );
+    try {
+      h.clock.set("2026-11-19T16:30:00.000Z"); // 17:30 in Rome
+      const request = await approvedRequest(h, (q) => ({
+        ...q,
+        vehicle: { ...q.vehicle, type: "MOTORCYCLE" },
+        request: { ...q.request, packageCode: "COMPLETE", auctionDurationHours: 1 },
+      }));
+      const main = await h.activities.openRound({ requestId: request.id, kind: "MAIN", round: 1 });
+      if (!main.opened) throw new Error("not opened");
+      // Uno, Tre and Quattro are invited; the auction closes at 18:30, the reminder at half (18:00).
+      const invited = async (auctionId: string) =>
+        (await read((tx) => tx.invitation.findMany({ where: { auctionId } })))
+          .map((i) => i.organizationId)
+          .sort();
+      expect(await invited(main.auctionId)).toEqual(
+        [orgId("agenzia-uno"), orgId("agenzia-tre"), orgId("agenzia-quattro")].sort(),
+      );
+      expect(main.scheduledCloseAt).toBe("2026-11-19T17:30:00.000Z");
+      expect(main.reminderAt).toBe("2026-11-19T17:00:00.000Z");
+      // At half no offer: the top-up finds no other agency (Nove still paused).
+      h.clock.set(main.topUpAt);
+      expect(await h.activities.topUp({ auctionId: main.auctionId })).toEqual({ invited: 0 });
+      h.clock.set(main.scheduledCloseAt);
+      expect((await h.activities.closeRound({ auctionId: main.auctionId })).validOffers).toBe(0);
+      // The reopening at 18:30 invites Nove and closes Friday 20/11 at 10:30.
+      const reopened = await h.activities.openRound({
+        requestId: request.id,
+        kind: "REOPEN",
+        round: 2,
+      });
+      if (!reopened.opened) throw new Error("not reopened");
+      expect(await invited(reopened.auctionId)).toEqual([nove]);
+      expect(reopened.scheduledCloseAt).toBe("2026-11-20T09:30:00.000Z");
+      expect(
+        await read((tx) =>
+          tx.notification.count({
+            where: {
+              eventKey: "auction.reopened.requester",
+              payload: { path: ["quoteRequestId"], equals: request.id },
+            },
+          }),
+        ),
+      ).toBe(1);
+      // Also the reopening closes without offers: «Deserta», Davide and the back office are told.
+      h.clock.set(reopened.scheduledCloseAt);
+      await h.activities.closeRound({ auctionId: reopened.auctionId });
+      await h.activities.markDeserted({ requestId: request.id });
+      const status = await read((tx) =>
+        tx.quoteRequest.findUniqueOrThrow({ where: { id: request.id } }),
+      );
+      expect(status.status).toBe("DESERTED");
+    } finally {
+      await read((tx) =>
+        tx.agencyCapacity.update({ where: { organizationId: nove }, data: { pausedUntil: null } }),
+      );
+    }
+  });
+});

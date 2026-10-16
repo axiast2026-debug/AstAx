@@ -8,7 +8,7 @@ Claude Code aggiorna questo file alla fine di ogni sessione di lavoro e alla chi
 | --- | --- | --- | --- |
 | 1. Fondamenta | Chiusa | 2026-10-15 | Criteri soddisfatti; verifica indipendente in due giri; demo vista e chiusura confermata da Dan |
 | 2. Richiesta e verifica | In verifica | | Criteri con prova; verifica indipendente in due giri, problemi corretti; CI verde. Demo provata da Dan il 2026-10-16: «tante cose non tornano», da riprendere in seguito; non chiusa |
-| 3. Motore d'asta | In corso | | Iniziata il 2026-10-16 su richiesta di Dan, con la fase 2 ancora aperta: piano da approvare |
+| 3. Motore d'asta | In corso | | Tutti i passi del piano fatti, criteri con prova; mancano la verifica indipendente e la demo con Dan |
 | 4. Offerte | Da iniziare | | |
 | 5. Accettazione | Da iniziare | | |
 | 6. Dopo l'acquisto | Da iniziare | | |
@@ -18,6 +18,54 @@ Claude Code aggiorna questo file alla fine di ogni sessione di lavoro e alla chi
 Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in attesa della revisione di Dan), Chiusa.
 
 ## Ultima sessione
+
+**2026-10-16 — fase 3, tutti i passi del piano** (piano approvato da Dan il 2026-10-16, con le proposte A-G; la fase 2 resta aperta con i problemi della demo da raccogliere con Dan).
+
+- Fatto (commit su `main`, pubblicati su GitHub; `pnpm check` verde, 36 task; test end-to-end 14 su 14 in locale):
+  - prima delle aste: revoca del consenso (dal profilo del privato e dalla scheda cliente del broker; dopo la revoca il back office non può approvare e il worker non apre aste); nel database il ruolo dell'utenza, consensi creati solo dall'API e modificabili solo per revocarli, notifiche ad altri utenti solo dal servizio delle notifiche;
+  - dominio: calendario lavorativo con festivi e ora legale, tempi dell'asta, garanzia minima, ordine delle offerte e migliore per compagnia, coperture contro il pacchetto, filtri e scelta delle agenzie, contenuto dell'offerta e filtro delle note, stati della richiesta e dell'offerta confrontati con i diagrammi;
+  - dati: compagnie inventate, mandati, prodotti, filtri e capacità delle Agenzie Uno-Dieci; aste, inviti, prese in carico, offerte sigillate, classifiche; regole del database per la busta chiusa;
+  - busta chiusa con libsodium e KMS finto con due chiavi separate (ADR 0005), registro delle chiavi in `KmsEvent`;
+  - worker delle aste con Temporal (ADR 0008): apertura, rabbocco, promemoria, chiusura, riapertura dell'asta deserta, garanzie e «Scaduta», azioni del back office;
+  - API delle offerte (presa in carico, invio, modifica, ritiro, rinuncia, copia per l'agenzia) e rifiuto con registrazione per ogni altro ruolo;
+  - schermate: anteprima delle agenzie nella scheda di verifica, pagina «Aste» del back office in tempo reale, riquadro «Asta» del richiedente con conto alla rovescia e poi le migliori offerte per compagnia, ora prevista di chiusura nel riepilogo;
+  - tempo reale con Socket.IO e biglietto monouso; strumenti di sviluppo nella pagina «Aste».
+- Problemi trovati e corretti strada facendo:
+  - il pulsante «Escludi» dell'anteprima aveva lo stesso nome di quello che esclude la richiesta: la CI falliva dal commit dell'anteprima; ora è «Escludi l'agenzia»;
+  - un errore del database in un'attività del worker finiva nei log di Temporal con il messaggio completo: ora esce solo con tipo e codice (BC-07);
+  - nel database di sviluppo mancava una migrazione e la chiusura si bloccava: rilanciato `pnpm db:migrate` (la CI parte sempre da un database nuovo).
+- Domande nuove per Dan: 13 (stato della richiesta quando il back office annulla un'asta) e 14 (ora del promemoria GAR-05), in `docs/domande-aperte.md`, con il valore prudente usato intanto.
+- Prossimo passo: verifica indipendente della fase 3 e demo con Dan; poi i problemi della demo della fase 2, quando Dan li indica.
+
+## Criteri della fase 3
+
+| Criterio | Stato | Prova |
+| --- | --- | --- |
+| L'approvazione apre l'asta con l'ora di chiusura corretta; calendario: esempio di ASTA-02, sabato, festivo, ora legale 25/10/2026 e 28/03/2027, approvazione notturna e domenicale | Fatto | `packages/shared/src/domain/working-calendar.test.ts`; `apps/worker/test/int/activities.int.test.ts` («ASTA-01 ASTA-02 GAR-01…»); E2E `tests/e2e/specs/fase3-asta.spec.ts` |
+| Le offerte inviate via API sono cifrate; scenario S07 | Fatto | `apps/api/test/int/auctions.int.test.ts` («BC-02…», «S07 BC-01…»: nove ruoli, offerta, PDF ed elenco, 403 e `SEALED_BID_ACCESS_DENIED`); KMS non usato prima della chiusura in `activities.int.test.ts` («BC-03…»); E2E senza prezzi visibili fino alla chiusura |
+| Chiusura automatica all'ora prevista (tempo accelerato) e anche con il worker fermo all'ora di chiusura | Fatto | `apps/worker/test/workflow.test.ts` («ASTA-01…», «the auction closes also when the worker is down…») |
+| Offerta dopo la chiusura rifiutata, anche in concorrenza con la chiusura | Fatto | `auctions.int.test.ts` («BC-05 a submission that waits for the closing's lock…», «BC-05 OFF-07 after the closing…»); trigger del database in `packages/db/test/auctions.int.test.ts` |
+| Scenario S04; test di dominio di S06 | Fatto | S04 con gli orari esatti in `activities.int.test.ts` («S04 — asta deserta»); variante in E2E; S06 in `auction-rules.test.ts` e nella chiusura (`activities.int.test.ts`, «S06…») |
+| Selezione: filtri, capacità, pausa, orari di ricezione, validità massima, sospensione, varietà, rotazione, massimo 8, rabbocco di 4 sotto le 3 offerte | Fatto | `packages/shared/src/domain/agency-selection.test.ts`, `agency-filters.test.ts`; `activities.int.test.ts` («ASTA-04 ASTA-05…», «ASTA-09…») |
+| Prolungamento (garanzia minima invariata), nuovi inviti solo nella prima metà (dopo 409), annullamento, registrati | Fatto | `activities.int.test.ts` («ASTA-06 GAR-01…», «ASTA-06 invitations…», «ASTA-06 a cancellation…»); `auctions.int.test.ts` («ASTA-06…», 409 dopo la metà); `workflow.test.ts` |
+| Un'asta aperta non cambia se l'amministratore modifica i parametri (ASTA-09) | Fatto | `activities.int.test.ts` («ASTA-09 the auction keeps the parameters…») |
+| La storia dei workflow non contiene premi, codici fiscali o nomi di compagnie | Fatto | `workflow.test.ts` («BC-07 SIC-06…»); errori delle attività senza messaggi del database (`apps/worker/test/safe-errors.test.ts`) |
+| Le notifiche alle agenzie non contengono contatti del cliente né prezzi | Fatto | `activities.int.test.ts` («VIS-01 the texts sent to the agencies…», «CLA-04…») |
+
+## Demo per Dan (fase 3)
+
+Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Searches\astax`, `pnpm infra:up`, poi `pnpm install`, `pnpm db:migrate` e `pnpm db:seed` (tabelle e dati nuovi delle agenzie), poi `pnpm dev`, che ora avvia anche il worker delle aste. Password dei professionisti e codici come nella demo della fase 2. Gli strumenti di sviluppo funzionano solo in locale (`DEV_TOOLS=true` nel file `.env`).
+
+1. **Una richiesta da approvare.** Come nella demo della fase 2, Giulia invia una richiesta. Nel riepilogo, prima dell'invio, c'è «Chiusura dell'asta se approvata ora», calcolata sul calendario lavorativo.
+2. **L'anteprima delle agenzie.** Nel back office (`arta.hoxha@astax.test`) apri la scheda: il riquadro «Agenzie da invitare» dice quante agenzie saranno invitate e quali compagnie coprono. Prova «Escludi l'agenzia» con un motivo, e poi «Reinserisci».
+3. **L'asta si apre da sola.** «Approva e apri l'asta». Nel menu «Aste» compare l'asta, con chiusura, agenzie invitate e offerte arrivate (0). Giulia, sulla pagina della richiesta, vede il riquadro «Asta» con il conto alla rovescia.
+4. **Arrivano le offerte.** In «Aste» premi «Invia 3 offerte di prova»: tre agenzie inviate mandano un'offerta. Il contatore passa a 3, sia per il back office sia per Giulia, che lo vede aggiornarsi da solo. Nessun prezzo da nessuna parte.
+5. **Nessuno legge le offerte.** Con `paola.ricci@astax.test` (amministratore) apri il «Registro delle attività»: ogni tentativo di leggere un'offerta altrui è registrato come `SEALED_BID_ACCESS_DENIED`. Gli invii compaiono come `OFFER_SUBMITTED`, senza importi.
+6. **La chiusura.** Premi «Fai scattare il prossimo passo» tre volte: rabbocco, promemoria, chiusura. Così non aspetti le ore lavorative. L'asta diventa «Chiusa». Giulia vede, per ogni compagnia, la migliore offerta con il prezzo, «Più conveniente» sulla prima e «Garantito fino al…». Il nome dell'agenzia non compare.
+7. **Asta deserta.** Fai un'altra richiesta, approvala, e senza offerte premi «Fai scattare il prossimo passo» finché la richiesta diventa «Deserta». Giulia e il back office ricevono l'avviso.
+8. **Azioni del back office.** Su un'asta aperta prova «Prolunga» (la chiusura si sposta), «Invita» e «Annulla l'asta», sempre con un motivo. Un invito dopo la metà dell'asta è rifiutato.
+
+## Sessione della fase 2
 
 **2026-10-15/16 — fase 2, tutti i passi del piano** (piano approvato da Dan il 2026-10-15; campi del §3 confermati da Dan così come sono).
 
@@ -37,7 +85,7 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 - Passo 6 della fase 3 fatto: `apps/worker` con Temporal (ADR 0008): `QuoteRequestWorkflow` dall'approvazione (tramite l'outbox, ora nel worker) ad apertura, rabbocco, promemoria, chiusura con apertura delle buste, riapertura dell'asta deserta, garanzie e «Scaduta»; azioni del back office come segnali. Domande 13 e 14 per Dan (asta annullata, ora del promemoria GAR-05).
 - Prossimo passo: passo 7 della fase 3 (offerte via API); i problemi della demo della fase 2 quando Dan li indica. Domande 11 e 12 risposte da Dan il 2026-10-16 (60 secondi; un privato può chiedere un preventivo per un'altra persona, punto aggiunto per il legale).
 
-## Criteri della fase in corso
+## Criteri della fase 2
 
 | Criterio | Stato | Prova |
 | --- | --- | --- |
@@ -101,6 +149,14 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 
 | Debito | Perché | Quando chiuderlo |
 | --- | --- | --- |
+| Biglietti del tempo reale tenuti nella memoria del processo API | Con una sola istanza dell'API basta; con più istanze un biglietto chiesto a una non vale sull'altra | Fase 8, in Redis |
+| Filtri, capacità, orari di ricezione e prodotti delle agenzie impostati solo dai dati di prova | Le schermate delle agenzie sono della fase 4 (proposta D approvata) | Fase 4 |
+| Avviso «Nuova richiesta in target» a tutti i membri attivi dell'agenzia, anche con la distribuzione per filtri personali | La scelta dell'agenzia rispetta i filtri dei membri; i destinatari dell'avviso no | Fase 4, con le schermate dell'agenzia |
+| `KmsEvent` come registro delle chiavi al posto di CloudTrail | Nessun KMS vero in sviluppo (ADR 0005) | Fase 8, con il KMS di AWS e il controllo notturno |
+| Il richiedente non può annullare una richiesta con l'asta aperta | Il diagramma degli stati non prevede il passaggio da «Asta aperta» ad «Annullata» | Da decidere con Dan, insieme alla domanda 13 |
+| Colonna `Verification.excludedAgencies` della fase 2 non usata | Le esclusioni dall'anteprima stanno in `InvitationExclusion` | Alla prossima migrazione che tocca la tabella |
+| I test dei workflow scaricano il server di test di Temporal la prima volta | Senza rete quei test falliscono, non passano in silenzio | — |
+| Offerte di prova degli strumenti di sviluppo con il primo prodotto dell'agenzia e coperture del pacchetto Completo | Bastano alle demo | — |
 | TypeScript 6.0 invece di 7.0 | typescript-eslint non supporta ancora la 7 | Quando esce il supporto |
 | Copie del registro in un archivio non modificabile (S3 Object Lock) | Serve l'infrastruttura AWS | Fase 8 |
 | Codice di accesso via SMS; SMS veri | Serve il fornitore SMS; oggi gli SMS finiscono in Mailpit | Fase 8 |
@@ -110,7 +166,6 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 | TanStack Query, React Hook Form, PWA con Serwist e Web Push | I moduli della fase 2 usano le azioni del server di Next.js, che funzionano anche senza JavaScript; il controllo dei campi lo fa l'API | Fase 7 (PWA e push); da rivalutare se servono moduli più interattivi |
 | Nessun controllo automatico di accessibilità nei test end-to-end | Etichette, tastiera e telefono provati a mano nel browser | Fase 7, con `@axe-core/playwright` |
 | Procedura del privato a passi con più domande per schermata, non «una domanda per schermata» | Sei passi, ognuno salva una parte completa della bozza | Da rivedere con Dan dopo la demo |
-| Riepilogo senza l'ora prevista di chiusura dell'asta | Serve il calendario delle ore lavorative | Fase 3 |
 | Correzione del back office su un gruppo di campi (veicolo, classe CU, compagnia, scadenza) | Gli altri dati si correggono chiedendo un'integrazione | Fase 7, con una scheda di correzione completa |
 | Motivi di esclusione solo dall'elenco dei casi esclusi | Nessun «altro» con testo libero | Da decidere con Dan |
 | Procedura con al massimo due conducenti | Bastano per i casi del pilota | Quando serve |

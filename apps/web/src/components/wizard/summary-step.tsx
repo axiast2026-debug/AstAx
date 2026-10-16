@@ -1,4 +1,4 @@
-import { formatDate } from "@astax/shared/format";
+import { formatDate, formatDateTime } from "@astax/shared/format";
 import { Button } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
@@ -46,6 +46,10 @@ export async function SummaryStep({
     [t("package"), pkg?.name ?? ""],
     [t("startDate"), draft.request ? formatDate(`${draft.request.startDate}T12:00:00Z`) : ""],
     [t("duration"), draft.request ? t("hours", { hours: draft.request.auctionDurationHours }) : ""],
+    [
+      t("closeIfApprovedNow"),
+      detail.closeIfApprovedNow ? formatDateTime(detail.closeIfApprovedNow) : "",
+    ],
     [t("validity"), draft.request ? t("days", { days: draft.request.minValidityDays }) : ""],
     [t("consent"), detail.consent ? t("consentGiven") : t("consentMissing")],
   ];

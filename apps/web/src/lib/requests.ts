@@ -37,6 +37,8 @@ export interface RequestDocument {
 }
 
 export interface RequestDetail {
+  /** ASTA-02: the closing if the request were approved now (draft only). */
+  closeIfApprovedNow: string | null;
   id: string;
   code: string;
   status: string;

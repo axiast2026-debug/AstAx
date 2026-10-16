@@ -16,6 +16,9 @@ import {
   type DbTransaction,
   type DocumentKind,
   type QuoteRequest,
+  auctionSettings,
+  auctionSettingsAt,
+  loadWorkingCalendar,
 } from "@astax/db";
 import {
   derivedColumns,
@@ -29,6 +32,7 @@ import {
   type QuoteData,
   type QuoteDraft,
   type QuoteDraftSection,
+  auctionTimes,
 } from "@astax/shared/domain";
 import { calendarDateToDbDate, romeCalendarDate } from "@astax/shared/format";
 import { errorForLog, type Logger } from "@astax/shared/logging";
@@ -201,7 +205,15 @@ export class RequestsService {
         this.integrationScope(tx, request),
       ]);
       const last = verifications[0];
+      const draftRequest = editable ? this.draftOf(request).request : undefined;
       return {
+        /**
+         * ASTA-02: when the auction would close if approved now, on the working
+         * calendar; the real closing counts from the approval.
+         */
+        closeIfApprovedNow: draftRequest
+          ? await this.closeIfApprovedNow(tx, draftRequest.auctionDurationHours)
+          : null,
         id: request.id,
         code: request.code,
         status: request.status,
@@ -242,6 +254,19 @@ export class RequestsService {
         })),
       };
     });
+  }
+
+  private async closeIfApprovedNow(tx: DbTransaction, hours: number): Promise<string> {
+    const now = this.clock.now();
+    const snapshot = await auctionSettingsAt(tx, now);
+    const calendar = await loadWorkingCalendar(tx, snapshot["calendar.workingHours"]);
+    return auctionTimes(
+      calendar,
+      now,
+      hours,
+      0,
+      auctionSettings(snapshot),
+    ).scheduledCloseAt.toISOString();
   }
 
   async activeConsent(tx: DbTransaction, customerId: string) {
