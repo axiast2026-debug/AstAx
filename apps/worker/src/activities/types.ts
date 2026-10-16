@@ -67,6 +67,12 @@ export interface AuctionActivities {
     input: { organizationIds: string[] } & BackOfficeAction,
   ): Promise<{ invited: number }>;
   cancelRound(input: BackOfficeAction): Promise<void>;
+  recordBackOfficeOutcome(
+    input: BackOfficeAction & {
+      kind: "extend" | "invite" | "cancel";
+      result: "OTHER_ROUND" | "REFUSED";
+    },
+  ): Promise<void>;
   guaranteeSchedule(input: { requestId: string }): Promise<GuaranteeSchedule>;
   sendGuaranteeReminder(input: { requestId: string; offerId: string }): Promise<void>;
   expireRequest(input: { requestId: string }): Promise<{ expired: boolean }>;

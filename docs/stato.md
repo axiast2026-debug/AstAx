@@ -36,7 +36,7 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
   - nel database di sviluppo mancava una migrazione e la chiusura si bloccava: rilanciato `pnpm db:migrate` (la CI parte sempre da un database nuovo).
 - 2026-10-16: verifica indipendente della fase 3 (primo giro): 17 problemi, tutti corretti tranne quelli rinviati come debito (sezione «Verifica indipendente (fase 3)»).
 - Domande nuove per Dan: 13 (stato della richiesta quando il back office annulla un'asta) 14 (ora del promemoria GAR-05) e 15 (prezzi e targa nelle notifiche), in `docs/domande-aperte.md`, con il valore prudente usato intanto.
-- Prossimo passo: secondo giro della verifica indipendente, poi la demo con Dan; poi i problemi della demo della fase 2, quando Dan li indica.
+- Prossimo passo: terzo controllo della verifica indipendente, poi la demo con Dan; poi i problemi della demo della fase 2, quando Dan li indica.
 
 ## Criteri della fase 3
 
@@ -101,6 +101,18 @@ Primo giro, 2026-10-16: revisore indipendente con le istruzioni del `verificator
     - la consegna dell'approvazione al workflow;
     - gli strumenti di sviluppo con `DEV_TOOLS` acceso;
     - un file per scenario: `S07-busta-chiusa.spec.ts`, `S04-asta-deserta.spec.ts`.
+
+Secondo giro, 2026-10-16: lo stesso revisore ha controllato le correzioni (verde `pnpm check`). Il limite massimo del prolungamento risultava corretto qui sopra ma non c'era nel codice: lo script che doveva aggiungerlo non aveva trovato il punto giusto e non aveva dato errore. Problemi del secondo giro e come sono stati chiusi:
+
+1. Limite del prolungamento: ora c'è davvero (la durata d'asta più lunga in vigore, 400 oltre), con il test; anche il numero massimo di agenzie per invito viene dai parametri (`invitations.max`), e la schermata non ha più `max={24}`.
+2. Registro del KMS nell'API senza traccia degli errori: ora un errore di scrittura è un errore nel log.
+3. Workflow già in corso con il comportamento vecchio: la nuova regola sull'asta giusta è dietro `patched("auction-bound-requests")`, così le storie esistenti si rigiocano.
+4. Richieste del back office non applicate senza esito: ora il registro ha `AUCTION_REQUEST_NOT_APPLIED` (altro giro o rifiuto) e `AUCTION_REQUEST_NOT_DELIVERED` (segnale non arrivato, con risposta 500).
+5. Riprovare senza limite senza allarme: dopo circa dieci minuti di tentativi ogni errore di un passo dell'asta è un `ALARM` nel log, con soli identificativi.
+6. Diniego dei filtri personali con una seconda transazione sotto il blocco: ora il controllo VIS-06 avviene prima, in una transazione breve senza blocco.
+7. Valori scritti nel codice: tolto `"09:00"` (si usa il parametro in vigore) e il massimo di 20 agenzie per invito.
+8. Elenco dell'agenzia lento: il filtro personale si legge una volta sola.
+9. PDF delle offerte protetti solo dall'API: ora anche una regola del database li nasconde al richiedente (regola 3, seconda linea).
 
 ## Sessione della fase 2
 

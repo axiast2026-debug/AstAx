@@ -148,16 +148,17 @@ export class AuctionsService {
         orderBy: { invitedAt: "desc" },
         take: 100,
       });
-      // VIS-06: an operator sees only the requests inside their own filters.
-      const invitations: typeof all = [];
-      for (const i of all) {
-        if (await this.offers.withinMemberFilters(tx, auth, i.auction)) invitations.push(i);
-      }
       const requests = await asSystem(tx, () =>
         tx.quoteRequest.findMany({
-          where: { id: { in: invitations.map((i) => i.auction.quoteRequestId) } },
+          where: { id: { in: all.map((i) => i.auction.quoteRequestId) } },
         }),
       );
+      // VIS-06: an operator sees only the requests inside their own filters.
+      const scope = await this.offers.memberScope(tx, auth);
+      const invitations = all.filter((i) => {
+        const request = requests.find((q) => q.id === i.auction.quoteRequestId);
+        return request !== undefined && this.offers.fitsScope(scope, request, i.auction.openedAt);
+      });
       const offers = await tx.offer.findMany({
         where: {
           organizationId: m.organizationId,
@@ -299,6 +300,29 @@ export class AuctionsService {
    * an action id; the workflow gets only the ids (BC-07: no free text in
    * Temporal) and applies it once, to that auction only (ADR 0008).
    */
+  /**
+   * Rule 4: a request that could not reach the workflow is logged as such, with
+   * its action id, and the back office is told (500).
+   */
+  private async deliver(
+    auth: AuthContext,
+    auctionId: string,
+    actionId: string,
+    send: () => Promise<void>,
+  ): Promise<void> {
+    try {
+      await send();
+    } catch {
+      await this.audit.record(actorOf(auth), {
+        action: "AUCTION_REQUEST_NOT_DELIVERED",
+        targetType: "Auction",
+        targetId: auctionId,
+        after: { actionId },
+      });
+      throw new ProblemError("INTERNAL", "The request did not reach the auction");
+    }
+  }
+
   private async request(
     auth: AuthContext,
     auctionId: string,
@@ -326,7 +350,21 @@ export class AuctionsService {
     auctionId: string,
     input: { workingHours: number; reason: string },
   ) {
-    const auction = await withContext(this.db, auth.db, (tx) => this.openAuction(tx, auctionId));
+    const auction = await withContext(this.db, auth.db, async (tx) => {
+      const a = await this.openAuction(tx, auctionId);
+      // ASTA-03, rule 7: an extension is at most the longest auction duration in force.
+      const { "auction.durationsWorkingHours": durations } = await settingsAt(
+        tx,
+        ["auction.durationsWorkingHours"],
+        this.clock.now(),
+      );
+      if (input.workingHours > Math.max(...durations)) {
+        throw new ProblemError("VALIDATION_FAILED", undefined, [
+          { path: "workingHours", issue: "TOO_LONG" },
+        ]);
+      }
+      return a;
+    });
     const actionId = await this.request(
       auth,
       auctionId,
@@ -336,12 +374,14 @@ export class AuctionsService {
         workingHours: input.workingHours,
       },
     );
-    await this.signals.extend(auction.quoteRequestId, {
-      auctionId,
-      actionId,
-      workingHours: input.workingHours,
-      byUserId: auth.userId,
-    });
+    await this.deliver(auth, auctionId, actionId, () =>
+      this.signals.extend(auction.quoteRequestId, {
+        auctionId,
+        actionId,
+        workingHours: input.workingHours,
+        byUserId: auth.userId,
+      }),
+    );
     return { requested: true, actionId };
   }
 
@@ -376,6 +416,12 @@ export class AuctionsService {
           { path: "organizationIds", issue: "NOT_AN_ACTIVE_AGENCY" },
         ]);
       }
+      // ASTA-04, rule 7: at most the invitations allowed for one auction, from its parameters.
+      if (input.organizationIds.length > snapshot["invitations.max"]) {
+        throw new ProblemError("VALIDATION_FAILED", undefined, [
+          { path: "organizationIds", issue: "TOO_MANY" },
+        ]);
+      }
       return a;
     });
     const actionId = await this.request(
@@ -387,12 +433,14 @@ export class AuctionsService {
         organizationIds: input.organizationIds,
       },
     );
-    await this.signals.invite(auction.quoteRequestId, {
-      auctionId,
-      actionId,
-      organizationIds: input.organizationIds,
-      byUserId: auth.userId,
-    });
+    await this.deliver(auth, auctionId, actionId, () =>
+      this.signals.invite(auction.quoteRequestId, {
+        auctionId,
+        actionId,
+        organizationIds: input.organizationIds,
+        byUserId: auth.userId,
+      }),
+    );
     return { requested: true, actionId };
   }
 
@@ -405,11 +453,9 @@ export class AuctionsService {
       input.reason,
       {},
     );
-    await this.signals.cancel(auction.quoteRequestId, {
-      auctionId,
-      actionId,
-      byUserId: auth.userId,
-    });
+    await this.deliver(auth, auctionId, actionId, () =>
+      this.signals.cancel(auction.quoteRequestId, { auctionId, actionId, byUserId: auth.userId }),
+    );
     return { requested: true, actionId };
   }
 }

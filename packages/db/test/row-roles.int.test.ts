@@ -168,3 +168,28 @@ describe("phase 3: row roles, consents and notifications", () => {
     expect(await staff("BO_SUPERVISOR")).toBeGreaterThan(0);
   });
 });
+
+describe("phase 3: PDF quotes of the offers (PRES-02, VIS-04)", () => {
+  it("the requester cannot read the PDF quotes of the request; the system and AstAx can", async () => {
+    const id = await withContext(db, SYSTEM_CONTEXT, async (tx) => {
+      const document = await tx.document.create({
+        data: {
+          kind: "OFFER_QUOTE",
+          ownerUserId: w.giuliaNeri,
+          storageKey: `documents/test-${tag}`,
+          sha256: "x",
+          mime: "application/pdf",
+          size: 1,
+          fileName: "preventivo.pdf",
+          uploadedByUserId: w.ownerUno,
+        },
+      });
+      return document.id;
+    });
+    const seen = (ctx: Parameters<typeof withContext>[1]) =>
+      withContext(db, ctx, (tx) => tx.document.count({ where: { id } }));
+    expect(await seen(asPrivate(w.giuliaNeri))).toBe(0);
+    expect(await seen(asMember(w.boVerifier, w.astax, true, "BO_VERIFIER"))).toBe(1);
+    expect(await seen(SYSTEM_CONTEXT)).toBe(1);
+  });
+});

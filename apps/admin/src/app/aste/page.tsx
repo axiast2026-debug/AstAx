@@ -160,7 +160,6 @@ export default async function AuctionsPage({
                         name="workingHours"
                         type="number"
                         min={1}
-                        max={24}
                         defaultValue={1}
                         required
                         className={`${INPUT} ml-2 w-16`}

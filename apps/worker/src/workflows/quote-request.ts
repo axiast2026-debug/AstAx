@@ -1,4 +1,11 @@
-import { condition, defineSignal, log, proxyActivities, setHandler } from "@temporalio/workflow";
+import {
+  condition,
+  defineSignal,
+  log,
+  patched,
+  proxyActivities,
+  setHandler,
+} from "@temporalio/workflow";
 import { SIGNALS } from "@astax/shared/workflows";
 import type { AuctionActivities, BackOfficeAction, RoundTimes } from "../activities/types.js";
 
@@ -87,6 +94,21 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
     return queue.length === 0;
   }
 
+  /** Rule 4: a back office request that was not applied leaves its outcome in the audit log. */
+  async function outcome(request: BackOfficeRequest, result: "OTHER_ROUND" | "REFUSED") {
+    try {
+      await backOffice.recordBackOfficeOutcome({
+        auctionId: request.auctionId,
+        actionId: request.actionId,
+        byUserId: request.byUserId,
+        kind: request.kind,
+        result,
+      });
+    } catch {
+      log.warn("outcome of a back office request not recorded", { kind: request.kind });
+    }
+  }
+
   /** One round: top-up, reminder and closing; returns the valid offers, or null if cancelled. */
   async function runRound(start: RoundTimes): Promise<number | null> {
     let times = start;
@@ -95,9 +117,12 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
     for (;;) {
       while (queue.length > 0) {
         const request = queue.shift() as BackOfficeRequest;
-        // A request for another round (sent just before a closing) does not apply here.
-        if (request.auctionId !== times.auctionId) {
+        // A request for another round (sent just before a closing) does not apply
+        // here, and its outcome goes to the audit log (rule 4). patched(): the
+        // workflows started before this rule keep their history.
+        if (patched("auction-bound-requests") && request.auctionId !== times.auctionId) {
           log.warn("back office request for another round", { kind: request.kind });
+          await outcome(request, "OTHER_ROUND");
           continue;
         }
         try {
@@ -116,6 +141,7 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
             kind: request.kind,
             auctionId: times.auctionId,
           });
+          await outcome(request, "REFUSED");
         }
         times = await acts.roundTimes({ auctionId: times.auctionId });
       }

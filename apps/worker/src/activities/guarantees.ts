@@ -1,4 +1,10 @@
-import { addRequestEvent, SYSTEM_CONTEXT, withContext, type DbTransaction } from "@astax/db";
+import {
+  addRequestEvent,
+  settingsAt,
+  SYSTEM_CONTEXT,
+  withContext,
+  type DbTransaction,
+} from "@astax/db";
 import {
   addCalendarDays,
   compareOffers,
@@ -79,7 +85,10 @@ export function guaranteeActivities(
       if (best && snapshot) {
         // ASTA-09: the values copied at the opening of the round (question 14 for the time).
         const days = snapshot["guarantee.reminderDaysBefore"];
-        const time = snapshot["guarantee.reminderTime"] ?? "09:00";
+        // A round opened before the parameter existed uses the value in force.
+        const time =
+          snapshot["guarantee.reminderTime"] ??
+          (await settingsAt(tx, ["guarantee.reminderTime"], now))["guarantee.reminderTime"];
         const sent = await tx.quoteRequestEvent.count({
           where: {
             quoteRequestId: request.id,

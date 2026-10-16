@@ -924,7 +924,34 @@ export function auctionActivities(
     await publish(requestId);
   }
 
+  /** Rule 4: the outcome of a back office request the workflow did not apply. */
+  async function recordBackOfficeOutcome(
+    input: BackOfficeAction & {
+      kind: "extend" | "invite" | "cancel";
+      result: "OTHER_ROUND" | "REFUSED";
+    },
+  ) {
+    await inSystem(async (tx) => {
+      const already = await tx.auditLog.count({
+        where: {
+          action: "AUCTION_REQUEST_NOT_APPLIED",
+          targetId: input.auctionId,
+          after: { path: ["actionId"], equals: input.actionId },
+        },
+      });
+      if (already > 0) return;
+      await audit(tx, clock.now(), {
+        action: "AUCTION_REQUEST_NOT_APPLIED",
+        targetType: "Auction",
+        targetId: input.auctionId,
+        actorUserId: input.byUserId,
+        after: { actionId: input.actionId, kind: input.kind, result: input.result },
+      });
+    });
+  }
+
   return {
+    recordBackOfficeOutcome,
     openRound,
     roundTimes,
     reopenPolicy,

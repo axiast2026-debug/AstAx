@@ -30,8 +30,9 @@ const declineSchema = z.strictObject({
     .regex(/^[A-Z_]+$/)
     .optional(),
 });
-const extendSchema = z.strictObject({ workingHours: z.number().int().min(1).max(1000), reason });
-const inviteSchema = z.strictObject({ organizationIds: z.array(uuid).min(1).max(20), reason });
+// Upper limits come from the parameters, checked by the service (rule 7).
+const extendSchema = z.strictObject({ workingHours: z.number().int().min(1), reason });
+const inviteSchema = z.strictObject({ organizationIds: z.array(uuid).min(1), reason });
 const cancelSchema = z.strictObject({ reason });
 
 /**

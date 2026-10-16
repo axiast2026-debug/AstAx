@@ -114,6 +114,9 @@ function fakes(script: Script) {
     async cancelRound(input) {
       record("cancelRound", input);
     },
+    async recordBackOfficeOutcome(input) {
+      record("recordBackOfficeOutcome", input);
+    },
     async guaranteeSchedule(input) {
       record("guaranteeSchedule", input);
       return (
@@ -243,6 +246,11 @@ describe("QuoteRequestWorkflow (ADR 0008)", () => {
     });
     expect(r.names()).not.toContain("cancelRound");
     expect(r.names()).toContain("closeRound");
+    // Rule 4: the request that was not applied leaves its outcome.
+    expect(r.calls.find((c) => c.name === "recordBackOfficeOutcome")?.input).toMatchObject({
+      actionId: "a-9",
+      result: "OTHER_ROUND",
+    });
   });
 
   it("ASTA-06 a cancellation ends the auction without closing it", async () => {

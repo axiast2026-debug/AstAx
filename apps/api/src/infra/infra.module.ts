@@ -12,7 +12,7 @@ import {
 import { FakePlateLookup, type PlateLookupPort } from "@astax/adapters/vehicle-data";
 import { KMS_KEYS, LocalKms } from "@astax/adapters/kms";
 import { createDbClient, kmsEventRecorder, type DbClient } from "@astax/db";
-import { createLogger, type Logger } from "@astax/shared/logging";
+import { createLogger, errorForLog, type Logger } from "@astax/shared/logging";
 import {
   Global,
   Inject,
@@ -146,11 +146,16 @@ export class InfraModule {
         {
           // BC-03, ADR 0005: the API holds only the key of the agencies' own copies.
           provide: KMS,
-          inject: [DB],
-          useFactory: (db: DbClient) =>
+          inject: [DB, LOGGER],
+          useFactory: (db: DbClient, logger: Logger) =>
             new LocalKms(
               { [KMS_KEYS.offerOwner]: config.OFFER_OWNER_MASTER_KEY },
-              kmsEventRecorder(db, "api", () => clock.now(), { wait: false }),
+              kmsEventRecorder(db, "api", () => clock.now(), {
+                wait: false,
+                // The row is the proof of BC-04: a failed write is an error in the log.
+                onError: (error) =>
+                  logger.error({ err: errorForLog(error) }, "KMS event not recorded"),
+              }),
             ),
         },
         {

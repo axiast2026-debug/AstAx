@@ -304,14 +304,11 @@ describe("fase 3: claims and offers (OFF-01..07, BC-02, BC-04, BC-05)", () => {
       return all;
     });
     const everything = Object.values(dump).join(String.fromCharCode(10));
-    for (const plain of [
-      "50500",
-      "51700",
-      "52900",
-      "505,00",
-      "Sconto fedeltà",
-      "Rata mensile possibile",
-    ]) {
+    // A premium as a value of its own: not the same digits inside a hash or an id.
+    for (const cents of ["50500", "51700", "52900"]) {
+      expect(everything, cents).not.toMatch(new RegExp(`(?<![0-9a-fA-F])${cents}(?![0-9a-fA-F])`));
+    }
+    for (const plain of ["505,00", "Sconto fedeltà", "Rata mensile possibile"]) {
       expect(everything, plain).not.toContain(plain);
     }
     for (const table of ["Offer", "OfferVersion"]) {
@@ -446,6 +443,22 @@ describe("fase 3: claims and offers (OFF-01..07, BC-02, BC-04, BC-05)", () => {
 
   it("ASTA-06 the back office extends or cancels with a reason; invitations only in the first half (then 409)", async () => {
     const verifier = await who("bo-verifier", "astax");
+    // Rule 7: at most the longest duration in force (24 working hours), at most invitations.max agencies.
+    const tooLong = await r.json<{ errors: { path: string; issue: string }[] }>(
+      await r.call(verifier, `/auctions/${auctionId}/extend`, {
+        body: { workingHours: 1000, reason: "Troppo lungo" },
+      }),
+      400,
+    );
+    expect(tooLong.errors).toContainEqual({ path: "workingHours", issue: "TOO_LONG" });
+    const nine = Array.from({ length: 9 }, () => orgId("agenzia-quattro"));
+    expect(
+      (
+        await r.call(verifier, `/auctions/${auctionId}/invite`, {
+          body: { organizationIds: nine, reason: "Troppe" },
+        })
+      ).status,
+    ).toBe(400);
     await r.json(
       await r.call(verifier, `/auctions/${auctionId}/extend`, {
         body: { workingHours: 1, reason: "Guasto tecnico" },
