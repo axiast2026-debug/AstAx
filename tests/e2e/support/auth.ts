@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { SystemClock } from "@astax/adapters/clock";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
@@ -77,8 +77,45 @@ export async function loginProfessionalAgain(
   await page.getByRole("button", { name: "Accedi" }).click();
   const otp = page.locator("#otp");
   await expect(otp).toBeVisible();
-  await otp.fill(totp(secret, clock.now().getTime() + 30_000));
+  // Keycloak refuses a code already used: two logins in the same 30-second
+  // step (a fast machine, such as the CI) must wait for the next one.
+  let step = Math.floor((clock.now().getTime() + 30_000) / 30_000);
+  const last = usedSteps.get(secret);
+  if (last !== undefined && step <= last) {
+    await page.waitForTimeout((last + 1) * 30_000 - 30_000 - clock.now().getTime() + 500);
+    step = Math.floor((clock.now().getTime() + 30_000) / 30_000);
+  }
+  usedSteps.set(secret, step);
+  await otp.fill(totp(secret, step * 30_000));
   await page.locator('#kc-otp-login-form [type="submit"]').first().click();
+}
+
+/** The last TOTP step used with each secret in this run. */
+const usedSteps = new Map<string, number>();
+
+/**
+ * TOTP secrets configured during this run, kept in the run's state folder
+ * (never committed): a retried test starts in a new worker and must log in
+ * again, not configure TOTP a second time.
+ */
+const SECRETS_FILE = new URL("../.state/totp.json", import.meta.url);
+
+export function savedSecret(email: string): string | null {
+  return savedSecrets()[email] ?? null;
+}
+
+function savedSecrets(): Record<string, string> {
+  try {
+    return JSON.parse(readFileSync(SECRETS_FILE, "utf8")) as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
+export function saveSecret(email: string, secret: string): void {
+  writeFileSync(SECRETS_FILE, JSON.stringify({ ...savedSecrets(), [email]: secret }), {
+    mode: 0o600,
+  });
 }
 
 /** Number of emails Mailpit holds for an address. */

@@ -8,6 +8,8 @@ import {
   loginPrivate,
   loginProfessional,
   loginProfessionalAgain,
+  savedSecret,
+  saveSecret,
 } from "../support/auth.js";
 import {
   codeFromMail,
@@ -33,8 +35,6 @@ const clock = new SystemClock();
 test.describe.serial("fase 2: richiesta e verifica", () => {
   // Each test goes through the whole wizard and one or two logins.
   test.describe.configure({ timeout: 240_000 });
-  let verifierSecret: string | null = null;
-  let brokerSecret: string | null = null;
 
   async function newPrivate(page: Page): Promise<string> {
     const email = `e2e.giulia.${randomBytes(4).toString("hex")}@example.test`;
@@ -74,9 +74,9 @@ test.describe.serial("fase 2: richiesta e verifica", () => {
     const { users, password } = e2eState();
     await page.goto(ADMIN);
     await page.getByRole("link", { name: "Accedi" }).click();
-    if (verifierSecret)
-      await loginProfessionalAgain(page, users.verifier, password, verifierSecret);
-    else verifierSecret = await loginProfessional(page, users.verifier, password);
+    const secret = savedSecret(users.verifier);
+    if (secret) await loginProfessionalAgain(page, users.verifier, password, secret);
+    else saveSecret(users.verifier, await loginProfessional(page, users.verifier, password));
     await acceptLegalIfAsked(page);
     await expect(page).toHaveURL(`${ADMIN}/`);
   }
@@ -182,8 +182,9 @@ test.describe.serial("fase 2: richiesta e verifica", () => {
   async function broker(page: Page): Promise<void> {
     const { users, password } = e2eState();
     await page.goto(`${WEB}/auth/login?as=pro`);
-    if (brokerSecret) await loginProfessionalAgain(page, users.broker, password, brokerSecret);
-    else brokerSecret = await loginProfessional(page, users.broker, password);
+    const secret = savedSecret(users.broker);
+    if (secret) await loginProfessionalAgain(page, users.broker, password, secret);
+    else saveSecret(users.broker, await loginProfessional(page, users.broker, password));
     await acceptLegalIfAsked(page);
     await expect(page).toHaveURL(`${WEB}/`);
   }

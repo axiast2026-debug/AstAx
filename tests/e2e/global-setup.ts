@@ -147,6 +147,8 @@ export default async function globalSetup(): Promise<void> {
       broker: emailOf("broker"),
     },
   };
+  // OTP was just removed for every E2E user: no saved secret is valid any more.
+  writeFileSync(new URL("./.state/totp.json", import.meta.url), "{}", { mode: 0o600 });
   writeFileSync(new URL("./.state/users.json", import.meta.url), JSON.stringify(state), {
     mode: 0o600,
   });
