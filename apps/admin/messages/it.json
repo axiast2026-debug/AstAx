@@ -235,6 +235,16 @@
     "documentsToUpload": "Documenti da caricare",
     "messageToRequester": "Messaggio al richiedente",
     "askIntegration": "Chiedi l'integrazione",
+    "agencies": {
+      "title": "Agenzie da invitare",
+      "summary": "Approvando ora si invitano {count} agenzie, che coprono: {companies}. Chiusura prevista: {close}.",
+      "none": "Nessuna agenzia compatibile: approvando, la richiesta diventerebbe subito deserta.",
+      "reason": "Motivo dell'esclusione",
+      "exclude": "Escludi",
+      "reserve": "Altre {count} agenzie compatibili restano di riserva (rabbocco e rotazione).",
+      "excluded": "Agenzie escluse",
+      "include": "Reinserisci"
+    },
     "excludeTitle": "Escludi la richiesta",
     "excludeReason": "Motivo",
     "exclude": "Escludi",

@@ -18,6 +18,7 @@ import type { AuthContext } from "../auth/auth-context.js";
 import { CurrentAuth, RequirePermission } from "../auth/decorators.js";
 import { parseInput } from "../http/validation.js";
 import { sendFile } from "../requests/requests.controller.js";
+import { AgencyPreviewService } from "./agency-preview.service.js";
 import { VerificationService } from "./verification.service.js";
 
 const uuid = z.uuid();
@@ -72,7 +73,45 @@ const excludeSchema = z.strictObject({
 @ApiBearerAuth()
 @Controller("verification")
 export class VerificationController {
-  constructor(@Inject(VerificationService) private readonly verification: VerificationService) {}
+  constructor(
+    @Inject(VerificationService) private readonly verification: VerificationService,
+    @Inject(AgencyPreviewService) private readonly agencies: AgencyPreviewService,
+  ) {}
+
+  /** The agencies an approval would invite now (fase 3). */
+  @Get("requests/:id/agencies")
+  @RequirePermission("verification.viewQueue")
+  agencyPreview(@CurrentAuth() auth: AuthContext, @Param("id") id: string) {
+    return this.agencies.preview(auth, parseInput(uuid, id));
+  }
+
+  @Post("requests/:id/agencies/:organizationId/exclude")
+  @HttpCode(200)
+  @RequirePermission("verification.excludeAgency")
+  excludeAgency(
+    @CurrentAuth() auth: AuthContext,
+    @Param("id") id: string,
+    @Param("organizationId") organizationId: string,
+    @Body() body: unknown,
+  ) {
+    return this.agencies.exclude(
+      auth,
+      parseInput(uuid, id),
+      parseInput(uuid, organizationId),
+      parseInput(z.strictObject({ reason }), body).reason,
+    );
+  }
+
+  @Post("requests/:id/agencies/:organizationId/include")
+  @HttpCode(200)
+  @RequirePermission("verification.excludeAgency")
+  includeAgency(
+    @CurrentAuth() auth: AuthContext,
+    @Param("id") id: string,
+    @Param("organizationId") organizationId: string,
+  ) {
+    return this.agencies.include(auth, parseInput(uuid, id), parseInput(uuid, organizationId));
+  }
 
   @Get("queue")
   @RequirePermission("verification.viewQueue")

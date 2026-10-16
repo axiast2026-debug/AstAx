@@ -10,9 +10,19 @@ import {
   assignToMe,
   correct,
   exclude,
+  excludeAgency,
+  includeAgency,
   requestIntegration,
   saveChecklistItem,
 } from "../actions";
+
+interface AgencyPreview {
+  scheduledCloseAt: string;
+  invited: { organizationId: string; name: string; companies: string[] }[];
+  companies: string[];
+  compatibleNotChosen: number;
+  excluded: { organizationId: string; name: string; reason: string }[];
+}
 
 const TONE = { GREEN: "success", YELLOW: "warning", RED: "danger" } as const;
 const SECTIONS = [
@@ -53,6 +63,9 @@ export default async function VerificationCardPage({
   const card = await verificationCard(id);
   const round = card.verification;
   const open = card.status === "IN_VERIFICATION" && round !== null && round.decision === null;
+  const preview = open
+    ? (await api<AgencyPreview>(`/verification/requests/${id}/agencies`)).body
+    : null;
   const highlighted = new Set((round?.checklist ?? []).flatMap((i) => i.fields));
 
   const istatCodes = new Set<string>();
@@ -273,6 +286,78 @@ export default async function VerificationCardPage({
 
           {open && card.quoteData ? (
             <>
+              {preview ? (
+                <Card id="agenzie">
+                  <CardTitle>{t("agencies.title")}</CardTitle>
+                  <p className="mt-1 text-sm text-warm-600">
+                    {t("agencies.summary", {
+                      count: preview.invited.length,
+                      companies: preview.companies.join(", ") || "—",
+                      close: formatDateTime(preview.scheduledCloseAt),
+                    })}
+                  </p>
+                  {preview.invited.length === 0 ? (
+                    <p className="mt-3 text-sm font-medium text-red-700">{t("agencies.none")}</p>
+                  ) : (
+                    <ul className="mt-3 divide-y divide-warm-200 text-sm">
+                      {preview.invited.map((a) => (
+                        <li key={a.organizationId} className="py-2">
+                          <div className="font-medium">{a.name}</div>
+                          <div className="text-warm-600">{a.companies.join(", ")}</div>
+                          <form action={excludeAgency} className="mt-2 flex flex-wrap gap-2">
+                            <input type="hidden" name="requestId" value={card.id} />
+                            <input type="hidden" name="organizationId" value={a.organizationId} />
+                            <label className="sr-only" htmlFor={`reason-${a.organizationId}`}>
+                              {t("agencies.reason")}
+                            </label>
+                            <input
+                              id={`reason-${a.organizationId}`}
+                              name="reason"
+                              required
+                              minLength={3}
+                              placeholder={t("agencies.reason")}
+                              className="flex-1 rounded-lg border border-warm-200 px-3 py-1 text-sm"
+                            />
+                            <Button type="submit" variant="outline" size="sm">
+                              {t("agencies.exclude")}
+                            </Button>
+                          </form>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {preview.compatibleNotChosen > 0 ? (
+                    <p className="mt-2 text-xs text-warm-600">
+                      {t("agencies.reserve", { count: preview.compatibleNotChosen })}
+                    </p>
+                  ) : null}
+                  {preview.excluded.length > 0 ? (
+                    <>
+                      <h3 className="mt-4 text-sm font-semibold">{t("agencies.excluded")}</h3>
+                      <ul className="mt-2 space-y-2 text-sm">
+                        {preview.excluded.map((e) => (
+                          <li
+                            key={e.organizationId}
+                            className="flex flex-wrap items-center justify-between gap-2"
+                          >
+                            <span>
+                              {e.name} · <span className="text-warm-600">{e.reason}</span>
+                            </span>
+                            <form action={includeAgency}>
+                              <input type="hidden" name="requestId" value={card.id} />
+                              <input type="hidden" name="organizationId" value={e.organizationId} />
+                              <Button type="submit" variant="outline" size="sm">
+                                {t("agencies.include")}
+                              </Button>
+                            </form>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  ) : null}
+                </Card>
+              ) : null}
+
               <Card>
                 <CardTitle>{t("decisions")}</CardTitle>
                 <form

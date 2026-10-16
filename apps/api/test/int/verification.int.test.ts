@@ -246,6 +246,64 @@ describe("fase 2: verification queue and card", () => {
     expect(queue.map((q) => q.requestId)).not.toContain(request.id);
   });
 
+  it("ASTA-05 ASTA-06 the card previews the agencies to invite; one left out with a reason is not invited", async () => {
+    interface Preview {
+      invited: { organizationId: string; name: string; companies: string[] }[];
+      companies: string[];
+      excluded: { organizationId: string; reason: string }[];
+    }
+    const request = await r.submittedPrivateRequest(davide, DAVIDE_EMAIL);
+    expect((await r.call(agency, `/verification/requests/${request.id}/agencies`)).status).toBe(
+      403,
+    );
+    const before = await r.json<Preview>(
+      await r.call(verifier, `/verification/requests/${request.id}/agencies`),
+      200,
+    );
+    expect(before.invited.length).toBeGreaterThan(0);
+    expect(before.invited.length).toBeLessThanOrEqual(8);
+    expect(before.companies).toEqual([
+      "Compagnia Alfa",
+      "Compagnia Beta",
+      "Compagnia Delta",
+      "Compagnia Gamma",
+    ]);
+    const first = before.invited[0];
+    await r.json(
+      await r.call(
+        verifier,
+        `/verification/requests/${request.id}/agencies/${first?.organizationId}/exclude`,
+        { body: { reason: "Reclami recenti su questa zona" } },
+      ),
+      200,
+    );
+    const after = await r.json<Preview>(
+      await r.call(verifier, `/verification/requests/${request.id}/agencies`),
+      200,
+    );
+    expect(after.invited.map((a) => a.organizationId)).not.toContain(first?.organizationId);
+    expect(after.excluded).toEqual([
+      expect.objectContaining({
+        organizationId: first?.organizationId,
+        reason: "Reclami recenti su questa zona",
+      }),
+    ]);
+    expect(await audit("AGENCY_EXCLUDED_FROM_AUCTION", request.id)).toHaveLength(1);
+    await r.json(
+      await r.call(
+        verifier,
+        `/verification/requests/${request.id}/agencies/${first?.organizationId}/include`,
+        { body: {} },
+      ),
+      200,
+    );
+    const back = await r.json<Preview>(
+      await r.call(verifier, `/verification/requests/${request.id}/agencies`),
+      200,
+    );
+    expect(back.excluded).toEqual([]);
+  });
+
   it("rule 7: a correction must pass the same checks as a submission", async () => {
     const request = await r.submittedPrivateRequest(davide, DAVIDE_EMAIL);
     const card = await r.json<Card>(

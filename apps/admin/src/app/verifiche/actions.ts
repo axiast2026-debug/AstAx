@@ -120,3 +120,24 @@ export async function correct(formData: FormData): Promise<void> {
   await post(id, "corrections", { quoteData: corrected, reason: value(formData, "reason") ?? "" });
   redirect(`/verifiche/${id}?fatto=corretta`);
 }
+
+function organizationOf(formData: FormData, id: string): string {
+  const organizationId = String(formData.get("organizationId") ?? "");
+  if (!/^[0-9a-f-]{36}$/i.test(organizationId)) redirect(`/verifiche/${id}`);
+  return organizationId;
+}
+
+/** ASTA-06: leaves an agency out of the auction of this request, with the reason. */
+export async function excludeAgency(formData: FormData): Promise<void> {
+  const id = idOf(formData);
+  const organizationId = organizationOf(formData, id);
+  await post(id, `agencies/${organizationId}/exclude`, { reason: value(formData, "reason") ?? "" });
+  redirect(`/verifiche/${id}#agenzie`);
+}
+
+export async function includeAgency(formData: FormData): Promise<void> {
+  const id = idOf(formData);
+  const organizationId = organizationOf(formData, id);
+  await post(id, `agencies/${organizationId}/include`, {});
+  redirect(`/verifiche/${id}#agenzie`);
+}

@@ -235,6 +235,16 @@
     "documentsToUpload": "Dokumentet për t'u ngarkuar",
     "messageToRequester": "Mesazh për kërkuesin",
     "askIntegration": "Kërko plotësimin",
+    "agencies": {
+      "title": "Agjencitë që do të ftohen",
+      "summary": "Nëse miratoni tani, ftohen {count} agjenci, që mbulojnë: {companies}. Mbyllja e parashikuar: {close}.",
+      "none": "Asnjë agjenci e përputhshme: nëse miratoni, kërkesa do të mbetej menjëherë pa oferta.",
+      "reason": "Arsyeja e përjashtimit",
+      "exclude": "Përjashto",
+      "reserve": "{count} agjenci të tjera të përputhshme mbeten rezervë (plotësimi dhe rotacioni).",
+      "excluded": "Agjencitë e përjashtuara",
+      "include": "Rifut"
+    },
     "excludeTitle": "Përjashto kërkesën",
     "excludeReason": "Arsyeja",
     "exclude": "Përjashto",

@@ -2,27 +2,11 @@ import { createHash } from "node:crypto";
 import type { FieldCipher } from "@astax/adapters/crypto";
 import type { DbTransaction, Prisma } from "@astax/db";
 import { canonicalJson } from "@astax/shared/audit";
-import {
-  requireSettingAt,
-  type SettingKey,
-  type SettingValue,
-  type SettingVersion,
-} from "@astax/shared/settings";
 import type { AuthContext } from "../auth/auth-context.js";
 import { ProblemError } from "../http/problem.js";
 
 /** Parameter values in force at `at` (CLAUDE.md rule 7). */
-export async function settingsAt<const K extends SettingKey>(
-  tx: DbTransaction,
-  keys: readonly K[],
-  at: Date,
-): Promise<{ [P in K]: SettingValue<P> }> {
-  const rows = await tx.setting.findMany({ where: { key: { in: [...keys] } } });
-  const versions = rows as unknown as SettingVersion[];
-  const result = {} as { [P in K]: SettingValue<P> };
-  for (const key of keys) result[key] = requireSettingAt(versions, key, at);
-  return result;
-}
+export { settingsAt } from "@astax/db";
 
 /** Owner columns of a new row created by the caller (ADR 0007). */
 export type OwnerColumns =

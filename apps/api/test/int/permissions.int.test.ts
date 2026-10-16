@@ -194,6 +194,23 @@ const ENDPOINTS: Endpoint[] = [
   {
     action: "verification.viewQueue",
     method: "GET",
+    path: () => `/verification/requests/${randomUUID()}/agencies`,
+  },
+  {
+    action: "verification.excludeAgency",
+    method: "POST",
+    path: () => `/verification/requests/${randomUUID()}/agencies/${randomUUID()}/exclude`,
+    body: { reason: "motivo" },
+  },
+  {
+    action: "verification.excludeAgency",
+    method: "POST",
+    path: () => `/verification/requests/${randomUUID()}/agencies/${randomUUID()}/include`,
+    body: {},
+  },
+  {
+    action: "verification.viewQueue",
+    method: "GET",
     path: () => `/verification/requests/${randomUUID()}`,
   },
   {
@@ -314,6 +331,7 @@ describe("SIC-01 every API route is in the table", () => {
               .replace(/\?.*$/, "")
               .replace(/[0-9a-f-]{36}/g, "{id}")
               .replace("/documents/{id}/file", "/documents/{documentId}/file")
+              .replace("/agencies/{id}/", "/agencies/{organizationId}/")
               .replace("/draft/vehicle", "/draft/{section}")
               .replace("/checklist/DOCUMENTS", "/checklist/{code}")
               .replace("/documents/none/", "/documents/{key}/")

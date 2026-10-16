@@ -24,6 +24,7 @@ import { CustomersService } from "./requests/customers.service.js";
 import { ReferenceService } from "./requests/reference.service.js";
 import { RequestsController } from "./requests/requests.controller.js";
 import { RequestsService } from "./requests/requests.service.js";
+import { AgencyPreviewService } from "./verification/agency-preview.service.js";
 import { VerificationController } from "./verification/verification.controller.js";
 import { VerificationService } from "./verification/verification.service.js";
 import { SettingsController } from "./settings/settings.controller.js";
@@ -65,6 +66,7 @@ export class AppModule {
         ConsentService,
         CustomersService,
         VerificationService,
+        AgencyPreviewService,
         IdentitySync,
         { provide: APP_GUARD, useClass: AuthGuard },
         { provide: APP_FILTER, useClass: ProblemFilter },
