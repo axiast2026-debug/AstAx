@@ -136,66 +136,6 @@ export class AuctionsService {
     });
   }
 
-  /** The agency's invitations (VIS-01: data useful to quote, never the customer's contacts). */
-  async forAgency(auth: AuthContext) {
-    const m = auth.membership;
-    // Only agencies are invited: everyone else has an empty list.
-    if (!m || m.organizationType !== "AGENCY") return [];
-    return withContext(this.db, auth.db, async (tx) => {
-      const all = await tx.invitation.findMany({
-        where: { organizationId: m.organizationId },
-        include: { auction: true },
-        orderBy: { invitedAt: "desc" },
-        take: 100,
-      });
-      const requests = await asSystem(tx, () =>
-        tx.quoteRequest.findMany({
-          where: { id: { in: all.map((i) => i.auction.quoteRequestId) } },
-        }),
-      );
-      // VIS-06: an operator sees only the requests inside their own filters.
-      const scope = await this.offers.memberScope(tx, auth);
-      const invitations = all.filter((i) => {
-        const request = requests.find((q) => q.id === i.auction.quoteRequestId);
-        return request !== undefined && this.offers.fitsScope(scope, request, i.auction.openedAt);
-      });
-      const offers = await tx.offer.findMany({
-        where: {
-          organizationId: m.organizationId,
-          auctionId: { in: invitations.map((i) => i.auctionId) },
-        },
-      });
-      const claims = await tx.claim.findMany({
-        where: {
-          organizationId: m.organizationId,
-          releasedAt: null,
-          auctionId: { in: invitations.map((i) => i.auctionId) },
-        },
-      });
-      return invitations.map((i) => {
-        const r = requests.find((q) => q.id === i.auction.quoteRequestId);
-        const offer = offers.find((o) => o.auctionId === i.auctionId && o.status !== "WITHDRAWN");
-        return {
-          auctionId: i.auctionId,
-          code: r?.code ?? "",
-          vehicleType: r?.vehicleType ?? null,
-          province: r?.province ?? null,
-          packageCode: r?.packageCode ?? null,
-          startDate: r?.startDate ? dbDateToCalendarDate(r.startDate) : null,
-          minGuaranteeDate: dbDateToCalendarDate(i.auction.minGuaranteeDate),
-          status: i.auction.status,
-          scheduledCloseAt: i.auction.scheduledCloseAt.toISOString(),
-          invitation: i.status,
-          claimedByMe: claims.some((c) => c.auctionId === i.auctionId && c.userId === auth.userId),
-          claimedByColleague: claims.some(
-            (c) => c.auctionId === i.auctionId && c.userId !== auth.userId,
-          ),
-          offer: offer ? { id: offer.id, status: offer.status, version: offer.version } : null,
-        };
-      });
-    });
-  }
-
   /** BC-01: before the closing nobody reads the offers of a round, staff included. */
   async offersOfRound(auth: AuthContext, auctionId: string) {
     return withContext(this.db, auth.db, async (tx) => {

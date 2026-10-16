@@ -23,6 +23,8 @@ import { CustomersService } from "./requests/customers.service.js";
 import { ReferenceService } from "./requests/reference.service.js";
 import { RequestsController } from "./requests/requests.controller.js";
 import { RequestsService } from "./requests/requests.service.js";
+import { AgencyController } from "./agency/agency.controller.js";
+import { AgencyService } from "./agency/agency.service.js";
 import { AuctionsController } from "./auctions/auctions.controller.js";
 import { AuctionsService } from "./auctions/auctions.service.js";
 import { OffersService } from "./auctions/offers.service.js";
@@ -58,6 +60,7 @@ export class AppModule {
         VerificationController,
         NotificationsController,
         AuctionsController,
+        AgencyController,
         RealtimeController,
         DevToolsController,
       ],
@@ -78,6 +81,7 @@ export class AppModule {
         AgencyPreviewService,
         OffersService,
         AuctionsService,
+        AgencyService,
         RealtimeHub,
         RealtimeGateway,
         DevToolsService,

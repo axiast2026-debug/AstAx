@@ -9,10 +9,28 @@
     "BO_SUPERVISOR": "supervisore del back office",
     "ADMIN": "amministratore"
   },
-  "channel": { "PRIVATE": "privato", "BROKER": "broker" },
-  "outcome": { "GREEN": "verde", "YELLOW": "giallo", "RED": "rosso" },
+  "channel": {
+    "PRIVATE": "privato",
+    "BROKER": "broker"
+  },
+  "outcome": {
+    "GREEN": "verde",
+    "YELLOW": "giallo",
+    "RED": "rosso"
+  },
   "otpPurpose": {
     "PRIVATE_CONSENT": "confermare i consensi della tua richiesta",
     "LINK_CONSENT": "confermare il consenso alla richiesta del tuo broker"
+  },
+  "agencyDocument": {
+    "unreadable": "Documento non visualizzabile in anteprima: chiedi il file all'assistenza AstAx.",
+    "watermark": "{agency} · {user} · {at} · AstAx",
+    "fileName": {
+      "REGISTRATION_CERTIFICATE": "libretto.pdf",
+      "DRIVING_LICENCE": "patente.pdf",
+      "RISK_CERTIFICATE": "attestato.pdf",
+      "FISCAL_CODE_CARD": "codice-fiscale.pdf",
+      "OTHER": "documento.pdf"
+    }
   }
 }

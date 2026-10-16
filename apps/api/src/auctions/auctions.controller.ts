@@ -85,12 +85,6 @@ export class AuctionsController {
 
   // ---------------------------------------------------------------- agency
 
-  @Get("agency/auctions")
-  @RequirePermission("auction.viewStatus")
-  agencyAuctions(@CurrentAuth() auth: AuthContext) {
-    return this.auctions.forAgency(auth);
-  }
-
   @Post("auctions/:id/claim")
   @HttpCode(200)
   @RequirePermission("claim.manage")

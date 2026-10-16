@@ -259,7 +259,25 @@ const ENDPOINTS: Endpoint[] = [
   // Fase 3: auctions and offers
   { action: "auction.viewStatus", method: "GET", path: () => `/requests/${randomUUID()}/auction` },
   { action: "offers.viewPresented", method: "GET", path: () => `/requests/${randomUUID()}/offers` },
-  { action: "auction.viewStatus", method: "GET", path: () => "/agency/auctions" },
+  { action: "auction.viewStatus", method: "GET", path: () => "/agency/dashboard" },
+  { action: "auction.viewStatus", method: "GET", path: () => "/agency/requests" },
+  {
+    action: "request.viewQuoteData",
+    method: "GET",
+    path: () => `/agency/requests/${randomUUID()}`,
+  },
+  {
+    action: "request.viewQuoteData",
+    method: "GET",
+    path: () => `/agency/requests/${randomUUID()}/documents/${randomUUID()}`,
+  },
+  {
+    action: "claim.override",
+    method: "POST",
+    path: () => `/agency/requests/${randomUUID()}/assign`,
+    body: { membershipId: randomUUID() },
+  },
+  { action: "offer.readOwnDuringAuction", method: "GET", path: () => "/agency/offers" },
   {
     action: "claim.manage",
     method: "POST",
@@ -427,6 +445,11 @@ describe("SIC-01 every API route is in the table", () => {
               .replace(/[0-9a-f-]{36}/g, "{id}")
               .replace("/documents/{id}/file", "/documents/{documentId}/file")
               .replace("/agencies/{id}/", "/agencies/{organizationId}/")
+              .replace(
+                "/agency/requests/{id}/documents/{id}",
+                "/agency/requests/{auctionId}/documents/{documentId}",
+              )
+              .replace("/agency/requests/{id}", "/agency/requests/{auctionId}")
               .replace("/draft/vehicle", "/draft/{section}")
               .replace("/checklist/DOCUMENTS", "/checklist/{code}")
               .replace("/documents/none/", "/documents/{key}/")

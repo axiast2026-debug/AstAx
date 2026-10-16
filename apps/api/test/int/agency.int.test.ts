@@ -1,0 +1,196 @@
+import { SYSTEM_CONTEXT, withContext } from "@astax/db";
+import { PDFDocument } from "pdf-lib";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { openTestAuction } from "./auction-helpers.js";
+import {
+  acceptAllLegal,
+  membershipId,
+  orgId,
+  startHarness,
+  type Harness,
+  type UserKey,
+} from "./fixtures.js";
+import { requestHelpers, type Who } from "./request-helpers.js";
+
+// Phase 4: the agency area (spec 04). The private customer is created by this
+// file at the first call, so that no other file depends on it.
+let h: Harness;
+let r: ReturnType<typeof requestHelpers>;
+const CUSTOMER_EMAIL = "privato.agenzia@example.test";
+let requestId: string;
+let auctionId: string;
+
+const who = async (key: UserKey, org: string): Promise<Who> => ({
+  token: await h.tokenFor(key),
+  context: membershipId(key, org),
+});
+const audit = (action: string, targetId?: string) =>
+  withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+    tx.auditLog.findMany({ where: { action, ...(targetId ? { targetId } : {}) } }),
+  );
+
+/** VIS-01: none of the customer's contacts, anywhere in an answer to an agency. */
+function noContacts(body: unknown) {
+  const text = JSON.stringify(body);
+  for (const contact of [CUSTOMER_EMAIL, "@example.test", "+39"]) {
+    expect(text).not.toContain(contact);
+  }
+}
+
+beforeAll(async () => {
+  h = await startHarness();
+  r = requestHelpers(h);
+  for (const key of [
+    "bo-verifier",
+    "agenzia-uno-owner",
+    "agenzia-uno-supervisor",
+    "agenzia-uno-operator",
+    "agenzia-due-owner",
+    "agenzia-tre-owner",
+  ] as const) {
+    await acceptAllLegal(h, key);
+  }
+  const customer = {
+    token: await h.token({
+      sub: "kc-private-agency-test",
+      azp: "astax-web-private",
+      roles: ["astax-private"],
+      email: CUSTOMER_EMAIL,
+      givenName: "Privato",
+      familyName: "Agenzia",
+    }),
+  };
+  const pending = (await (await h.call("/legal/pending", customer)).json()) as {
+    versionId: string;
+  }[];
+  await h.call("/legal/acceptances", {
+    ...customer,
+    body: { versionIds: pending.map((p) => p.versionId) },
+  });
+  const request = await r.submittedPrivateRequest(customer, CUSTOMER_EMAIL);
+  requestId = request.id;
+  await r.json(
+    await r.call(await who("bo-verifier", "astax"), `/verification/requests/${requestId}/approve`, {
+      body: {},
+    }),
+    200,
+  );
+  auctionId = await openTestAuction(h, requestId, ["agenzia-uno", "agenzia-tre"]);
+});
+
+afterAll(async () => {
+  await h.close();
+});
+
+describe("fase 4: the agency area (spec 04)", () => {
+  it("«Richieste in arrivo»: the request in target with the columns of the spec, never a contact", async () => {
+    const rows = await r.json<{ auctionId: string; state: string; packageName: string }[]>(
+      await r.call(await who("agenzia-uno-owner", "agenzia-uno"), "/agency/requests"),
+      200,
+    );
+    const row = rows.find((x) => x.auctionId === auctionId);
+    expect(row).toMatchObject({
+      state: "NEW",
+      vehicleType: "CAR",
+      cuClass: 1,
+      minValidityDays: 15,
+      auctionStatus: "OPEN",
+    });
+    noContacts(rows);
+    // Agenzia Due is not invited.
+    const due = await r.json<{ auctionId: string }[]>(
+      await r.call(await who("agenzia-due-owner", "agenzia-due"), "/agency/requests"),
+      200,
+    );
+    expect(due.map((x) => x.auctionId)).not.toContain(auctionId);
+  });
+
+  it("VIS-01 VIS-09 the detail has every datum useful to quote, no contact, and the opening is logged", async () => {
+    const detail = await r.json<{
+      quoteData: { vehicle: { plate: string } };
+      documents: { id: string; kind: string }[];
+      accessLogged: boolean;
+      companies: { name: string }[];
+    }>(
+      await r.call(await who("agenzia-uno-owner", "agenzia-uno"), `/agency/requests/${auctionId}`),
+      200,
+    );
+    expect(detail.quoteData.vehicle.plate).toBe("GN123AB");
+    expect(detail.accessLogged).toBe(true);
+    expect(detail.companies.map((c) => c.name).sort()).toEqual([
+      "Compagnia Alfa",
+      "Compagnia Beta",
+    ]);
+    expect(detail.documents.map((d) => d.kind)).not.toContain("CONSENT_FORM");
+    noContacts(detail);
+    const logged = await audit("QUOTE_DATA_VIEWED", requestId);
+    expect(logged.some((l) => l.actorOrganizationId === orgId("agenzia-uno"))).toBe(true);
+    const invitation = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.invitation.findFirstOrThrow({
+        where: { auctionId, organizationId: orgId("agenzia-uno") },
+      }),
+    );
+    expect(invitation.status).toBe("VIEWED");
+  });
+
+  it("VIS-10 a document reaches the agency as a PDF with the watermark: agency, user, date and time", async () => {
+    const uno = await who("agenzia-uno-owner", "agenzia-uno");
+    const detail = await r.json<{ documents: { id: string; kind: string }[] }>(
+      await r.call(uno, `/agency/requests/${auctionId}`),
+      200,
+    );
+    const document = detail.documents[0];
+    const response = await r.call(uno, `/agency/requests/${auctionId}/documents/${document?.id}`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("application/pdf");
+    // The original file name may hold the customer's name: never sent (VIS-01).
+    expect(response.headers.get("content-disposition")).not.toContain("giulia");
+    const pdf = await PDFDocument.load(new Uint8Array(await response.arrayBuffer()));
+    const keywords = pdf.getKeywords() ?? "";
+    expect(keywords).toContain("Agenzia Uno");
+    expect(keywords).toContain("Anna Moretti");
+    expect(keywords).toMatch(/\d{2}\/\d{2}\/\d{2}, \d{2}:\d{2}/);
+    expect(await audit("DOCUMENT_VIEWED", document?.id)).toHaveLength(1);
+  });
+
+  it("an agency not invited gets 404 for the request and its documents, logged", async () => {
+    const due = await who("agenzia-due-owner", "agenzia-due");
+    expect((await r.call(due, `/agency/requests/${auctionId}`)).status).toBe(404);
+    const denied = await audit("ACCESS_DENIED", auctionId);
+    expect(denied.some((d) => d.actorOrganizationId === orgId("agenzia-due"))).toBe(true);
+  });
+
+  it("OFF-03 two users of the same agency claim at the same instant: only one succeeds", async () => {
+    const [a, b] = await Promise.all([
+      r.call(await who("agenzia-uno-owner", "agenzia-uno"), `/auctions/${auctionId}/claim`, {
+        body: {},
+      }),
+      r.call(await who("agenzia-uno-operator", "agenzia-uno"), `/auctions/${auctionId}/claim`, {
+        body: {},
+      }),
+    ]);
+    expect([a.status, b.status].sort()).toEqual([200, 409]);
+    const claims = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.claim.count({
+        where: { auctionId, organizationId: orgId("agenzia-uno"), releasedAt: null },
+      }),
+    );
+    expect(claims).toBe(1);
+  });
+
+  it("OFF-03 the supervisor gives the claim to the operator, who then offers", async () => {
+    const supervisor = await who("agenzia-uno-supervisor", "agenzia-uno");
+    await r.json(
+      await r.call(supervisor, `/agency/requests/${auctionId}/assign`, {
+        body: { membershipId: membershipId("agenzia-uno-operator", "agenzia-uno") },
+      }),
+      200,
+    );
+    const rows = await r.json<{ auctionId: string; state: string }[]>(
+      await r.call(await who("agenzia-uno-operator", "agenzia-uno"), "/agency/requests"),
+      200,
+    );
+    expect(rows.find((x) => x.auctionId === auctionId)?.state).toBe("CLAIMED_BY_ME");
+    expect(await audit("AUCTION_CLAIM_ASSIGNED", auctionId)).toHaveLength(1);
+  });
+});
