@@ -245,6 +245,10 @@ export const PERMISSIONS = {
     grants: ["ADMIN"],
     conditions: "integration status, reports and exports",
   },
+  "devTools.use": {
+    grants: ["BO_VERIFIER", "BO_SUPERVISOR", "ADMIN"],
+    conditions: "only with DEV_TOOLS=true, never in production (rule 13)",
+  },
 } as const satisfies Record<string, ActionRule>;
 
 export type Action = keyof typeof PERMISSIONS;

@@ -47,3 +47,16 @@ export async function revokeConsent(formData: FormData): Promise<void> {
   }
   redirect(target);
 }
+
+/**
+ * A ticket for the realtime connection of this browser (ADR 0008): valid 30
+ * seconds, usable once; the API token stays on the server.
+ */
+export async function realtimeTicket(): Promise<{ ticket: string; url: string } | null> {
+  const { status, body } = await api<{ ticket: string }>("/realtime/ticket", {
+    method: "POST",
+    body: "{}",
+  });
+  if (status !== 201) return null;
+  return { ticket: body.ticket, url: process.env.API_PUBLIC_URL ?? process.env.API_URL ?? "" };
+}

@@ -26,6 +26,10 @@ import { RequestsService } from "./requests/requests.service.js";
 import { AuctionsController } from "./auctions/auctions.controller.js";
 import { AuctionsService } from "./auctions/auctions.service.js";
 import { OffersService } from "./auctions/offers.service.js";
+import { DevToolsController } from "./dev/dev-tools.controller.js";
+import { DevToolsService } from "./dev/dev-tools.service.js";
+import { RealtimeController } from "./realtime/realtime.controller.js";
+import { RealtimeGateway } from "./realtime/realtime.gateway.js";
 import { RealtimeHub } from "./realtime/realtime-hub.js";
 import { AgencyPreviewService } from "./verification/agency-preview.service.js";
 import { VerificationController } from "./verification/verification.controller.js";
@@ -54,6 +58,8 @@ export class AppModule {
         VerificationController,
         NotificationsController,
         AuctionsController,
+        RealtimeController,
+        DevToolsController,
       ],
       providers: [
         AuditService,
@@ -73,6 +79,8 @@ export class AppModule {
         OffersService,
         AuctionsService,
         RealtimeHub,
+        RealtimeGateway,
+        DevToolsService,
         IdentitySync,
         { provide: APP_GUARD, useClass: AuthGuard },
         { provide: APP_FILTER, useClass: ProblemFilter },

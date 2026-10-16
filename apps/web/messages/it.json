@@ -247,7 +247,17 @@
     "CORRECTED": "Dati corretti dal back office",
     "APPROVED": "Verifica superata",
     "EXCLUDED": "Richiesta esclusa dall'asta",
-    "CANCELLED": "Richiesta annullata"
+    "CANCELLED": "Richiesta annullata",
+    "AUCTION_OPENED": "Asta aperta",
+    "AUCTION_TOPPED_UP": "Invitate altre agenzie",
+    "AUCTION_EXTENDED": "Chiusura prolungata dal back office",
+    "AUCTION_INVITATIONS_ADDED": "Il back office ha invitato altre agenzie",
+    "AUCTION_CLOSED": "Asta chiusa",
+    "AUCTION_REOPENED": "Asta riaperta con altre agenzie",
+    "AUCTION_CANCELLED": "Asta annullata dal back office",
+    "DESERTED": "Nessuna offerta valida",
+    "GUARANTEE_REMINDER_SENT": "Promemoria sulla garanzia dell'offerta migliore",
+    "EXPIRED": "Garanzie scadute"
   },
   "requestView": {
     "title": "Richiesta {code}",
@@ -524,5 +534,18 @@
       "afterSubmit": "Dopo l'invio il back office verifica la richiesta; l'asta parte appena è approvata e dura le ore lavorative che hai scelto.",
       "submit": "Invia la richiesta"
     }
+  },
+  "auctionView": {
+    "title": "Asta",
+    "closesIn": "Chiude tra",
+    "closesAt": "Chiusura",
+    "closing": "In chiusura",
+    "offers": "Offerte arrivate",
+    "invited": "Agenzie invitate",
+    "noOffers": "Nessuna offerta valida in questo giro.",
+    "bestPerCompany": "Per ogni compagnia la migliore offerta. I prezzi includono imposte e contributo SSN.",
+    "cheapest": "Più conveniente",
+    "guaranteedUntil": "Garantito fino al {date}",
+    "expired": "Garanzia scaduta il {date}: non più accettabile"
   }
 }

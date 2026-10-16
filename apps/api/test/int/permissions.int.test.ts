@@ -311,6 +311,26 @@ const ENDPOINTS: Endpoint[] = [
     sealed: true,
   },
   { action: "auction.viewStatus", method: "GET", path: () => "/auctions" },
+  { action: "notification.viewOwn", method: "POST", path: () => "/realtime/ticket", body: {} },
+  // rule 13: with DEV_TOOLS=false (the tests) the allowed roles get 404.
+  {
+    action: "devTools.use",
+    method: "POST",
+    path: () => `/dev/requests/${randomUUID()}/fire-next-timer`,
+    body: {},
+  },
+  {
+    action: "devTools.use",
+    method: "POST",
+    path: () => `/dev/auctions/${randomUUID()}/test-offers`,
+    body: {},
+  },
+  {
+    action: "devTools.use",
+    method: "POST",
+    path: () => "/dev/clock",
+    body: { advanceMinutes: 60 },
+  },
   {
     action: "auction.manage",
     method: "POST",

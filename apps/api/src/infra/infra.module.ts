@@ -1,4 +1,4 @@
-import { SystemClock, type Clock } from "@astax/adapters/clock";
+import { OffsetClock, SystemClock, type Clock } from "@astax/adapters/clock";
 import { LocalFieldCipher } from "@astax/adapters/crypto";
 import { MailpitEmailSender, type EmailSender } from "@astax/adapters/email";
 import { KeycloakAdmin } from "@astax/adapters/identity";
@@ -94,7 +94,10 @@ class DbLifecycle implements OnApplicationShutdown {
 @Module({})
 export class InfraModule {
   static forRoot(config: ApiConfig, overrides: InfraOverrides = {}): DynamicModule {
-    const clock = overrides.clock ?? new SystemClock();
+    // rule 13: in development the application clock can be moved forward (DevToolsService).
+    const clock =
+      overrides.clock ??
+      (config.DEV_TOOLS ? new OffsetClock(new SystemClock()) : new SystemClock());
     const emailSender =
       overrides.emailSender ??
       new MailpitEmailSender(config.MAILPIT_URL, { email: config.EMAIL_FROM, name: "AstAx" });

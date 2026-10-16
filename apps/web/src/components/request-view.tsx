@@ -1,8 +1,12 @@
-import { formatDateTime } from "@astax/shared/format";
+import { formatDate, formatDateTime, formatEuroCents } from "@astax/shared/format";
 import { Badge, Button, Card, CardTitle } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
+import { realtimeTicket } from "@/app/actions";
 import { cancelRequest } from "@/app/request-actions";
+import { Countdown } from "@/components/countdown";
+import { LiveRefresh } from "@/components/live-refresh";
+import { api } from "@/lib/auth";
 import { ErrorSummary } from "@/components/form";
 import { holderName } from "@/components/wizard/drivers-step";
 import { STEP_SECTIONS, type RequestDetail, type WizardStep } from "@/lib/requests";
@@ -18,6 +22,99 @@ const STATUS_TONE: Record<string, "neutral" | "success" | "warning" | "danger" |
 export async function StatusBadge({ status }: { status: string }) {
   const t = await getTranslations("requestStatus");
   return <Badge tone={STATUS_TONE[status] ?? "dark"}>{t(status)}</Badge>;
+}
+
+interface AuctionStatus {
+  status: string;
+  auction: {
+    round: number;
+    kind: string;
+    status: string;
+    scheduledCloseAt: string;
+    closedAt: string | null;
+    offers: number | null;
+    invitedAgencies?: number;
+  } | null;
+}
+
+interface PresentedOffer {
+  id: string;
+  company: string;
+  product: string;
+  annualGrossPremiumCents: number;
+  guaranteeUntil: string;
+  guaranteed: boolean;
+}
+
+const AUCTION_STATUSES = ["AUCTION_OPEN", "OFFERS_AVAILABLE", "DESERTED", "EXPIRED"];
+
+/**
+ * The auction for its requester (VIS-03, VIS-04, PRES-02): during it the
+ * countdown and the number of offers (the broker also the invited agencies),
+ * no price; after it, the best offer per company, no agency name.
+ */
+async function AuctionPanel({ requestId }: { requestId: string }) {
+  const t = await getTranslations("auctionView");
+  const { body: status } = await api<AuctionStatus>(`/requests/${requestId}/auction`);
+  const a = status.auction;
+  if (!a) return null;
+  const open = a.status === "OPEN";
+  const offers = open
+    ? []
+    : (await api<{ offers: PresentedOffer[] }>(`/requests/${requestId}/offers`)).body.offers;
+  return (
+    <Card>
+      <CardTitle>{t("title")}</CardTitle>
+      {open ? (
+        <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-[12rem_1fr]">
+          <dt className="text-warm-600">{t("closesIn")}</dt>
+          <dd className="text-lg font-semibold">
+            <Countdown until={a.scheduledCloseAt} closedLabel={t("closing")} />
+          </dd>
+          <dt className="text-warm-600">{t("closesAt")}</dt>
+          <dd>{formatDateTime(a.scheduledCloseAt)}</dd>
+          <dt className="text-warm-600">{t("offers")}</dt>
+          <dd className="tabular">{a.offers ?? 0}</dd>
+          {a.invitedAgencies !== undefined ? (
+            <>
+              <dt className="text-warm-600">{t("invited")}</dt>
+              <dd className="tabular">{a.invitedAgencies}</dd>
+            </>
+          ) : null}
+        </dl>
+      ) : offers.length === 0 ? (
+        <p className="mt-2 text-sm">{t("noOffers")}</p>
+      ) : (
+        <>
+          <p className="mt-1 text-sm text-warm-600">{t("bestPerCompany")}</p>
+          <ul className="mt-3 divide-y divide-warm-200 text-sm">
+            {offers.map((o, i) => (
+              <li key={o.id} className={o.guaranteed ? "py-3" : "py-3 text-warm-600"}>
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-medium">
+                    {o.company} · {o.product}
+                    {i === 0 && o.guaranteed ? (
+                      <Badge tone="success" className="ml-2">
+                        {t("cheapest")}
+                      </Badge>
+                    ) : null}
+                  </span>
+                  <span className="text-lg font-semibold tabular">
+                    {formatEuroCents(o.annualGrossPremiumCents)}
+                  </span>
+                </div>
+                <div>
+                  {o.guaranteed
+                    ? t("guaranteedUntil", { date: formatDate(o.guaranteeUntil) })
+                    : t("expired", { date: formatDate(o.guaranteeUntil) })}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </Card>
+  );
 }
 
 /**
@@ -100,6 +197,12 @@ export async function RequestView({
           <CardTitle>{t("excludedTitle")}</CardTitle>
           <p className="mt-2 text-sm">{detail.lastDecision?.message}</p>
         </Card>
+      ) : null}
+
+      {AUCTION_STATUSES.includes(detail.status) ? <AuctionPanel requestId={detail.id} /> : null}
+      {AUCTION_STATUSES.includes(detail.status) ||
+      (detail.status === "IN_VERIFICATION" && approved) ? (
+        <LiveRefresh ticket={realtimeTicket} follow={{ requestId: detail.id }} />
       ) : null}
 
       {data ? (

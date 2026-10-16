@@ -300,5 +300,35 @@
       "CONSENT_FORM": "Consenso firmato",
       "OTHER": "Altro"
     }
+  },
+  "auctions": {
+    "title": "Aste",
+    "intro": "Aste aperte e chiuse negli ultimi 7 giorni. Prima della chiusura si vedono solo i contatori, mai i prezzi.",
+    "empty": "Nessuna asta.",
+    "done": "Richiesta inviata: la vedrai applicata tra pochi istanti.",
+    "error": "Azione non riuscita ({code}).",
+    "round": "Giro {round} · {kind}",
+    "kind": {
+      "MAIN": "asta",
+      "REOPEN": "riapertura",
+      "RECONFIRMATION": "riconferma"
+    },
+    "status": {
+      "OPEN": "Aperta",
+      "CLOSING": "In chiusura",
+      "CLOSED": "Chiusa",
+      "CANCELLED": "Annullata"
+    },
+    "closesAt": "Chiusura",
+    "closedAt": "Chiusa il",
+    "extended": "prolungata",
+    "invited": "Agenzie invitate",
+    "offers": "Offerte arrivate",
+    "hours": "Ore lavorative",
+    "reason": "Motivo",
+    "agency": "Agenzia",
+    "extend": "Prolunga",
+    "invite": "Invita",
+    "cancel": "Annulla l'asta"
   }
 }

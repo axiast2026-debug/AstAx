@@ -428,11 +428,10 @@ describe("fase 3: claims and offers (OFF-01..07, BC-02, BC-04, BC-05)", () => {
         })
       ).status,
     ).toBe(403);
-    const list = await r.json<{ auctionId: string; offers: number | null; invited: number }[]>(
-      await r.call(verifierLater, "/auctions"),
-      200,
-    );
-    const row = list.find((a) => a.auctionId === auctionId);
+    const list = await r.json<{
+      auctions: { auctionId: string; offers: number | null; invited: number }[];
+    }>(await r.call(verifierLater, "/auctions"), 200);
+    const row = list.auctions.find((a) => a.auctionId === auctionId);
     expect(row).toMatchObject({ offers: 1, invited: 3 });
     expect(JSON.stringify(row)).not.toContain("499");
   });

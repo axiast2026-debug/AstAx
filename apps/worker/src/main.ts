@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { SystemClock } from "@astax/adapters/clock";
+import { DEV_CLOCK_OFFSET_KEY, OffsetClock, SystemClock } from "@astax/adapters/clock";
 import { LocalFieldCipher } from "@astax/adapters/crypto";
 import { MailpitEmailSender } from "@astax/adapters/email";
 import { KMS_KEYS, LocalKms } from "@astax/adapters/kms";
@@ -38,13 +38,23 @@ function storageFor(config: WorkerConfig): ObjectStoragePort {
 loadEnv(import.meta.dirname);
 const config = loadWorkerConfig(process.env);
 const logger = createLogger({ name: "worker", level: config.LOG_LEVEL });
-const clock = new SystemClock();
+// rule 13: in development the application clock can be moved forward, shared with the API.
+const clock = config.DEV_TOOLS ? new OffsetClock(new SystemClock()) : new SystemClock();
 const db = createDbClient(config.DATABASE_URL);
 const address = config.TEMPORAL_ADDRESS ?? `127.0.0.1:${config.TEMPORAL_PORT}`;
 
 const redis = createClient({ url: config.REDIS_URL ?? `redis://127.0.0.1:${config.REDIS_PORT}` });
 redis.on("error", (error: unknown) => logger.warn({ err: errorForLog(error) }, "redis error"));
 await redis.connect();
+const devClockTimer =
+  clock instanceof OffsetClock
+    ? setInterval(() => {
+        redis
+          .get(DEV_CLOCK_OFFSET_KEY)
+          .then((value) => clock.setOffset(Number(value ?? 0) || 0))
+          .catch(() => undefined);
+      }, 2000)
+    : undefined;
 const publish = async (event: RealtimeEvent) => {
   await redis.publish(REALTIME_CHANNEL, JSON.stringify(event));
 };
@@ -107,6 +117,7 @@ const outboxTimer =
 
 const stop = () => {
   clearInterval(outboxTimer);
+  clearInterval(devClockTimer);
   worker.shutdown();
 };
 process.once("SIGINT", stop);

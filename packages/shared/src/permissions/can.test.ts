@@ -130,6 +130,7 @@ const EXPECTED: Record<ActorRole, Action[]> = {
   ],
   BO_VERIFIER: [
     ...PRO_SELF,
+    "devTools.use",
     "request.viewQuoteData",
     "customer.viewContacts",
     "verification.viewQueue",
@@ -169,6 +170,7 @@ const EXPECTED: Record<ActorRole, Action[]> = {
   ],
   BO_SUPERVISOR: [
     ...PRO_SELF,
+    "devTools.use",
     "request.cancel",
     "request.viewQuoteData",
     "customer.viewContacts",
@@ -198,6 +200,7 @@ const EXPECTED: Record<ActorRole, Action[]> = {
   ],
   ADMIN: [
     ...PRO_SELF,
+    "devTools.use",
     "request.viewQuoteData",
     "customer.viewContacts",
     "verification.viewQueue",

@@ -26,3 +26,14 @@ describe("Clock", () => {
     expect(Number.isNaN(new SystemClock().now().getTime())).toBe(false);
   });
 });
+
+describe("OffsetClock (rule 13, development only)", () => {
+  it("moves the application time forward, never back", async () => {
+    const { OffsetClock } = await import("./offset-clock.js");
+    const { ManualClock } = await import("./manual-clock.js");
+    const clock = new OffsetClock(new ManualClock("2026-11-16T08:00:00.000Z"));
+    clock.setOffset(90 * 60_000);
+    expect(clock.now().toISOString()).toBe("2026-11-16T09:30:00.000Z");
+    expect(() => clock.setOffset(-1)).toThrow(/forward/);
+  });
+});

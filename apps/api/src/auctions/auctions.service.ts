@@ -258,7 +258,13 @@ export class AuctionsService {
           closedAt: a.closedAt?.toISOString() ?? null,
         });
       }
-      return rows;
+      // Active agencies, for the invitations by the back office (ASTA-06).
+      const agencies = await tx.organization.findMany({
+        where: { type: "AGENCY", status: "ACTIVE" },
+        orderBy: { legalName: "asc" },
+        select: { id: true, legalName: true },
+      });
+      return { auctions: rows, agencies: agencies.map((a) => ({ id: a.id, name: a.legalName })) };
     });
   }
 

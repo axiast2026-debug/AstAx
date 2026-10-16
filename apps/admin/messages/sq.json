@@ -300,5 +300,35 @@
       "CONSENT_FORM": "Pëlqimi i firmosur",
       "OTHER": "Tjetër"
     }
+  },
+  "auctions": {
+    "title": "Ankandet",
+    "intro": "Ankandet e hapura dhe ato të mbyllura në 7 ditët e fundit. Para mbylljes shihen vetëm numëruesit, kurrë çmimet.",
+    "empty": "Asnjë ankand.",
+    "done": "Kërkesa u dërgua: do ta shohësh të zbatuar pas pak çastesh.",
+    "error": "Veprimi nuk u krye ({code}).",
+    "round": "Raundi {round} · {kind}",
+    "kind": {
+      "MAIN": "ankand",
+      "REOPEN": "rihapje",
+      "RECONFIRMATION": "rikonfirmim"
+    },
+    "status": {
+      "OPEN": "I hapur",
+      "CLOSING": "Në mbyllje",
+      "CLOSED": "I mbyllur",
+      "CANCELLED": "I anuluar"
+    },
+    "closesAt": "Mbyllja",
+    "closedAt": "U mbyll më",
+    "extended": "i zgjatur",
+    "invited": "Agjenci të ftuara",
+    "offers": "Oferta të ardhura",
+    "hours": "Orë pune",
+    "reason": "Arsyeja",
+    "agency": "Agjencia",
+    "extend": "Zgjat",
+    "invite": "Fto",
+    "cancel": "Anulo ankandin"
   }
 }

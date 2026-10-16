@@ -26,6 +26,8 @@ const configSchema = z
     KEYCLOAK_API_ADMIN_SECRET: z.string().min(16),
     /** Public address of apps/web, used in links sent by email. */
     WEB_URL: z.url().default("http://localhost:3000"),
+    /** Public address of apps/admin, allowed to open the realtime connection. */
+    ADMIN_URL: z.url().default("http://localhost:3001"),
     /** Development email delivery (Mailpit); production uses a real provider (phase 8). */
     MAILPIT_URL: z.url().default("http://127.0.0.1:8025"),
     EMAIL_FROM: z.email().default("noreply@astax.test"),

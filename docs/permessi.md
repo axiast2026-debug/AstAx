@@ -30,6 +30,7 @@ Abilitazioni aggiuntive di un'appartenenza, decise dal titolare:
 | Azione | Chi | Condizioni |
 | --- | --- | --- |
 | Creare e inviare una richiesta | `PRIVATE`; `OWNER` e `OPERATOR` di broker | Consenso presente (LEG-04) |
+| Strumenti di sviluppo (far scattare un timer, offerte di prova, orologio in avanti) | `BO_VERIFIER`, `BO_SUPERVISOR`, `ADMIN` | Solo con `DEV_TOOLS=true`, mai in produzione (regola 13) |
 | Revocare il consenso alla condivisione con le agenzie | `PRIVATE` (propri consensi); `OWNER` e `OPERATOR` di broker (consensi dei propri clienti) | LEG-04: da allora non si aprono nuove aste per il cliente |
 | Vedere la propria richiesta, la cronologia, i propri documenti | `PRIVATE`; broker | Broker: clienti dell'organizzazione; `OPERATOR` solo i propri, salvo `seesAllClients` |
 | Annullare una richiesta | Richiedente; `BO_SUPERVISOR` | Solo prima dell'accettazione |
