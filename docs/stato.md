@@ -8,7 +8,7 @@ Claude Code aggiorna questo file alla fine di ogni sessione di lavoro e alla chi
 | --- | --- | --- | --- |
 | 1. Fondamenta | Chiusa | 2026-10-15 | Criteri soddisfatti; verifica indipendente in due giri; demo vista e chiusura confermata da Dan |
 | 2. Richiesta e verifica | In verifica | | Criteri con prova; verifica indipendente in due giri, problemi corretti; CI verde. Demo provata da Dan il 2026-10-16: «tante cose non tornano», da riprendere in seguito; non chiusa |
-| 3. Motore d'asta | In corso | | Tutti i passi del piano fatti, criteri con prova; mancano la verifica indipendente e la demo con Dan |
+| 3. Motore d'asta | In verifica | | Criteri con prova; verifica indipendente in tre giri, problemi corretti; manca la demo con Dan |
 | 4. Offerte | Da iniziare | | |
 | 5. Accettazione | Da iniziare | | |
 | 6. Dopo l'acquisto | Da iniziare | | |
@@ -36,7 +36,7 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
   - nel database di sviluppo mancava una migrazione e la chiusura si bloccava: rilanciato `pnpm db:migrate` (la CI parte sempre da un database nuovo).
 - 2026-10-16: verifica indipendente della fase 3 (primo giro): 17 problemi, tutti corretti tranne quelli rinviati come debito (sezione «Verifica indipendente (fase 3)»).
 - Domande nuove per Dan: 13 (stato della richiesta quando il back office annulla un'asta) 14 (ora del promemoria GAR-05) e 15 (prezzi e targa nelle notifiche), in `docs/domande-aperte.md`, con il valore prudente usato intanto.
-- Prossimo passo: terzo controllo della verifica indipendente, poi la demo con Dan; poi i problemi della demo della fase 2, quando Dan li indica.
+- Prossimo passo: la demo con Dan (verifica indipendente in tre giri, problemi chiusi o dichiarati); poi i problemi della demo della fase 2, quando Dan li indica.
 
 ## Criteri della fase 3
 
@@ -113,6 +113,15 @@ Secondo giro, 2026-10-16: lo stesso revisore ha controllato le correzioni (verde
 7. Valori scritti nel codice: tolto `"09:00"` (si usa il parametro in vigore) e il massimo di 20 agenzie per invito.
 8. Elenco dell'agenzia lento: il filtro personale si legge una volta sola.
 9. PDF delle offerte protetti solo dall'API: ora anche una regola del database li nasconde al richiedente (regola 3, seconda linea).
+
+Terzo giro, 2026-10-16: 7 punti su 9 chiusi; corretti anche i due rimasti e due osservazioni nuove.
+
+1. VIS-06 vale ora anche per «non interessato» e per «ritira offerta».
+2. Tutti i rami nuovi del workflow (asta giusta, esito delle richieste rifiutate) stanno dietro lo stesso `patched()`: una storia vecchia si rigioca con il comportamento vecchio.
+3. Il limite del prolungamento usa le durate copiate all'apertura dell'asta (ASTA-09); `auction.durationsWorkingHours` entra nella copia dei parametri.
+4. Gli errori che non sono nostri arrivano a Temporal e all'allarme senza messaggio (un errore di lettura del JSON cita il testo letto), con il test.
+
+Limite dichiarato: la concorrenza tra invio e chiusura (BC-05) è provata nei due ordini, ma in ciascun test una delle due parti è una transazione scritta nel test con lo stesso blocco sulla riga, non il codice dell'API contro quello del worker insieme; la regola del database (`offer_guard`: nessun invio su un'asta non aperta) è la seconda linea, provata a parte.
 
 ## Sessione della fase 2
 

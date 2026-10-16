@@ -120,18 +120,22 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
         // A request for another round (sent just before a closing) does not apply
         // here, and its outcome goes to the audit log (rule 4). patched(): the
         // workflows started before this rule keep their history.
-        if (patched("auction-bound-requests") && request.auctionId !== times.auctionId) {
+        // Every new branch sits behind the same patch: a replayed old history
+        // takes the old path (the current round, no outcome activity).
+        const bound = patched("auction-bound-requests");
+        if (bound && request.auctionId !== times.auctionId) {
           log.warn("back office request for another round", { kind: request.kind });
           await outcome(request, "OTHER_ROUND");
           continue;
         }
+        const action = bound ? request : { ...request, auctionId: times.auctionId };
         try {
-          if (request.kind === "extend") {
-            await backOffice.extendRound(request);
-          } else if (request.kind === "invite") {
-            await backOffice.addInvitations(request);
+          if (action.kind === "extend") {
+            await backOffice.extendRound(action);
+          } else if (action.kind === "invite") {
+            await backOffice.addInvitations(action);
           } else {
-            await backOffice.cancelRound(request);
+            await backOffice.cancelRound(action);
             return null;
           }
         } catch {
@@ -141,7 +145,7 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
             kind: request.kind,
             auctionId: times.auctionId,
           });
-          await outcome(request, "REFUSED");
+          if (bound) await outcome(request, "REFUSED");
         }
         times = await acts.roundTimes({ auctionId: times.auctionId });
       }

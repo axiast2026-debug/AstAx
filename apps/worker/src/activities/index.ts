@@ -19,7 +19,7 @@ function currentAttempt(): number {
 /**
  * BC-07, rule 8: an activity's error reaches Temporal's history and the logs
  * with its type, code and stack frames only, never with the message of a
- * database error (it repeats the query values). Our own failures keep theirs.
+ * database error (it repeats the query values) nor of any error but our own.
  * The steps of the auction retry without limit: past a few attempts every
  * failure is an alarm in the logs, with identifiers only.
  */
@@ -31,7 +31,10 @@ export function safe<A extends unknown[], R>(
     try {
       return await fn(...args);
     } catch (error) {
+      // Only our own failures keep their message: any other may quote data, as
+      // a JSON.parse error quotes the text it read (BC-07, rule 8).
       const loggable = errorForLog(error);
+      if (!(error instanceof ApplicationFailure)) delete loggable.message;
       const attempt = currentAttempt();
       if (alarm && attempt >= ALARM_AFTER_ATTEMPTS) {
         alarm.logger.error(
@@ -42,7 +45,7 @@ export function safe<A extends unknown[], R>(
       if (error instanceof ApplicationFailure) throw error;
       throw ApplicationFailure.create({
         type: loggable.code ? `${loggable.type}:${loggable.code}` : loggable.type,
-        message: loggable.message ?? `${loggable.type} (message withheld)`,
+        message: `${loggable.type} (message withheld)`,
         details: loggable.stack ? [loggable.stack] : [],
       });
     }

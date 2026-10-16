@@ -30,3 +30,14 @@ describe("activity errors (BC-07, rule 8)", () => {
     ).rejects.toBe(own);
   });
 });
+
+describe("activity errors that are not ours (BC-07, rule 8)", () => {
+  it("a parse error, which quotes the text it read, reaches Temporal without its message", async () => {
+    const error = await safe(async () => {
+      JSON.parse('{"annualGrossPremiumCents": 50500, broken');
+    })().catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ApplicationFailure);
+    expect(JSON.stringify(error)).not.toContain("50500");
+    expect((error as Error).message).toBe("SyntaxError (message withheld)");
+  });
+});

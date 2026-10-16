@@ -383,6 +383,7 @@ export class OffersService {
   /** OFF-08: «non interessato», with an optional reason from the list. */
   async decline(auth: AuthContext, auctionId: string, reasonCode: string | undefined) {
     const m = this.agency(auth);
+    await this.checkMemberFilters(auth, { auctionId });
     return withContext(this.db, auth.db, async (tx) => {
       const auction = await this.lockOpen(tx, auth, auctionId);
       const invitation = await this.invitation(tx, auth, auction);
@@ -583,6 +584,7 @@ export class OffersService {
   /** OFF-07: a withdrawal until the closing. */
   async withdraw(auth: AuthContext, offerId: string) {
     this.agency(auth);
+    await this.checkMemberFilters(auth, { offerId });
     const result = await withContext(this.db, auth.db, async (tx) => {
       const found = await this.ownOffer(tx, auth, offerId, "write");
       const auction = await this.lockOpen(tx, auth, found.auctionId);

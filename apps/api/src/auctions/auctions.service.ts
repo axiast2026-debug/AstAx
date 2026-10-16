@@ -352,12 +352,14 @@ export class AuctionsService {
   ) {
     const auction = await withContext(this.db, auth.db, async (tx) => {
       const a = await this.openAuction(tx, auctionId);
-      // ASTA-03, rule 7: an extension is at most the longest auction duration in force.
-      const { "auction.durationsWorkingHours": durations } = await settingsAt(
-        tx,
-        ["auction.durationsWorkingHours"],
-        this.clock.now(),
-      );
+      // ASTA-03, ASTA-09, rule 7: an extension is at most the longest auction duration
+      // copied at the opening (the value in force for an auction opened before the copy).
+      const snapshot = a.settingsSnapshot as unknown as Partial<AuctionSettingsSnapshot>;
+      const durations =
+        snapshot["auction.durationsWorkingHours"] ??
+        (await settingsAt(tx, ["auction.durationsWorkingHours"], this.clock.now()))[
+          "auction.durationsWorkingHours"
+        ];
       if (input.workingHours > Math.max(...durations)) {
         throw new ProblemError("VALIDATION_FAILED", undefined, [
           { path: "workingHours", issue: "TOO_LONG" },

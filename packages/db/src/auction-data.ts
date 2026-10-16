@@ -39,6 +39,7 @@ export async function settingsAt<const K extends SettingKey>(
 /** The parameters an auction copies at its opening (ASTA-09). */
 export const AUCTION_SETTING_KEYS = [
   "calendar.workingHours",
+  "auction.durationsWorkingHours",
   "auction.closingReminderMinutes",
   "auction.desertedReopen.enabled",
   "auction.desertedReopen.workingHours",
