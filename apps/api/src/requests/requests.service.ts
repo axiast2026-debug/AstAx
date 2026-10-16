@@ -190,8 +190,10 @@ export class RequestsService {
       const request = await this.findOwn(tx, auth, id);
       const editable = (EDITABLE_STATUSES as readonly string[]).includes(request.status);
       const [documents, events, verifications, quoteData, consent, scope] = await Promise.all([
+        // The PDF quotes of the offers are not the requester's documents: the
+        // presented ones arrive with the offers (phase 5, PRES-02, VIS-04).
         tx.document.findMany({
-          where: { quoteRequestId: id, deletedAt: null },
+          where: { quoteRequestId: id, deletedAt: null, kind: { not: "OFFER_QUOTE" } },
           orderBy: { createdAt: "asc" },
         }),
         tx.quoteRequestEvent.findMany({ where: { quoteRequestId: id }, orderBy: { at: "asc" } }),
@@ -544,7 +546,12 @@ export class RequestsService {
     const document = await withContext(this.db, auth.db, async (tx) => {
       await this.findOwn(tx, auth, id);
       const found = await tx.document.findFirst({
-        where: { id: documentId, quoteRequestId: id, deletedAt: null },
+        where: {
+          id: documentId,
+          quoteRequestId: id,
+          deletedAt: null,
+          kind: { not: "OFFER_QUOTE" },
+        },
       });
       if (!found) throw new ProblemError("NOT_FOUND");
       await this.audit.inTransaction(tx, actorOf(auth), {

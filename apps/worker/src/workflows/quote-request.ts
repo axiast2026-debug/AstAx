@@ -24,13 +24,24 @@ export const auctionCancelledSignal = defineSignal<[BackOfficeAction]>(SIGNALS.a
 
 export { workflowIdOf } from "@astax/shared/workflows";
 
+/**
+ * The steps of the auction never give up: a database or KMS down at the
+ * closing time only delays the closing, retried until it succeeds (the API
+ * refuses offers after the scheduled time anyway, BC-05).
+ */
 const acts = proxyActivities<AuctionActivities>({
+  startToCloseTimeout: "2 minutes",
+  retry: { initialInterval: "2 seconds", backoffCoefficient: 2, maximumInterval: "5 minutes" },
+});
+
+/** Back office requests: a refusal (after the first half, auction closed) is final. */
+const backOffice = proxyActivities<AuctionActivities>({
   startToCloseTimeout: "2 minutes",
   retry: {
     initialInterval: "2 seconds",
     backoffCoefficient: 2,
     maximumInterval: "1 minute",
-    maximumAttempts: 20,
+    maximumAttempts: 10,
     nonRetryableErrorTypes: ["AFTER_FIRST_HALF", "AUCTION_NOT_OPEN"],
   },
 });
@@ -84,13 +95,18 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
     for (;;) {
       while (queue.length > 0) {
         const request = queue.shift() as BackOfficeRequest;
+        // A request for another round (sent just before a closing) does not apply here.
+        if (request.auctionId !== times.auctionId) {
+          log.warn("back office request for another round", { kind: request.kind });
+          continue;
+        }
         try {
           if (request.kind === "extend") {
-            await acts.extendRound({ auctionId: times.auctionId, ...request });
+            await backOffice.extendRound(request);
           } else if (request.kind === "invite") {
-            await acts.addInvitations({ auctionId: times.auctionId, ...request });
+            await backOffice.addInvitations(request);
           } else {
-            await acts.cancelRound({ auctionId: times.auctionId, ...request });
+            await backOffice.cancelRound(request);
             return null;
           }
         } catch {

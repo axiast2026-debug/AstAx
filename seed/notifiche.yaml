@@ -6,6 +6,17 @@
 
 schemaVersion: 1
 
+# Etichette che il motore mette nelle variabili, nella lingua del destinatario.
+labels:
+  offerStatus.valid: { it: "valida", sq: "e vlefshme" }
+  offerStatus.excluded: { it: "esclusa", sq: "e përjashtuar" }
+  offerExclusion.generic:
+    it: "Le coperture o i dati dichiarati non rispettano la richiesta."
+    sq: "Mbulimet ose të dhënat e deklaruara nuk përputhen me kërkesën."
+  offerExclusion.none: { it: "", sq: "" }
+  guarantee.none: { it: "—", sq: "—" }
+  offerQuote.fileName: { it: "preventivo.pdf", sq: "oferta.pdf" }
+
 events:
 
   # ---------------------------------------------------------------- Accesso
@@ -126,15 +137,16 @@ events:
   auction.closed.requester:
     recipients: [requester]
     channels: [in_app, push, email]
-    variables: [nome, codice, veicolo, numero_offerte, premio_minimo, link]
+    # Regola 8 di CLAUDE.md: nessun prezzo nelle notifiche (domanda aperta 15).
+    variables: [nome, codice, veicolo, numero_offerte, link]
     it:
       title: "Le offerte sono pronte"
-      body: "{{numero_offerte}} offerte per {{veicolo}}, a partire da {{premio_minimo}}."
+      body: "{{numero_offerte}} offerte per {{veicolo}}: aprile per confrontarle."
       emailSubject: "{{numero_offerte}} offerte per {{veicolo}}"
       emailBody: |
         Ciao {{nome}},
         l'asta della richiesta {{codice}} è chiusa.
-        Offerte valide: {{numero_offerte}}. La più conveniente: {{premio_minimo}}.
+        Offerte valide: {{numero_offerte}}.
         Ogni offerta è garantita fino alla data indicata accanto al prezzo. Confrontale e scegli: {{link}}
 
   auction.closed.agency:
@@ -212,14 +224,15 @@ events:
     recipients: [requester]
     channels: [in_app, push, email]
     forcePush: true
-    variables: [nome, veicolo, premio, garanzia, giorni, link]
+    # Regola 8 di CLAUDE.md: nessun prezzo nelle notifiche (domanda aperta 15).
+    variables: [nome, veicolo, garanzia, giorni, link]
     it:
       title: "Il prezzo migliore scade tra {{giorni}} giorni"
-      body: "{{premio}} per {{veicolo}}, garantito fino al {{garanzia}}."
+      body: "L'offerta più conveniente per {{veicolo}} è garantita fino al {{garanzia}}."
       emailSubject: "La tua offerta migliore è garantita fino al {{garanzia}}"
       emailBody: |
         Ciao {{nome}},
-        l'offerta più conveniente per {{veicolo}} ({{premio}}) è garantita fino al {{garanzia}}.
+        l'offerta più conveniente per {{veicolo}} è garantita fino al {{garanzia}}.
         Se vuoi acquistare a questo prezzo, accetta entro quella data: {{link}}
 
   request.expired:

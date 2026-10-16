@@ -1,6 +1,8 @@
+import { randomUUID } from "node:crypto";
 import type { Clock } from "@astax/adapters/clock";
 import {
   asSystem,
+  settingsAt,
   auctionSettings,
   loadWorkingCalendar,
   withContext,
@@ -140,12 +142,17 @@ export class AuctionsService {
     // Only agencies are invited: everyone else has an empty list.
     if (!m || m.organizationType !== "AGENCY") return [];
     return withContext(this.db, auth.db, async (tx) => {
-      const invitations = await tx.invitation.findMany({
+      const all = await tx.invitation.findMany({
         where: { organizationId: m.organizationId },
         include: { auction: true },
         orderBy: { invitedAt: "desc" },
         take: 100,
       });
+      // VIS-06: an operator sees only the requests inside their own filters.
+      const invitations: typeof all = [];
+      for (const i of all) {
+        if (await this.offers.withinMemberFilters(tx, auth, i.auction)) invitations.push(i);
+      }
       const requests = await asSystem(tx, () =>
         tx.quoteRequest.findMany({
           where: { id: { in: invitations.map((i) => i.auction.quoteRequestId) } },
@@ -195,6 +202,11 @@ export class AuctionsService {
       if (!auction) throw new ProblemError("NOT_FOUND");
       const m = auth.membership;
       if (m?.organizationType === "AGENCY") {
+        // An agency not invited does not even learn that the auction exists.
+        const invited = await tx.invitation.count({
+          where: { auctionId, organizationId: m.organizationId },
+        });
+        if (invited === 0) throw new ProblemError("NOT_FOUND");
         // An agency sees only its own offers (VIS-05), as identifiers and statuses.
         const own = await tx.offer.findMany({
           where: { auctionId, organizationId: m.organizationId },
@@ -227,11 +239,14 @@ export class AuctionsService {
   async forBackOffice(auth: AuthContext) {
     if (auth.membership?.organizationType !== "ASTAX") throw new ProblemError("NOT_FOUND");
     return withContext(this.db, auth.db, async (tx) => {
+      const recentDays = (
+        await settingsAt(tx, ["backOffice.recentAuctionsDays"], this.clock.now())
+      )["backOffice.recentAuctionsDays"];
       const auctions = await tx.auction.findMany({
         where: {
           OR: [
             { status: { in: ["OPEN", "CLOSING"] } },
-            { closedAt: { gte: new Date(this.clock.now().getTime() - 7 * 86_400_000) } },
+            { closedAt: { gte: new Date(this.clock.now().getTime() - recentDays * 86_400_000) } },
           ],
         },
         orderBy: { scheduledCloseAt: "asc" },
@@ -271,26 +286,63 @@ export class AuctionsService {
   private async openAuction(tx: DbTransaction, auctionId: string): Promise<Auction> {
     const auction = await tx.auction.findUnique({ where: { id: auctionId } });
     if (!auction) throw new ProblemError("NOT_FOUND");
-    if (auction.status !== "OPEN") throw new ProblemError("AUCTION_CLOSED");
+    // BC-05: past the scheduled closing the auction is over, even before the worker closes it.
+    if (auction.status !== "OPEN" || this.clock.now() >= auction.scheduledCloseAt) {
+      throw new ProblemError("AUCTION_CLOSED");
+    }
     return auction;
   }
 
   /** ASTA-06: extension with reason; the minimum guarantee does not move (GAR-01). */
+  /**
+   * The back office request goes to the audit log first, with its reason and
+   * an action id; the workflow gets only the ids (BC-07: no free text in
+   * Temporal) and applies it once, to that auction only (ADR 0008).
+   */
+  private async request(
+    auth: AuthContext,
+    auctionId: string,
+    action:
+      | "AUCTION_EXTENSION_REQUESTED"
+      | "AUCTION_INVITATIONS_REQUESTED"
+      | "AUCTION_CANCELLATION_REQUESTED",
+    reason: string,
+    after: Record<string, unknown>,
+  ): Promise<string> {
+    const actionId = randomUUID();
+    await this.audit.record(actorOf(auth), {
+      action,
+      targetType: "Auction",
+      targetId: auctionId,
+      after: { actionId, ...after },
+      reason,
+    });
+    return actionId;
+  }
+
+  /** ASTA-06: extension with reason, before the scheduled closing; GAR-01 unchanged. */
   async extend(
     auth: AuthContext,
     auctionId: string,
     input: { workingHours: number; reason: string },
   ) {
     const auction = await withContext(this.db, auth.db, (tx) => this.openAuction(tx, auctionId));
-    await this.signals.extend(auction.quoteRequestId, { ...input, byUserId: auth.userId });
-    await this.audit.record(actorOf(auth), {
-      action: "AUCTION_EXTENSION_REQUESTED",
-      targetType: "Auction",
-      targetId: auctionId,
-      after: { workingHours: input.workingHours },
-      reason: input.reason,
+    const actionId = await this.request(
+      auth,
+      auctionId,
+      "AUCTION_EXTENSION_REQUESTED",
+      input.reason,
+      {
+        workingHours: input.workingHours,
+      },
+    );
+    await this.signals.extend(auction.quoteRequestId, {
+      auctionId,
+      actionId,
+      workingHours: input.workingHours,
+      byUserId: auth.userId,
     });
-    return { requested: true };
+    return { requested: true, actionId };
   }
 
   /** ASTA-06: invitations only in the first half of the auction (after: 409). */
@@ -302,7 +354,7 @@ export class AuctionsService {
     const auction = await withContext(this.db, auth.db, async (tx) => {
       const a = await this.openAuction(tx, auctionId);
       const snapshot = a.settingsSnapshot as unknown as AuctionSettingsSnapshot;
-      const calendar = await loadWorkingCalendar(tx, snapshot["calendar.workingHours"]);
+      const calendar = await loadWorkingCalendar(tx, snapshot["calendar.workingHours"], snapshot);
       if (
         !backOfficeMayInvite(
           calendar,
@@ -326,27 +378,39 @@ export class AuctionsService {
       }
       return a;
     });
-    await this.signals.invite(auction.quoteRequestId, { ...input, byUserId: auth.userId });
-    await this.audit.record(actorOf(auth), {
-      action: "AUCTION_INVITATIONS_REQUESTED",
-      targetType: "Auction",
-      targetId: auctionId,
-      after: { organizationIds: input.organizationIds },
-      reason: input.reason,
+    const actionId = await this.request(
+      auth,
+      auctionId,
+      "AUCTION_INVITATIONS_REQUESTED",
+      input.reason,
+      {
+        organizationIds: input.organizationIds,
+      },
+    );
+    await this.signals.invite(auction.quoteRequestId, {
+      auctionId,
+      actionId,
+      organizationIds: input.organizationIds,
+      byUserId: auth.userId,
     });
-    return { requested: true };
+    return { requested: true, actionId };
   }
 
   async cancel(auth: AuthContext, auctionId: string, input: { reason: string }) {
     const auction = await withContext(this.db, auth.db, (tx) => this.openAuction(tx, auctionId));
-    await this.signals.cancel(auction.quoteRequestId, { ...input, byUserId: auth.userId });
-    await this.audit.record(actorOf(auth), {
-      action: "AUCTION_CANCELLATION_REQUESTED",
-      targetType: "Auction",
-      targetId: auctionId,
-      reason: input.reason,
+    const actionId = await this.request(
+      auth,
+      auctionId,
+      "AUCTION_CANCELLATION_REQUESTED",
+      input.reason,
+      {},
+    );
+    await this.signals.cancel(auction.quoteRequestId, {
+      auctionId,
+      actionId,
+      byUserId: auth.userId,
     });
-    return { requested: true };
+    return { requested: true, actionId };
   }
 }
 

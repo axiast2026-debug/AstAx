@@ -4,6 +4,7 @@ import { decryptFile, encryptFile, KMS_KEYS, seal, wipe, type KmsPort } from "@a
 import type { ObjectStoragePort } from "@astax/adapters/storage";
 import {
   asSystem,
+  filterableRequest,
   settingsAt,
   withContext,
   type Auction,
@@ -12,6 +13,8 @@ import {
   type Offer,
 } from "@astax/db";
 import {
+  AgencyFilterCriteriaSchema,
+  filterMismatches,
   guaranteeDateAccepted,
   noteProblems,
   OfferPayloadSchema,
@@ -87,11 +90,15 @@ export class OffersService {
     auth: AuthContext,
     auctionId: string,
   ): Promise<Auction> {
-    await asSystem(
-      tx,
-      () => tx.$queryRaw`SELECT 1 FROM "Auction" WHERE "id" = ${auctionId}::uuid FOR UPDATE`,
-    );
-    const auction = await tx.auction.findUnique({ where: { id: auctionId } });
+    // Only an auction the caller may see (its agency is invited) is locked.
+    const visible = await tx.auction.findUnique({ where: { id: auctionId }, select: { id: true } });
+    if (visible) {
+      await asSystem(
+        tx,
+        () => tx.$queryRaw`SELECT 1 FROM "Auction" WHERE "id" = ${auctionId}::uuid FOR UPDATE`,
+      );
+    }
+    const auction = visible ? await tx.auction.findUnique({ where: { id: auctionId } }) : null;
     if (!auction) {
       await this.audit.record(actorOf(auth), {
         action: "ACCESS_DENIED",
@@ -106,9 +113,42 @@ export class OffersService {
     return auction;
   }
 
+  /**
+   * VIS-06: when the agency distributes the requests by the members' filters,
+   * an operator works only the requests inside their own filters.
+   */
+  async withinMemberFilters(
+    tx: DbTransaction,
+    auth: AuthContext,
+    auction: Auction,
+  ): Promise<boolean> {
+    const m = this.agency(auth);
+    if (m.role !== "OPERATOR") return true;
+    const capacity = await tx.agencyCapacity.findUnique({
+      where: { organizationId: m.organizationId },
+    });
+    if (capacity?.distribution !== "BY_MEMBER_FILTERS") return true;
+    const filter = await tx.memberFilter.findUnique({ where: { membershipId: m.id } });
+    const criteria = filter ? AgencyFilterCriteriaSchema.safeParse(filter.criteria) : null;
+    if (!criteria?.success) return false;
+    const request = await asSystem(tx, () =>
+      tx.quoteRequest.findUniqueOrThrow({ where: { id: auction.quoteRequestId } }),
+    );
+    const filterable = filterableRequest(request, auction.openedAt);
+    return filterable !== null && filterMismatches(criteria.data, filterable).length === 0;
+  }
+
   /** OFF-03: the claim of the agency is the user's; otherwise owner or supervisor. */
   private async ensureClaim(tx: DbTransaction, auth: AuthContext, auction: Auction) {
     const m = this.agency(auth);
+    if (!(await this.withinMemberFilters(tx, auth, auction))) {
+      await this.audit.record(actorOf(auth), {
+        action: "ACCESS_DENIED",
+        targetType: "Auction",
+        targetId: auction.id,
+      });
+      throw new ProblemError("NOT_FOUND");
+    }
     const claim = await tx.claim.findFirst({
       where: { auctionId: auction.id, organizationId: m.organizationId, releasedAt: null },
     });
@@ -410,8 +450,13 @@ export class OffersService {
     const m = auth.membership;
     const offer = await tx.offer.findUnique({ where: { id: offerId } });
     if (!offer || !m || offer.organizationId !== m.organizationId) {
-      if (intent === "write") throw new ProblemError("NOT_FOUND");
-      return this.sealedDenied(auth, "Offer", offerId);
+      if (intent === "read") return this.sealedDenied(auth, "Offer", offerId);
+      await this.audit.record(actorOf(auth), {
+        action: "ACCESS_DENIED",
+        targetType: "Offer",
+        targetId: offerId,
+      });
+      throw new ProblemError("NOT_FOUND");
     }
     return offer;
   }
@@ -437,6 +482,13 @@ export class OffersService {
       await this.ensureClaim(tx, auth, auction);
       const payload = await this.validate(tx, auth, auction, raw, pdf, false);
       const previous = await this.readCopy(offer);
+      // BC-04: every decryption of the owner copy is logged.
+      await this.audit.inTransaction(tx, actorOf(auth), {
+        action: "OFFER_OWNER_COPY_READ",
+        targetType: "Offer",
+        targetId: offer.id,
+        after: { part: "change" },
+      });
       const sealed = await this.sealAll(
         auction,
         m.organizationId,
@@ -458,18 +510,29 @@ export class OffersService {
           },
         ],
       });
-      await tx.offer.update({
-        where: { id: offer.id },
-        data: {
-          sealedPayload: sealed.sealedPayload,
-          sealedPdfKey: sealed.sealedPdfKey,
-          sealedPdfDataKey: sealed.sealedPdfDataKey ?? offer.sealedPdfDataKey,
-          ownerCopy: sealed.ownerCopy,
-          version: offer.version + 1,
-          lastChangedAt: now,
-          membershipId: m.id,
-        },
-      });
+      // OFF-02: the offer is now the person's who changed it; one offer per person.
+      try {
+        await tx.$executeRaw`SAVEPOINT offer_change`;
+        await tx.offer.update({
+          where: { id: offer.id },
+          data: {
+            sealedPayload: sealed.sealedPayload,
+            sealedPdfKey: sealed.sealedPdfKey,
+            sealedPdfDataKey: sealed.sealedPdfDataKey ?? offer.sealedPdfDataKey,
+            ownerCopy: sealed.ownerCopy,
+            version: offer.version + 1,
+            lastChangedAt: now,
+            membershipId: m.id,
+            userId: auth.userId,
+          },
+        });
+        await tx.$executeRaw`RELEASE SAVEPOINT offer_change`;
+      } catch {
+        await tx.$executeRaw`ROLLBACK TO SAVEPOINT offer_change`;
+        throw new ProblemError("CONFLICT", "One offer per person in a round", [
+          { path: "offer", issue: "ONE_PERSON_ONE_OFFER" },
+        ]);
+      }
       await this.audit.inTransaction(tx, actorOf(auth), {
         action: "OFFER_CHANGED",
         targetType: "Offer",

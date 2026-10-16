@@ -34,6 +34,7 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
   - il pulsante «Escludi» dell'anteprima aveva lo stesso nome di quello che esclude la richiesta: la CI falliva dal commit dell'anteprima; ora è «Escludi l'agenzia»;
   - un errore del database in un'attività del worker finiva nei log di Temporal con il messaggio completo: ora esce solo con tipo e codice (BC-07);
   - nel database di sviluppo mancava una migrazione e la chiusura si bloccava: rilanciato `pnpm db:migrate` (la CI parte sempre da un database nuovo).
+- 2026-10-16: verifica indipendente della fase 3 (primo giro): 17 problemi, tutti corretti tranne quelli rinviati come debito (sezione «Verifica indipendente (fase 3)»).
 - Domande nuove per Dan: 13 (stato della richiesta quando il back office annulla un'asta) e 14 (ora del promemoria GAR-05), in `docs/domande-aperte.md`, con il valore prudente usato intanto.
 - Prossimo passo: verifica indipendente della fase 3 e demo con Dan; poi i problemi della demo della fase 2, quando Dan li indica.
 
@@ -41,7 +42,7 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 
 | Criterio | Stato | Prova |
 | --- | --- | --- |
-| L'approvazione apre l'asta con l'ora di chiusura corretta; calendario: esempio di ASTA-02, sabato, festivo, ora legale 25/10/2026 e 28/03/2027, approvazione notturna e domenicale | Fatto | `packages/shared/src/domain/working-calendar.test.ts`; `apps/worker/test/int/activities.int.test.ts` («ASTA-01 ASTA-02 GAR-01…»); E2E `tests/e2e/specs/fase3-asta.spec.ts` |
+| L'approvazione apre l'asta con l'ora di chiusura corretta; calendario: esempio di ASTA-02, sabato, festivo, ora legale 25/10/2026 e 28/03/2027, approvazione notturna e domenicale | Fatto | `packages/shared/src/domain/working-calendar.test.ts`; `apps/worker/test/int/activities.int.test.ts` («ASTA-01 ASTA-02 GAR-01…»); E2E `tests/e2e/specs/S07-busta-chiusa.spec.ts` |
 | Le offerte inviate via API sono cifrate; scenario S07 | Fatto | `apps/api/test/int/auctions.int.test.ts` («BC-02…», «S07 BC-01…»: nove ruoli, offerta, PDF ed elenco, 403 e `SEALED_BID_ACCESS_DENIED`); KMS non usato prima della chiusura in `activities.int.test.ts` («BC-03…»); E2E senza prezzi visibili fino alla chiusura |
 | Chiusura automatica all'ora prevista (tempo accelerato) e anche con il worker fermo all'ora di chiusura | Fatto | `apps/worker/test/workflow.test.ts` («ASTA-01…», «the auction closes also when the worker is down…») |
 | Offerta dopo la chiusura rifiutata, anche in concorrenza con la chiusura | Fatto | `auctions.int.test.ts` («BC-05 a submission that waits for the closing's lock…», «BC-05 OFF-07 after the closing…»); trigger del database in `packages/db/test/auctions.int.test.ts` |
@@ -64,6 +65,28 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 6. **La chiusura.** Premi «Fai scattare il prossimo passo» tre volte: rabbocco, promemoria, chiusura. Così non aspetti le ore lavorative. L'asta diventa «Chiusa». Giulia vede, per ogni compagnia, la migliore offerta con il prezzo, «Più conveniente» sulla prima e «Garantito fino al…». Il nome dell'agenzia non compare.
 7. **Asta deserta.** Fai un'altra richiesta, approvala, e senza offerte premi «Fai scattare il prossimo passo» finché la richiesta diventa «Deserta». Giulia e il back office ricevono l'avviso.
 8. **Azioni del back office.** Su un'asta aperta prova «Prolunga» (la chiusura si sposta), «Invita» e «Annulla l'asta», sempre con un motivo. Un invito dopo la metà dell'asta è rifiutato.
+
+## Verifica indipendente (fase 3)
+
+Primo giro, 2026-10-16, revisore indipendente con le istruzioni del  (il sottoagente non si carica nella sessione aperta nella cartella superiore). Problemi trovati e come sono stati chiusi:
+
+1. Prolungamento ripetuto da Temporal applicato due volte: ora ogni azione del back office ha un identificativo e si applica una volta sola.
+2. Segnali del back office senza l'asta: ora portano l'asta e il workflow ignora quelli di un altro giro.
+3. Un guasto lungo alla chiusura faceva fallire il workflow: ora i passi dell'asta riprovano senza limite.
+4. Possibile esaurimento delle connessioni negli invii (registro del KMS in una seconda transazione): l'API non aspetta più quella scrittura.
+5. I PDF di tutte le offerte, anche escluse, visibili al richiedente: ora sono nascosti fino alla presentazione delle offerte (fase 5).
+6. ASTA-09 parziale: ora l'asta copia anche le festività, i giorni e l'ora del promemoria GAR-05 (nuovo parametro ).
+7. Prolungamento dopo l'ora di chiusura e chiusura in anticipo: ora rifiutati (la chiusura in anticipo solo con lo strumento di sviluppo).
+8. Filtri personali degli operatori (VIS-06): ora un operatore vede e prende in carico solo le richieste nei suoi filtri, quando l'agenzia distribuisce per filtri.
+9. Testi nel codice del worker: ora sono etichette in , in italiano e albanese.
+10. Numeri scritti nel codice: ora parametri (, ), il prolungamento massimo è la durata più lunga in vigore, un dato mancante non apre più un'asta di 0 ore.
+11. Testo libero del motivo nei segnali di Temporal: ora il motivo resta nel registro dell'API e il workflow riceve solo identificativi. Prezzi e targa tolti dalle notifiche della fase 3 (domanda 15).
+12. Numero di agenzie invitate nella cronologia del privato: tolto.
+13. Email del worker perse se il processo cade tra il salvataggio e l'invio: debito (sotto).
+14. Registro: ora prima il registro e poi il segnale; registrati anche il rifiuto di una modifica e la lettura della copia durante una modifica.
+15. Blocco della riga dell'asta prima del controllo dell'invito: ora prima il controllo; un'agenzia non invitata riceve 404.
+16. OFF-02 aggirabile modificando l'offerta di un collega: ora l'offerta passa alla persona che la modifica.
+17. Test deboli: S07 con tre offerte e la copia di tutto il database e del deposito dei file; concorrenza nei due ordini; S04 con promemoria e avvisi; testi resi per le agenzie; consegna dell'approvazione al workflow; strumenti di sviluppo con  acceso; un file per scenario (, ).
 
 ## Sessione della fase 2
 
@@ -149,6 +172,9 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 
 | Debito | Perché | Quando chiuderlo |
 | --- | --- | --- |
+| Email del worker inviate dopo il salvataggio, senza outbox: se il processo cade in mezzo, l'email si perde (la notifica in app resta) | Un outbox delle email porterebbe gli indirizzi in una tabella in più | Fase 7, con le notifiche |
+| Dalla «Deserta» il back office non può ancora aprire una nuova asta (S04) | Serve la schermata con i filtri più ampi | Fase 7 |
+| Prezzi e targa tolti dalle notifiche della fase 3 in attesa della domanda 15 | Regola 8 contro i testi di `seed/notifiche.yaml` | Con la risposta di Dan |
 | Biglietti del tempo reale tenuti nella memoria del processo API | Con una sola istanza dell'API basta; con più istanze un biglietto chiesto a una non vale sull'altra | Fase 8, in Redis |
 | Filtri, capacità, orari di ricezione e prodotti delle agenzie impostati solo dai dati di prova | Le schermate delle agenzie sono della fase 4 (proposta D approvata) | Fase 4 |
 | Avviso «Nuova richiesta in target» a tutti i membri attivi dell'agenzia, anche con la distribuzione per filtri personali | La scelta dell'agenzia rispetta i filtri dei membri; i destinatari dell'avviso no | Fase 4, con le schermate dell'agenzia |

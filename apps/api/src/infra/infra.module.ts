@@ -150,7 +150,7 @@ export class InfraModule {
           useFactory: (db: DbClient) =>
             new LocalKms(
               { [KMS_KEYS.offerOwner]: config.OFFER_OWNER_MASTER_KEY },
-              kmsEventRecorder(db, "api", () => clock.now()),
+              kmsEventRecorder(db, "api", () => clock.now(), { wait: false }),
             ),
         },
         {

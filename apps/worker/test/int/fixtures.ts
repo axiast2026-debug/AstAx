@@ -9,6 +9,7 @@ import {
   SYSTEM_CONTEXT,
   withContext,
   type DbClient,
+  type DbTransaction,
 } from "@astax/db";
 import { syntheticId } from "@astax/db/seed";
 import {
@@ -64,6 +65,7 @@ export function harness(start: string): Harness {
     publish: async (event) => {
       events.push(event);
     },
+    allowEarlyClose: false,
   });
   return { db, clock, cipher, email, storage, events, activities };
 }
@@ -172,14 +174,30 @@ export const FULL_BASE_COVERAGE: OfferCoverage = {
  * An offer as the API stores it (step 7): sealed with the auction's public
  * key, the PDF encrypted, an owner copy (here a placeholder: the API's key).
  */
-export async function sealedOffer(
+type TestPayload = Omit<OfferPayload, "companyId" | "productId"> & { company?: string };
+
+export function sealedOffer(
   h: Harness,
   auctionId: string,
   agency: string,
-  payload: Omit<OfferPayload, "companyId" | "productId"> & { company?: string },
+  payload: TestPayload,
   submittedAt: Date,
 ) {
-  return withContext(h.db, SYSTEM_CONTEXT, async (tx) => {
+  return withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+    insertSealedOffer(h, tx, auctionId, agency, payload, submittedAt),
+  );
+}
+
+/** The same, inside a transaction of the caller (the API submits under the auction's lock). */
+export async function insertSealedOffer(
+  h: Harness,
+  tx: DbTransaction,
+  auctionId: string,
+  agency: string,
+  payload: TestPayload,
+  submittedAt: Date,
+) {
+  {
     const auction = await tx.auction.findUniqueOrThrow({ where: { id: auctionId } });
     const organizationId = orgId(agency);
     const product = await tx.insuranceProduct.findFirstOrThrow({
@@ -223,5 +241,5 @@ export async function sealedOffer(
         ownerCopy: "v1:kms:astax-offer-owner:placeholder",
       },
     });
-  });
+  }
 }

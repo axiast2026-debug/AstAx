@@ -32,6 +32,8 @@
     { "key": "guarantee.minValidityDaysOptions", "value": [7, 15, 30], "description": "Validità minime selezionabili, in giorni di calendario", "rule": "GAR-01" },
     { "key": "guarantee.defaultMinValidityDays", "value": 15, "description": "Validità minima predefinita", "rule": "GAR-01" },
     { "key": "guarantee.reminderDaysBefore", "value": 2, "description": "Promemoria al richiedente prima della scadenza della garanzia", "rule": "GAR-05" },
+    { "key": "guarantee.reminderTime", "value": "09:00", "description": "Ora (di Roma) del promemoria GAR-05, nel giorno che cade i giorni indicati prima della scadenza. Valore proposto, da confermare (domanda aperta 14)", "rule": "GAR-05" },
+    { "key": "backOffice.recentAuctionsDays", "value": 7, "description": "Giorni per cui le aste chiuse restano nell'elenco «Aste» del back office", "rule": "—" },
     { "key": "reconfirmation.workingHours", "value": 24, "description": "Tempo delle agenzie per rispondere alla riconferma", "rule": "GAR-07" },
     { "key": "reconfirmation.maxPerRequest", "value": 2, "description": "Riconferme al massimo per richiesta", "rule": "GAR-06" },
     { "key": "requests.autoCancelExpiredDays", "value": 30, "description": "Giorni dopo cui una richiesta «Scaduta» senza azioni si annulla da sola (e si pubblica la classifica)", "rule": "GAR-06" },

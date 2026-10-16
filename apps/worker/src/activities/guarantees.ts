@@ -1,10 +1,4 @@
-import {
-  addRequestEvent,
-  settingsAt,
-  SYSTEM_CONTEXT,
-  withContext,
-  type DbTransaction,
-} from "@astax/db";
+import { addRequestEvent, SYSTEM_CONTEXT, withContext, type DbTransaction } from "@astax/db";
 import {
   addCalendarDays,
   compareOffers,
@@ -14,7 +8,7 @@ import {
   transitionRequest,
   type RankedOffer,
 } from "@astax/shared/domain";
-import { dbDateToCalendarDate, formatDate, formatEuroCents } from "@astax/shared/format";
+import { dbDateToCalendarDate, formatDate } from "@astax/shared/format";
 import type { PendingEmail } from "../notifier.js";
 import {
   audit,
@@ -22,12 +16,10 @@ import {
   requesterLink,
   requesterOf,
   vehicleForRequester,
+  snapshotOf,
   type ActivityDeps,
 } from "./support.js";
 import type { AuctionActivities, GuaranteeSchedule } from "./types.js";
-
-/** GAR-05: the reminder goes at this local time, two calendar days before the last day (question 14). */
-const REMINDER_TIME = "09:00";
 
 /**
  * Guarantees after the closing: the reminder about the best offer still
@@ -44,24 +36,27 @@ export function guaranteeActivities(
       where: { quoteRequestId: requestId, status: "CLOSED" },
       orderBy: { round: "desc" },
     });
-    if (!last) return [];
+    if (!last) return { snapshot: null, offers: [] };
     const offers = await tx.offer.findMany({
       where: { auctionId: last.id, status: "AWAITING_CUSTOMER" },
     });
-    return offers.flatMap((o): (RankedOffer & { premium: number })[] =>
-      o.annualGrossPremiumCents !== null && o.companyId && o.guaranteeUntil
-        ? [
-            {
-              id: o.id,
-              companyId: o.companyId,
-              annualGrossPremiumCents: o.annualGrossPremiumCents,
-              premium: o.annualGrossPremiumCents,
-              guaranteeUntil: dbDateToCalendarDate(o.guaranteeUntil),
-              lastSubmittedAt: o.lastChangedAt,
-            },
-          ]
-        : [],
-    );
+    return {
+      snapshot: snapshotOf(last),
+      offers: offers.flatMap((o): (RankedOffer & { premium: number })[] =>
+        o.annualGrossPremiumCents !== null && o.companyId && o.guaranteeUntil
+          ? [
+              {
+                id: o.id,
+                companyId: o.companyId,
+                annualGrossPremiumCents: o.annualGrossPremiumCents,
+                premium: o.annualGrossPremiumCents,
+                guaranteeUntil: dbDateToCalendarDate(o.guaranteeUntil),
+                lastSubmittedAt: o.lastChangedAt,
+              },
+            ]
+          : [],
+      ),
+    };
   }
 
   async function guaranteeSchedule(input: { requestId: string }): Promise<GuaranteeSchedule> {
@@ -77,14 +72,14 @@ export function guaranteeActivities(
         };
       }
       const now = clock.now();
-      const offers = await waitingOffers(tx, request.id);
+      const { snapshot, offers } = await waitingOffers(tx, request.id);
       const guaranteed = offers.filter((o) => isGuaranteed(o.guaranteeUntil, now));
       const best = [...guaranteed].sort(compareOffers)[0];
       let reminderAt: string | null = null;
-      if (best) {
-        const days = (await settingsAt(tx, ["guarantee.reminderDaysBefore"], now))[
-          "guarantee.reminderDaysBefore"
-        ];
+      if (best && snapshot) {
+        // ASTA-09: the values copied at the opening of the round (question 14 for the time).
+        const days = snapshot["guarantee.reminderDaysBefore"];
+        const time = snapshot["guarantee.reminderTime"] ?? "09:00";
         const sent = await tx.quoteRequestEvent.count({
           where: {
             quoteRequestId: request.id,
@@ -93,10 +88,7 @@ export function guaranteeActivities(
           },
         });
         if (sent === 0) {
-          reminderAt = romeInstant(
-            addCalendarDays(best.guaranteeUntil, -days),
-            REMINDER_TIME,
-          ).toISOString();
+          reminderAt = romeInstant(addCalendarDays(best.guaranteeUntil, -days), time).toISOString();
         }
       }
       const last = offers
@@ -120,7 +112,7 @@ export function guaranteeActivities(
       const now = clock.now();
       const request = await tx.quoteRequest.findUniqueOrThrow({ where: { id: input.requestId } });
       if (request.status !== "OFFERS_AVAILABLE") return;
-      const offers = await waitingOffers(tx, request.id);
+      const { offers } = await waitingOffers(tx, request.id);
       const best = offers.filter((o) => isGuaranteed(o.guaranteeUntil, now)).sort(compareOffers)[0];
       // GAR-05: only for the offer that is still the best guaranteed one.
       if (!best || best.id !== input.offerId) return;
@@ -146,7 +138,6 @@ export function guaranteeActivities(
         () => ({
           nome: requester.firstName,
           veicolo: vehicleForRequester(quoteData),
-          premio: formatEuroCents(best.premium),
           garanzia: formatDate(best.guaranteeUntil),
           giorni: String(days),
           link: requesterLink(urls, request),
@@ -172,7 +163,7 @@ export function guaranteeActivities(
       const now = clock.now();
       const request = await tx.quoteRequest.findUniqueOrThrow({ where: { id: input.requestId } });
       if (request.status !== "OFFERS_AVAILABLE") return { expired: request.status === "EXPIRED" };
-      const offers = await waitingOffers(tx, request.id);
+      const { offers } = await waitingOffers(tx, request.id);
       if (offers.some((o) => isGuaranteed(o.guaranteeUntil, now))) return { expired: false };
       await tx.offer.updateMany({
         where: { id: { in: offers.map((o) => o.id) }, status: "AWAITING_CUSTOMER" },

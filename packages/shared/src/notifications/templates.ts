@@ -13,6 +13,7 @@ const localized = z.looseObject({
 });
 const fileSchema = z.object({
   schemaVersion: z.literal(1),
+  labels: z.record(z.string(), z.object({ it: z.string(), sq: z.string().optional() })).default({}),
   events: z.record(
     z.string(),
     z.looseObject({
@@ -24,6 +25,21 @@ const fileSchema = z.object({
 });
 
 export type NotificationTemplates = z.infer<typeof fileSchema>["events"];
+export type NotificationLabels = z.infer<typeof fileSchema>["labels"];
+
+/** The labels of seed/notifiche.yaml, for the variables in the recipient's language. */
+export function loadNotificationLabels(
+  repoRoot: string = findRepoRoot(import.meta.dirname),
+): NotificationLabels {
+  return fileSchema.parse(parse(readFileSync(join(repoRoot, "seed", "notifiche.yaml"), "utf8")))
+    .labels;
+}
+
+export function label(labels: NotificationLabels, key: string, locale: "it" | "sq"): string {
+  const entry = labels[key];
+  if (!entry) throw new Error(`No label ${key}`);
+  return (locale === "sq" ? entry.sq : undefined) ?? entry.it;
+}
 
 /**
  * Texts of seed/notifiche.yaml. Phase 7 moves them to NotificationTemplate,

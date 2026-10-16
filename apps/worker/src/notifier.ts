@@ -2,7 +2,10 @@ import type { EmailSender } from "@astax/adapters/email";
 import { asSystem, type DbTransaction } from "@astax/db";
 import { errorForLog, type Logger } from "@astax/shared/logging";
 import {
+  label,
+  loadNotificationLabels,
   loadNotificationTemplates,
+  type NotificationLabels,
   renderEmail,
   renderInApp,
   type NotificationTemplates,
@@ -31,6 +34,7 @@ interface PendingEmail {
  */
 export class WorkerNotifier {
   readonly #templates: NotificationTemplates;
+  readonly #labels: NotificationLabels = loadNotificationLabels();
 
   constructor(
     private readonly email: EmailSender,
@@ -38,6 +42,11 @@ export class WorkerNotifier {
     templates?: NotificationTemplates,
   ) {
     this.#templates = templates ?? loadNotificationTemplates();
+  }
+
+  /** A label of seed/notifiche.yaml in the recipient's language (no text in the code). */
+  label(key: string, locale: "it" | "sq"): string {
+    return label(this.#labels, key, locale);
   }
 
   hasEmail(eventKey: string): boolean {

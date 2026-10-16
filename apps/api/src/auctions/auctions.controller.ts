@@ -30,7 +30,7 @@ const declineSchema = z.strictObject({
     .regex(/^[A-Z_]+$/)
     .optional(),
 });
-const extendSchema = z.strictObject({ workingHours: z.number().int().min(1).max(24), reason });
+const extendSchema = z.strictObject({ workingHours: z.number().int().min(1).max(1000), reason });
 const inviteSchema = z.strictObject({ organizationIds: z.array(uuid).min(1).max(20), reason });
 const cancelSchema = z.strictObject({ reason });
 

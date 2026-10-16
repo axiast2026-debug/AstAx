@@ -4,6 +4,7 @@ import {
   approvedRequest,
   FULL_BASE_COVERAGE,
   harness,
+  insertSealedOffer,
   orgId,
   sealedOffer,
   type Harness,
@@ -338,7 +339,7 @@ describe("deserted and back office actions (ASTA-06, ASTA-08)", () => {
     ).toBeGreaterThan(0);
   });
 
-  it("ASTA-06 GAR-01 an extension moves the closing, not the minimum guarantee; it is logged with the reason", async () => {
+  it("ASTA-06 GAR-01 an extension moves the closing once, not the minimum guarantee; it is logged with the action", async () => {
     h.clock.set(MONDAY_9);
     const request = await approvedRequest(h);
     const opened = await h.activities.openRound({ requestId: request.id, kind: "MAIN", round: 1 });
@@ -346,12 +347,15 @@ describe("deserted and back office actions (ASTA-06, ASTA-08)", () => {
     const before = await read((tx) =>
       tx.auction.findUniqueOrThrow({ where: { id: opened.auctionId } }),
     );
-    await h.activities.extendRound({
+    const extension = {
       auctionId: opened.auctionId,
+      actionId: "00000000-0000-7000-8000-0000000000e1",
       workingHours: 9,
       byUserId: before.id,
-      reason: "Guasto tecnico",
-    });
+    };
+    await h.activities.extendRound(extension);
+    // A repetition by Temporal (same action) changes nothing.
+    await h.activities.extendRound(extension);
     const after = await read((tx) =>
       tx.auction.findUniqueOrThrow({ where: { id: opened.auctionId } }),
     );
@@ -363,7 +367,23 @@ describe("deserted and back office actions (ASTA-06, ASTA-08)", () => {
         where: { action: "AUCTION_EXTENDED", targetId: opened.auctionId },
       }),
     );
-    expect(log.reason).toBe("Guasto tecnico");
+    expect(log.after).toMatchObject({ actionId: extension.actionId });
+  });
+
+  it("BC-05 no extension once the scheduled closing has passed", async () => {
+    h.clock.set(MONDAY_9);
+    const request = await approvedRequest(h);
+    const opened = await h.activities.openRound({ requestId: request.id, kind: "MAIN", round: 1 });
+    if (!opened.opened) throw new Error("not opened");
+    h.clock.set("2026-11-16T10:10:00.000Z"); // 11:10, the closing was at 11:00
+    await expect(
+      h.activities.extendRound({
+        auctionId: opened.auctionId,
+        actionId: "00000000-0000-7000-8000-0000000000e2",
+        workingHours: 1,
+        byUserId: opened.auctionId,
+      }),
+    ).rejects.toThrow(/AUCTION_NOT_OPEN/);
   });
 
   it("ASTA-06 invitations by the back office only in the first half", async () => {
@@ -386,7 +406,7 @@ describe("deserted and back office actions (ASTA-06, ASTA-08)", () => {
         auctionId: opened.auctionId,
         organizationIds: free.slice(0, 1),
         byUserId: invited[0]?.id ?? "",
-        reason: "Più compagnie",
+        actionId: "00000000-0000-7000-8000-0000000000e3",
       }),
     ).toEqual({ invited: 1 });
     h.clock.set("2026-11-16T10:30:00.000Z"); // 11:30: past the half
@@ -395,7 +415,7 @@ describe("deserted and back office actions (ASTA-06, ASTA-08)", () => {
         auctionId: opened.auctionId,
         organizationIds: free.slice(1, 2),
         byUserId: invited[0]?.id ?? "",
-        reason: "Tardi",
+        actionId: "00000000-0000-7000-8000-0000000000e4",
       }),
     ).rejects.toThrow(/AFTER_FIRST_HALF/);
   });
@@ -420,7 +440,7 @@ describe("deserted and back office actions (ASTA-06, ASTA-08)", () => {
     await h.activities.cancelRound({
       auctionId: opened.auctionId,
       byUserId: opened.auctionId,
-      reason: "Sospetta frode",
+      actionId: "00000000-0000-7000-8000-0000000000e5",
     });
     expect((await h.activities.closeRound({ auctionId: opened.auctionId })).cancelled).toBe(true);
     const offer = await read((tx) =>
@@ -465,6 +485,20 @@ describe("S04 — asta deserta (ASTA-04, ASTA-07, ASTA-08)", () => {
       // At half no offer: the top-up finds no other agency (Nove still paused).
       h.clock.set(main.topUpAt);
       expect(await h.activities.topUp({ auctionId: main.auctionId })).toEqual({ invited: 0 });
+      // ASTA-07: the reminder at 18:00 to the three invited agencies without an offer.
+      h.clock.set(main.reminderAt);
+      expect(await h.activities.remindAgencies({ auctionId: main.auctionId })).toEqual({
+        reminded: 3,
+      });
+      const reminders = await read((tx) =>
+        tx.notification.count({
+          where: {
+            eventKey: "auction.closing_soon",
+            payload: { path: ["auctionId"], equals: main.auctionId },
+          },
+        }),
+      );
+      expect(reminders).toBeGreaterThanOrEqual(3);
       h.clock.set(main.scheduledCloseAt);
       expect((await h.activities.closeRound({ auctionId: main.auctionId })).validOffers).toBe(0);
       // The reopening at 18:30 invites Nove and closes Friday 20/11 at 10:30.
@@ -494,10 +528,131 @@ describe("S04 — asta deserta (ASTA-04, ASTA-07, ASTA-08)", () => {
         tx.quoteRequest.findUniqueOrThrow({ where: { id: request.id } }),
       );
       expect(status.status).toBe("DESERTED");
+      const told = await read(async (tx) => ({
+        requester: await tx.notification.count({
+          where: {
+            eventKey: "auction.deserted.requester",
+            payload: { path: ["quoteRequestId"], equals: request.id },
+          },
+        }),
+        backOffice: await tx.notification.count({
+          where: {
+            eventKey: "auction.deserted.bo",
+            payload: { path: ["quoteRequestId"], equals: request.id },
+          },
+        }),
+      }));
+      expect(told.requester).toBe(1);
+      expect(told.backOffice).toBeGreaterThan(0);
     } finally {
       await read((tx) =>
         tx.agencyCapacity.update({ where: { organizationId: nove }, data: { pausedUntil: null } }),
       );
+    }
+  });
+});
+
+describe("closing against submissions (BC-03, BC-05) and what reaches Temporal (BC-07)", () => {
+  it("BC-03 the envelopes are not opened before the scheduled closing", async () => {
+    h.clock.set(MONDAY_9);
+    const request = await approvedRequest(h);
+    const opened = await h.activities.openRound({ requestId: request.id, kind: "MAIN", round: 1 });
+    if (!opened.opened) throw new Error("not opened");
+    h.clock.set("2026-11-16T09:59:00.000Z"); // one minute early
+    await expect(h.activities.closeRound({ auctionId: opened.auctionId })).rejects.toThrow(
+      /not due/,
+    );
+    const auction = await read((tx) =>
+      tx.auction.findUniqueOrThrow({ where: { id: opened.auctionId } }),
+    );
+    expect(auction.status).toBe("OPEN");
+  });
+
+  it("BC-05 a submission holding the auction's lock when the closing comes is opened by that closing", async () => {
+    h.clock.set(MONDAY_9);
+    const request = await approvedRequest(h);
+    const opened = await h.activities.openRound({ requestId: request.id, kind: "MAIN", round: 1 });
+    if (!opened.opened) throw new Error("not opened");
+    let release: () => void = () => undefined;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let locked: () => void = () => undefined;
+    const isLocked = new Promise<void>((resolve) => {
+      locked = resolve;
+    });
+    // The submission of the API: the row lock, then the sealed offer, then the commit.
+    const submission = h.db.$transaction(
+      async (tx) => {
+        await tx.$executeRaw`SELECT set_config('app.is_system', 'true', true)`;
+        await tx.$queryRaw`SELECT 1 FROM "Auction" WHERE "id" = ${opened.auctionId}::uuid FOR UPDATE`;
+        locked();
+        await held;
+        await insertSealedOffer(
+          h,
+          tx,
+          opened.auctionId,
+          "agenzia-uno",
+          {
+            annualGrossPremiumCents: 47000,
+            coverage: FULL_BASE_COVERAGE,
+            guaranteeUntil: "2026-12-10",
+            notes: null,
+          },
+          new Date(MONDAY_9),
+        );
+      },
+      { timeout: 20_000 },
+    );
+    await isLocked;
+    h.clock.set(opened.scheduledCloseAt);
+    // The closing comes while the submission holds the lock: it waits, then sees the offer.
+    const closing = h.activities.closeRound({ auctionId: opened.auctionId });
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    release();
+    await submission;
+    expect((await closing).validOffers).toBe(1);
+  });
+
+  it("BC-07 SIC-06 what the activities return to Temporal holds identifiers, counts and instants only", async () => {
+    h.clock.set(MONDAY_9);
+    const request = await approvedRequest(h);
+    const opened = await h.activities.openRound({ requestId: request.id, kind: "MAIN", round: 1 });
+    if (!opened.opened) throw new Error("not opened");
+    await sealedOffer(
+      h,
+      opened.auctionId,
+      "agenzia-tre",
+      {
+        company: "Compagnia Beta",
+        annualGrossPremiumCents: 46100,
+        coverage: FULL_BASE_COVERAGE,
+        guaranteeUntil: "2026-12-10",
+        notes: "Nota",
+      },
+      new Date(MONDAY_9),
+    );
+    h.clock.set(opened.scheduledCloseAt);
+    const outputs = [
+      opened,
+      await h.activities.roundTimes({ auctionId: opened.auctionId }),
+      await h.activities.topUp({ auctionId: opened.auctionId }),
+      await h.activities.closeRound({ auctionId: opened.auctionId }),
+      await h.activities.guaranteeSchedule({ requestId: request.id }),
+    ];
+    const text = JSON.stringify(outputs);
+    for (const forbidden of [
+      "46100",
+      "461,00",
+      "Compagnia",
+      "Beta",
+      "Giulia",
+      "Neri",
+      "NREGLI",
+      "@example.test",
+      "Nota",
+    ]) {
+      expect(text, forbidden).not.toContain(forbidden);
     }
   });
 });

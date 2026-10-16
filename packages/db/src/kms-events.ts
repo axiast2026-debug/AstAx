@@ -10,15 +10,17 @@ export interface KmsEventInput {
 
 /**
  * ADR 0005: writes each use of a KMS key to `KmsEvent`, in its own system
- * transaction, so that a refused or failed use is recorded too.
+ * transaction, so that a refused or failed use is recorded too. The worker
+ * waits for the row (the proof of BC-03); the API does not.
  */
 export function kmsEventRecorder(
   db: DbClient,
   processName: "api" | "worker",
   now: () => Date,
+  options: { wait: boolean; onError?: (error: unknown) => void } = { wait: true },
 ): (op: KmsEventInput) => Promise<void> {
   return async (op) => {
-    await withContext(db, SYSTEM_CONTEXT, (tx) =>
+    const write = withContext(db, SYSTEM_CONTEXT, (tx) =>
       tx.kmsEvent.create({
         data: {
           at: now(),
@@ -30,5 +32,9 @@ export function kmsEventRecorder(
         },
       }),
     );
+    // The API does not wait: a submission holding a connection and the lock of
+    // the auction must not wait for a second connection of the pool.
+    if (options.wait) await write;
+    else void write.catch((error: unknown) => options.onError?.(error));
   };
 }

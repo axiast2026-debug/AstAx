@@ -44,9 +44,14 @@ export interface ReopenPolicy {
   maxAttempts: number;
 }
 
+/**
+ * A back office request on one auction (ASTA-06). The reason stays in the API's
+ * audit log, under `actionId`: free text never enters Temporal (BC-07, rule 8).
+ */
 export interface BackOfficeAction {
+  auctionId: string;
+  actionId: string;
   byUserId: string;
-  reason: string;
 }
 
 export interface AuctionActivities {
@@ -57,11 +62,11 @@ export interface AuctionActivities {
   remindAgencies(input: { auctionId: string }): Promise<{ reminded: number }>;
   closeRound(input: { auctionId: string }): Promise<CloseResult>;
   markDeserted(input: { requestId: string }): Promise<void>;
-  extendRound(input: { auctionId: string; workingHours: number } & BackOfficeAction): Promise<void>;
+  extendRound(input: { workingHours: number } & BackOfficeAction): Promise<void>;
   addInvitations(
-    input: { auctionId: string; organizationIds: string[] } & BackOfficeAction,
+    input: { organizationIds: string[] } & BackOfficeAction,
   ): Promise<{ invited: number }>;
-  cancelRound(input: { auctionId: string } & BackOfficeAction): Promise<void>;
+  cancelRound(input: BackOfficeAction): Promise<void>;
   guaranteeSchedule(input: { requestId: string }): Promise<GuaranteeSchedule>;
   sendGuaranteeReminder(input: { requestId: string; offerId: string }): Promise<void>;
   expireRequest(input: { requestId: string }): Promise<{ expired: boolean }>;

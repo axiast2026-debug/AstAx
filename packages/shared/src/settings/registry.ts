@@ -67,6 +67,8 @@ export const settingSchemas = {
   "guarantee.minValidityDaysOptions": z.array(positiveInt).nonempty(),
   "guarantee.defaultMinValidityDays": positiveInt,
   "guarantee.reminderDaysBefore": positiveInt,
+  "guarantee.reminderTime": clockTime,
+  "backOffice.recentAuctionsDays": positiveInt,
   "reconfirmation.workingHours": positiveInt,
   "reconfirmation.maxPerRequest": nonNegativeInt,
   "requests.autoCancelExpiredDays": positiveInt,

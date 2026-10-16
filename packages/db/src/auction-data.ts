@@ -50,9 +50,13 @@ export const AUCTION_SETTING_KEYS = [
   "invitations.backOfficeWindowFraction",
   "invitations.minReceptionOverlapWorkingHours",
   "guarantee.reminderDaysBefore",
+  "guarantee.reminderTime",
 ] as const;
 export type AuctionSettingsSnapshot = {
   [K in (typeof AUCTION_SETTING_KEYS)[number]]: SettingValue<K>;
+} & {
+  /** ASTA-09: the national holidays in force at the opening, copied with the parameters. */
+  "calendar.holidays"?: string[];
 };
 
 export function auctionSettingsAt(tx: DbTransaction, at: Date): Promise<AuctionSettingsSnapshot> {
@@ -78,7 +82,12 @@ export function auctionSettings(snapshot: AuctionSettingsSnapshot): AuctionSetti
 export async function loadWorkingCalendar(
   tx: DbTransaction,
   hours: SettingValue<"calendar.workingHours">,
+  snapshot?: { "calendar.holidays"?: string[] },
 ): Promise<WorkingCalendar> {
+  // An open auction keeps the holidays of its opening (ASTA-09).
+  if (snapshot?.["calendar.holidays"]) {
+    return { hours, holidays: new Set(snapshot["calendar.holidays"]) };
+  }
   const holidays = await tx.holiday.findMany({ select: { date: true } });
   return {
     hours,

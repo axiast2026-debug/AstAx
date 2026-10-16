@@ -157,6 +157,8 @@ beforeAll(async () => {
     "agenzia-uno-operator",
     "agenzia-due-owner",
     "agenzia-tre-owner",
+    "agenzia-cinque-owner",
+    "agenzia-sei-owner",
     "marco-rossi",
   ] as const) {
     await acceptAllLegal(h, key);
@@ -170,7 +172,13 @@ beforeAll(async () => {
     await r.call(verifier, `/verification/requests/${requestId}/approve`, { body: {} }),
     200,
   );
-  auctionId = await openAuction(requestId, ["agenzia-uno", "agenzia-due", "agenzia-tre"]);
+  auctionId = await openAuction(requestId, [
+    "agenzia-uno",
+    "agenzia-due",
+    "agenzia-tre",
+    "agenzia-cinque",
+    "agenzia-sei",
+  ]);
   const rows = await withContext(h.db, SYSTEM_CONTEXT, async (tx) => ({
     companies: await tx.insuranceCompany.findMany(),
     products: await tx.insuranceProduct.findMany({ include: { company: true } }),
@@ -184,6 +192,8 @@ beforeAll(async () => {
         uno: "agenzia-uno",
         due: "agenzia-due",
         tre: "agenzia-tre",
+        cinque: "agenzia-cinque",
+        sei: "agenzia-sei",
       }).find(([, key]) => orgId(key) === p.organizationId)?.[1];
       return [`${agency ?? p.organizationId}:${p.company.name.replace("Compagnia ", "")}`, p.id];
     }),
@@ -251,7 +261,7 @@ describe("fase 3: claims and offers (OFF-01..07, BC-02, BC-04, BC-05)", () => {
     ).toBe(400);
   });
 
-  it("BC-02 an offer is sealed at its arrival: no premium, company or notes in clear in the database", async () => {
+  it("BC-02 S07 three offers are sealed at their arrival: no premium or notes in any table, no company in the offer tables, no PDF in clear in the storage", async () => {
     const uno = await who("agenzia-uno-owner", "agenzia-uno");
     const created = await r.json<{ id: string; version: number }>(
       await sendOffer(
@@ -263,23 +273,60 @@ describe("fase 3: claims and offers (OFF-01..07, BC-02, BC-04, BC-05)", () => {
     );
     offerId = created.id;
     expect(created.version).toBe(1);
-    const dump = await withContext(h.db, SYSTEM_CONTEXT, async (tx) =>
-      JSON.stringify(
-        [
-          await tx.offer.findMany({ where: { auctionId } }),
-          await tx.offerVersion.findMany(),
-          await tx.auditLog.findMany({ where: { targetId: offerId } }),
-          await tx.domainEvent.findMany(),
-          await tx.outboxEvent.findMany(),
-          await tx.notification.findMany(),
-          await tx.kmsEvent.findMany(),
-        ],
-        (_k, v: unknown) => (typeof v === "bigint" ? v.toString() : v),
-      ),
-    );
-    for (const plain of ["50500", "505,00", "Sconto fedeltà", companies.Alfa ?? "x", "%PDF"]) {
-      expect(dump).not.toContain(plain);
+    for (const [key, agency, company, cents] of [
+      ["agenzia-cinque-owner", "agenzia-cinque", "Beta", 51700],
+      ["agenzia-sei-owner", "agenzia-sei", "Alfa", 52900],
+    ] as const) {
+      await r.json(
+        await sendOffer(
+          await who(key, agency),
+          `/auctions/${auctionId}/offers`,
+          offerFor(agency, company, {
+            annualGrossPremiumCents: cents,
+            notes: "Rata mensile possibile",
+          }),
+        ),
+        201,
+      );
     }
+    // A copy of the whole database, table by table.
+    const dump = await withContext(h.db, SYSTEM_CONTEXT, async (tx) => {
+      const tables = await tx.$queryRaw<{ table_name: string }[]>`
+        SELECT table_name FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_type = 'BASE TABLE' AND table_name <> '_prisma_migrations'`;
+      const all: Record<string, string> = {};
+      for (const { table_name } of tables) {
+        const rows = await tx.$queryRawUnsafe<{ row: unknown }[]>(
+          `SELECT row_to_json(t)::text AS row FROM "${table_name}" t`,
+        );
+        all[table_name] = rows.map((r) => String(r.row)).join(String.fromCharCode(10));
+      }
+      return all;
+    });
+    const everything = Object.values(dump).join(String.fromCharCode(10));
+    for (const plain of [
+      "50500",
+      "51700",
+      "52900",
+      "505,00",
+      "Sconto fedeltà",
+      "Rata mensile possibile",
+    ]) {
+      expect(everything, plain).not.toContain(plain);
+    }
+    for (const table of ["Offer", "OfferVersion"]) {
+      for (const company of [
+        companies.Alfa ?? "x",
+        companies.Beta ?? "x",
+        "Compagnia Alfa",
+        "Compagnia Beta",
+      ]) {
+        expect(dump[table] ?? "", `${table} ${company}`).not.toContain(company);
+      }
+    }
+    // The PDFs are stored encrypted.
+    const stored = [...h.storage.objects.values()].map((o) => new TextDecoder().decode(o.body));
+    expect(stored.some((body) => body.includes("preventivo di prova"))).toBe(false);
   });
 
   it("BC-04 the agency reads its own offer, and the reading is logged", async () => {
@@ -376,7 +423,7 @@ describe("fase 3: claims and offers (OFF-01..07, BC-02, BC-04, BC-05)", () => {
       await r.call(elena, `/requests/${requestId}/auction`),
       200,
     );
-    expect(status.auction).toMatchObject({ status: "OPEN", offers: 1 });
+    expect(status.auction).toMatchObject({ status: "OPEN", offers: 3 });
     expect(status.auction).not.toHaveProperty("invitedAgencies");
     expect(JSON.stringify(status)).not.toContain("499");
   });
@@ -405,7 +452,15 @@ describe("fase 3: claims and offers (OFF-01..07, BC-02, BC-04, BC-05)", () => {
       }),
       202,
     );
-    expect(h.signals.sent.at(-1)).toMatchObject({ requestId, name: "auctionExtended" });
+    // The workflow gets ids only; the reason stays in the audit log (BC-07).
+    expect(h.signals.sent.at(-1)).toMatchObject({
+      requestId,
+      name: "auctionExtended",
+      input: { auctionId, workingHours: 1 },
+    });
+    expect(JSON.stringify(h.signals.sent)).not.toContain("Guasto");
+    const [requested] = await audit("AUCTION_EXTENSION_REQUESTED", auctionId);
+    expect(requested?.reason).toBe("Guasto tecnico");
     await r.json(
       await r.call(verifier, `/auctions/${auctionId}/invite`, {
         body: { organizationIds: [orgId("agenzia-quattro")], reason: "Più compagnie" },
@@ -432,7 +487,7 @@ describe("fase 3: claims and offers (OFF-01..07, BC-02, BC-04, BC-05)", () => {
       auctions: { auctionId: string; offers: number | null; invited: number }[];
     }>(await r.call(verifierLater, "/auctions"), 200);
     const row = list.auctions.find((a) => a.auctionId === auctionId);
-    expect(row).toMatchObject({ offers: 1, invited: 3 });
+    expect(row).toMatchObject({ offers: 3, invited: 5 });
     expect(JSON.stringify(row)).not.toContain("499");
   });
 

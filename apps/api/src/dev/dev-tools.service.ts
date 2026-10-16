@@ -88,13 +88,13 @@ export class DevToolsService implements OnApplicationBootstrap, OnApplicationShu
 
   async fireNextTimer(auth: AuthContext, requestId: string) {
     this.enabled();
-    await this.signals.fireNextTimer(requestId);
     await this.audit.record(actorOf(auth), {
       action: "DEV_TOOL_USED",
       targetType: "QuoteRequest",
       targetId: requestId,
       after: { tool: "fireNextTimer" },
     });
+    await this.signals.fireNextTimer(requestId);
     return { fired: true };
   }
 

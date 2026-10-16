@@ -1,6 +1,7 @@
 import { Writable } from "node:stream";
 import { ManualClock } from "@astax/adapters/clock";
 import { InMemoryEmailSender } from "@astax/adapters/email";
+import { InMemoryObjectStorage } from "@astax/adapters/storage";
 import type { KeycloakSession } from "@astax/adapters/identity";
 import { createDbClient, type DbClient } from "@astax/db";
 import { SYNTHETIC, syntheticId } from "@astax/db/seed";
@@ -105,6 +106,8 @@ export interface Harness {
   db: DbClient;
   /** Signals to the workflows, recorded instead of sent (ADR 0008). */
   signals: RecordingWorkflowSignals;
+  /** Documents and sealed PDFs, in memory. */
+  storage: InMemoryObjectStorage;
   /** Signed access token, as Keycloak would issue it. */
   token(
     claims: {
@@ -126,7 +129,9 @@ export interface Harness {
   close(): Promise<void>;
 }
 
-export async function startHarness(): Promise<Harness> {
+export async function startHarness(
+  options: { env?: Record<string, string> } = {},
+): Promise<Harness> {
   const clock = new ManualClock("2026-11-16T09:00:00.000Z");
   const { privateKey, publicKey } = await generateKeyPair("RS256");
   const other = await generateKeyPair("RS256");
@@ -135,6 +140,7 @@ export async function startHarness(): Promise<Harness> {
   const identity = new FakeIdentityAdmin();
   const email = new InMemoryEmailSender();
   const signals = new RecordingWorkflowSignals();
+  const storage = new InMemoryObjectStorage();
   const dbUrl = inject("apiDbUrl");
   const db = createDbClient(dbUrl);
 
@@ -147,6 +153,7 @@ export async function startHarness(): Promise<Harness> {
     KEYCLOAK_URL: "http://keycloak.test",
     KEYCLOAK_API_ADMIN_SECRET: "test-secret-not-used-0000",
     IDENTITY_SYNC_ON_START: "false",
+    ...options.env,
   });
   const app = await createApp(config, {
     clock,
@@ -154,6 +161,7 @@ export async function startHarness(): Promise<Harness> {
     identityAdmin: identity,
     emailSender: email,
     workflowSignals: signals,
+    objectStorage: storage,
     tokenVerifier: verifier,
     // API_TEST_LOGS=1 shows the (redacted) API logs while debugging a test.
     logger: process.env.API_TEST_LOGS
@@ -212,6 +220,7 @@ export async function startHarness(): Promise<Harness> {
     email,
     db,
     signals,
+    storage,
     token,
     tokenFor,
     call,

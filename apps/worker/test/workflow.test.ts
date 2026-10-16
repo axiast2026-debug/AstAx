@@ -216,12 +216,14 @@ describe("QuoteRequestWorkflow (ADR 0008)", () => {
       await handle.signal(auctionExtendedSignal, {
         workingHours: 1,
         byUserId: "u",
-        reason: "Guasto",
+        auctionId: "auction-1",
+        actionId: "a-1",
       });
       await handle.signal(invitationsAddedSignal, {
         organizationIds: ["o"],
         byUserId: "u",
-        reason: "Più agenzie",
+        auctionId: "auction-1",
+        actionId: "a-2",
       });
     });
     expect(r.names()).toContain("extendRound");
@@ -231,9 +233,25 @@ describe("QuoteRequestWorkflow (ADR 0008)", () => {
     expect(closed - opened).toBeGreaterThanOrEqual(3 * HOUR - 1000);
   });
 
+  it("ASTA-06 a request for another round does not apply to the current one", async () => {
+    const r = await run({ closings: [1] }, async (handle) => {
+      await handle.signal(auctionCancelledSignal, {
+        auctionId: "auction-0",
+        actionId: "a-9",
+        byUserId: "u",
+      });
+    });
+    expect(r.names()).not.toContain("cancelRound");
+    expect(r.names()).toContain("closeRound");
+  });
+
   it("ASTA-06 a cancellation ends the auction without closing it", async () => {
     const r = await run({ closings: [1] }, async (handle) => {
-      await handle.signal(auctionCancelledSignal, { byUserId: "u", reason: "Sospetta frode" });
+      await handle.signal(auctionCancelledSignal, {
+        auctionId: "auction-1",
+        actionId: "a-3",
+        byUserId: "u",
+      });
     });
     expect(r.names()).toContain("cancelRound");
     expect(r.names()).not.toContain("closeRound");

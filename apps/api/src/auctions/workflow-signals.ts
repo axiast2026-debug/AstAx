@@ -6,16 +6,17 @@ import { Client, Connection } from "@temporalio/client";
  * actions on an open auction and the development tool. The API checks the
  * rules first (409 when refused); the worker applies the change.
  */
+/** What the workflow receives: identifiers only; the reason stays in the audit log. */
+export interface BackOfficeSignal {
+  auctionId: string;
+  actionId: string;
+  byUserId: string;
+}
+
 export interface WorkflowSignals {
-  extend(
-    requestId: string,
-    input: { workingHours: number; byUserId: string; reason: string },
-  ): Promise<void>;
-  invite(
-    requestId: string,
-    input: { organizationIds: string[]; byUserId: string; reason: string },
-  ): Promise<void>;
-  cancel(requestId: string, input: { byUserId: string; reason: string }): Promise<void>;
+  extend(requestId: string, input: BackOfficeSignal & { workingHours: number }): Promise<void>;
+  invite(requestId: string, input: BackOfficeSignal & { organizationIds: string[] }): Promise<void>;
+  cancel(requestId: string, input: BackOfficeSignal): Promise<void>;
   fireNextTimer(requestId: string): Promise<void>;
 }
 
@@ -43,18 +44,15 @@ export class TemporalWorkflowSignals implements WorkflowSignals {
     await client.workflow.getHandle(workflowIdOf(requestId)).signal(name, ...args);
   }
 
-  extend(requestId: string, input: { workingHours: number; byUserId: string; reason: string }) {
+  extend(requestId: string, input: BackOfficeSignal & { workingHours: number }) {
     return this.signal(requestId, SIGNALS.auctionExtended, input);
   }
 
-  invite(
-    requestId: string,
-    input: { organizationIds: string[]; byUserId: string; reason: string },
-  ) {
+  invite(requestId: string, input: BackOfficeSignal & { organizationIds: string[] }) {
     return this.signal(requestId, SIGNALS.invitationsAdded, input);
   }
 
-  cancel(requestId: string, input: { byUserId: string; reason: string }) {
+  cancel(requestId: string, input: BackOfficeSignal) {
     return this.signal(requestId, SIGNALS.auctionCancelled, input);
   }
 

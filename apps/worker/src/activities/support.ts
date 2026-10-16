@@ -39,6 +39,12 @@ export interface ActivityDeps {
   logger: Logger;
   urls: { web: string; admin: string };
   publish: (event: RealtimeEvent) => Promise<void>;
+  /**
+   * Development tool «Fai scattare il prossimo passo» (DEV_TOOLS only): the
+   * closing may come before its scheduled time. Otherwise opening the
+   * envelopes early is refused (BC-03).
+   */
+  allowEarlyClose: boolean;
 }
 
 export const SYSTEM_ACTOR = {
@@ -148,7 +154,8 @@ export function snapshotOf(auction: Auction): AuctionSettingsSnapshot {
 }
 
 export async function calendarOf(tx: DbTransaction, auction: Auction): Promise<WorkingCalendar> {
-  return loadWorkingCalendar(tx, snapshotOf(auction)["calendar.workingHours"]);
+  const snapshot = snapshotOf(auction);
+  return loadWorkingCalendar(tx, snapshot["calendar.workingHours"], snapshot);
 }
 
 /**
@@ -179,9 +186,9 @@ export function requesterLink(urls: ActivityDeps["urls"], request: QuoteRequest)
     : `${urls.web}/richieste/${request.id}`;
 }
 
+/** Rule 8: make and model only in notifications, never the plate. */
 export function vehicleForRequester(quoteData: QuoteData): string {
-  const v = quoteData.vehicle;
-  return `${v.make} ${v.model} ${v.plate}`;
+  return `${quoteData.vehicle.make} ${quoteData.vehicle.model}`;
 }
 
 /** For the agencies: make and model only. */

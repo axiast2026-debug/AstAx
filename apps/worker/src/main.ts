@@ -78,6 +78,7 @@ const activities = createActivities({
   logger,
   urls: { web: config.WEB_URL, admin: config.ADMIN_URL },
   publish,
+  allowEarlyClose: config.DEV_TOOLS && config.NODE_ENV !== "production",
 });
 
 const connection = await NativeConnection.connect({ address });

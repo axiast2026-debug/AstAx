@@ -43,7 +43,6 @@ import {
   dbDateToCalendarDate,
   formatDate,
   formatDateTime,
-  formatEuroCents,
 } from "@astax/shared/format";
 import { errorForLog } from "@astax/shared/logging";
 import { ApplicationFailure } from "@temporalio/activity";
@@ -62,7 +61,13 @@ import {
   vehicleForRequester,
   type ActivityDeps,
 } from "./support.js";
-import type { AuctionActivities, CloseResult, OpenResult, RoundKind } from "./types.js";
+import type {
+  AuctionActivities,
+  BackOfficeAction,
+  CloseResult,
+  OpenResult,
+  RoundKind,
+} from "./types.js";
 
 const LONG_TX = { timeoutMs: 60_000 };
 
@@ -198,15 +203,12 @@ export function auctionActivities(
       const calendar = await loadWorkingCalendar(tx, snapshot["calendar.workingHours"]);
       const durationHours =
         input.kind === "MAIN"
-          ? (request.auctionDurationHours ?? 0)
+          ? request.auctionDurationHours
           : snapshot["auction.desertedReopen.workingHours"];
-      const times = auctionTimes(
-        calendar,
-        now,
-        durationHours,
-        request.minValidityDays ?? 0,
-        settings,
-      );
+      if (!durationHours || request.minValidityDays === null) {
+        throw ApplicationFailure.nonRetryable("The request has no submitted data");
+      }
+      const times = auctionTimes(calendar, now, durationHours, request.minValidityDays, settings);
       const filterable = filterableRequest(request, now);
       if (!filterable) throw ApplicationFailure.nonRetryable("The request has no submitted data");
       const exclusions = await tx.invitationExclusion.findMany({
@@ -249,7 +251,8 @@ export function auctionActivities(
           originalCloseAt: times.scheduledCloseAt,
           minGuaranteeDate: calendarDateToDbDate(times.minGuaranteeDate),
           durationHours,
-          settingsSnapshot: snapshot,
+          // ASTA-09: parameters and holidays in force at the opening.
+          settingsSnapshot: { ...snapshot, "calendar.holidays": [...calendar.holidays].sort() },
           publicKey: keys.publicKey,
           wrappedPrivateKey,
           kmsKeyRef: KMS_KEYS.sealedBids,
@@ -274,7 +277,6 @@ export function auctionActivities(
         details: {
           round: auction.round,
           scheduledCloseAt: auction.scheduledCloseAt.toISOString(),
-          invited: organizationIds.length,
         },
       });
       await recordDomainEvent(tx, {
@@ -385,7 +387,6 @@ export function auctionActivities(
           actorKind: "SYSTEM",
           actorUserId: null,
           at: now,
-          details: { invited: ids.length },
         });
       }
       await audit(tx, now, {
@@ -475,6 +476,11 @@ export function auctionActivities(
         };
       }
       const now = clock.now();
+      // BC-03: never open the envelopes before the scheduled closing; a clock a
+      // little behind the workflow's makes Temporal try again shortly.
+      if (now < auction.scheduledCloseAt && !deps.allowEarlyClose) {
+        throw ApplicationFailure.retryable("The auction is not due to close yet", "TOO_EARLY");
+      }
       await tx.auction.update({ where: { id: auction.id }, data: { status: "CLOSING" } });
       const request = await tx.quoteRequest.findUniqueOrThrow({
         where: { id: auction.quoteRequestId },
@@ -577,7 +583,7 @@ export function auctionActivities(
                   sha256: createHash("sha256").update(pdf).digest("hex"),
                   mime: "application/pdf",
                   size: pdf.length,
-                  fileName: "preventivo.pdf",
+                  fileName: notifier.label("offerQuote.fileName", "it"),
                   uploadedByUserId: offer.userId,
                 },
               });
@@ -661,7 +667,6 @@ export function auctionActivities(
       const quoteData = await quoteDataOf(tx, cipher, request);
       if (ranked.length > 0) {
         const requester = await requesterOf(tx, cipher, request);
-        const cheapest = ranked[0]?.annualGrossPremiumCents ?? 0;
         await notifier.notify(
           tx,
           pending,
@@ -672,7 +677,6 @@ export function auctionActivities(
             codice: request.code,
             veicolo: vehicleForRequester(quoteData),
             numero_offerte: String(ranked.length),
-            premio_minimo: formatEuroCents(cheapest),
             link: requesterLink(urls, request),
           }),
           new URL(requesterLink(urls, request)).pathname,
@@ -688,14 +692,20 @@ export function auctionActivities(
           pending,
           await agencyRecipients(tx, cipher, [offer.organizationId]),
           "auction.closed.agency",
-          () => ({
+          (locale) => ({
             codice: request.code,
             veicolo: vehicleForAgency(quoteData),
-            stato_offerta: isValid ? "valida" : "esclusa",
-            motivo_esclusione: isValid
-              ? ""
-              : "Le coperture o i dati dichiarati non rispettano la richiesta.",
-            garanzia_offerta: guarantee ? formatDate(guarantee) : "—",
+            stato_offerta: notifier.label(
+              isValid ? "offerStatus.valid" : "offerStatus.excluded",
+              locale,
+            ),
+            motivo_esclusione: notifier.label(
+              isValid ? "offerExclusion.none" : "offerExclusion.generic",
+              locale,
+            ),
+            garanzia_offerta: guarantee
+              ? formatDate(guarantee)
+              : notifier.label("guarantee.none", locale),
             link: `${urls.web}/le-mie-offerte`,
           }),
           `/le-mie-offerte`,
@@ -767,22 +777,28 @@ export function auctionActivities(
     await publish(input.requestId);
   }
 
-  /** ASTA-06: a later closing, with reason; the minimum guarantee does not move (GAR-01). */
-  async function extendRound(input: {
-    auctionId: string;
-    workingHours: number;
-    byUserId: string;
-    reason: string;
-  }) {
+  /**
+   * ASTA-06: a later closing; the minimum guarantee does not move (GAR-01).
+   * Idempotent: the extension carries the action's id, applied once only. An
+   * auction past its scheduled closing is not extended (BC-05).
+   */
+  async function extendRound(input: BackOfficeAction & { workingHours: number }) {
     const requestId = await inSystem(async (tx) => {
       const auction = await lockAuction(tx, input.auctionId);
-      if (auction.status !== "OPEN") throw ApplicationFailure.nonRetryable("AUCTION_NOT_OPEN");
+      const applied = (auction.extensions as { actionId?: string }[]).some(
+        (e) => e.actionId === input.actionId,
+      );
+      if (applied) return auction.quoteRequestId;
       const now = clock.now();
+      if (auction.status !== "OPEN" || now >= auction.scheduledCloseAt) {
+        throw ApplicationFailure.nonRetryable("AUCTION_NOT_OPEN");
+      }
       const calendar = await calendarOf(tx, auction);
       const to = addWorkingMinutes(calendar, auction.scheduledCloseAt, input.workingHours * 60);
       const extensions = [
         ...(auction.extensions as Prisma.InputJsonArray),
         {
+          actionId: input.actionId,
           at: now.toISOString(),
           byUserId: input.byUserId,
           workingHours: input.workingHours,
@@ -809,8 +825,11 @@ export function auctionActivities(
         targetType: "Auction",
         targetId: auction.id,
         actorUserId: input.byUserId,
-        after: { from: auction.scheduledCloseAt.toISOString(), to: to.toISOString() },
-        reason: input.reason,
+        after: {
+          actionId: input.actionId,
+          from: auction.scheduledCloseAt.toISOString(),
+          to: to.toISOString(),
+        },
       });
       return request.id;
     });
@@ -818,12 +837,7 @@ export function auctionActivities(
   }
 
   /** ASTA-06: invitations by the back office, only in the first half of the auction. */
-  async function addInvitations(input: {
-    auctionId: string;
-    organizationIds: string[];
-    byUserId: string;
-    reason: string;
-  }) {
+  async function addInvitations(input: BackOfficeAction & { organizationIds: string[] }) {
     const result = await inSystem(async (tx, pending) => {
       const auction = await lockAuction(tx, input.auctionId);
       const now = clock.now();
@@ -859,15 +873,13 @@ export function auctionActivities(
         actorKind: "BACK_OFFICE",
         actorUserId: input.byUserId,
         at: now,
-        details: { invited: ids.length },
       });
       await audit(tx, now, {
         action: "AUCTION_INVITATIONS_ADDED",
         targetType: "Auction",
         targetId: auction.id,
         actorUserId: input.byUserId,
-        after: { invited: ids },
-        reason: input.reason,
+        after: { actionId: input.actionId, invited: ids },
       });
       return { invited: ids.length, requestId: request.id };
     });
@@ -880,14 +892,15 @@ export function auctionActivities(
    * becomes «Deserta» (question 13, prudent value): from there the back office
    * opens a new auction or closes it. Sealed offers stay sealed.
    */
-  async function cancelRound(input: { auctionId: string; byUserId: string; reason: string }) {
+  async function cancelRound(input: BackOfficeAction) {
     const requestId = await inSystem(async (tx) => {
       const auction = await lockAuction(tx, input.auctionId);
       if (auction.status !== "OPEN") return auction.quoteRequestId;
       const now = clock.now();
       await tx.auction.update({
         where: { id: auction.id },
-        data: { status: "CANCELLED", closedAt: now, cancelReason: input.reason },
+        // The reason is in the audit log of the API, under the action's id.
+        data: { status: "CANCELLED", closedAt: now, cancelReason: `action:${input.actionId}` },
       });
       const request = await tx.quoteRequest.findUniqueOrThrow({
         where: { id: auction.quoteRequestId },
@@ -904,7 +917,7 @@ export function auctionActivities(
         targetType: "Auction",
         targetId: auction.id,
         actorUserId: input.byUserId,
-        reason: input.reason,
+        after: { actionId: input.actionId },
       });
       return request.id;
     });
