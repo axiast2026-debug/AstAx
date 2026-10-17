@@ -484,6 +484,12 @@ export class AcceptanceService {
     if (live && live.offerId === offerId && live.customerLinkId === accepter.customerLinkId) {
       return live.id;
     }
+    // EMI-04: the second offer (or the new price) is the only one; no other choice.
+    if (live && (live.creditPremiumCents > 0 || live.creditFeeCents > 0)) {
+      throw new ProblemError("CONFLICT", "The request cannot be accepted now", [
+        { path: "request", issue: "NOT_ACCEPTABLE" },
+      ]);
+    }
     if (live) {
       // PAG-02: never two payments for one request. A transfer on its way
       // blocks the change; an open checkout is closed at the provider first.
@@ -510,10 +516,31 @@ export class AcceptanceService {
       );
       if (fresh.status === "ACCEPTED") await this.setStatus(tx, fresh, "OFFERS_AVAILABLE");
     }
+    return this.createAcceptance(tx, fresh, row, accepter, signer, returnUrl, actor, {});
+  }
+
+  /**
+   * The new acceptance with its fee (FEE-01…03), documents and signature
+   * envelope. EMI-04: for a second offer or a new price, the amount already
+   * paid is a credit; only the difference is paid or refunded.
+   */
+  private async createAcceptance(
+    tx: DbTransaction,
+    fresh: QuoteRequest,
+    row: PresentedRow,
+    accepter: Accepter,
+    signer: { firstName: string; lastName: string },
+    returnUrl: string,
+    actor: Parameters<AuditService["inTransaction"]>[1],
+    options: { premiumCents?: number; credit?: { premiumCents: number; feeCents: number } },
+  ) {
+    const now = this.clock.now();
+    const offerId = row.id;
+    const premiumCents = options.premiumCents ?? row.annualGrossPremiumCents;
     const fee = customerFee(
       {
         channel: fresh.channel,
-        premiumCents: row.annualGrossPremiumCents,
+        premiumCents,
         aiUsed: fresh.aiComparisonUsed,
       },
       await this.feeSettings(tx, now),
@@ -527,15 +554,24 @@ export class AcceptanceService {
           ownerOrganizationId: fresh.ownerOrganizationId,
           acceptedByUserId: accepter.userId,
           customerLinkId: accepter.customerLinkId,
-          premiumCents: row.annualGrossPremiumCents,
+          premiumCents,
           feeCents: fee.feeCents,
+          creditPremiumCents: options.credit?.premiumCents ?? 0,
+          creditFeeCents: options.credit?.feeCents ?? 0,
           feeRule: fee.rule,
           brokerFeeCents: fee.brokerFeeCents,
           aiUsed: fresh.aiComparisonUsed,
         },
       }),
     );
-    const documents = await this.documents(tx, fresh, row, acceptance.id, fee.feeCents, now);
+    const documents = await this.documents(
+      tx,
+      fresh,
+      { ...row, annualGrossPremiumCents: premiumCents },
+      acceptance.id,
+      fee.feeCents,
+      now,
+    );
     const envelope = await this.signature.createEnvelope({
       reference: acceptance.id,
       signer,
@@ -562,6 +598,45 @@ export class AcceptanceService {
       after: { acceptanceId: acceptance.id, offerId, feeRule: fee.rule, feeCents: fee.feeCents },
     });
     return acceptance.id;
+  }
+
+  /**
+   * EMI-04: the customer confirms the second offer (or the agency's new
+   * price): the acceptance that was paid lapses, a new one is signed for the
+   * new offer, and what was paid counts as a credit.
+   */
+  async acceptNextOffer(
+    tx: DbTransaction,
+    request: QuoteRequest,
+    proposal: { kind: "SECOND_OFFER" | "REPRICE"; toOfferId: string; premiumCents: number },
+    accepter: Accepter,
+    signer: { firstName: string; lastName: string },
+    returnUrl: string,
+    actor: Parameters<AuditService["inTransaction"]>[1],
+  ) {
+    const now = this.clock.now();
+    const paid = await asSystem(tx, () =>
+      tx.acceptance.findFirstOrThrow({
+        where: { quoteRequestId: request.id, status: "PAID" },
+      }),
+    );
+    const { rows } = await this.rows(tx, request, null);
+    const row = rows.find((r) => r.id === proposal.toOfferId);
+    if (!row) throw new ProblemError("NOT_FOUND");
+    await asSystem(tx, () =>
+      tx.acceptance.update({
+        where: { id: paid.id },
+        data: { status: "VOIDED", voidedAt: now, voidReason: `NEXT_OFFER_${proposal.kind}` },
+      }),
+    );
+    return this.createAcceptance(tx, request, row, accepter, signer, returnUrl, actor, {
+      premiumCents: proposal.premiumCents,
+      credit: {
+        // Everything paid for the lapsed acceptance (its own credit included).
+        premiumCents: paid.premiumCents,
+        feeCents: paid.feeCents,
+      },
+    });
   }
 
   async acceptAsPrivate(auth: AuthContext, requestId: string, offerId: string, returnUrl: string) {
@@ -720,6 +795,9 @@ export class AcceptanceService {
       premiumCents: a.premiumCents,
       feeCents: a.feeCents,
       totalCents: a.premiumCents + a.feeCents,
+      // EMI-04: what was already paid for the offer not issued, and what is due now.
+      creditCents: a.creditPremiumCents + a.creditFeeCents,
+      dueCents: a.premiumCents + a.feeCents - a.creditPremiumCents - a.creditFeeCents,
       feeRule: a.feeRule,
       aiUsed: a.aiUsed,
       signingUrl:
@@ -855,6 +933,15 @@ export class AcceptanceService {
         },
       ]);
     }
+    // EMI-04: a second offer that costs the same or less has nothing to pay.
+    if (
+      live.premiumCents - live.creditPremiumCents <= 0 &&
+      live.feeCents - live.creditFeeCents <= 0
+    ) {
+      throw new ProblemError("CONFLICT", "Nothing to pay", [
+        { path: "acceptance", issue: "NOTHING_TO_PAY" },
+      ]);
+    }
     if (fresh.status === "OFFERS_AVAILABLE") await this.setStatus(tx, fresh, "ACCEPTED");
     const open = live.payments.find((p) => p.status === "CREATED" || p.status === "AUTHORIZED");
     if (open?.redirectUrl) return { redirectUrl: open.redirectUrl };
@@ -865,8 +952,8 @@ export class AcceptanceService {
           ownerUserId: live.ownerUserId,
           ownerOrganizationId: live.ownerOrganizationId,
           provider: this.payments.provider,
-          premiumCents: live.premiumCents,
-          feeCents: live.feeCents,
+          premiumCents: live.premiumCents - live.creditPremiumCents,
+          feeCents: live.feeCents - live.creditFeeCents,
           idempotencyKey: `${live.id}-${live.payments.length + 1}`,
           createdAt: now,
         },

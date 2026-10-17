@@ -507,17 +507,31 @@ events:
     recipients: [requester, broker_client]
     channels: [in_app, push, email, sms]
     forcePush: true
-    variables: [nome, veicolo, compagnia, premio, garanzia, riga_differenza, termine, link]
+    # Regola 8 di CLAUDE.md: nessun prezzo nelle notifiche (domanda 15): premio e differenza sono nell'app.
+    variables: [nome, veicolo, compagnia, garanzia, termine, link]
     it:
       title: "Serve una tua conferma"
-      body: "L'agenzia scelta non ha potuto emettere. Ti proponiamo la seconda offerta: {{premio}}. Conferma entro {{termine}}."
+      body: "L'agenzia scelta non ha potuto emettere. Ti proponiamo la seconda offerta: conferma entro {{termine}}."
       sms: "AstAx: l'agenzia scelta non ha potuto emettere la polizza per {{veicolo}}. Conferma la seconda offerta entro {{termine}}: {{link}}"
       emailSubject: "Polizza per {{veicolo}}: serve una tua conferma"
       emailBody: |
         Ciao {{nome}},
         ci dispiace: l'agenzia che aveva vinto non ha potuto emettere la polizza per {{veicolo}}.
-        Ti proponiamo la seconda offerta migliore: {{compagnia}}, {{premio}}, garantita fino al {{garanzia}}.
-        {{riga_differenza}}
+        Ti proponiamo la seconda offerta migliore, {{compagnia}}, garantita fino al {{garanzia}}: premio e differenza da pagare o da restituire sono nell'app.
+        Conferma entro {{termine}}, oppure chiedi il rimborso completo: {{link}}
+  issuance.reprice_proposed:
+    recipients: [requester]
+    channels: [in_app, push, email]
+    forcePush: true
+    # Regola 8: il nuovo premio e la differenza sono nell'app.
+    variables: [nome, veicolo, compagnia, garanzia, termine, link]
+    it:
+      title: "Serve una tua conferma"
+      body: "Alcuni dati della richiesta non corrispondevano: l'agenzia ti propone un nuovo prezzo. Conferma entro {{termine}}."
+      emailSubject: "Polizza per {{veicolo}}: serve una tua conferma"
+      emailBody: |
+        Ciao {{nome}},
+        alcuni dati della richiesta per {{veicolo}} non corrispondevano ai documenti: l'agenzia ({{compagnia}}) ti propone un nuovo prezzo, che trovi nell'app.
         Conferma entro {{termine}}, oppure chiedi il rimborso completo: {{link}}
 
   policy.issued:
@@ -665,35 +679,36 @@ events:
   refund.approval_needed.bo:
     recipients: [bo_supervisors]
     channels: [in_app, email]
-    variables: [codice, importo, motivo, richiedente_rimborso, link]
+    # Regola 8: l'importo è nella pagina «Pagamenti», non nell'avviso.
+    variables: [codice, motivo, richiedente_rimborso, link]
     it:
       title: "Rimborso da approvare: {{codice}}"
-      body: "{{importo}} per {{motivo}}, chiesto da {{richiedente_rimborso}}."
+      body: "Motivo: {{motivo}}. Chiesto da {{richiedente_rimborso}}."
       emailSubject: "Rimborso da approvare: {{codice}}"
       emailBody: |
-        {{richiedente_rimborso}} chiede un rimborso di {{importo}} sulla richiesta {{codice}}.
+        {{richiedente_rimborso}} chiede un rimborso sulla richiesta {{codice}}.
         Motivo: {{motivo}}
         Approva o respingi: {{link}}
     sq:
       title: "Rimbursim për miratim: {{codice}}"
-      body: "{{importo}} për {{motivo}}, kërkuar nga {{richiedente_rimborso}}."
+      body: "Arsyeja: {{motivo}}. Kërkuar nga {{richiedente_rimborso}}."
       emailSubject: "Rimbursim për miratim: {{codice}}"
       emailBody: |
-        {{richiedente_rimborso}} kërkon një rimbursim prej {{importo}} për kërkesën {{codice}}.
+        {{richiedente_rimborso}} kërkon një rimbursim për kërkesën {{codice}}.
         Arsyeja: {{motivo}}
         Mirato ose refuzo: {{link}}
-
   refund.executed:
     recipients: [refund_recipient]
     channels: [in_app, email]
-    variables: [nome, importo, veicolo]
+    # Regola 8: l'importo è nell'app, non nell'avviso.
+    variables: [nome, veicolo]
     it:
       title: "Rimborso eseguito"
-      body: "Ti abbiamo rimborsato {{importo}}. L'accredito può richiedere alcuni giorni lavorativi."
-      emailSubject: "Rimborso di {{importo}} eseguito"
+      body: "Abbiamo eseguito il rimborso: l'accredito può richiedere alcuni giorni lavorativi."
+      emailSubject: "Rimborso eseguito"
       emailBody: |
         Ciao {{nome}},
-        ti abbiamo rimborsato {{importo}} per {{veicolo}}, con lo stesso metodo che hai usato per pagare.
+        abbiamo eseguito il rimborso per {{veicolo}}, con lo stesso metodo che hai usato per pagare. L'importo è nell'app.
         L'accredito può richiedere alcuni giorni lavorativi, secondo la tua banca.
 
   # ---------------------------------------------------------------- Rinnovi e post-vendita

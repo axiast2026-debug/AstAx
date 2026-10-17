@@ -7,6 +7,7 @@ import { askReconfirmation, cancelRequest } from "@/app/request-actions";
 import { Countdown } from "@/components/countdown";
 import { LiveRefresh } from "@/components/live-refresh";
 import { BrokerOffersPanel } from "@/components/broker-offers-panel";
+import { NextOfferCard } from "@/components/next-offer-card";
 import { OffersPanel } from "@/components/offers-panel";
 import { api } from "@/lib/auth";
 import { ErrorSummary } from "@/components/form";
@@ -248,6 +249,9 @@ export async function RequestView({
 
       {AUCTION_STATUSES.includes(detail.status) ? (
         <AuctionPanel requestId={detail.id} base={base} presented={presented} />
+      ) : null}
+      {base === "/preventivi" && detail.status === "ACCEPTED" ? (
+        <NextOfferCard requestId={detail.id} />
       ) : null}
       {presented && base === "/preventivi" ? <OffersPanel requestId={detail.id} /> : null}
       {presented && base === "/richieste" ? <BrokerOffersPanel requestId={detail.id} /> : null}

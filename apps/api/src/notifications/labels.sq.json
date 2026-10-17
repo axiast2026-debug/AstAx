@@ -39,5 +39,19 @@
     "DATA_MISMATCH": "Të dhëna që nuk përputhen",
     "CANNOT_ISSUE": "E pamundur të lëshohet",
     "MISSED_DEADLINE": "Asnjë lëshim para datës së fillimit"
+  },
+  "refundReason": {
+    "BEFORE_ISSUANCE": "rimbursim i plotë para lëshimit",
+    "WITHDRAWAL": "tërheqje e klientit",
+    "SECOND_OFFER_DIFFERENCE": "diferenca e ofertës së dytë",
+    "INVALID_ACCEPTANCE": "pagesë për një pranim jo më të vlefshëm"
+  },
+  "refundRequester": {
+    "system": "AstAx (automatikisht)",
+    "customer": "klienti",
+    "backOffice": "zyra"
+  },
+  "suspension": {
+    "reason": "tre moslëshime në gjashtë muajt e fundit"
   }
 }

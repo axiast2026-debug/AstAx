@@ -373,5 +373,56 @@
     "saved": "Vlera u ruajt.",
     "entry": "{value} në {year} ({source})",
     "error": "Veprimi nuk u krye ({code})."
+  },
+  "exceptions": {
+    "title": "Përjashtime",
+    "intro": "Moslëshime dhe probleme të sinjalizuara nga agjencitë (EMI-04). Nëse faji është i agjencisë: gjobë 100 € në vend të asaj për vonesë dhe oferta e dytë për klientin, me 24 orë për ta konfirmuar. Nëse të dhënat e klientit janë të gabuara: çmimi i ri i agjencisë, për t'u konfirmuar.",
+    "empty": "Asnjë rast.",
+    "error": "Veprimi nuk u krye ({code}).",
+    "decided": "Vendimi u regjistrua.",
+    "start": "data e fillimit {date}",
+    "status": {
+      "OPEN": "Për t'u vendosur",
+      "DECIDED": "Vendosur"
+    },
+    "type": {
+      "DATA_MISMATCH": "Të dhëna që nuk përputhen",
+      "CANNOT_ISSUE": "E pamundur të lëshohet",
+      "MISSED_DEADLINE": "Asnjë lëshim para datës së fillimit"
+    },
+    "whose": "Kush e ka fajin?",
+    "fault": {
+      "AGENCY": "Agjencia",
+      "CUSTOMER": "Të dhënat e klientit"
+    },
+    "newPremium": "Primi i ri i agjencisë (€), vetëm për të dhënat e klientit",
+    "reason": "Arsyeja",
+    "decide": "Vendos"
+  },
+  "payments": {
+    "title": "Pagesat",
+    "refunds": "Rimbursime",
+    "noRefunds": "Asnjë rimbursim.",
+    "error": "Veprimi nuk u krye ({code}).",
+    "done": "U krye.",
+    "amounts": "Primi {premium} + komisioni {fee} = {total}",
+    "requestedAt": "Kërkuar më {at}",
+    "executedAt": "kryer më {at}",
+    "approve": "Mirato dhe kryej",
+    "reject": "Refuzo",
+    "rejectReason": "Arsyeja",
+    "reason": {
+      "BEFORE_ISSUANCE": "Rimbursim i plotë para lëshimit",
+      "WITHDRAWAL": "Tërheqje",
+      "SECOND_OFFER_DIFFERENCE": "Diferenca e ofertës së dytë",
+      "INVALID_ACCEPTANCE": "Pranim jo më i vlefshëm"
+    },
+    "status": {
+      "REQUESTED": "Për miratim",
+      "APPROVED": "Miratuar",
+      "EXECUTED": "Kryer",
+      "REJECTED": "Refuzuar",
+      "FAILED": "Dështoi"
+    }
   }
 }

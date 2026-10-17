@@ -373,5 +373,56 @@
     "saved": "Valore salvato.",
     "entry": "{value} nel {year} ({source})",
     "error": "Operazione non riuscita ({code})."
+  },
+  "exceptions": {
+    "title": "Eccezioni",
+    "intro": "Mancate emissioni e problemi segnalati dalle agenzie (EMI-04). Se la colpa è dell'agenzia: penale di 100 € al posto di quella per ritardo e seconda offerta al cliente, con 24 ore per confermare. Se sono dati errati del cliente: il nuovo prezzo dell'agenzia, da confermare.",
+    "empty": "Nessun caso.",
+    "error": "Operazione non riuscita ({code}).",
+    "decided": "Decisione registrata.",
+    "start": "decorrenza {date}",
+    "status": {
+      "OPEN": "Da decidere",
+      "DECIDED": "Deciso"
+    },
+    "type": {
+      "DATA_MISMATCH": "Dati che non corrispondono",
+      "CANNOT_ISSUE": "Impossibile emettere",
+      "MISSED_DEADLINE": "Nessuna emissione prima della decorrenza"
+    },
+    "whose": "Di chi è la colpa?",
+    "fault": {
+      "AGENCY": "Dell'agenzia",
+      "CUSTOMER": "Dei dati del cliente"
+    },
+    "newPremium": "Nuovo premio dell'agenzia (€), solo per i dati del cliente",
+    "reason": "Motivo",
+    "decide": "Decidi"
+  },
+  "payments": {
+    "title": "Pagamenti",
+    "refunds": "Rimborsi",
+    "noRefunds": "Nessun rimborso.",
+    "error": "Operazione non riuscita ({code}).",
+    "done": "Fatto.",
+    "amounts": "Premio {premium} + compenso {fee} = {total}",
+    "requestedAt": "Chiesto il {at}",
+    "executedAt": "eseguito il {at}",
+    "approve": "Approva ed esegui",
+    "reject": "Respingi",
+    "rejectReason": "Motivo",
+    "reason": {
+      "BEFORE_ISSUANCE": "Rimborso completo prima dell'emissione",
+      "WITHDRAWAL": "Recesso",
+      "SECOND_OFFER_DIFFERENCE": "Differenza della seconda offerta",
+      "INVALID_ACCEPTANCE": "Accettazione non più valida"
+    },
+    "status": {
+      "REQUESTED": "Da approvare",
+      "APPROVED": "Approvato",
+      "EXECUTED": "Eseguito",
+      "REJECTED": "Respinto",
+      "FAILED": "Non riuscito"
+    }
   }
 }

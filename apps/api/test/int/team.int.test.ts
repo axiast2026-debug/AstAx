@@ -204,8 +204,10 @@ describe("fase 1 passo 9: events of team changes", () => {
     expect(event?.data).toEqual({ role: "SUPERVISOR", status: "ACTIVE" });
 
     // Since phase 3 the worker delivers the outbox (ADR 0008); here a plain handler.
+    // A large batch: the test files share the database and its outbox.
     await dispatchOutbox(h.db, () => Promise.resolve(), {
       now: new Date("2030-01-01T00:00:00.000Z"),
+      batchSize: 10_000,
     });
     const pending = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
       tx.outboxEvent.count({ where: { status: "PENDING", type: "membership.updated" } }),

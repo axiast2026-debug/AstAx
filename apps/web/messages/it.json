@@ -389,7 +389,9 @@
     "PAYMENT_CLOSED": "Questo pagamento non è più aperto: torna all'offerta e riprova.",
     "DOCUMENT_MISSING": "Carica polizza, quietanza e certificato prima di segnare la polizza come emessa.",
     "NOT_IN_ISSUANCE": "Questa polizza non è più da emettere.",
-    "CASE_OPEN": "C'è già un caso aperto per questa richiesta: lo sta seguendo il back office."
+    "CASE_OPEN": "C'è già un caso aperto per questa richiesta: lo sta seguendo il back office.",
+    "PROPOSAL_CLOSED": "Questa proposta non è più aperta.",
+    "NOTHING_TO_PAY": "Non c'è nulla da pagare: la differenza ti viene restituita."
   },
   "wizard": {
     "choose": "Scegli",
@@ -1076,7 +1078,10 @@
     "deadline": "Emissione entro il {at}",
     "voided": "Questa scelta non è più valida: torna alle offerte.",
     "notStarted": "Non hai ancora scelto un'offerta.",
-    "payTextPremium": "Paghi il solo premio, con carta o bonifico istantaneo: nessun compenso a tuo carico."
+    "payTextPremium": "Paghi il solo premio, con carta o bonifico istantaneo: nessun compenso a tuo carico.",
+    "credit": "Già pagato",
+    "due": "Da pagare ora",
+    "refundDue": "Ti restituiamo"
   },
   "fakeSignature": {
     "title": "Firma di prova",
@@ -1208,5 +1213,21 @@
       "WITHDRAWN": "Receduta",
       "CANCELLED": "Annullata"
     }
+  },
+  "nextOffer": {
+    "secondTitle": "L'agenzia non ha potuto emettere la polizza",
+    "secondIntro": "Ci dispiace. Ti proponiamo la migliore offerta ancora garantita di un'altra agenzia: confermala o chiedi il rimborso completo, compenso compreso.",
+    "repriceTitle": "Serve un nuovo prezzo",
+    "repriceIntro": "Alcuni dati della richiesta non corrispondevano ai documenti: l'agenzia ti propone un nuovo prezzo. Confermalo o chiedi il rimborso completo, compenso compreso.",
+    "offer": "Offerta",
+    "guarantee": "Garantita fino al",
+    "premium": "Premio",
+    "fee": "Compenso AstAx",
+    "toPay": "Differenza da pagare",
+    "toGetBack": "Differenza che ti restituiamo",
+    "same": "Differenza",
+    "until": "Rispondi entro",
+    "confirm": "Confermo questa offerta",
+    "refuse": "Chiedo il rimborso completo"
   }
 }

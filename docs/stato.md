@@ -11,7 +11,7 @@ Claude Code aggiorna questo file alla fine di ogni sessione di lavoro e alla chi
 | 3. Motore d'asta | In verifica | | Criteri con prova; verifica indipendente in tre giri, problemi corretti; manca la demo con Dan |
 | 4. Offerte | In verifica | | Tutti i passi fatti; verifica indipendente (primo giro) con i problemi corretti; manca la demo con Dan |
 | 5. Accettazione | In corso | | Tutti i passi del piano fatti (proposte A-I); in corso le prove finali e la verifica indipendente; poi la demo con Dan |
-| 6. Dopo l'acquisto | In corso | | Piano approvato da Dan il 2026-10-17 (proposte A-F); passi 0-4 fatti |
+| 6. Dopo l'acquisto | In corso | | Piano approvato da Dan il 2026-10-17 (proposte A-F); passi 0-5 fatti |
 | 7. Pannelli e notifiche | Da iniziare | | |
 | 8. Fornitori reali e sicurezza | Da iniziare | | |
 
@@ -27,7 +27,11 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 - Passo 3, file e fornitori: file dei bonifici SEPA e fattura elettronica FatturaPA, controllati contro gli schemi ufficiali salvati nel progetto (ADR 0009, nuova libreria `xmllint-wasm`); SDI finto; rimborso nel fornitore di pagamenti finto.
 - Passo 4, emissione: pagina «Da emettere» con il dettaglio (contatti, documenti firmati, ricevuta di pagamento), caricamento di polizza, quietanza e certificato in PDF, «Segna come emessa» (polizza, richiesta «Emessa», avvisi, fattura P al privato, documenti nell'area del cliente; per il cliente del broker un link nuovo con codice), «Segnala un problema» al back office; pagina «Polizze» per privato, broker e agenzia. Nel worker: promemoria, termine superato con la penale di 25 € proposta (EMI-03), mancata emissione alla decorrenza con un caso al back office (EMI-04).
 - Proposta D (fattura al privato): se il contraente coincide con chi ha l'account la fattura è intestata a lui; altrimenti al titolare dell'account, ma il suo profilo non ha codice fiscale né indirizzo: la fattura resta «da completare» e non parte verso lo SDI finché il back office non completa i dati (schermata nel passo 7).
-- Prossimo passo: passo 5 (termini e mancata emissione, S05: decisione del back office, seconda offerta, differenza, rimborso).
+- Passo 5, mancata emissione (S05): pagina «Eccezioni» del back office, che decide di chi è la colpa. Dell'agenzia: la penale di 100 € sostituisce quella di 25 € per ritardo, l'offerta è «Mancata emissione», al cliente arriva la migliore offerta ancora garantita di un'altra agenzia con 24 ore per rispondere; conferma, firma i documenti della nuova offerta e paga solo la differenza (oppure gli restituiamo la differenza); oppure chiede il rimborso completo. Dei dati del cliente: il nuovo prezzo dell'agenzia, che il back office inserisce, da confermare allo stesso modo. Senza risposta entro le 24 ore, il rimborso completo. La terza mancata emissione in 6 mesi sospende l'agenzia dagli inviti, con l'avviso all'amministratore. Rimborsi: pagina «Pagamenti», dove solo il supervisore approva; il rimborso completo chiude la richiesta («Annullata»).
+- Regola 8: tolti gli importi dagli avvisi di seconda offerta, nuovo prezzo e rimborso (domanda 15); gli importi sono nell'app.
+- Prove che soffrivano il database condiviso tra i file di test: la coda dei messaggi (team) e la busta chiusa (premi usati anche da altri test); corrette.
+- Debito: la seconda offerta per il cliente del broker (dal link) non è ancora fatta: oggi la vede e la decide solo il privato.
+- Prossimo passo: passo 6 (ciclo delle penali: applicazione, contestazione, decisione; sospensione da confermare o revocare).
 
 **2026-10-17 — fase 5, accettazione** (piano approvato da Dan il 2026-10-17 con le proposte A-I; Dan ha chiesto di andare avanti con le fasi e fare domande e demo alla fine).
 

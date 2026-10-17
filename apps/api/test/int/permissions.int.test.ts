@@ -335,6 +335,43 @@ const ENDPOINTS: Endpoint[] = [
   },
   { action: "issuance.manage", method: "GET", path: () => "/agency/policies" },
   { action: "request.viewOwn", method: "GET", path: () => "/policies" },
+  { action: "issuance.decideMissed", method: "GET", path: () => "/back-office/issuance-problems" },
+  {
+    action: "issuance.decideMissed",
+    method: "POST",
+    path: () => `/back-office/issuance-problems/${randomUUID()}/decide`,
+    body: {},
+  },
+  { action: "accounting.view", method: "GET", path: () => "/back-office/refunds" },
+  {
+    action: "refund.approve",
+    method: "POST",
+    path: () => `/back-office/refunds/${randomUUID()}/approve`,
+    body: {},
+  },
+  {
+    action: "refund.approve",
+    method: "POST",
+    path: () => `/back-office/refunds/${randomUUID()}/reject`,
+    body: {},
+  },
+  {
+    action: "offers.viewPresented",
+    method: "GET",
+    path: () => `/requests/${randomUUID()}/next-offer`,
+  },
+  {
+    action: "offer.accept",
+    method: "POST",
+    path: () => `/requests/${randomUUID()}/next-offer/confirm`,
+    body: {},
+  },
+  {
+    action: "offer.accept",
+    method: "POST",
+    path: () => `/requests/${randomUUID()}/next-offer/refuse`,
+    body: {},
+  },
   {
     action: "offers.viewPresented",
     method: "GET",

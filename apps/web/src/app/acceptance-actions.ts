@@ -79,6 +79,31 @@ export async function payAcceptance(formData: FormData): Promise<void> {
   redirect(body.redirectUrl);
 }
 
+/** EMI-04: the customer confirms the second offer (or the new price): sign, then pay the difference. */
+export async function confirmNextOffer(formData: FormData): Promise<void> {
+  const requestId = idOf(formData, "requestId");
+  const { status, body } = await api(`/requests/${requestId}/next-offer/confirm`, {
+    method: "POST",
+    body: JSON.stringify({ returnPath: acceptancePage(requestId) }),
+  });
+  if (status !== 200)
+    redirect(`${quotePage(requestId)}?errore=${encodeURIComponent(codesOf(body))}`);
+  redirect(acceptancePage(requestId));
+}
+
+/** EMI-04: the customer prefers the full refund (approved by the back office, PAG-05). */
+export async function refuseNextOffer(formData: FormData): Promise<void> {
+  const requestId = idOf(formData, "requestId");
+  const { status, body } = await api(`/requests/${requestId}/next-offer/refuse`, {
+    method: "POST",
+    body: "{}",
+  });
+  if (status !== 200)
+    redirect(`${quotePage(requestId)}?errore=${encodeURIComponent(codesOf(body))}`);
+  revalidatePath(quotePage(requestId));
+  redirect(`${quotePage(requestId)}?fatto=rimborso`);
+}
+
 /** «Invia al cliente» (decision 26): the broker sends the chosen offers. */
 export async function sendToCustomer(formData: FormData): Promise<void> {
   const requestId = idOf(formData, "requestId");

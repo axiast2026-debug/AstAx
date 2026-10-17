@@ -86,6 +86,14 @@ export async function AcceptanceSteps({
           <dd className="tabular">{a.feeCents > 0 ? formatEuroCents(a.feeCents) : t("noFee")}</dd>
           <dt className="font-semibold">{t("total")}</dt>
           <dd className="font-semibold tabular">{formatEuroCents(a.totalCents)}</dd>
+          {a.creditCents > 0 ? (
+            <>
+              <dt className="text-warm-600">{t("credit")}</dt>
+              <dd className="tabular">{formatEuroCents(a.creditCents)}</dd>
+              <dt className="font-semibold">{a.dueCents >= 0 ? t("due") : t("refundDue")}</dt>
+              <dd className="font-semibold tabular">{formatEuroCents(Math.abs(a.dueCents))}</dd>
+            </>
+          ) : null}
         </dl>
         {!paid && changeHref ? (
           <p className="mt-3 text-sm">
@@ -158,7 +166,7 @@ export async function AcceptanceSteps({
                 </p>
               ) : null}
               <p>{a.feeCents > 0 ? t("payText") : t("payTextPremium")}</p>
-              <Button type="submit">{t("pay", { amount: formatEuroCents(a.totalCents) })}</Button>
+              <Button type="submit">{t("pay", { amount: formatEuroCents(a.dueCents) })}</Button>
             </form>
           )}
         </Card>

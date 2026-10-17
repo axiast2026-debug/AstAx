@@ -1238,6 +1238,10 @@ model Acceptance {
   feeRule             String
   /// FEE-03: owed by the broker once the policy is issued.
   brokerFeeCents      Int              @default(0)
+  /// EMI-04: what the customer already paid for the offer that was not issued;
+  /// a second offer or a new price charges or refunds only the difference.
+  creditPremiumCents  Int              @default(0)
+  creditFeeCents      Int              @default(0)
   aiUsed              Boolean
   status              AcceptanceStatus @default(PENDING_SIGNATURE)
   signedAt            DateTime?        @db.Timestamptz(3)

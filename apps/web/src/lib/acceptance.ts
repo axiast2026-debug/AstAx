@@ -32,6 +32,8 @@ export interface AcceptanceView {
   premiumCents: number;
   feeCents: number;
   totalCents: number;
+  creditCents: number;
+  dueCents: number;
   feeRule: string;
   aiUsed: boolean;
   signingUrl: string | null;
@@ -95,4 +97,17 @@ export interface PolicyRow {
   status: string;
   autoRenewal?: boolean;
   documents?: { id: string; kind: string }[];
+}
+
+export interface NextOffer {
+  id: string;
+  kind: "SECOND_OFFER" | "REPRICE";
+  status: "PROPOSED" | "ACCEPTED" | "REFUSED" | "EXPIRED";
+  company: string;
+  product: string;
+  guaranteeUntil: string | null;
+  premiumCents: number;
+  feeCents: number;
+  differenceCents: number;
+  expiresAt: string;
 }

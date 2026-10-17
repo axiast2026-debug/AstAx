@@ -16,6 +16,7 @@ import {
   withContext,
   type DbClient,
   type DbTransaction,
+  type Acceptance,
   type QuoteRequest,
 } from "@astax/db";
 import { issuanceDeadline, transitionOffer } from "@astax/shared/domain";
@@ -35,7 +36,10 @@ import {
   PAYMENTS,
   SIGNATURE,
 } from "../infra/tokens.js";
+import labels from "../notifications/labels.it.json" with { type: "json" };
 import { NotificationService } from "../notifications/notification.service.js";
+import { Postbox } from "../notifications/postbox.js";
+import { RefundsService } from "../refunds/refunds.service.js";
 import { AcceptanceService } from "./acceptance.service.js";
 
 const SYSTEM_ACTOR = {
@@ -74,6 +78,7 @@ export class AcceptanceEventsService {
     @Inject(LOGGER) private readonly logger: Logger,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(NotificationService) private readonly notifications: NotificationService,
+    @Inject(RefundsService) private readonly refunds: RefundsService,
     @Inject(SIGNATURE) private readonly signature: SignaturePort,
     @Inject(PAYMENTS) private readonly payments: PaymentsPort,
     @Inject(AcceptanceService) private readonly acceptance: AcceptanceService,
@@ -154,6 +159,7 @@ export class AcceptanceEventsService {
       throw error;
     }
     const emails: Email[] = [];
+    const postbox = new Postbox(this.notifications, this.cipher, this.config.WEB_URL);
     await withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
       if (!(await this.firstTime(tx, this.signature.provider, event.eventId, event.status))) return;
       const envelope = await tx.signatureEnvelope.findUnique({
@@ -227,8 +233,30 @@ export class AcceptanceEventsService {
         after: { acceptanceId: a.id, signedDocuments: signedIds.length },
       });
       await this.publishRanking(tx, emails, request, now);
+      // EMI-04: a second offer that costs the same or less is settled at the signature;
+      // what was paid in excess comes back with a refund to approve (PAG-05).
+      if (a.creditPremiumCents > 0 || a.creditFeeCents > 0) {
+        const premiumDue = a.premiumCents - a.creditPremiumCents;
+        const feeDue = a.feeCents - a.creditFeeCents;
+        if (premiumDue <= 0 && feeDue <= 0) {
+          const signed = await tx.acceptance.findUniqueOrThrow({ where: { id: a.id } });
+          const current = await tx.quoteRequest.findUniqueOrThrow({ where: { id: request.id } });
+          await this.confirmPaid(tx, emails, current, signed, null, now);
+          if (premiumDue < 0 || feeDue < 0) {
+            await this.refunds.request(tx, postbox, {
+              quoteRequestId: request.id,
+              reason: "SECOND_OFFER_DIFFERENCE",
+              premiumCents: -premiumDue,
+              feeCents: -feeDue,
+              requestedByUserId: null,
+              requestedByLabel: labels.refundRequester.system,
+            });
+          }
+        }
+      }
     });
     await this.sendAll(emails);
+    await postbox.flush();
   }
 
   /**
@@ -372,115 +400,136 @@ export class AcceptanceEventsService {
         });
         return;
       }
-      const rules = await this.acceptance.issuanceRules(tx, now);
-      const deadline = issuanceDeadline(
-        rules.calendar,
-        now,
-        dbDateToCalendarDate(request.startDate),
-        rules.hours,
-      );
       await tx.payment.update({
         where: { id: payment.id },
         data: { status: "CAPTURED", capturedAt: now, method: event.method },
       });
-      await tx.acceptance.update({
-        where: { id: a.id },
-        data: { status: "PAID", paidAt: now, issuanceDeadlineAt: deadline },
-      });
-      await this.acceptance.setStatus(tx, request, "IN_ISSUANCE");
-      const won = await tx.offer.findUniqueOrThrow({ where: { id: a.offerId } });
-      transitionOffer("AWAITING_CUSTOMER", "WINNING");
-      await tx.offer.update({ where: { id: won.id }, data: { status: "WINNING" } });
-      const others = await tx.offer.findMany({
-        where: { auctionId: won.auctionId, status: "AWAITING_CUSTOMER", id: { not: won.id } },
-      });
-      if (others.length > 0) transitionOffer("AWAITING_CUSTOMER", "NOT_CHOSEN");
-      await tx.offer.updateMany({
-        where: { id: { in: others.map((o) => o.id) } },
-        data: { status: "NOT_CHOSEN" },
-      });
-      await addRequestEvent(tx, request, {
-        type: "PAYMENT_CONFIRMED",
-        actorKind: "SYSTEM",
-        actorUserId: null,
-        at: now,
-        details: { issuanceDeadlineAt: deadline.toISOString() },
-      });
-      await recordDomainEvent(tx, {
-        aggregateType: "QuoteRequest",
-        aggregateId: request.id,
-        type: "PaymentConfirmed",
-        at: now,
-        actorUserId: null,
-        data: { acceptanceId: a.id, issuanceDeadlineAt: deadline.toISOString() },
-      });
-      await this.audit.inTransaction(tx, SYSTEM_ACTOR, {
-        action: "PAYMENT_CONFIRMED",
-        targetType: "QuoteRequest",
-        targetId: request.id,
-        after: { paymentId: payment.id, acceptanceId: a.id, offerId: won.id },
-      });
-      const agency = await tx.organization.findUniqueOrThrow({ where: { id: won.organizationId } });
-      const company = won.companyId
-        ? ((await tx.insuranceCompany.findUnique({ where: { id: won.companyId } }))?.name ?? "")
-        : "";
-      const vehicle = await this.vehicle(tx, request);
-      const term = formatDateTime(deadline);
-      await this.tell(
-        tx,
-        emails,
-        await this.payers(tx, request),
-        "payment.confirmed",
-        {
-          nome: await this.payerName(tx, request),
-          veicolo: vehicle,
-          agenzia: agency.legalName,
-          termine_emissione: term,
-          link: this.requesterLink(request),
-        },
-        this.requesterLink(request),
-        { quoteRequestId: request.id },
-      );
-      const toIssue = `${this.config.WEB_URL}/da-emettere`;
-      await this.tell(
-        tx,
-        emails,
-        await this.agencyUsers(tx, won.organizationId, won.userId),
-        "offer.won",
-        {
-          codice: request.code,
-          veicolo: vehicle,
-          compagnia: company,
-          termine_emissione: term,
-          decorrenza: formatDate(dbDateToCalendarDate(request.startDate)),
-          link: toIssue,
-        },
-        toIssue,
-        { quoteRequestId: request.id },
-      );
-      const staff = await tx.membership.findMany({
-        where: {
-          organization: { type: "ASTAX" },
-          role: { in: ["BO_VERIFIER", "BO_SUPERVISOR"] },
-          status: "ACTIVE",
-        },
-        include: { user: true },
-      });
-      await this.notifications.inApp(
-        tx,
-        staff.map((m) => ({ userId: m.user.id, locale: m.user.locale })),
-        "offer.won.bo",
-        () => ({
-          codice: request.code,
-          agenzia: agency.legalName,
-          termine_emissione: term,
-          link: `${this.config.ADMIN_URL}/aste`,
-        }),
-        "/aste",
-        { quoteRequestId: request.id },
-      );
+      await this.confirmPaid(tx, emails, request, a, payment.id, now);
     });
     await this.sendAll(emails);
+  }
+
+  /**
+   * PAG-02: the acceptance is paid: «In emissione», the offer «Vincente», the
+   * others «Non scelta», the issuance deadline (EMI-01), the contacts to the
+   * agency (VIS-02), the workflow told. Also for a second offer that has
+   * nothing to pay (EMI-04), with no payment.
+   */
+  async confirmPaid(
+    tx: DbTransaction,
+    emails: Email[],
+    request: QuoteRequest,
+    a: Acceptance,
+    paymentId: string | null,
+    now: Date,
+  ) {
+    if (!request.startDate) throw new Error("A paid request has a start date");
+    const rules = await this.acceptance.issuanceRules(tx, now);
+    const deadline = issuanceDeadline(
+      rules.calendar,
+      now,
+      dbDateToCalendarDate(request.startDate),
+      rules.hours,
+    );
+    await tx.acceptance.update({
+      where: { id: a.id },
+      data: { status: "PAID", paidAt: now, issuanceDeadlineAt: deadline },
+    });
+    await this.acceptance.setStatus(tx, request, "IN_ISSUANCE");
+    const won = await tx.offer.findUniqueOrThrow({ where: { id: a.offerId } });
+    // EMI-04: a new price of the same agency keeps the offer already «Vincente».
+    if (won.status !== "WINNING") {
+      transitionOffer("AWAITING_CUSTOMER", "WINNING");
+      await tx.offer.update({ where: { id: won.id }, data: { status: "WINNING" } });
+    }
+    const others = await tx.offer.findMany({
+      where: { auctionId: won.auctionId, status: "AWAITING_CUSTOMER", id: { not: won.id } },
+    });
+    if (others.length > 0) transitionOffer("AWAITING_CUSTOMER", "NOT_CHOSEN");
+    await tx.offer.updateMany({
+      where: { id: { in: others.map((o) => o.id) } },
+      data: { status: "NOT_CHOSEN" },
+    });
+    await addRequestEvent(tx, request, {
+      type: "PAYMENT_CONFIRMED",
+      actorKind: "SYSTEM",
+      actorUserId: null,
+      at: now,
+      details: { issuanceDeadlineAt: deadline.toISOString() },
+    });
+    await recordDomainEvent(tx, {
+      aggregateType: "QuoteRequest",
+      aggregateId: request.id,
+      type: "PaymentConfirmed",
+      at: now,
+      actorUserId: null,
+      data: { acceptanceId: a.id, issuanceDeadlineAt: deadline.toISOString() },
+    });
+    await this.audit.inTransaction(tx, SYSTEM_ACTOR, {
+      action: "PAYMENT_CONFIRMED",
+      targetType: "QuoteRequest",
+      targetId: request.id,
+      after: { paymentId, acceptanceId: a.id, offerId: won.id },
+    });
+    const agency = await tx.organization.findUniqueOrThrow({ where: { id: won.organizationId } });
+    const company = won.companyId
+      ? ((await tx.insuranceCompany.findUnique({ where: { id: won.companyId } }))?.name ?? "")
+      : "";
+    const vehicle = await this.vehicle(tx, request);
+    const term = formatDateTime(deadline);
+    await this.tell(
+      tx,
+      emails,
+      await this.payers(tx, request),
+      "payment.confirmed",
+      {
+        nome: await this.payerName(tx, request),
+        veicolo: vehicle,
+        agenzia: agency.legalName,
+        termine_emissione: term,
+        link: this.requesterLink(request),
+      },
+      this.requesterLink(request),
+      { quoteRequestId: request.id },
+    );
+    const toIssue = `${this.config.WEB_URL}/da-emettere`;
+    await this.tell(
+      tx,
+      emails,
+      await this.agencyUsers(tx, won.organizationId, won.userId),
+      "offer.won",
+      {
+        codice: request.code,
+        veicolo: vehicle,
+        compagnia: company,
+        termine_emissione: term,
+        decorrenza: formatDate(dbDateToCalendarDate(request.startDate)),
+        link: toIssue,
+      },
+      toIssue,
+      { quoteRequestId: request.id },
+    );
+    const staff = await tx.membership.findMany({
+      where: {
+        organization: { type: "ASTAX" },
+        role: { in: ["BO_VERIFIER", "BO_SUPERVISOR"] },
+        status: "ACTIVE",
+      },
+      include: { user: true },
+    });
+    await this.notifications.inApp(
+      tx,
+      staff.map((m) => ({ userId: m.user.id, locale: m.user.locale })),
+      "offer.won.bo",
+      () => ({
+        codice: request.code,
+        agenzia: agency.legalName,
+        termine_emissione: term,
+        link: `${this.config.ADMIN_URL}/aste`,
+      }),
+      "/aste",
+      { quoteRequestId: request.id },
+    );
   }
 
   /** Who paid: the private user, or the broker's customer and the broker's user. */

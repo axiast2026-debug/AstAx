@@ -90,5 +90,19 @@
     "DATA_MISMATCH": "Dati che non corrispondono",
     "CANNOT_ISSUE": "Impossibile emettere",
     "MISSED_DEADLINE": "Nessuna emissione prima della decorrenza"
+  },
+  "refundReason": {
+    "BEFORE_ISSUANCE": "rimborso completo prima dell'emissione",
+    "WITHDRAWAL": "recesso del cliente",
+    "SECOND_OFFER_DIFFERENCE": "differenza della seconda offerta",
+    "INVALID_ACCEPTANCE": "pagamento per un'accettazione non più valida"
+  },
+  "refundRequester": {
+    "system": "AstAx (in automatico)",
+    "customer": "il cliente",
+    "backOffice": "il back office"
+  },
+  "suspension": {
+    "reason": "tre mancate emissioni negli ultimi sei mesi"
   }
 }

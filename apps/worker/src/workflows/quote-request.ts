@@ -306,16 +306,18 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
   async function issuanceSteps(): Promise<string> {
     for (;;) {
       issuanceChanged = false;
+      paid = false;
       const s = await acts.issuanceSteps({ requestId });
       if (!s.inIssuance) return s.issued ? "ISSUED" : "CLOSED";
       if (s.nextStepAt) {
         const ms = Date.parse(s.nextStepAt) - Date.now();
-        if (ms > 0) await condition(() => fire || issuanceChanged, ms);
+        if (ms > 0) await condition(() => fire || issuanceChanged || paid, ms);
       } else {
-        // Every step done: the case is with the back office, until the issuance changes.
-        await condition(() => fire || issuanceChanged);
+        // Every step done: the case is with the back office (or the customer is
+        // paying a second offer), until the issuance changes.
+        await condition(() => fire || issuanceChanged || paid);
       }
-      if (issuanceChanged) continue;
+      if (issuanceChanged || paid) continue;
       const forced = fire;
       fire = false;
       if (s.nextStepAt) await acts.runIssuanceStep({ requestId, force: forced });

@@ -49,7 +49,10 @@ import { AgencyPreviewService } from "./verification/agency-preview.service.js";
 import { VerificationController } from "./verification/verification.controller.js";
 import { VerificationService } from "./verification/verification.service.js";
 import { ComplaintsIndexController } from "./settings/complaints-index.controller.js";
+import { ExceptionsController, NextOfferController } from "./issuance/exceptions.controller.js";
+import { ExceptionsService } from "./issuance/exceptions.service.js";
 import { IssuanceController } from "./issuance/issuance.controller.js";
+import { RefundsService } from "./refunds/refunds.service.js";
 import { IssuanceService } from "./issuance/issuance.service.js";
 import { InvoicingService } from "./invoicing/invoicing.service.js";
 import { SettingsController } from "./settings/settings.controller.js";
@@ -71,6 +74,8 @@ export class AppModule {
         SettingsController,
         ComplaintsIndexController,
         IssuanceController,
+        ExceptionsController,
+        NextOfferController,
         AuditController,
         RequestsController,
         CustomersController,
@@ -110,6 +115,8 @@ export class AppModule {
         AcceptanceEventsService,
         CustomerLinksService,
         IssuanceService,
+        ExceptionsService,
+        RefundsService,
         InvoicingService,
         QuoteChecksService,
         RealtimeHub,

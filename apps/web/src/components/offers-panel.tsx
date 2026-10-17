@@ -63,7 +63,8 @@ export async function OffersPanel({ requestId }: { requestId: string }) {
   ]);
   if (p.offers.length === 0) return null;
   const chosenId = current.acceptance?.offerId ?? null;
-  const paid = current.acceptance?.status === "PAID";
+  // After the payment, or during a second offer (EMI-04), no other offer can be chosen.
+  const paid = current.acceptance?.status === "PAID" || (current.acceptance?.creditCents ?? 0) > 0;
   // PRES-03: the cheapest still guaranteed, even when GAR-04 no longer lets it be accepted.
   const cheapestId = p.offers.find((o) => o.block !== "EXPIRED")?.id;
   const recommendedId = p.suggestion?.recommendedOfferId;

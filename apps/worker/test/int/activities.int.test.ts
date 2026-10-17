@@ -1020,3 +1020,147 @@ describe("phase 5: issuance deadline and an unpaid acceptance (EMI-01, PAG-03)",
     expect(acceptance).toMatchObject({ status: "VOIDED", voidReason: "GUARANTEE_EXPIRED" });
   });
 });
+
+describe("phase 6: the issuance steps (EMI-01, EMI-03, EMI-04)", () => {
+  it("EMI-01 EMI-03 EMI-04 reminder, delay with the penalty proposed, missed issuance at the start of cover, each once", async () => {
+    h.clock.set(MONDAY_9);
+    const created = await approvedRequest(h);
+    const opened = await h.activities.openRound({ requestId: created.id, kind: "MAIN", round: 1 });
+    if (!opened.opened) throw new Error("not opened");
+    const offer = await sealedOffer(
+      h,
+      opened.auctionId,
+      "agenzia-uno",
+      {
+        company: "Compagnia Alfa",
+        annualGrossPremiumCents: 52000,
+        coverage: FULL_BASE_COVERAGE,
+        guaranteeUntil: "2026-12-05",
+        notes: null,
+      },
+      new Date(Date.parse(MONDAY_9) + 60_000),
+    );
+    const request = await read(async (tx) => {
+      const updated = await tx.quoteRequest.update({
+        where: { id: created.id },
+        data: { status: "IN_ISSUANCE", startDate: new Date("2026-11-20") },
+      });
+      await tx.offer.update({ where: { id: offer.id }, data: { status: "WINNING" } });
+      const acceptance = await tx.acceptance.create({
+        data: {
+          quoteRequestId: updated.id,
+          offerId: offer.id,
+          ownerUserId: updated.ownerUserId,
+          ownerOrganizationId: updated.ownerOrganizationId,
+          acceptedByUserId: updated.requesterUserId,
+          premiumCents: 52000,
+          feeCents: 3000,
+          feeRule: "PRIVATE",
+          aiUsed: false,
+          status: "PAID",
+          paidAt: new Date("2026-11-16T11:30:00.000Z"),
+          issuanceDeadlineAt: new Date("2026-11-16T15:30:00.000Z"),
+        },
+      });
+      await tx.payment.create({
+        data: {
+          acceptanceId: acceptance.id,
+          ownerUserId: updated.ownerUserId,
+          ownerOrganizationId: updated.ownerOrganizationId,
+          provider: "fake-payments",
+          premiumCents: 52000,
+          feeCents: 3000,
+          idempotencyKey: `${acceptance.id}-1`,
+          status: "CAPTURED",
+          capturedAt: new Date("2026-11-16T11:30:00.000Z"),
+        },
+      });
+      return updated;
+    });
+    const steps = () => h.activities.issuanceSteps({ requestId: request.id });
+    expect(await steps()).toEqual({
+      inIssuance: true,
+      issued: false,
+      nextStepAt: "2026-11-16T14:30:00.000Z",
+    });
+    // Not due yet: nothing happens.
+    await h.activities.runIssuanceStep({ requestId: request.id, force: false });
+    expect((await steps()).nextStepAt).toBe("2026-11-16T14:30:00.000Z");
+    h.clock.set("2026-11-16T14:30:00.000Z");
+    await h.activities.runIssuanceStep({ requestId: request.id, force: false });
+    expect((await steps()).nextStepAt).toBe("2026-11-16T15:30:00.000Z");
+    h.clock.set("2026-11-16T15:30:00.000Z");
+    await h.activities.runIssuanceStep({ requestId: request.id, force: false });
+    await h.activities.runIssuanceStep({ requestId: request.id, force: false });
+    const penalties = await read((tx) =>
+      tx.penalty.findMany({ where: { quoteRequestId: request.id } }),
+    );
+    expect(penalties.map((p) => [p.type, p.status, p.amountCents])).toEqual([
+      ["LATE_ISSUANCE", "PROPOSED", 2500],
+    ]);
+    // The start of cover: Friday 20/11 at 00:00 in Rome.
+    expect((await steps()).nextStepAt).toBe("2026-11-19T23:00:00.000Z");
+    await h.activities.runIssuanceStep({ requestId: request.id, force: true });
+    const [problem, notes] = await read((tx) =>
+      Promise.all([
+        tx.issuanceProblem.findFirst({ where: { quoteRequestId: request.id } }),
+        tx.notification.findMany({
+          where: {
+            payload: { path: ["quoteRequestId"], equals: request.id },
+            eventKey: { startsWith: "issuance." },
+          },
+        }),
+      ]),
+    );
+    expect(problem).toMatchObject({ type: "MISSED_DEADLINE", status: "OPEN" });
+    expect(new Set(notes.map((n) => n.eventKey))).toEqual(
+      new Set([
+        "issuance.deadline_near",
+        "issuance.deadline_near.bo",
+        "issuance.deadline_passed",
+        "issuance.deadline_passed.bo",
+        "issuance.missed.bo",
+      ]),
+    );
+    expect(JSON.stringify(notes)).not.toContain("€");
+    expect(await steps()).toEqual({ inIssuance: true, issued: false, nextStepAt: null });
+
+    // EMI-04: a second offer not answered within its time: the full refund, to approve.
+    await read(async (tx) => {
+      await tx.quoteRequest.update({ where: { id: request.id }, data: { status: "ACCEPTED" } });
+      await tx.offer.update({ where: { id: offer.id }, data: { status: "MISSED_ISSUANCE" } });
+      await tx.nextOfferProposal.create({
+        data: {
+          quoteRequestId: request.id,
+          ownerUserId: request.ownerUserId,
+          ownerOrganizationId: request.ownerOrganizationId,
+          kind: "REPRICE",
+          fromOfferId: offer.id,
+          toOfferId: offer.id,
+          premiumCents: 54000,
+          feeCents: 3000,
+          differenceCents: 2000,
+          expiresAt: new Date("2026-11-17T15:30:00.000Z"),
+        },
+      });
+    });
+    expect((await steps()).nextStepAt).toBe("2026-11-17T15:30:00.000Z");
+    h.clock.set("2026-11-17T15:30:00.000Z");
+    await h.activities.runIssuanceStep({ requestId: request.id, force: false });
+    const [after, proposal, refund] = await read((tx) =>
+      Promise.all([
+        tx.quoteRequest.findUniqueOrThrow({ where: { id: request.id } }),
+        tx.nextOfferProposal.findFirstOrThrow({ where: { quoteRequestId: request.id } }),
+        tx.refund.findFirst({ where: { quoteRequestId: request.id } }),
+      ]),
+    );
+    expect(after.status).toBe("IN_ISSUANCE");
+    expect(proposal.status).toBe("EXPIRED");
+    expect(refund).toMatchObject({
+      reason: "BEFORE_ISSUANCE",
+      premiumCents: 52000,
+      feeCents: 3000,
+      status: "REQUESTED",
+    });
+  });
+});
