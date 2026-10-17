@@ -285,6 +285,19 @@ export class AgencyService {
         const org = await tx.organization.findUnique({ where: { id: orgId } });
         return { agency: org?.legalName ?? "", offered: offered !== null };
       });
+      // GAR-07, proposal C: in a reconfirmation, the agency's offer of the last
+      // closed round, to confirm (same premium) or update; plain since that closing.
+      const previous =
+        auction.kind === "RECONFIRMATION"
+          ? await tx.offer.findFirst({
+              where: {
+                organizationId: m.organizationId,
+                status: "EXPIRED",
+                auction: { quoteRequestId: request.id, status: "CLOSED" },
+              },
+              orderBy: { auction: { round: "desc" } },
+            })
+          : null;
       // OFF-03: who the owner or a supervisor may give the claim to.
       const members = can(auth.actor, "claim.override")
         ? await tx.membership.findMany({
@@ -336,6 +349,18 @@ export class AgencyService {
         companies: mandates.map((x) => ({ id: x.companyId, name: x.company.name })),
         products: products.map((p) => ({ id: p.id, companyId: p.companyId, name: p.name })),
         documents: documents.map((d) => ({ id: d.id, kind: d.kind, driverIndex: d.driverIndex })),
+        previousOffer:
+          previous?.annualGrossPremiumCents != null && previous.guaranteeUntil
+            ? {
+                annualGrossPremiumCents: previous.annualGrossPremiumCents,
+                companyId: previous.companyId,
+                productId: previous.productId,
+                coverage: previous.coverage,
+                notes: previous.notes,
+                guaranteeUntil: dbDateToCalendarDate(previous.guaranteeUntil),
+                hasPdf: previous.pdfDocumentId !== null,
+              }
+            : null,
         members: members.map((x) => ({
           membershipId: x.id,
           name: `${x.user.firstName} ${x.user.lastName}`.trim(),

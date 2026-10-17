@@ -252,28 +252,43 @@ events:
     recipients: [agencies_with_valid_offer]
     channels: [in_app, push, email]
     forcePush: true
-    variables: [codice, veicolo, premio_offerto, termine, link]
+    # Regola 8 di CLAUDE.md: nessun prezzo nelle notifiche (domanda aperta 15).
+    variables: [codice, veicolo, termine, link]
     it:
       title: "Richiesta di riconferma: {{codice}}"
       body: "Il cliente chiede di riconfermare il prezzo. Rispondete entro {{termine}}."
       emailSubject: "Riconferma entro {{termine}}: {{codice}}"
       emailBody: |
-        Il richiedente della pratica {{codice}} ({{veicolo}}) chiede di riconfermare la vostra offerta di {{premio_offerto}}.
+        Il richiedente della pratica {{codice}} ({{veicolo}}) chiede di riconfermare la vostra offerta.
         Potete confermare il prezzo, aggiornarlo o rinunciare entro {{termine}}. Le risposte restano in busta chiusa fino alla scadenza.
         Rispondi: {{link}}
 
   reconfirmation.completed.requester:
     recipients: [requester]
     channels: [in_app, push, email]
-    variables: [nome, veicolo, numero_offerte, premio_minimo, link]
+    # Regola 8 di CLAUDE.md: nessun prezzo nelle notifiche (domanda aperta 15).
+    variables: [nome, veicolo, numero_offerte, link]
     it:
       title: "Prezzi riconfermati"
-      body: "{{numero_offerte}} offerte valide per {{veicolo}}, a partire da {{premio_minimo}}."
+      body: "{{numero_offerte}} offerte valide per {{veicolo}}, con nuove date di garanzia."
       emailSubject: "Prezzi riconfermati per {{veicolo}}"
       emailBody: |
         Ciao {{nome}},
-        le agenzie hanno risposto: {{numero_offerte}} offerte valide, la più conveniente a {{premio_minimo}}, con nuove date di garanzia.
+        le agenzie hanno risposto: {{numero_offerte}} offerte valide, con nuove date di garanzia.
         Confrontale e scegli: {{link}}
+
+  request.auto_cancelled:
+    recipients: [requester]
+    channels: [in_app, email]
+    variables: [nome, veicolo, giorni, link]
+    it:
+      title: "Richiesta chiusa"
+      body: "Dopo {{giorni}} giorni senza riconferma la richiesta per {{veicolo}} si è chiusa."
+      emailSubject: "La richiesta per {{veicolo}} si è chiusa"
+      emailBody: |
+        Ciao {{nome}},
+        le offerte per {{veicolo}} erano scadute e in {{giorni}} giorni non è stata chiesta una riconferma: la richiesta si è chiusa da sola.
+        Quando vuoi, puoi fare una nuova richiesta: {{link}}
 
   # ---------------------------------------------------------------- Accettazione e pagamento
 

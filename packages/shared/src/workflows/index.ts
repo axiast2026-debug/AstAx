@@ -11,6 +11,8 @@ export const SIGNALS = {
   auctionExtended: "auctionExtended",
   invitationsAdded: "invitationsAdded",
   auctionCancelled: "auctionCancelled",
+  /** GAR-06: the requester asks the agencies to reconfirm (from the outbox). */
+  reconfirmationRequested: "reconfirmationRequested",
 } as const;
 
 export const workflowIdOf = (requestId: string) => `quote-request-${requestId}`;

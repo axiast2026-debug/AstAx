@@ -313,8 +313,15 @@ export default async function IncomingRequestPage({
         {mayOffer ? (
           <section aria-labelledby="offer-title">
             <h2 id="offer-title" className="text-xl font-semibold">
-              {offerOpen ? t("changeTitle") : t("offerTitle")}
+              {offerOpen
+                ? t("changeTitle")
+                : detail.previousOffer
+                  ? t("reconfirmTitle")
+                  : t("offerTitle")}
             </h2>
+            {detail.previousOffer && !offerOpen ? (
+              <p className="mt-1 text-sm text-warm-600">{t("reconfirmIntro")}</p>
+            ) : null}
             <div className="mt-4">
               <OfferForm detail={detail} own={own} errors={query.errore} />
             </div>

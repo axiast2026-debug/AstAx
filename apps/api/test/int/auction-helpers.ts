@@ -4,7 +4,12 @@ import { SYSTEM_CONTEXT, withContext } from "@astax/db";
 import { orgId, type Harness } from "./fixtures.js";
 
 /** The auction as the worker opens it: key pair, wrapped private key, invitations. */
-export async function openTestAuction(h: Harness, id: string, agencies: string[]) {
+export async function openTestAuction(
+  h: Harness,
+  id: string,
+  agencies: string[],
+  options: { kind?: "MAIN" | "RECONFIRMATION"; round?: number } = {},
+) {
   const kms = new LocalKms({ [KMS_KEYS.sealedBids]: "5".repeat(64) });
   const auction = randomUUID();
   const keys = await generateAuctionKeyPair();
@@ -17,7 +22,7 @@ export async function openTestAuction(h: Harness, id: string, agencies: string[]
   await withContext(h.db, SYSTEM_CONTEXT, async (tx) => {
     const request = await tx.quoteRequest.update({
       where: { id },
-      data: { status: "AUCTION_OPEN" },
+      data: { status: options.kind === "RECONFIRMATION" ? "IN_RECONFIRMATION" : "AUCTION_OPEN" },
     });
     await tx.auction.create({
       data: {
@@ -25,8 +30,8 @@ export async function openTestAuction(h: Harness, id: string, agencies: string[]
         quoteRequestId: id,
         ownerUserId: request.ownerUserId,
         ownerOrganizationId: request.ownerOrganizationId,
-        kind: "MAIN",
-        round: 1,
+        kind: options.kind ?? "MAIN",
+        round: options.round ?? 1,
         openedAt: now,
         scheduledCloseAt: new Date(now.getTime() + 2 * 3_600_000),
         originalCloseAt: new Date(now.getTime() + 2 * 3_600_000),

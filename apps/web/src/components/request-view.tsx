@@ -3,7 +3,7 @@ import { Badge, Button, Card, CardTitle } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { realtimeTicket } from "@/app/actions";
-import { cancelRequest } from "@/app/request-actions";
+import { askReconfirmation, cancelRequest } from "@/app/request-actions";
 import { Countdown } from "@/components/countdown";
 import { LiveRefresh } from "@/components/live-refresh";
 import { api } from "@/lib/auth";
@@ -26,6 +26,8 @@ export async function StatusBadge({ status }: { status: string }) {
 
 interface AuctionStatus {
   status: string;
+  /** GAR-06: reconfirmations used and allowed. */
+  reconfirmation?: { used: number; max: number; available: boolean; pending: boolean };
   auction: {
     round: number;
     kind: string;
@@ -46,14 +48,20 @@ interface PresentedOffer {
   guaranteed: boolean;
 }
 
-const AUCTION_STATUSES = ["AUCTION_OPEN", "OFFERS_AVAILABLE", "DESERTED", "EXPIRED"];
+const AUCTION_STATUSES = [
+  "AUCTION_OPEN",
+  "OFFERS_AVAILABLE",
+  "DESERTED",
+  "EXPIRED",
+  "IN_RECONFIRMATION",
+];
 
 /**
  * The auction for its requester (VIS-03, VIS-04, PRES-02): during it the
  * countdown and the number of offers (the broker also the invited agencies),
  * no price; after it, the best offer per company, no agency name.
  */
-async function AuctionPanel({ requestId }: { requestId: string }) {
+async function AuctionPanel({ requestId, base }: { requestId: string; base: string }) {
   const t = await getTranslations("auctionView");
   const { body: status } = await api<AuctionStatus>(`/requests/${requestId}/auction`);
   const a = status.auction;
@@ -64,7 +72,12 @@ async function AuctionPanel({ requestId }: { requestId: string }) {
     : (await api<{ offers: PresentedOffer[] }>(`/requests/${requestId}/offers`)).body.offers;
   return (
     <Card>
-      <CardTitle>{t("title")}</CardTitle>
+      <CardTitle>
+        {open && a.kind === "RECONFIRMATION" ? t("reconfirmationTitle") : t("title")}
+      </CardTitle>
+      {open && a.kind === "RECONFIRMATION" ? (
+        <p className="mt-1 text-sm text-warm-600">{t("reconfirmationIntro")}</p>
+      ) : null}
       {open ? (
         <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-[12rem_1fr]">
           <dt className="text-warm-600">{t("closesIn")}</dt>
@@ -113,6 +126,25 @@ async function AuctionPanel({ requestId }: { requestId: string }) {
           </ul>
         </>
       )}
+      {status.reconfirmation?.pending ? (
+        <p role="status" className="mt-4 rounded-lg bg-green-50 p-3 text-sm">
+          {t("reconfirmationPending")}
+        </p>
+      ) : null}
+      {status.reconfirmation?.available ? (
+        <form action={askReconfirmation} className="mt-4 border-t border-warm-200 pt-4">
+          <input type="hidden" name="requestId" value={requestId} />
+          <input type="hidden" name="base" value={base} />
+          <p className="text-sm">
+            {t("reconfirmationOffer", {
+              left: status.reconfirmation.max - status.reconfirmation.used,
+            })}
+          </p>
+          <Button type="submit" className="mt-3">
+            {t("askReconfirmation")}
+          </Button>
+        </form>
+      ) : null}
     </Card>
   );
 }
@@ -199,7 +231,9 @@ export async function RequestView({
         </Card>
       ) : null}
 
-      {AUCTION_STATUSES.includes(detail.status) ? <AuctionPanel requestId={detail.id} /> : null}
+      {AUCTION_STATUSES.includes(detail.status) ? (
+        <AuctionPanel requestId={detail.id} base={base} />
+      ) : null}
       {AUCTION_STATUSES.includes(detail.status) ||
       (detail.status === "IN_VERIFICATION" && approved) ? (
         <LiveRefresh ticket={realtimeTicket} follow={{ requestId: detail.id }} />

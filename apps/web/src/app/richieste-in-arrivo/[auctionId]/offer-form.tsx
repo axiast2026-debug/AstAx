@@ -60,10 +60,14 @@ export async function OfferForm({
 }) {
   const t = await getTranslations("agency.offer");
   const tc = await getTranslations("agency.coverage");
-  const coverage = own?.offer.coverage ?? {};
+  // GAR-07, proposal C: a reconfirmation starts from the agency's offer of the last round.
+  const previous = own ? null : detail.previousOffer;
+  const base = own?.offer ?? previous;
+  const hasPdf = own?.hasPdf ?? previous?.hasPdf ?? false;
+  const coverage = base?.coverage ?? {};
   const requirements = detail.package?.requirements ?? {};
   const isIncluded = (item: string) =>
-    own ? coverage[item]?.included === true : requirements[item]?.required === true;
+    base ? coverage[item]?.included === true : requirements[item]?.required === true;
   const rca = coverage.rca;
   const separate = rca?.limitType === "SEPARATE_LIMITS";
   const requirementTexts = await Promise.all(
@@ -81,7 +85,7 @@ export async function OfferForm({
           inputMode="decimal"
           required
           hint={t("premiumHint")}
-          defaultValue={own ? centsToEuroInput(own.offer.annualGrossPremiumCents) : ""}
+          defaultValue={base ? centsToEuroInput(base.annualGrossPremiumCents) : ""}
           invalid={hasError(errors, "annualGrossPremiumCents")}
         />
         <div>
@@ -92,7 +96,7 @@ export async function OfferForm({
             id="f-companyId"
             name="companyId"
             required
-            defaultValue={own?.offer.companyId ?? ""}
+            defaultValue={base?.companyId ?? ""}
             className="mt-1 block w-full rounded-lg border border-warm-200 bg-white px-3 py-2"
             aria-invalid={hasError(errors, "companyId") || undefined}
           >
@@ -112,7 +116,7 @@ export async function OfferForm({
             id="f-productId"
             name="productId"
             required
-            defaultValue={own?.offer.productId ?? ""}
+            defaultValue={base?.productId ?? ""}
             className="mt-1 block w-full rounded-lg border border-warm-200 bg-white px-3 py-2"
             aria-invalid={hasError(errors, "productId") || undefined}
           >
@@ -210,7 +214,7 @@ export async function OfferForm({
                               name="coverage.recourseWaiver.cases"
                               value={c}
                               defaultChecked={
-                                own
+                                base
                                   ? Array.isArray(d?.cases) && d.cases.includes(c)
                                   : Array.isArray(requirements.recourseWaiver?.minCases) &&
                                     requirements.recourseWaiver.minCases.includes(c)
@@ -268,11 +272,12 @@ export async function OfferForm({
 
       <Fieldset legend={t("documentTitle")}>
         <Field
-          label={own?.hasPdf ? t("pdfReplace") : t("pdf")}
+          label={hasPdf ? t("pdfReplace") : t("pdf")}
           name="pdf"
           type="file"
           accept="application/pdf"
-          required={!own?.hasPdf}
+          required={!hasPdf}
+          hint={previous?.hasPdf ? t("pdfKept") : undefined}
           invalid={hasError(errors, "pdf")}
         />
         <div className="sm:col-span-2">
@@ -283,7 +288,7 @@ export async function OfferForm({
             id="f-notes"
             name="notes"
             rows={3}
-            defaultValue={own?.offer.notes ?? ""}
+            defaultValue={base?.notes ?? ""}
             aria-describedby="f-notes-hint"
             aria-invalid={hasError(errors, "notes") || undefined}
             className="mt-1 block w-full rounded-lg border border-warm-200 bg-white px-3 py-2"
@@ -295,7 +300,23 @@ export async function OfferForm({
       </Fieldset>
 
       <CheckField label={t("binding")} name="binding" required />
-      <Button type="submit">{own ? t("change") : t("send")}</Button>
+      {previous ? (
+        <div className="flex flex-wrap gap-3">
+          <input
+            type="hidden"
+            name="previousPremium"
+            value={centsToEuroInput(previous.annualGrossPremiumCents)}
+          />
+          <Button type="submit" name="mode" value="confirm">
+            {t("confirmSame")}
+          </Button>
+          <Button type="submit" name="mode" value="update" variant="outline">
+            {t("sendUpdated")}
+          </Button>
+        </div>
+      ) : (
+        <Button type="submit">{own ? t("change") : t("send")}</Button>
+      )}
     </form>
   );
 }

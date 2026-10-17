@@ -454,6 +454,18 @@ export async function cancelRequest(formData: FormData): Promise<void> {
   redirect(`${base}/${id}`);
 }
 
+/** GAR-06: the requester asks the same agencies to reconfirm their prices. */
+export async function askReconfirmation(formData: FormData): Promise<void> {
+  const id = requestId(formData.get("requestId"));
+  const base = basePath(formData.get("base"));
+  const { status, body } = await api(`/requests/${id}/reconfirmation`, {
+    method: "POST",
+    body: "{}",
+  });
+  if (status !== 200) back(`${base}/${id}`, problemCodes(body));
+  redirect(`${base}/${id}?fatto=riconferma`);
+}
+
 export async function markNotificationRead(formData: FormData): Promise<void> {
   const id = requestId(formData.get("notificationId"));
   const link = text(formData, "link");

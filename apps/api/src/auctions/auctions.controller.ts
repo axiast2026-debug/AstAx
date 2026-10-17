@@ -77,6 +77,13 @@ export class AuctionsController {
     return this.auctions.forRequester(auth, parseInput(uuid, id));
   }
 
+  @Post("requests/:id/reconfirmation")
+  @HttpCode(200)
+  @RequirePermission("reconfirmation.request")
+  reconfirm(@CurrentAuth() auth: AuthContext, @Param("id") id: string) {
+    return this.auctions.requestReconfirmation(auth, parseInput(uuid, id));
+  }
+
   @Get("requests/:id/offers")
   @RequirePermission("offers.viewPresented")
   presented(@CurrentAuth() auth: AuthContext, @Param("id") id: string) {

@@ -1,4 +1,5 @@
-import { SYSTEM_CONTEXT, withContext } from "@astax/db";
+import { addRequestEvent, SYSTEM_CONTEXT, withContext } from "@astax/db";
+import { dbDateToCalendarDate } from "@astax/shared/format";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   approvedRequest,
@@ -308,6 +309,162 @@ describe("closing (docs/busta-chiusa.md, step 5)", () => {
       tx.quoteRequest.findUniqueOrThrow({ where: { id: requestId } }),
     );
     expect(request.status).toBe("EXPIRED");
+  });
+
+  /** What the API writes when the requester presses «Chiedi riconferma». */
+  const askReconfirmation = (at: string) =>
+    read(async (tx) => {
+      const request = await tx.quoteRequest.findUniqueOrThrow({ where: { id: requestId } });
+      await addRequestEvent(tx, request, {
+        type: "RECONFIRMATION_REQUESTED",
+        actorKind: "REQUESTER",
+        actorUserId: null,
+        at: new Date(at),
+      });
+    });
+  let reconfirmationId: string;
+
+  it("GAR-06 no reconfirmation opens unless the requester asked for it (a repeated signal opens nothing)", async () => {
+    h.clock.set("2026-12-07T08:00:00.000Z");
+    expect(await h.activities.openRound({ requestId, kind: "RECONFIRMATION", round: 0 })).toEqual({
+      opened: false,
+      reason: "NOT_RECONFIRMABLE",
+    });
+  });
+
+  it("GAR-07 BC-06 the reconfirmation asks only the agencies with a valid offer in the last round, with a new key pair and 24 working hours", async () => {
+    await askReconfirmation("2026-12-07T08:00:00.000Z");
+    const opened = await h.activities.openRound({ requestId, kind: "RECONFIRMATION", round: 0 });
+    if (!opened.opened) throw new Error("not opened");
+    reconfirmationId = opened.auctionId;
+    const [main, round, invited, request] = await read((tx) =>
+      Promise.all([
+        tx.auction.findUniqueOrThrow({ where: { id: auctionId } }),
+        tx.auction.findUniqueOrThrow({ where: { id: opened.auctionId } }),
+        tx.invitation.findMany({ where: { auctionId: opened.auctionId } }),
+        tx.quoteRequest.findUniqueOrThrow({ where: { id: requestId } }),
+      ]),
+    );
+    // Uno, Tre and Cinque had valid offers; Due was excluded at the closing.
+    expect(invited.map((i) => i.organizationId).sort()).toEqual(
+      [orgId("agenzia-uno"), orgId("agenzia-tre"), orgId("agenzia-cinque")].sort(),
+    );
+    expect(invited.every((i) => i.source === "RECONFIRMATION")).toBe(true);
+    expect(round.kind).toBe("RECONFIRMATION");
+    expect(round.round).toBe(main.round + 1);
+    expect(round.durationHours).toBe(24);
+    expect(round.publicKey).not.toEqual(main.publicKey);
+    expect(request.status).toBe("IN_RECONFIRMATION");
+    expect(request.reconfirmationsUsed).toBe(1);
+    // A repetition finds the same round.
+    const again = await h.activities.openRound({ requestId, kind: "RECONFIRMATION", round: 0 });
+    expect(again.opened && again.auctionId).toBe(opened.auctionId);
+    // GAR-07: no new agency at the top-up of a reconfirmation.
+    expect(await h.activities.topUp({ auctionId: opened.auctionId })).toEqual({ invited: 0 });
+    // Rule 8: the agencies are told without a price.
+    const notes = await read((tx) =>
+      tx.notification.findMany({
+        where: {
+          eventKey: "reconfirmation.requested",
+          payload: { path: ["auctionId"], equals: opened.auctionId },
+        },
+      }),
+    );
+    expect(notes.length).toBeGreaterThan(0);
+    expect(JSON.stringify(notes)).not.toContain("€");
+  });
+
+  it("GAR-07 proposal C a confirmation without a new PDF keeps the previous quote; the requester is told", async () => {
+    const round = await read((tx) =>
+      tx.auction.findUniqueOrThrow({ where: { id: reconfirmationId } }),
+    );
+    const until = dbDateToCalendarDate(round.minGuaranteeDate);
+    const offer = await sealedOffer(
+      h,
+      reconfirmationId,
+      "agenzia-uno",
+      {
+        company: "Compagnia Alfa",
+        annualGrossPremiumCents: 48000,
+        coverage: FULL_BASE_COVERAGE,
+        guaranteeUntil: until,
+        notes: null,
+      },
+      new Date("2026-12-07T09:00:00.000Z"),
+    );
+    await read((tx) =>
+      tx.offer.update({
+        where: { id: offer.id },
+        data: { sealedPdfKey: null, sealedPdfDataKey: null },
+      }),
+    );
+    h.clock.set(round.scheduledCloseAt.toISOString());
+    expect((await h.activities.closeRound({ auctionId: reconfirmationId })).validOffers).toBe(1);
+    const [closed, previous, request, told] = await read((tx) =>
+      Promise.all([
+        tx.offer.findUniqueOrThrow({ where: { id: offer.id } }),
+        tx.offer.findFirstOrThrow({
+          where: { auctionId, organizationId: orgId("agenzia-uno") },
+        }),
+        tx.quoteRequest.findUniqueOrThrow({ where: { id: requestId } }),
+        tx.notification.count({
+          where: {
+            eventKey: "reconfirmation.completed.requester",
+            payload: { path: ["quoteRequestId"], equals: requestId },
+          },
+        }),
+      ]),
+    );
+    expect(closed.status).toBe("AWAITING_CUSTOMER");
+    expect(closed.pdfDocumentId).toBe(previous.pdfDocumentId);
+    expect(request.status).toBe("OFFERS_AVAILABLE");
+    expect(told).toBe(1);
+  });
+});
+
+describe("GAR-06 automatic cancellation (proposal D)", () => {
+  it("GAR-06 a request «Scaduta» without a reconfirmation for 30 days closes by itself", async () => {
+    h.clock.set(MONDAY_9);
+    const approved = await approvedRequest(h);
+    const expiredAt = new Date("2026-12-01T10:00:00.000Z");
+    await read(async (tx) => {
+      const request = await tx.quoteRequest.update({
+        where: { id: approved.id },
+        data: { status: "EXPIRED" },
+      });
+      await addRequestEvent(tx, request, {
+        type: "EXPIRED",
+        actorKind: "SYSTEM",
+        actorUserId: null,
+        at: expiredAt,
+      });
+    });
+    const schedule = await h.activities.expiredSchedule({ requestId: approved.id });
+    expect(schedule).toEqual({
+      expired: true,
+      autoCancelAt: new Date(expiredAt.getTime() + 30 * 86_400_000).toISOString(),
+    });
+    h.clock.set("2026-12-30T10:00:00.000Z");
+    expect(await h.activities.autoCancelExpired({ requestId: approved.id })).toEqual({
+      cancelled: false,
+    });
+    h.clock.set(schedule.autoCancelAt ?? "");
+    expect(await h.activities.autoCancelExpired({ requestId: approved.id })).toEqual({
+      cancelled: true,
+    });
+    const [request, told] = await read((tx) =>
+      Promise.all([
+        tx.quoteRequest.findUniqueOrThrow({ where: { id: approved.id } }),
+        tx.notification.count({
+          where: {
+            eventKey: "request.auto_cancelled",
+            payload: { path: ["quoteRequestId"], equals: approved.id },
+          },
+        }),
+      ]),
+    );
+    expect(request.status).toBe("CANCELLED");
+    expect(told).toBe(1);
   });
 });
 

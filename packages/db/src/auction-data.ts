@@ -52,6 +52,7 @@ export const AUCTION_SETTING_KEYS = [
   "invitations.minReceptionOverlapWorkingHours",
   "guarantee.reminderDaysBefore",
   "guarantee.reminderTime",
+  "reconfirmation.workingHours",
 ] as const;
 export type AuctionSettingsSnapshot = {
   [K in (typeof AUCTION_SETTING_KEYS)[number]]: SettingValue<K>;

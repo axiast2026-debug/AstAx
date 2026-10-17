@@ -49,6 +49,16 @@ export interface AgencyRequestDetail {
   products: { id: string; companyId: string; name: string }[];
   documents: { id: string; kind: string; driverIndex: number | null }[];
   members: { membershipId: string; name: string }[];
+  /** GAR-07: in a reconfirmation, the agency's offer of the last round. */
+  previousOffer: {
+    annualGrossPremiumCents: number;
+    companyId: string;
+    productId: string;
+    coverage: Record<string, Record<string, unknown>>;
+    notes: string | null;
+    guaranteeUntil: string;
+    hasPdf: boolean;
+  } | null;
   accessLogged: boolean;
 }
 

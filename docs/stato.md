@@ -61,6 +61,18 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 - Prova: E2E `tests/e2e/specs/S10-sub-agente-due-agenzie.spec.ts` (scenario S10 completo con Marco e Sofia; il back office invita a mano Agenzia Uno e Agenzia Tre, così il test non dipende dalla scelta automatica); `fase1-accessi.spec.ts` aggiornato al nuovo selettore e ora salva i codici TOTP per i test successivi dello stesso giro.
 - Prossimo passo: fase 4, passo 6 (riconferma).
 
+**2026-10-17 — fase 4, passo 6 (riconferma).**
+
+- Fatto:
+  - richiedente: quando la richiesta è «Scaduta», il riquadro dell'asta mostra «Chiedi riconferma» con le riconferme rimaste (massimo `reconfirmation.maxPerRequest`, GAR-06); dopo il clic «Riconferma chiesta», poi «Riconferma in corso» con il conto alla rovescia, senza prezzi;
+  - API `POST /requests/:id/reconfirmation`: solo il richiedente, solo su «Scaduta», una volta finché il worker non apre il giro; evento nella cronologia, registro attività e messaggio `ReconfirmationRequested` nella coda per il worker;
+  - worker: dopo «Scaduta» il workflow aspetta la riconferma oppure i 30 giorni (`requests.autoCancelExpiredDays`, proposta D: poi «Annullata», con avviso al richiedente). Il giro `RECONFIRMATION` invita solo le agenzie che avevano un'offerta valida nell'ultimo giro, con una nuova coppia di chiavi (BC-06) e `reconfirmation.workingHours` per rispondere; garanzia minima calcolata sulla chiusura del giro (GAR-01); nessun rabbocco con agenzie nuove. Alla chiusura: «Offerte disponibili» con l'avviso `reconfirmation.completed.requester`, oppure «Deserta». Una richiesta il cui workflow era già finito a «Scaduta» riparte con il segnale. Un segnale ripetuto non apre una seconda riconferma: serve una richiesta del cliente più recente dell'ultima apertura;
+  - agenzia: la riga in «Richieste in arrivo» ha il segno «Riconferma»; il modulo parte dall'offerta del giro precedente, con «Conferma lo stesso premio» o «Invia il premio aggiornato» (anche al rialzo) e una nuova data di garanzia; «Rinuncia» come sempre (proposta C). Il PDF nuovo è facoltativo: senza, resta valido quello del giro precedente.
+- Notifiche: tolti i prezzi da `reconfirmation.requested` e `reconfirmation.completed.requester` (regola 8, valore prudente della domanda 15); nuovo `request.auto_cancelled`.
+- Prova: `apps/worker/test/workflow.test.ts` (riconferma, riconferma deserta, nuovo avvio da «Scaduta», annullamento dopo 30 giorni), `apps/worker/test/int/activities.int.test.ts` (invitate solo Uno, Tre e Cinque, nuova chiave, PDF del giro precedente, annullamento automatico), `apps/api/test/int/reconfirmation.int.test.ts`.
+- Debito: la classifica pubblicata all'annullamento senza accettazione (decisione 32) arriva con le fasi 5-6; lo scenario S03 end-to-end è nel passo 8.
+- Prossimo passo: fase 4, passo 7 (controllo del PDF dell'offerta, OFF-09).
+
 ## Criteri della fase 3
 
 | Criterio | Stato | Prova |

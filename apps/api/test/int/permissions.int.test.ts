@@ -259,6 +259,12 @@ const ENDPOINTS: Endpoint[] = [
   // Fase 3: auctions and offers
   { action: "auction.viewStatus", method: "GET", path: () => `/requests/${randomUUID()}/auction` },
   { action: "offers.viewPresented", method: "GET", path: () => `/requests/${randomUUID()}/offers` },
+  {
+    action: "reconfirmation.request",
+    method: "POST",
+    path: () => `/requests/${randomUUID()}/reconfirmation`,
+    body: {},
+  },
   { action: "auction.viewStatus", method: "GET", path: () => "/agency/dashboard" },
   { action: "auction.viewStatus", method: "GET", path: () => "/agency/requests" },
   {

@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
 import type { Clock } from "@astax/adapters/clock";
 import {
+  addRequestEvent,
   asSystem,
+  recordDomainEvent,
   settingsAt,
   auctionSettings,
   loadWorkingCalendar,
@@ -57,10 +59,12 @@ export class AuctionsService {
         where: { quoteRequestId: requestId },
         orderBy: { round: "desc" },
       });
-      if (!auction) return { status: request.status, auction: null };
+      const reconfirmation = await this.reconfirmationState(tx, request, this.clock.now());
+      if (!auction) return { status: request.status, auction: null, reconfirmation };
       const counts = await this.counts(tx, auction.id);
       return {
         status: request.status,
+        reconfirmation,
         auction: {
           round: auction.round,
           kind: auction.kind,
@@ -71,6 +75,83 @@ export class AuctionsService {
           ...(request.channel === "BROKER" ? { invitedAgencies: counts.invited } : {}),
         },
       };
+    });
+  }
+
+  /** GAR-06: reconfirmations used and allowed, and whether one can be asked now. */
+  private async reconfirmationState(
+    tx: DbTransaction,
+    request: { id: string; status: string; reconfirmationsUsed: number },
+    now: Date,
+  ) {
+    const { "reconfirmation.maxPerRequest": max } = await settingsAt(
+      tx,
+      ["reconfirmation.maxPerRequest"],
+      now,
+    );
+    // Asked and not yet opened by the worker: a second click changes nothing.
+    const [asked, opened] = await Promise.all(
+      (["RECONFIRMATION_REQUESTED", "RECONFIRMATION_OPENED"] as const).map((type) =>
+        tx.quoteRequestEvent.findFirst({
+          where: { quoteRequestId: request.id, type },
+          orderBy: { at: "desc" },
+        }),
+      ),
+    );
+    const pending = request.status === "EXPIRED" && !!asked && (!opened || opened.at < asked.at);
+    return {
+      used: request.reconfirmationsUsed,
+      max,
+      pending,
+      available: request.status === "EXPIRED" && request.reconfirmationsUsed < max && !pending,
+    };
+  }
+
+  /**
+   * GAR-06: the requester asks the agencies with a valid offer in the last round
+   * to reconfirm. The request must be «Scaduta» with reconfirmations left; the
+   * worker opens the round (GAR-07, BC-06) from the outbox event.
+   */
+  async requestReconfirmation(auth: AuthContext, requestId: string) {
+    if (!isRequester(auth)) throw new ProblemError("NOT_FOUND");
+    const now = this.clock.now();
+    return withContext(this.db, auth.db, async (tx) => {
+      await tx.$queryRaw`SELECT 1 FROM "QuoteRequest" WHERE "id" = ${requestId}::uuid FOR UPDATE`;
+      const request = await tx.quoteRequest.findFirst({
+        where: { id: requestId, ...requesterScope(auth) },
+      });
+      if (!request) throw new ProblemError("NOT_FOUND");
+      const state = await this.reconfirmationState(tx, request, now);
+      if (state.pending) return { requested: true };
+      if (!state.available) {
+        throw new ProblemError("CONFLICT", "No reconfirmation can be asked now", [
+          {
+            path: "request",
+            issue: request.status === "EXPIRED" ? "RECONFIRMATIONS_USED_UP" : "NOT_EXPIRED",
+          },
+        ]);
+      }
+      await addRequestEvent(tx, request, {
+        type: "RECONFIRMATION_REQUESTED",
+        actorKind: "REQUESTER",
+        actorUserId: auth.userId,
+        at: now,
+      });
+      await recordDomainEvent(tx, {
+        aggregateType: "QuoteRequest",
+        aggregateId: request.id,
+        type: "ReconfirmationRequested",
+        at: now,
+        actorUserId: auth.userId,
+        data: { used: state.used },
+      });
+      await this.audit.inTransaction(tx, actorOf(auth), {
+        action: "RECONFIRMATION_REQUESTED",
+        targetType: "QuoteRequest",
+        targetId: request.id,
+        after: { used: state.used, max: state.max },
+      });
+      return { requested: true };
     });
   }
 

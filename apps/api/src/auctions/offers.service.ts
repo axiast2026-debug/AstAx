@@ -446,7 +446,16 @@ export class OffersService {
     const result = await withContext(this.db, auth.db, async (tx) => {
       const auction = await this.lockOpen(tx, auth, auctionId);
       await this.invitation(tx, auth, auction);
-      const payload = await this.validate(tx, auth, auction, raw, pdf, true);
+      // GAR-07, proposal C: a reconfirmation may keep the quote of the previous
+      // round (the worker links it at the closing); a new PDF replaces it.
+      const payload = await this.validate(
+        tx,
+        auth,
+        auction,
+        raw,
+        pdf,
+        auction.kind !== "RECONFIRMATION",
+      );
       await this.ensureClaim(tx, auth, auction);
       const existing = await tx.offer.findFirst({
         where: { auctionId, organizationId: m.organizationId, status: "SUBMITTED" },

@@ -115,7 +115,9 @@ function coverageOf(formData: FormData) {
 export async function sendOffer(formData: FormData): Promise<void> {
   const auctionId = idOf(formData, "auctionId");
   const offerId = text(formData, "offerId");
-  const cents = euroToCents(text(formData, "premium"));
+  // GAR-07, proposal C: «Conferma» keeps the premium of the previous round.
+  const confirm = formData.get("mode") === "confirm";
+  const cents = euroToCents(text(formData, confirm ? "previousPremium" : "premium"));
   if (cents === null) redirect(back(auctionId, "?errore=PREMIUM_INVALID"));
   const offer = {
     annualGrossPremiumCents: cents,

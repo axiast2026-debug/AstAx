@@ -78,7 +78,14 @@ const LONG_TX = { timeoutMs: 60_000 };
  */
 export function auctionActivities(
   deps: ActivityDeps,
-): Omit<AuctionActivities, "guaranteeSchedule" | "sendGuaranteeReminder" | "expireRequest"> {
+): Omit<
+  AuctionActivities,
+  | "guaranteeSchedule"
+  | "sendGuaranteeReminder"
+  | "expireRequest"
+  | "expiredSchedule"
+  | "autoCancelExpired"
+> {
   const { db, kms, clock, cipher, notifier, urls } = deps;
 
   async function inSystem<T>(work: (tx: DbTransaction, pending: PendingEmail[]) => Promise<T>) {
@@ -150,6 +157,162 @@ export function auctionActivities(
     );
   }
 
+  /**
+   * GAR-07, BC-06: the reconfirmation round. Invited are the agencies that had a
+   * valid offer in the last closed round (now expired); same data, a new key
+   * pair, reconfirmation.workingHours to answer, and a new minimum guarantee
+   * computed on the closing of this round (GAR-01). Every reconfirmation counts
+   * against reconfirmation.maxPerRequest (GAR-06).
+   */
+  async function openReconfirmation(
+    tx: DbTransaction,
+    pending: PendingEmail[],
+    request: QuoteRequest,
+    rounds: (Auction & { invitations: { organizationId: string }[] })[],
+    now: Date,
+  ): Promise<OpenResult> {
+    const last = rounds.at(-1);
+    // A repetition finds the round it already opened.
+    if (last?.kind === "RECONFIRMATION" && last.status === "OPEN") {
+      const calendar = await calendarOf(tx, last);
+      return { opened: true, invited: last.invitations.length, ...roundTimesOf(last, calendar) };
+    }
+    const { "reconfirmation.maxPerRequest": max } = await settingsAt(
+      tx,
+      ["reconfirmation.maxPerRequest"],
+      now,
+    );
+    if (request.status !== "EXPIRED" || request.reconfirmationsUsed >= max) {
+      return { opened: false, reason: "NOT_RECONFIRMABLE" };
+    }
+    // The signal may arrive twice (at-least-once delivery): only a request of the
+    // requester newer than the last reconfirmation opens one.
+    const [asked, previous] = await Promise.all(
+      (["RECONFIRMATION_REQUESTED", "RECONFIRMATION_OPENED"] as const).map((type) =>
+        tx.quoteRequestEvent.findFirst({
+          where: { quoteRequestId: request.id, type },
+          orderBy: { at: "desc" },
+        }),
+      ),
+    );
+    if (!asked || (previous && previous.at >= asked.at)) {
+      return { opened: false, reason: "NOT_RECONFIRMABLE" };
+    }
+    const lastClosed = [...rounds].reverse().find((r) => r.status === "CLOSED");
+    const expired = lastClosed
+      ? await tx.offer.findMany({ where: { auctionId: lastClosed.id, status: "EXPIRED" } })
+      : [];
+    const exclusions = await tx.invitationExclusion.findMany({
+      where: { quoteRequestId: request.id },
+    });
+    const active = await tx.organization.findMany({
+      where: {
+        id: { in: [...new Set(expired.map((o) => o.organizationId))] },
+        type: "AGENCY",
+        status: "ACTIVE",
+      },
+    });
+    const organizationIds = active
+      .map((o) => o.id)
+      .filter((id) => !exclusions.some((e) => e.organizationId === id));
+
+    const snapshot = await auctionSettingsAt(tx, now);
+    const settings = auctionSettings(snapshot);
+    const calendar = await loadWorkingCalendar(tx, snapshot["calendar.workingHours"]);
+    const durationHours = snapshot["reconfirmation.workingHours"];
+    if (request.minValidityDays === null) {
+      throw ApplicationFailure.nonRetryable("The request has no submitted data");
+    }
+    if (organizationIds.length === 0) {
+      // Nobody to ask: the reconfirmation is not counted and the request is «Deserta».
+      transitionRequest("EXPIRED", "IN_RECONFIRMATION");
+      await tx.quoteRequest.update({
+        where: { id: request.id },
+        data: { status: "IN_RECONFIRMATION" },
+      });
+      return { opened: false, reason: "NO_AGENCIES" };
+    }
+    const times = auctionTimes(calendar, now, durationHours, request.minValidityDays, settings);
+    const auctionId = randomUUID();
+    const keys = await generateAuctionKeyPair();
+    const wrappedPrivateKey = await kms.encrypt(KMS_KEYS.sealedBids, keys.privateKey, {
+      purpose: "sealed-bid",
+      auctionId,
+    });
+    await wipe(keys.privateKey);
+    const auction = await tx.auction.create({
+      data: {
+        id: auctionId,
+        quoteRequestId: request.id,
+        ownerUserId: request.ownerUserId,
+        ownerOrganizationId: request.ownerOrganizationId,
+        kind: "RECONFIRMATION",
+        round: (last?.round ?? 0) + 1,
+        openedAt: now,
+        scheduledCloseAt: times.scheduledCloseAt,
+        originalCloseAt: times.scheduledCloseAt,
+        minGuaranteeDate: calendarDateToDbDate(times.minGuaranteeDate),
+        durationHours,
+        settingsSnapshot: { ...snapshot, "calendar.holidays": [...calendar.holidays].sort() },
+        publicKey: keys.publicKey,
+        wrappedPrivateKey,
+        kmsKeyRef: KMS_KEYS.sealedBids,
+      },
+    });
+    await tx.invitation.createMany({
+      data: organizationIds.map((organizationId) => ({
+        auctionId,
+        organizationId,
+        source: "RECONFIRMATION" as const,
+        invitedAt: now,
+        invitedByUserId: null,
+      })),
+      skipDuplicates: true,
+    });
+    await setRequestStatus(tx, request, "IN_RECONFIRMATION");
+    await tx.quoteRequest.update({
+      where: { id: request.id },
+      data: { reconfirmationsUsed: { increment: 1 } },
+    });
+    await addRequestEvent(tx, request, {
+      type: "RECONFIRMATION_OPENED",
+      actorKind: "SYSTEM",
+      actorUserId: null,
+      at: now,
+      details: { round: auction.round, scheduledCloseAt: auction.scheduledCloseAt.toISOString() },
+    });
+    await recordDomainEvent(tx, {
+      aggregateType: "Auction",
+      aggregateId: auction.id,
+      type: "AuctionOpened",
+      at: now,
+      actorUserId: null,
+      data: { quoteRequestId: request.id, round: auction.round, invited: organizationIds.length },
+    });
+    await audit(tx, now, {
+      action: "AUCTION_OPENED",
+      targetType: "Auction",
+      targetId: auction.id,
+      after: { quoteRequestId: request.id, kind: "RECONFIRMATION", invited: organizationIds },
+    });
+    const quoteData = await quoteDataOf(tx, cipher, request);
+    await notifier.notify(
+      tx,
+      pending,
+      await agencyRecipients(tx, cipher, organizationIds),
+      "reconfirmation.requested",
+      () => ({
+        codice: request.code,
+        veicolo: vehicleForAgency(quoteData),
+        termine: formatDateTime(auction.scheduledCloseAt),
+        link: `${urls.web}/richieste-in-arrivo`,
+      }),
+      `/richieste-in-arrivo`,
+      { auctionId: auction.id },
+    );
+    return { opened: true, invited: organizationIds.length, ...roundTimesOf(auction, calendar) };
+  }
+
   async function openRound(input: {
     requestId: string;
     kind: RoundKind;
@@ -171,6 +334,9 @@ export function auctionActivities(
         return { opened: true, invited: same.invitations.length, ...roundTimesOf(same, calendar) };
       }
       const last = rounds.at(-1);
+      if (input.kind === "RECONFIRMATION") {
+        return openReconfirmation(tx, pending, request, rounds, now);
+      }
       if (input.kind === "MAIN") {
         if (input.round !== 1 || rounds.length > 0 || request.status !== "IN_VERIFICATION") {
           return { opened: false, reason: "NOT_APPROVED" };
@@ -338,7 +504,10 @@ export function auctionActivities(
   async function topUp(input: { auctionId: string }) {
     const result = await inSystem(async (tx, pending) => {
       const auction = await lockAuction(tx, input.auctionId);
-      if (auction.status !== "OPEN") return { invited: 0, requestId: auction.quoteRequestId };
+      // GAR-07: a reconfirmation asks the same agencies only, no top-up.
+      if (auction.status !== "OPEN" || auction.kind === "RECONFIRMATION") {
+        return { invited: 0, requestId: auction.quoteRequestId };
+      }
       const invitations = await tx.invitation.findMany({ where: { auctionId: auction.id } });
       if (invitations.some((i) => i.source === "TOP_UP")) {
         return { invited: 0, requestId: auction.quoteRequestId };
@@ -591,6 +760,23 @@ export function auctionActivities(
                 where: { id: offer.id },
                 data: { pdfDocumentId: document.id },
               });
+            } else if (auction.kind === "RECONFIRMATION") {
+              // GAR-07, proposal C: a confirmation may keep the quote of the previous
+              // round: the agency's latest PDF stays the document of this offer.
+              const previous = await tx.offer.findFirst({
+                where: {
+                  organizationId: offer.organizationId,
+                  pdfDocumentId: { not: null },
+                  auction: { quoteRequestId: request.id, round: { lt: auction.round } },
+                },
+                orderBy: { auction: { round: "desc" } },
+              });
+              if (previous?.pdfDocumentId) {
+                await tx.offer.update({
+                  where: { id: offer.id },
+                  data: { pdfDocumentId: previous.pdfDocumentId },
+                });
+              }
             }
           }
         } finally {
@@ -671,7 +857,9 @@ export function auctionActivities(
           tx,
           pending,
           requester.recipients,
-          "auction.closed.requester",
+          auction.kind === "RECONFIRMATION"
+            ? "reconfirmation.completed.requester"
+            : "auction.closed.requester",
           () => ({
             nome: requester.firstName,
             codice: request.code,

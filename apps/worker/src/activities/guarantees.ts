@@ -25,7 +25,7 @@ import {
   snapshotOf,
   type ActivityDeps,
 } from "./support.js";
-import type { AuctionActivities, GuaranteeSchedule } from "./types.js";
+import type { AuctionActivities, ExpiredSchedule, GuaranteeSchedule } from "./types.js";
 
 /**
  * Guarantees after the closing: the reminder about the best offer still
@@ -33,7 +33,14 @@ import type { AuctionActivities, GuaranteeSchedule } from "./types.js";
  */
 export function guaranteeActivities(
   deps: ActivityDeps,
-): Pick<AuctionActivities, "guaranteeSchedule" | "sendGuaranteeReminder" | "expireRequest"> {
+): Pick<
+  AuctionActivities,
+  | "guaranteeSchedule"
+  | "sendGuaranteeReminder"
+  | "expireRequest"
+  | "expiredSchedule"
+  | "autoCancelExpired"
+> {
   const { db, clock, cipher, notifier, urls } = deps;
 
   /** The offers of the last closed round still waiting for the customer. */
@@ -213,5 +220,81 @@ export function guaranteeActivities(
     return result;
   }
 
-  return { guaranteeSchedule, sendGuaranteeReminder, expireRequest };
+  /** When a request «Scaduta» without actions closes by itself (GAR-06, proposal D). */
+  async function autoCancelAtOf(tx: DbTransaction, requestId: string, now: Date) {
+    const since = await tx.quoteRequestEvent.findFirst({
+      where: { quoteRequestId: requestId, type: "EXPIRED" },
+      orderBy: { at: "desc" },
+    });
+    const { "requests.autoCancelExpiredDays": days } = await settingsAt(
+      tx,
+      ["requests.autoCancelExpiredDays"],
+      now,
+    );
+    return { at: new Date((since?.at ?? now).getTime() + days * 86_400_000), days };
+  }
+
+  async function expiredSchedule(input: { requestId: string }): Promise<ExpiredSchedule> {
+    return withContext(db, SYSTEM_CONTEXT, async (tx) => {
+      const request = await tx.quoteRequest.findUniqueOrThrow({ where: { id: input.requestId } });
+      if (request.status !== "EXPIRED") return { expired: false, autoCancelAt: null };
+      const { at } = await autoCancelAtOf(tx, request.id, clock.now());
+      return { expired: true, autoCancelAt: at.toISOString() };
+    });
+  }
+
+  async function autoCancelExpired(input: { requestId: string }) {
+    const pending: PendingEmail[] = [];
+    const result = await withContext(db, SYSTEM_CONTEXT, async (tx) => {
+      const now = clock.now();
+      const request = await tx.quoteRequest.findUniqueOrThrow({ where: { id: input.requestId } });
+      if (request.status !== "EXPIRED") return { cancelled: request.status === "CANCELLED" };
+      const { at, days } = await autoCancelAtOf(tx, request.id, now);
+      if (now < at) return { cancelled: false };
+      transitionRequest("EXPIRED", "CANCELLED");
+      await tx.quoteRequest.update({ where: { id: request.id }, data: { status: "CANCELLED" } });
+      await addRequestEvent(tx, request, {
+        type: "AUTO_CANCELLED",
+        actorKind: "SYSTEM",
+        actorUserId: null,
+        at: now,
+      });
+      await audit(tx, now, {
+        action: "REQUEST_AUTO_CANCELLED",
+        targetType: "QuoteRequest",
+        targetId: request.id,
+        after: { days },
+      });
+      const quoteData = await quoteDataOf(tx, cipher, request);
+      const requester = await requesterOf(tx, cipher, request);
+      await notifier.notify(
+        tx,
+        pending,
+        requester.recipients,
+        "request.auto_cancelled",
+        () => ({
+          nome: requester.firstName,
+          veicolo: vehicleForRequester(quoteData),
+          giorni: String(days),
+          link: requesterLink(urls, request),
+        }),
+        new URL(requesterLink(urls, request)).pathname,
+        { quoteRequestId: request.id },
+      );
+      return { cancelled: true };
+    });
+    await notifier.flush(pending);
+    if (result.cancelled) {
+      await deps.publish({ type: "REQUEST_CHANGED", requestId: input.requestId });
+    }
+    return result;
+  }
+
+  return {
+    guaranteeSchedule,
+    sendGuaranteeReminder,
+    expireRequest,
+    expiredSchedule,
+    autoCancelExpired,
+  };
 }

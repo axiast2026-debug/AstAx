@@ -4,7 +4,7 @@
  * (BC-07, SIC-06): a test checks the serialized history.
  */
 
-export type RoundKind = "MAIN" | "REOPEN";
+export type RoundKind = "MAIN" | "REOPEN" | "RECONFIRMATION";
 
 export interface RoundTimes {
   auctionId: string;
@@ -18,7 +18,13 @@ export type OpenResult =
   | ({ opened: true; invited: number } & RoundTimes)
   | {
       opened: false;
-      reason: "NO_AGENCIES" | "CONSENT_REVOKED" | "NOT_APPROVED" | "NOT_REOPENABLE";
+      reason:
+        | "NO_AGENCIES"
+        | "CONSENT_REVOKED"
+        | "NOT_APPROVED"
+        | "NOT_REOPENABLE"
+        /** GAR-06: not «Scaduta», or the reconfirmations are used up. */
+        | "NOT_RECONFIRMABLE";
     };
 
 export interface CloseResult {
@@ -37,6 +43,12 @@ export interface GuaranteeSchedule {
   bestExpiresAt: string | null;
   /** GAR-06: when the last guarantee ends; null when none is left. */
   allExpiredAt: string | null;
+}
+
+/** GAR-06: a request «Scaduta» waits for a reconfirmation or closes by itself. */
+export interface ExpiredSchedule {
+  expired: boolean;
+  autoCancelAt: string | null;
 }
 
 export interface ReopenPolicy {
@@ -76,4 +88,6 @@ export interface AuctionActivities {
   guaranteeSchedule(input: { requestId: string }): Promise<GuaranteeSchedule>;
   sendGuaranteeReminder(input: { requestId: string; offerId: string }): Promise<void>;
   expireRequest(input: { requestId: string }): Promise<{ expired: boolean }>;
+  expiredSchedule(input: { requestId: string }): Promise<ExpiredSchedule>;
+  autoCancelExpired(input: { requestId: string }): Promise<{ cancelled: boolean }>;
 }

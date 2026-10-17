@@ -13,7 +13,10 @@ import type { AuctionActivities, BackOfficeAction, RoundTimes } from "../activit
  * QuoteRequestWorkflow (docs/architettura-codice.md, ADR 0008): one per
  * request, id `quote-request-{id}`. From the approval: opening, top-up,
  * reminder and closing of the auction, the reopening of a deserted auction
- * (ASTA-08), then the guarantees until «Scaduta» (GAR-05, GAR-06).
+ * (ASTA-08), then the guarantees until «Scaduta» (GAR-05, GAR-06); from
+ * «Scaduta» a reconfirmation round (GAR-07) or, after 30 days without one,
+ * the automatic cancellation (GAR-06). A request whose workflow had already
+ * ended at «Scaduta» gets a new run started by the reconfirmation signal.
  * Deterministic: the time is the workflow's, the work is in the activities,
  * and only identifiers, counts and instants pass through (BC-07).
  */
@@ -28,6 +31,8 @@ export const invitationsAddedSignal = defineSignal<
   [{ organizationIds: string[] } & BackOfficeAction]
 >(SIGNALS.invitationsAdded);
 export const auctionCancelledSignal = defineSignal<[BackOfficeAction]>(SIGNALS.auctionCancelled);
+/** GAR-06: the requester asks for a reconfirmation (the API checks the rules first). */
+export const reconfirmationRequestedSignal = defineSignal(SIGNALS.reconfirmationRequested);
 
 export { workflowIdOf } from "@astax/shared/workflows";
 
@@ -62,6 +67,7 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
   const { requestId } = input;
   let approved = false;
   let fire = false;
+  let reconfirm = false;
   const queue: BackOfficeRequest[] = [];
 
   setHandler(approvedSignal, () => {
@@ -78,6 +84,9 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
   });
   setHandler(auctionCancelledSignal, (a) => {
     queue.push({ kind: "cancel", ...a });
+  });
+  setHandler(reconfirmationRequestedSignal, () => {
+    reconfirm = true;
   });
 
   /**
@@ -169,57 +178,110 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
     }
   }
 
-  await condition(() => approved);
+  await condition(() => approved || reconfirm);
+  // A new run for a request already «Scaduta»: straight to the reconfirmation.
+  const result = approved ? await auctionRounds() : "EXPIRED";
+  if (result !== "EXPIRED") return result;
+  return afterExpiry();
 
-  let round = 1;
-  const first = await acts.openRound({ requestId, kind: "MAIN", round });
-  if (!first.opened) {
-    if (first.reason === "NO_AGENCIES") {
-      await acts.markDeserted({ requestId });
-      return "DESERTED";
+  /** The first auction and the reopening of a deserted one (ASTA-08), then the guarantees. */
+  async function auctionRounds(): Promise<string> {
+    let round = 1;
+    const first = await acts.openRound({ requestId, kind: "MAIN", round });
+    if (!first.opened) {
+      if (first.reason === "NO_AGENCIES") {
+        await acts.markDeserted({ requestId });
+        return "DESERTED";
+      }
+      return first.reason;
     }
-    return first.reason;
-  }
-  let valid = await runRound(first);
-  if (valid === null) return "CANCELLED";
+    let valid = await runRound(first);
+    if (valid === null) return "CANCELLED";
 
-  if (valid === 0) {
-    // ASTA-08: one automatic reopening (by default) with every compatible agency not yet invited.
-    const policy = await acts.reopenPolicy({ auctionId: first.auctionId });
-    for (
-      let attempt = 1;
-      valid === 0 && policy.enabled && attempt <= policy.maxAttempts;
-      attempt += 1
-    ) {
-      round += 1;
-      const reopened = await acts.openRound({ requestId, kind: "REOPEN", round });
-      if (!reopened.opened) break;
-      valid = await runRound(reopened);
-      if (valid === null) return "CANCELLED";
-    }
     if (valid === 0) {
-      await acts.markDeserted({ requestId });
-      return "DESERTED";
+      // ASTA-08: one automatic reopening (by default) with every compatible agency not yet invited.
+      const policy = await acts.reopenPolicy({ auctionId: first.auctionId });
+      for (
+        let attempt = 1;
+        valid === 0 && policy.enabled && attempt <= policy.maxAttempts;
+        attempt += 1
+      ) {
+        round += 1;
+        const reopened = await acts.openRound({ requestId, kind: "REOPEN", round });
+        if (!reopened.opened) break;
+        valid = await runRound(reopened);
+        if (valid === null) return "CANCELLED";
+      }
+      if (valid === 0) {
+        await acts.markDeserted({ requestId });
+        return "DESERTED";
+      }
+    }
+
+    return guarantees();
+  }
+
+  /** Guarantees (GAR-05, GAR-06). Back office requests no longer apply. */
+  async function guarantees(): Promise<string> {
+    for (;;) {
+      queue.length = 0;
+      const s = await acts.guaranteeSchedule({ requestId });
+      if (!s.active || !s.allExpiredAt) return "OFFERS_CLOSED";
+      const candidates = [
+        ...(s.reminderAt && s.reminderOfferId
+          ? [{ at: s.reminderAt, step: "remind" as const }]
+          : []),
+        ...(s.bestExpiresAt ? [{ at: s.bestExpiresAt, step: "recompute" as const }] : []),
+        { at: s.allExpiredAt, step: "expire" as const },
+      ].sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+      const next = candidates[0] as (typeof candidates)[number];
+      if (!(await waitUntil(next.at))) continue;
+      if (next.step === "remind" && s.reminderOfferId) {
+        await acts.sendGuaranteeReminder({ requestId, offerId: s.reminderOfferId });
+      } else if (next.step === "expire") {
+        const { expired } = await acts.expireRequest({ requestId });
+        if (expired) return "EXPIRED";
+      }
     }
   }
 
-  // Guarantees (GAR-05, GAR-06). Back office requests no longer apply.
-  for (;;) {
-    queue.length = 0;
-    const s = await acts.guaranteeSchedule({ requestId });
-    if (!s.active || !s.allExpiredAt) return "OFFERS_CLOSED";
-    const candidates = [
-      ...(s.reminderAt && s.reminderOfferId ? [{ at: s.reminderAt, step: "remind" as const }] : []),
-      ...(s.bestExpiresAt ? [{ at: s.bestExpiresAt, step: "recompute" as const }] : []),
-      { at: s.allExpiredAt, step: "expire" as const },
-    ].sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
-    const next = candidates[0] as (typeof candidates)[number];
-    if (!(await waitUntil(next.at))) continue;
-    if (next.step === "remind" && s.reminderOfferId) {
-      await acts.sendGuaranteeReminder({ requestId, offerId: s.reminderOfferId });
-    } else if (next.step === "expire") {
-      const { expired } = await acts.expireRequest({ requestId });
-      if (expired) return "EXPIRED";
+  /**
+   * «Scaduta» (GAR-06): a reconfirmation round when the requester asks for it
+   * (GAR-07), else the automatic cancellation after requests.autoCancelExpiredDays.
+   */
+  async function afterExpiry(): Promise<string> {
+    for (;;) {
+      if (!reconfirm) {
+        const s = await acts.expiredSchedule({ requestId });
+        if (!s.expired || !s.autoCancelAt) return "EXPIRED_CLOSED";
+        const ms = Date.parse(s.autoCancelAt) - Date.now();
+        if (ms > 0) await condition(() => fire || reconfirm, ms);
+        fire = false;
+        if (!reconfirm) {
+          const { cancelled } = await acts.autoCancelExpired({ requestId });
+          if (cancelled) return "AUTO_CANCELLED";
+          continue;
+        }
+      }
+      reconfirm = false;
+      const opened = await acts.openRound({ requestId, kind: "RECONFIRMATION", round: 0 });
+      if (!opened.opened) {
+        if (opened.reason === "NO_AGENCIES") {
+          await acts.markDeserted({ requestId });
+          return "DESERTED";
+        }
+        // Not «Scaduta» or no reconfirmation left: the API refuses the same, so
+        // this is a late duplicate; the request keeps waiting as it is.
+        continue;
+      }
+      const valid = await runRound(opened);
+      if (valid === null) return "CANCELLED";
+      if (valid === 0) {
+        await acts.markDeserted({ requestId });
+        return "DESERTED";
+      }
+      const end = await guarantees();
+      if (end !== "EXPIRED") return end;
     }
   }
 }

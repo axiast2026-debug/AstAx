@@ -65,6 +65,7 @@ Ogni utente sceglie i canali per evento nel profilo. Restano sempre attivi: le n
 | `request.expired` | `requester` | In app, push, email |
 | `reconfirmation.requested` | Agenzie con offerta valida | In app, push, email |
 | `reconfirmation.completed.requester` | `requester` | In app, push, email |
+| `request.auto_cancelled` | `requester` | In app, email |
 | `offer.link_to_client` | `broker_client` | Email, SMS |
 | `payment.confirmed` | Chi ha pagato | In app, email |
 | `payment.failed` | Chi ha pagato | In app, push, email |

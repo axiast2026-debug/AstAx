@@ -126,6 +126,11 @@ export default async function IncomingRequestsPage({
                     >
                       {r.code}
                     </Link>
+                    {r.kind === "RECONFIRMATION" ? (
+                      <Badge tone="warning" className="ml-2">
+                        {t("incoming.reconfirmation")}
+                      </Badge>
+                    ) : null}
                   </td>
                   <td className="px-3 py-2">{r.vehicleType ? tv(r.vehicleType) : "—"}</td>
                   <td className="px-3 py-2">{r.province ?? "—"}</td>

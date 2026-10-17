@@ -15,6 +15,7 @@ import {
   auctionCancelledSignal,
   auctionExtendedSignal,
   fireNextTimerSignal,
+  reconfirmationRequestedSignal,
   invitationsAddedSignal,
   quoteRequestWorkflow,
   workflowIdOf,
@@ -50,6 +51,8 @@ interface Script {
   guarantees?: GuaranteeSchedule[];
   /** Top-up and reminder at the closing time: the closing is the first timer. */
   closeFirst?: boolean;
+  /** GAR-06: what the request looks like once «Scaduta» (default: closes after 30 days). */
+  expired?: { expired: boolean; autoCancelAt: string | null }[];
 }
 
 /** Fake activities that record the calls, with the time of the workflow environment. */
@@ -57,6 +60,7 @@ function fakes(script: Script) {
   const calls: { name: string; at: number; input: unknown }[] = [];
   const closings = [...script.closings];
   const guarantees = [...(script.guarantees ?? [])];
+  const expired = [...(script.expired ?? [])];
   let close = 0;
   let round = 0;
   // The time of the test server (skipped forward), not of this process.
@@ -135,6 +139,19 @@ function fakes(script: Script) {
     async expireRequest(input) {
       record("expireRequest", input);
       return { expired: true };
+    },
+    async expiredSchedule(input) {
+      record("expiredSchedule", input);
+      return (
+        expired.shift() ?? {
+          expired: true,
+          autoCancelAt: new Date(now() + 30 * 24 * HOUR).toISOString(),
+        }
+      );
+    },
+    async autoCancelExpired(input) {
+      record("autoCancelExpired", input);
+      return { cancelled: true };
     },
   };
   return { activities, calls, names: () => calls.map((c) => c.name) };
@@ -295,14 +312,82 @@ describe("QuoteRequestWorkflow (ADR 0008)", () => {
         },
       ],
     });
-    expect(r.names().slice(-5)).toEqual([
+    expect(r.names().slice(-7)).toEqual([
       "guaranteeSchedule",
       "sendGuaranteeReminder",
       "guaranteeSchedule",
       "guaranteeSchedule",
       "expireRequest",
+      "expiredSchedule",
+      "autoCancelExpired",
     ]);
-    expect(r.result).toBe("EXPIRED");
+    // GAR-06: «Scaduta» without a reconfirmation closes by itself after 30 days.
+    const cancelAt = r.calls.find((c) => c.name === "autoCancelExpired")?.at ?? 0;
+    const expiredAt = r.calls.find((c) => c.name === "expireRequest")?.at ?? 0;
+    expect(cancelAt - expiredAt).toBeGreaterThanOrEqual(30 * day - HOUR);
+    expect(r.result).toBe("AUTO_CANCELLED");
+  });
+
+  const expiring = (now: number) => [
+    {
+      active: true,
+      reminderAt: null,
+      reminderOfferId: null,
+      bestExpiresAt: null,
+      allExpiredAt: new Date(now + 5 * 24 * HOUR).toISOString(),
+    },
+  ];
+
+  it("GAR-07 BC-06 a reconfirmation opens a new round with the same agencies; its offers go back to the guarantees", async () => {
+    const now = await env.currentTimeMs();
+    const r = await run({ closings: [2, 2], guarantees: expiring(now) }, async (handle) => {
+      await handle.signal(reconfirmationRequestedSignal);
+    });
+    const opens = r.calls.filter((c) => c.name === "openRound").map((c) => c.input);
+    expect(opens).toEqual([
+      { requestId: r.requestId, kind: "MAIN", round: 1 },
+      { requestId: r.requestId, kind: "RECONFIRMATION", round: 0 },
+    ]);
+    // GAR-07: no top-up of new agencies in a reconfirmation (the activity does nothing).
+    expect(r.names().filter((n) => n === "closeRound")).toHaveLength(2);
+    expect(r.result).toBe("OFFERS_CLOSED");
+  });
+
+  it("GAR-07 a reconfirmation without valid answers makes the request «Deserta»", async () => {
+    const now = await env.currentTimeMs();
+    const r = await run({ closings: [2, 0], guarantees: expiring(now) }, async (handle) => {
+      await handle.signal(reconfirmationRequestedSignal);
+    });
+    expect(r.names().slice(-2)).toEqual(["closeRound", "markDeserted"]);
+    expect(r.result).toBe("DESERTED");
+  });
+
+  it("GAR-06 a request whose workflow ended at «Scaduta» gets a new run from the reconfirmation signal", async () => {
+    const fake = fakes({ closings: [1] });
+    const taskQueue = `test-${(counter += 1)}`;
+    const requestId = `00000000-0000-7000-8000-${String(counter).padStart(12, "0")}`;
+    const worker = await Worker.create({
+      connection: env.nativeConnection,
+      taskQueue,
+      workflowsPath,
+      activities: fake.activities,
+    });
+    const result = await worker.runUntil(async () => {
+      const handle = await env.client.workflow.signalWithStart(quoteRequestWorkflow, {
+        workflowId: workflowIdOf(requestId),
+        taskQueue,
+        args: [{ requestId }],
+        signal: reconfirmationRequestedSignal,
+        signalArgs: [],
+      });
+      return handle.result();
+    });
+    expect(fake.calls.find((c) => c.name === "openRound")?.input).toEqual({
+      requestId,
+      kind: "RECONFIRMATION",
+      round: 0,
+    });
+    expect(result).toBe("OFFERS_CLOSED");
   });
 
   it("rule 13 the development tool fires the next timer at once", async () => {
