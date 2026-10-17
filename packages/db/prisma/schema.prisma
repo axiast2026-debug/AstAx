@@ -559,6 +559,9 @@ model QuoteRequest {
   events            QuoteRequestEvent[]
   consentLinks      ConsentLink[]
   auctions          Auction[]
+  acceptances       Acceptance[]
+  aiSuggestions     AiSuggestion[]
+  customerLinks     CustomerLink[]
 
   @@index([ownerUserId, status])
   @@index([ownerOrganizationId, status])
@@ -650,6 +653,8 @@ model ConsentLink {
 enum OtpPurpose {
   PRIVATE_CONSENT
   LINK_CONSENT
+  /// Phase 5: the broker's customer confirms the identity on the link (decision 26).
+  CUSTOMER_LINK
 }
 
 /// One-time codes sent by AstAx (auth.otp), stored only as a keyed hash.
@@ -814,8 +819,26 @@ model InsuranceCompany {
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @default(now()) @db.Timestamptz(3)
 
-  mandates AgencyMandate[]
-  products InsuranceProduct[]
+  mandates   AgencyMandate[]
+  products   InsuranceProduct[]
+  complaints CompanyComplaintsIndex[]
+}
+
+/// PRES-07: the IVASS complaints index of a company, entered by the back office.
+model CompanyComplaintsIndex {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  companyId       String   @db.Uuid
+  year            Int
+  /// Complaints per 10.000 contracts: lower is better. Not money.
+  value           Float
+  source          String
+  createdByUserId String   @db.Uuid
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime @default(now()) @db.Timestamptz(3)
+
+  company InsuranceCompany @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, year])
 }
 
 enum MandateSource {
@@ -1127,4 +1150,173 @@ model KmsEvent {
   process   String
 
   @@index([keyId, at])
+}
+
+// ---------------------------------------------------------------------------
+// Acceptance and payment (phase 5)
+// ---------------------------------------------------------------------------
+
+/// PRES-08: every AI suggestion with weights, data used, scores, model, prompt
+/// version and the text shown (or the fallback text, proposal D).
+model AiSuggestion {
+  id                  String   @id @default(uuid(7)) @db.Uuid
+  quoteRequestId      String   @db.Uuid
+  ownerUserId         String?  @db.Uuid
+  ownerOrganizationId String?  @db.Uuid
+  offerIds            Json
+  weights             Json
+  inputs              Json
+  scores              Json
+  recommendedOfferId  String   @db.Uuid
+  text                String
+  /// MODEL when the model's text passed the check, FALLBACK otherwise.
+  textSource          String
+  textProblems        Json     @default("[]")
+  model               String
+  promptVersion       String
+  shownAt             DateTime @db.Timestamptz(3)
+  createdAt           DateTime @default(now()) @db.Timestamptz(3)
+
+  quoteRequest QuoteRequest @relation(fields: [quoteRequestId], references: [id])
+
+  @@index([quoteRequestId])
+}
+
+/// Decision 26: the broker sends offers to the customer, who opens the link,
+/// confirms the identity with a code, signs and pays the premium only.
+model CustomerLink {
+  id                  String    @id @default(uuid(7)) @db.Uuid
+  quoteRequestId      String    @db.Uuid
+  ownerOrganizationId String    @db.Uuid
+  offerIds            Json
+  tokenHash           String    @unique
+  /// Until the end of the guarantee of the offers sent (decision 26).
+  expiresAt           DateTime  @db.Timestamptz(3)
+  otpVerifiedAt       DateTime? @db.Timestamptz(3)
+  sentByUserId        String    @db.Uuid
+  revokedAt           DateTime? @db.Timestamptz(3)
+  createdAt           DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime  @default(now()) @db.Timestamptz(3)
+
+  quoteRequest QuoteRequest @relation(fields: [quoteRequestId], references: [id])
+  acceptances  Acceptance[]
+
+  @@index([quoteRequestId])
+}
+
+enum AcceptanceStatus {
+  PENDING_SIGNATURE
+  SIGNED
+  PAID
+  VOIDED
+}
+
+/// One per chosen offer: a new one when the customer changes offer (decision
+/// 22). The fee is computed at its creation with the rule applied (FEE-01…03).
+model Acceptance {
+  id                  String           @id @default(uuid(7)) @db.Uuid
+  quoteRequestId      String           @db.Uuid
+  offerId             String           @db.Uuid
+  ownerUserId         String?          @db.Uuid
+  ownerOrganizationId String?          @db.Uuid
+  /// The private user, or null when the broker's customer accepted on a link.
+  acceptedByUserId    String?          @db.Uuid
+  customerLinkId      String?          @db.Uuid
+  premiumCents        Int
+  feeCents            Int
+  feeRule             String
+  /// FEE-03: owed by the broker once the policy is issued.
+  brokerFeeCents      Int              @default(0)
+  aiUsed              Boolean
+  status              AcceptanceStatus @default(PENDING_SIGNATURE)
+  signedAt            DateTime?        @db.Timestamptz(3)
+  paidAt              DateTime?        @db.Timestamptz(3)
+  /// EMI-01, computed at the payment.
+  issuanceDeadlineAt  DateTime?        @db.Timestamptz(3)
+  voidedAt            DateTime?        @db.Timestamptz(3)
+  voidReason          String?
+  createdAt           DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime         @default(now()) @db.Timestamptz(3)
+
+  quoteRequest QuoteRequest       @relation(fields: [quoteRequestId], references: [id])
+  customerLink CustomerLink?      @relation(fields: [customerLinkId], references: [id])
+  signature    SignatureEnvelope?
+  payments     Payment[]
+
+  @@index([quoteRequestId, status])
+}
+
+enum SignatureStatus {
+  PENDING
+  SIGNED
+  REJECTED
+  EXPIRED
+}
+
+/// LEG-05: the documents to sign (letter of engagement) and to read (MUP,
+/// information set), the signed files and the evidence.
+model SignatureEnvelope {
+  id                  String          @id @default(uuid(7)) @db.Uuid
+  acceptanceId        String          @unique @db.Uuid
+  ownerUserId         String?         @db.Uuid
+  ownerOrganizationId String?         @db.Uuid
+  provider            String
+  providerRef         String          @unique
+  status              SignatureStatus @default(PENDING)
+  /// The document ids given to read and sign.
+  documentIds         Json
+  signedDocumentIds   Json            @default("[]")
+  evidenceDocumentId  String?         @db.Uuid
+  createdAt           DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime        @default(now()) @db.Timestamptz(3)
+
+  acceptance Acceptance @relation(fields: [acceptanceId], references: [id])
+}
+
+enum PaymentMethod {
+  CARD
+  INSTANT_TRANSFER
+}
+
+enum PaymentStatus {
+  CREATED
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+/// PAG-01, decision 21: one payment, premium and fee kept apart.
+model Payment {
+  id                  String         @id @default(uuid(7)) @db.Uuid
+  acceptanceId        String         @db.Uuid
+  ownerUserId         String?        @db.Uuid
+  ownerOrganizationId String?        @db.Uuid
+  provider            String
+  providerRef         String?        @unique
+  method              PaymentMethod?
+  premiumCents        Int
+  feeCents            Int
+  status              PaymentStatus  @default(CREATED)
+  capturedAt          DateTime?      @db.Timestamptz(3)
+  failedAt            DateTime?      @db.Timestamptz(3)
+  idempotencyKey      String         @unique
+  createdAt           DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime       @default(now()) @db.Timestamptz(3)
+
+  acceptance Acceptance @relation(fields: [acceptanceId], references: [id])
+
+  @@index([acceptanceId])
+}
+
+/// The webhooks of the providers, handled once (docs/modello-dati.md).
+model ProviderEvent {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  provider   String
+  eventId    String
+  type       String
+  receivedAt DateTime @db.Timestamptz(3)
+
+  @@unique([provider, eventId])
 }

@@ -136,6 +136,7 @@ Telefono ed email non fanno parte di `quoteData`: le agenzie ricevono `quoteData
 | `SignatureEnvelope` | `provider`, `providerRef`, `documents`, `status` (`PENDING`, `SIGNED`, `REJECTED`, `EXPIRED`), `evidenceDocumentId` | — |
 | `CustomerLink` | `quoteRequestId`, `offerIds`, `tokenHash`, `expiresAt`, `otpVerifiedAt`, `sentBy` | Link del broker al cliente |
 | `Payment` | `acceptanceId`, `provider`, `providerRef`, `method` (`CARD`, `INSTANT_TRANSFER`), `premiumCents`, `feeCents`, `status` (`CREATED`, `AUTHORIZED`, `CAPTURED`, `FAILED`, `REFUNDED`, `PARTIALLY_REFUNDED`), `capturedAt`, `idempotencyKey` | — |
+| `ProviderEvent` | `provider`, `eventId`, `type`, `receivedAt` | Avvisi (webhook) dei fornitori di firma e pagamento, elaborati una volta sola |
 | `Refund` | `paymentId`, `amountCents`, `reason`, `requestedBy`, `approvedBy`, `status`, `executedAt` | PAG-05 |
 | `Policy` | `quoteRequestId`, `offerId`, `organizationId`, `companyId`, `policyNumber`, `startDate`, `endDate`, `premiumCents`, `issuedAt`, `issuedByMembershipId`, `status` (`ACTIVE`, `EXPIRING`, `EXPIRED`, `WITHDRAWN`, `CANCELLED`), `autoRenewal` | — |
 | `IssuanceProblem` | `quoteRequestId`, `type` (`DATA_MISMATCH`, `CANNOT_ISSUE`), `description`, `openedBy`, `fault` (`AGENCY`, `CUSTOMER`), `outcome` | EMI-04 |
