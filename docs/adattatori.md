@@ -166,7 +166,7 @@ export interface EInvoicingPort {
 }
 ```
 
-`FatturaPaInput` contiene già natura IVA, riferimento normativo e bollo, presi dai parametri. Il dominio produce i dati della fattura; l'adattatore produce l'XML. Finto: stati `SENT` → `DELIVERED` dopo pochi secondi; partita IVA `00000000000` → `REJECTED`.
+`FatturaPaInput` contiene già natura IVA, riferimento normativo e bollo, presi dai parametri. Il dominio produce i dati della fattura; l'adattatore produce l'XML. Finto: stati `SENT` → `DELIVERED` dopo pochi secondi; partita IVA `00000000000` → `REJECTED`. L'XML si controlla sempre contro lo schema ufficiale FatturaPA 1.2.2 prima dell'invio (ADR 0009).
 
 ## Comunicazioni
 

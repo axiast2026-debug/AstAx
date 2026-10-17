@@ -84,6 +84,45 @@ describe("fake payments provider (proposal B, PAG-01)", () => {
   });
 });
 
+describe("fake payments provider: closing and refunds (PAG-02, PAG-04)", () => {
+  const storage = new InMemoryObjectStorage();
+  const provider = new FakePaymentsProvider(storage, clock, SECRET, (ref) => `/paga/${ref}`);
+
+  it("PAG-02 a closed checkout says so to the payment page", async () => {
+    const { providerRef } = await provider.createCheckout({
+      paymentId: "p9",
+      idempotencyKey: "k9",
+      amounts: { premiumCents: 52000, feeCents: 3500 },
+      methods: ["CARD"],
+      returnUrl: "/back",
+    });
+    expect((await provider.checkout(providerRef)).cancelled).toBe(false);
+    await provider.cancelCheckout(providerRef);
+    expect((await provider.checkout(providerRef)).cancelled).toBe(true);
+  });
+
+  it("PAG-04 a refund is executed; the same key gives the same refund; never zero or decimals", async () => {
+    const first = await provider.refund({
+      providerRef: "pay-k1",
+      idempotencyKey: "r1",
+      amountCents: 49700,
+    });
+    const again = await provider.refund({
+      providerRef: "pay-k1",
+      idempotencyKey: "r1",
+      amountCents: 49700,
+    });
+    expect(first).toEqual({ refundRef: "refund-r1", status: "EXECUTED" });
+    expect(again.refundRef).toBe(first.refundRef);
+    await expect(
+      provider.refund({ providerRef: "pay-k1", idempotencyKey: "r2", amountCents: 0 }),
+    ).rejects.toThrow();
+    await expect(
+      provider.refund({ providerRef: "pay-k1", idempotencyKey: "r3", amountCents: 1.5 }),
+    ).rejects.toThrow();
+  });
+});
+
 describe("fake AI explainer (PRES-07)", () => {
   it("PRES-07 writes about the recommended offer with the figures it received only", async () => {
     const out = await new FakeAiExplainer().explain({

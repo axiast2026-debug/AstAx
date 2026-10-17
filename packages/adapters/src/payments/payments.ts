@@ -27,6 +27,15 @@ export interface PaymentsPort {
   }): Promise<{ providerRef: string; redirectUrl: string }>;
   /** Closes a checkout not paid yet: the customer can no longer pay it (PAG-02). */
   cancelCheckout(providerRef: string): Promise<void>;
+  /**
+   * PAG-04: gives back part or all of a captured payment, on the same card or
+   * account. The same idempotency key never refunds twice.
+   */
+  refund(input: {
+    providerRef: string;
+    idempotencyKey: string;
+    amountCents: number;
+  }): Promise<{ refundRef: string; status: "EXECUTED" | "FAILED" }>;
   parseWebhook(headers: Record<string, string | undefined>, body: string): PaymentEvent;
 }
 
@@ -104,6 +113,23 @@ export class FakePaymentsProvider implements PaymentsPort {
       returnUrl: c.returnUrl,
       cancelled: c.cancelledAt !== undefined,
     };
+  }
+
+  /** The fake gives the money back at once; a repeated key returns the same refund. */
+  async refund(input: { providerRef: string; idempotencyKey: string; amountCents: number }) {
+    if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) {
+      throw new Error("A refund is a positive whole number of cents");
+    }
+    const key = `fake-payments/refunds/${input.idempotencyKey}.json`;
+    const refundRef = `refund-${input.idempotencyKey}`;
+    await this.storage.put({
+      key,
+      body: new TextEncoder().encode(
+        JSON.stringify({ ...input, refundRef, at: this.clock.now().toISOString() }),
+      ),
+      contentType: "application/json",
+    });
+    return { refundRef, status: "EXECUTED" as const };
   }
 
   async cancelCheckout(providerRef: string): Promise<void> {

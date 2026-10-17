@@ -51,6 +51,14 @@
     "./ai-explainer": {
       "types": "./dist/ai-explainer/index.d.ts",
       "default": "./dist/ai-explainer/index.js"
+    },
+    "./e-invoicing": {
+      "types": "./dist/e-invoicing/index.d.ts",
+      "default": "./dist/e-invoicing/index.js"
+    },
+    "./xml": {
+      "types": "./dist/xml/index.d.ts",
+      "default": "./dist/xml/index.js"
     }
   },
   "scripts": {
@@ -73,6 +81,7 @@
     "@aws-sdk/client-s3": "3.1151.0",
     "@aws-sdk/s3-request-presigner": "3.1151.0",
     "libsodium-wrappers": "0.8.4",
-    "pdf-lib": "1.17.1"
+    "pdf-lib": "1.17.1",
+    "xmllint-wasm": "5.3.0"
   }
 }
