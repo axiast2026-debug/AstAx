@@ -1217,7 +1217,19 @@
     },
     "renew": "Rinnova in asta",
     "renewHint": "Con i dati già salvati: serve solo il nuovo attestato di rischio.",
-    "renewalOpen": "Vai al rinnovo"
+    "renewalOpen": "Vai al rinnovo",
+    "withdraw": "Chiedi il recesso",
+    "withdrawalAsked": "Recesso chiesto: l’agenzia indica il premio rimborsabile, poi AstAx approva il rimborso.",
+    "withdrawalPriced": "Premio rimborsabile indicato: il rimborso va all’approvazione di AstAx.",
+    "withdrawalsTitle": "Recessi da valutare",
+    "refundable": "Premio rimborsabile secondo le condizioni della compagnia (€)",
+    "price": "Indica il premio rimborsabile",
+    "withdrawal": {
+      "REQUESTED": "Recesso chiesto: l’agenzia indica il premio rimborsabile.",
+      "PRICED": "Recesso in approvazione da parte di AstAx.",
+      "APPROVED": "Recesso eseguito: il premio indicato è stato rimborsato.",
+      "REJECTED": "Recesso non approvato."
+    }
   },
   "nextOffer": {
     "secondTitle": "L'agenzia non ha potuto emettere la polizza",

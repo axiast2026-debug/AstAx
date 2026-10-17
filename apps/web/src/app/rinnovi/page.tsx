@@ -7,7 +7,7 @@ import { AppShell } from "@/components/app-shell";
 import { ErrorSummary } from "@/components/form";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
-import { renewMonth, renewPolicy, setAutoRenewal } from "../renewal-actions";
+import { renewMonth, renewPolicy, setAutoRenewal } from "../policy-actions";
 
 interface RenewalRow {
   id: string;

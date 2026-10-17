@@ -62,6 +62,8 @@ import { RemittancesController } from "./remittances/remittances.controller.js";
 import { RenewalsController } from "./renewals/renewals.controller.js";
 import { RenewalsService } from "./renewals/renewals.service.js";
 import { ResultsController } from "./results/results.controller.js";
+import { WithdrawalsController } from "./withdrawals/withdrawals.controller.js";
+import { WithdrawalsService } from "./withdrawals/withdrawals.service.js";
 import { ResultsService } from "./results/results.service.js";
 import { RemittancesService } from "./remittances/remittances.service.js";
 import { SettingsController } from "./settings/settings.controller.js";
@@ -89,6 +91,7 @@ export class AppModule {
         RemittancesController,
         ResultsController,
         RenewalsController,
+        WithdrawalsController,
         AuditController,
         RequestsController,
         CustomersController,
@@ -136,6 +139,7 @@ export class AppModule {
         RemittancesService,
         ResultsService,
         RenewalsService,
+        WithdrawalsService,
         QuoteChecksService,
         RealtimeHub,
         RealtimeGateway,

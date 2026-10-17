@@ -51,7 +51,8 @@
   "refundRequester": {
     "system": "AstAx (automatikisht)",
     "customer": "klienti",
-    "backOffice": "zyra"
+    "backOffice": "zyra",
+    "agency": "agjencia"
   },
   "suspension": {
     "reason": "tre moslëshime në gjashtë muajt e fundit"

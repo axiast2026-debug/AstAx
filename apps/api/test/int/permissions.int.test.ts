@@ -349,6 +349,30 @@ const ENDPOINTS: Endpoint[] = [
   },
   { action: "request.create", method: "POST", path: () => "/broker/renewals/bulk", body: {} },
   { action: "request.viewOwn", method: "GET", path: () => "/broker/renewals" },
+  {
+    action: "request.viewOwn",
+    method: "POST",
+    path: () => `/policies/${randomUUID()}/withdrawal`,
+    body: {},
+  },
+  { action: "withdrawal.manage", method: "GET", path: () => "/back-office/withdrawals" },
+  {
+    action: "withdrawal.manage",
+    method: "POST",
+    path: () => `/back-office/policies/${randomUUID()}/withdrawal`,
+    body: {},
+  },
+  {
+    action: "withdrawal.indicateRefundablePremium",
+    method: "GET",
+    path: () => "/agency/withdrawals",
+  },
+  {
+    action: "withdrawal.indicateRefundablePremium",
+    method: "POST",
+    path: () => `/agency/withdrawals/${randomUUID()}/price`,
+    body: {},
+  },
   { action: "request.viewOwn", method: "GET", path: () => "/policies" },
   { action: "issuance.decideMissed", method: "GET", path: () => "/back-office/issuance-problems" },
   {

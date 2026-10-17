@@ -99,6 +99,9 @@ export interface PolicyRow {
   /** Process 10: «Rinnova in asta» is open, and the renewal request once made. */
   renewable?: boolean;
   renewalRequestId?: string | null;
+  /** S08: the withdrawal, its state once asked. */
+  withdrawable?: boolean;
+  withdrawal?: "REQUESTED" | "PRICED" | "APPROVED" | "REJECTED" | null;
   documents?: { id: string; kind: string }[];
 }
 

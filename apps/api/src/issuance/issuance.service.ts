@@ -15,6 +15,7 @@ import {
   type QuoteRequest,
 } from "@astax/db";
 import {
+  addCalendarDays,
   noteProblems,
   policyEndDate,
   renewalNoticeDate,
@@ -639,10 +640,10 @@ export class IssuanceService {
         orderBy: { issuedAt: "desc" },
         take: 200,
       });
-      const { "renewal.daysBefore": renewalDays } = await settingsAt(
-        tx,
-        ["renewal.daysBefore"],
-        this.clock.now(),
+      const { "renewal.daysBefore": renewalDays, "withdrawal.days": withdrawalDays } =
+        await settingsAt(tx, ["renewal.daysBefore", "withdrawal.days"], this.clock.now());
+      const withdrawals = await asSystem(tx, () =>
+        tx.consumerWithdrawal.findMany({ where: { policyId: { in: policies.map((p) => p.id) } } }),
       );
       const today = romeCalendarDate(this.clock.now());
       const [companies, documents] = await Promise.all([
@@ -688,6 +689,12 @@ export class IssuanceService {
             today >= renewalNoticeDate(dbDateToCalendarDate(p.endDate), renewalDays) &&
             today <= dbDateToCalendarDate(p.endDate),
           renewalRequestId: p.renewalRequestId,
+          // S08: the withdrawal within withdrawal.days of the issuance.
+          withdrawal: withdrawals.find((w) => w.policyId === p.id)?.status ?? null,
+          withdrawable:
+            ["ACTIVE", "EXPIRING"].includes(p.status) &&
+            today <= addCalendarDays(romeCalendarDate(p.issuedAt), withdrawalDays) &&
+            !withdrawals.some((w) => w.policyId === p.id && w.status !== "REJECTED"),
           documents: documents
             .filter((d) => d.quoteRequestId === p.quoteRequestId)
             .map((d) => ({ id: d.id, kind: d.kind })),

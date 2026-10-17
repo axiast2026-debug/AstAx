@@ -45,6 +45,7 @@
     { "key": "renewal.daysBefore", "value": 30, "description": "Proposta di rinnovo prima della scadenza della polizza", "rule": "—" },
     { "key": "renewal.brokerHorizonDays", "value": 60, "description": "Scadenze mostrate al broker nella pagina «Rinnovi»", "rule": "—" },
     { "key": "survey.daysAfterIssuance", "value": 7, "description": "Invio del questionario post-vendita", "rule": "—" },
+    { "key": "withdrawal.days", "value": 14, "description": "Giorni dall'emissione entro cui il cliente può recedere (vendita a distanza). Da validare con il legale", "rule": "PAG-04" },
     { "key": "fees.private.amountCents", "value": 3000, "description": "Fee del privato", "rule": "FEE-01" },
     { "key": "fees.private.aiSupplementCents", "value": 500, "description": "Supplemento se il privato usa il confronto AI", "rule": "FEE-01" },
     { "key": "fees.private.lowPremium.thresholdCents", "value": 20000, "description": "Premio sotto cui si applica il fee ridotto", "rule": "FEE-02" },

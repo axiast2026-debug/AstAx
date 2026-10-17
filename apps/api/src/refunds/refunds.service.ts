@@ -208,6 +208,51 @@ export class RefundsService {
           });
         });
       }
+      // S08, PAG-04: the withdrawal refunded: the policy «Receduta», the request «Annullata».
+      if (fresh.reason === "WITHDRAWAL") {
+        await asSystem(tx, async () => {
+          const withdrawal = await tx.consumerWithdrawal.findFirst({
+            where: { refundId: fresh.id },
+          });
+          if (!withdrawal) return;
+          await tx.consumerWithdrawal.update({
+            where: { id: withdrawal.id },
+            data: {
+              status: "APPROVED",
+              decidedByUserId: auth.userId,
+              decidedAt: now,
+              updatedAt: now,
+            },
+          });
+          await tx.policy.update({
+            where: { id: withdrawal.policyId },
+            data: { status: "WITHDRAWN", updatedAt: now },
+          });
+          if (request.status !== "CANCELLED") {
+            transitionRequest(request.status as RequestStatus, "CANCELLED");
+            await tx.quoteRequest.update({
+              where: { id: request.id },
+              data: { status: "CANCELLED", cancelledAt: now },
+            });
+          }
+          await addRequestEvent(tx, request, {
+            type: "WITHDRAWN",
+            actorKind: "BACK_OFFICE",
+            actorUserId: auth.userId,
+            at: now,
+            details: { refundId: fresh.id },
+          });
+          // PolicyWorkflow reads the policy again (decision 39): no more steps.
+          await recordDomainEvent(tx, {
+            aggregateType: "QuoteRequest",
+            aggregateId: request.id,
+            type: "PolicyChanged",
+            at: now,
+            actorUserId: auth.userId,
+            data: { refundId: fresh.id },
+          });
+        });
+      }
       await asSystem(tx, () =>
         addRequestEvent(tx, request, {
           type: "REFUNDED",
@@ -247,6 +292,13 @@ export class RefundsService {
       if (refund.status !== "REQUESTED") throw new ProblemError("CONFLICT");
       await asSystem(tx, () =>
         tx.refund.update({ where: { id: refund.id }, data: { status: "REJECTED" } }),
+      );
+      // A withdrawal whose refund is rejected is rejected too (it may be asked again).
+      await asSystem(tx, () =>
+        tx.consumerWithdrawal.updateMany({
+          where: { refundId: refund.id },
+          data: { status: "REJECTED", decidedByUserId: auth.userId, decidedAt: this.clock.now() },
+        }),
       );
       await this.audit.inTransaction(tx, actorOf(auth), {
         action: "REFUND_REJECTED",

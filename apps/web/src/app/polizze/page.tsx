@@ -3,10 +3,21 @@ import { Badge, Button, Card } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { ErrorSummary } from "@/components/form";
 import type { PolicyRow } from "@/lib/acceptance";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
-import { renewPolicy } from "../renewal-actions";
+import { priceWithdrawal, renewPolicy, requestWithdrawal } from "../policy-actions";
+
+interface WithdrawalRow {
+  id: string;
+  code: string;
+  policyNumber: string;
+  premiumCents: number;
+  requestedAt: string;
+  refundableCents: number | null;
+  status: "REQUESTED" | "PRICED" | "APPROVED" | "REJECTED";
+}
 
 const TONE: Record<string, "success" | "warning" | "neutral" | "danger"> = {
   ACTIVE: "success",
@@ -21,7 +32,12 @@ const TONE: Record<string, "success" | "warning" | "neutral" | "danger"> = {
  * user's policies with their documents and the fee invoice; the broker's,
  * for their customers; the agency's, issued by it.
  */
-export default async function PoliciesPage() {
+export default async function PoliciesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ errore?: string; recesso?: string; prezzato?: string }>;
+}) {
+  const query = await searchParams;
   const viewer = await requireViewer();
   const t = await getTranslations("policies");
   const tk = await getTranslations("wizard.documentKinds");
@@ -32,10 +48,55 @@ export default async function PoliciesPage() {
     isAgency ? "/agency/policies" : "/policies",
   );
   if (status !== 200) notFound();
+  const withdrawals = isAgency
+    ? await api<WithdrawalRow[]>("/agency/withdrawals").then((w) =>
+        w.status === 200 ? w.body : [],
+      )
+    : [];
 
   return (
     <AppShell viewer={viewer}>
       <h1 className="text-2xl font-bold">{isAgency ? t("agencyTitle") : t("title")}</h1>
+      <ErrorSummary codes={query.errore} />
+      {query.recesso || query.prezzato ? (
+        <p role="status" className="mt-4 rounded-lg bg-green-50 p-3 text-sm">
+          {query.recesso ? t("withdrawalAsked") : t("withdrawalPriced")}
+        </p>
+      ) : null}
+      {withdrawals.filter((w) => w.status === "REQUESTED").length > 0 ? (
+        <Card className="mt-6">
+          <h2 className="font-semibold">{t("withdrawalsTitle")}</h2>
+          <ul className="mt-2 divide-y divide-warm-200 text-sm">
+            {withdrawals
+              .filter((w) => w.status === "REQUESTED")
+              .map((w) => (
+                <li key={w.id} className="py-3">
+                  <section aria-label={w.policyNumber}>
+                    <p>
+                      {w.code} · {t("number", { number: w.policyNumber })} · {t("premium")}{" "}
+                      <span className="tabular">{formatEuroCents(w.premiumCents)}</span>
+                    </p>
+                    <form action={priceWithdrawal} className="mt-2 flex flex-wrap items-end gap-3">
+                      <input type="hidden" name="withdrawalId" value={w.id} />
+                      <label className="grid gap-1">
+                        {t("refundable")}
+                        <input
+                          name="refundable"
+                          required
+                          inputMode="decimal"
+                          className="rounded-lg border border-warm-200 px-3 py-2"
+                        />
+                      </label>
+                      <Button type="submit" size="sm">
+                        {t("price")}
+                      </Button>
+                    </form>
+                  </section>
+                </li>
+              ))}
+          </ul>
+        </Card>
+      ) : null}
       {rows.length === 0 ? (
         <Card className="mt-6">
           <p className="text-sm">{t("empty")}</p>
@@ -86,6 +147,16 @@ export default async function PoliciesPage() {
                       {t("renew")}
                     </Button>
                     <span className="text-sm text-warm-600">{t("renewHint")}</span>
+                  </form>
+                ) : null}
+                {!isAgency && p.withdrawal ? (
+                  <p className="mt-2 text-sm">{t(`withdrawal.${p.withdrawal}`)}</p>
+                ) : !isAgency && p.withdrawable ? (
+                  <form action={requestWithdrawal} className="mt-2">
+                    <input type="hidden" name="policyId" value={p.id} />
+                    <Button type="submit" size="sm" variant="outline">
+                      {t("withdraw")}
+                    </Button>
                   </form>
                 ) : null}
                 {p.documents && p.requestId ? (

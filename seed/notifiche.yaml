@@ -703,6 +703,20 @@ events:
         {{richiedente_rimborso}} kërkon një rimbursim për kërkesën {{codice}}.
         Arsyeja: {{motivo}}
         Mirato ose refuzo: {{link}}
+
+  withdrawal.requested.agency:
+    recipients: [agency_owner]
+    channels: [in_app, email]
+    variables: [codice, numero_polizza, link]
+    it:
+      title: "Recesso chiesto: {{codice}}"
+      body: "Il cliente recede dalla polizza {{numero_polizza}}. Indica il premio rimborsabile secondo le condizioni della compagnia."
+      emailSubject: "Recesso chiesto: polizza {{numero_polizza}}"
+      emailBody: |
+        Il cliente della richiesta {{codice}} ha chiesto il recesso dalla polizza {{numero_polizza}}.
+        Indica il premio rimborsabile secondo le condizioni della compagnia: {{link}}
+        Il premio rimborsato sarà trattenuto dalla prossima rimessa.
+
   refund.executed:
     recipients: [refund_recipient]
     channels: [in_app, email]
