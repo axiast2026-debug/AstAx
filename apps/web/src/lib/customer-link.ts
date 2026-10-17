@@ -30,18 +30,37 @@ export async function linkProof(token: string): Promise<string | undefined> {
   return (await cookies()).get(cookieOf(token))?.value;
 }
 
+const UUID = /^[0-9a-f-]{36}$/;
+const tokenCookieOf = (linkId: string) => `astax_offerta_link_${linkId}`;
+
+/**
+ * After the code: the proof, and the token under the link's id, so that the
+ * providers send the customer back to `/offerta/ritorno/{linkId}` and the
+ * token never travels to them (rule 8).
+ */
 export async function saveLinkProof(
   token: string,
+  linkId: string,
   proof: string,
-  expiresAt: Date | undefined,
+  expiresAt: Date,
 ): Promise<void> {
-  (await cookies()).set(cookieOf(token), proof, {
+  const jar = await cookies();
+  const options = {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "lax" as const,
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    ...(expiresAt ? { expires: expiresAt } : {}),
-  });
+    expires: expiresAt,
+  };
+  jar.set(cookieOf(token), proof, options);
+  if (UUID.test(linkId)) jar.set(tokenCookieOf(linkId), token, options);
+}
+
+/** The token of a link this browser confirmed with the code, or nothing. */
+export async function tokenOfLink(linkId: string): Promise<string | undefined> {
+  if (!UUID.test(linkId)) return undefined;
+  const token = (await cookies()).get(tokenCookieOf(linkId))?.value;
+  return token && TOKEN.test(token) ? token : undefined;
 }
 
 /** Streams a file of the link from the API (the API checks token and proof, and logs it). */

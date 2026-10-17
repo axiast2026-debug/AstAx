@@ -376,7 +376,9 @@
     "ALREADY_PAID": "Il pagamento è già stato fatto.",
     "NOT_SIGNED": "Prima del pagamento servono le firme sui documenti.",
     "DOCUMENTS_NOT_READ": "Conferma di aver letto i documenti prima di firmare.",
-    "NO_OFFER_SELECTED": "Scegli almeno un'offerta da inviare."
+    "NO_OFFER_SELECTED": "Scegli almeno un'offerta da inviare.",
+    "PAYMENT_IN_PROGRESS": "C'è un pagamento in arrivo: aspetta la conferma prima di cambiare offerta.",
+    "PAYMENT_CLOSED": "Questo pagamento non è più aperto: torna all'offerta e riprova."
   },
   "wizard": {
     "choose": "Scegli",
@@ -1012,13 +1014,17 @@
     "coinsurance": "scoperto {pct}% minimo {eur}",
     "deductible": "franchigia {eur}",
     "cases": "{count, plural, one {# caso} other {# casi}}",
-    "seeAcceptance": "Vedi pagamento ed emissione"
+    "seeAcceptance": "Vedi pagamento ed emissione",
+    "feeVaries": "Il nostro compenso dipende dal premio (più basso sotto i 200,00 €): lo trovi su ogni offerta e lo paghi solo se ne scegli una.",
+    "rowFee": "Nostro compenso: {fee}"
   },
   "aiCompare": {
     "title": "Confronto con AI",
     "text": "Con il confronto il nostro compenso passa da {from} a {to}, qualunque offerta sceglierai. Lo paghi solo se scegli un'offerta.",
     "confirm": "Confronta con AI",
-    "back": "Torna alle offerte"
+    "back": "Torna alle offerte",
+    "textByOffer": "Con il confronto il nostro compenso aumenta, qualunque offerta sceglierai. Lo paghi solo se scegli un'offerta:",
+    "offerFee": "{offer}: da {from} a {to}"
   },
   "acceptance": {
     "title": "Accettazione {code}",

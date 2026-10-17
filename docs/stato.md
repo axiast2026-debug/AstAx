@@ -125,7 +125,22 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 
 ## Verifica indipendente (fase 5)
 
-Primo giro, 2026-10-17: da correggere (nessuno ancora corretto).
+Primo giro, 2026-10-17: 12 punti. Corretti il 2026-10-17 (passo 0 della fase 6, approvato da Dan):
+
+- 1: con un bonifico in arrivo non si cambia offerta («C'è un pagamento in arrivo»); cambiando offerta il pagamento aperto viene chiuso presso il fornitore e non si può più pagare; il link nuovo del broker non può pagare la scelta firmata da un link precedente;
+- 2: il token del link è tolto dai log (anche quello del link di consenso) e non va più ai fornitori: tornano a `/offerta/ritorno/{id del link}` e la pagina trova il token nel cookie di chi ha messo il codice; niente targa nell'email/SMS dell'offerta né prima del codice;
+- 3: alla fine delle garanzie decade anche l'accettazione firmata dopo un pagamento rifiutato. «Abbandonato» (PAG-03) vale come: il cliente sceglie un'altra offerta, oppure finiscono le garanzie; nessun timer in più;
+- 4: la conferma immediata del bonifico di prova risponde solo con `DEV_TOOLS=true`;
+- 5: la migliore per compagnia si calcola sempre su tutte le offerte: il broker non può inviare un'offerta che non sia la migliore della sua compagnia;
+- 6: domanda 17 per Dan, con il valore prudente;
+- 7: il compenso è mostrato offerta per offerta quando non è uguale per tutte (anche nella conferma del confronto AI); l'API vuole la conferma esplicita dell'aumento (`feeIncreaseAccepted`);
+- 8: il broker non riceve più gli indirizzi di firma e pagamento del suo cliente;
+- 9: una firma rifiutata o scaduta fa decadere l'accettazione: il cliente sceglie di nuovo e riceve una busta nuova;
+- 10: la prova sbagliata sul link è nel registro (`ACCESS_DENIED`, senza il token); il webhook di firma blocca la richiesta come accettazione e pagamento;
+- 11: tolte le voci doppie del registro; `offer.won.bo` anche al supervisore; la scadenza del cookie viene dall'API. Restano: il testo di `offer.won` (documenti firmati e ricevuta in «Da emettere» arrivano col passo 4 della fase 6), il set dei documenti per canale nel codice (LEG-05 «configurabile», fase 7), i testi italiani dentro i PDF del firmatario finto (documenti di prova, non interfaccia);
+- 12: prove nuove: GAR-04 anche al pagamento; contatti assenti prima del pagamento anche nel dettaglio della richiesta per l'agenzia e nelle notifiche di tutte le agenzie; webhook di firma e di incasso mandati due volte via HTTP e gestiti una volta; termine di emissione alle 16:30 calcolato dall'API; Cinque «1ª su 5»; dati usati e testo nel suggerimento AI; link senza prova, revocato e scaduto all'accettazione e al pagamento; checkout chiuso; bonifico in arrivo.
+
+Trovata anche la causa del test che falliva «una volta sola»: i file di test condividono il database e la prova prendeva la prima notifica di classifica di Agenzia Uno, anche di un'altra richiesta; ora filtra per richiesta. Stessa causa per la prova della busta chiusa, che ora usa premi che nessun altro test usa.
 
 1. Possibile doppio incasso: si può cambiare offerta con un pagamento aperto (bonifico in attesa); il link nuovo del broker può pagare l'accettazione firmata dal link precedente.
 2. Dati sensibili: il token del link finisce nei log delle richieste e negli indirizzi di ritorno dati ai fornitori; la targa è nell'email/SMS `offer.link_to_client` e si vede prima del codice.
@@ -437,10 +452,11 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 | Avviso `payment.confirmed` al cliente del broker solo nella pagina del link: la notifica va all'utente del broker | Il cliente del broker non ha un account; l'email con il link andrebbe ricostruita senza il token in chiaro | Fase 7, con le notifiche |
 | Rimborso di un pagamento incassato per un'accettazione non più valida (pagamento arrivato dopo la fine della garanzia) | Solo registrato; il rimborso con il fornitore è del dopo-acquisto | Fase 6 |
 | Pagina «Risultati» delle agenzie con la classifica | La classifica è calcolata e pubblicata alla firma; la pagina è della fase 6 | Fase 6 |
-| Pulsante «Conferma subito il bonifico» degli strumenti di sviluppo (proposta I) solo nell'API (`POST /fake-providers/payments/:ref/confirm`) | Il bonifico di prova si conferma comunque da solo dopo 5 secondi | Fase 7 |
+| Pulsante «Conferma subito il bonifico» degli strumenti di sviluppo (proposta I) solo nell'API (`POST /fake-providers/payments/:ref/confirm`, con `DEV_TOOLS=true`) | Il bonifico di prova si conferma comunque da solo dopo 5 secondi | Fase 7 |
+| Un incasso arrivato per un'accettazione non più valida (checkout già chiuso presso un fornitore vero) è solo registrato | Con il finto non può succedere; il rimborso automatico è nel passo 11 della fase 6 | Fase 6 |
+| Il link di consenso del broker (fase 2) mette la targa nell'email | Il link dell'offerta non la mette più; quello del consenso è della fase 2 | Con la risposta alla domanda 15 |
 | L'API accetta un secondo «Confronta con AI» sulla stessa richiesta (nuovo suggerimento salvato, fee invariato) | La schermata nasconde il pulsante dopo il primo uso | Da decidere con Dan se bloccarlo |
 | Nessun valore di prova nell'indice reclami | Il confronto lo considera neutro finché manca; i valori si inseriscono dalla pagina | Con i dati veri, da Dan |
-| Un test di integrazione dell'accettazione è fallito una volta dentro `pnpm check` e mai più (decine di giri, anche completi) | Non riprodotto; senza l'errore completo non c'è una causa | Se si ripresenta, con il log completo |
 | `pnpm db:reset` mai provato da Claude | Prisma chiede il consenso esplicito di Dan quando lo lancia un agente AI | Alla prima occasione, con il consenso di Dan |
 
 ## Decisioni (ADR)

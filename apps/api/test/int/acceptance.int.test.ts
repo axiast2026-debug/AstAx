@@ -1,5 +1,6 @@
 import { FakeAiExplainer, type AiExplainerPort } from "@astax/adapters/ai-explainer";
 import type { FakePaymentsProvider } from "@astax/adapters/payments";
+import type { FakeSignatureProvider } from "@astax/adapters/signature";
 import { SYSTEM_CONTEXT, withContext } from "@astax/db";
 import {
   decodePDFRawStream,
@@ -13,7 +14,7 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closedRound } from "./auction-helpers.js";
 import { acceptAllLegal, membershipId, orgId, startHarness, type Harness } from "./fixtures.js";
-import { PAYMENTS } from "../../src/infra/tokens.js";
+import { PAYMENTS, SIGNATURE } from "../../src/infra/tokens.js";
 import { requestHelpers, type Who } from "./request-helpers.js";
 
 // Phase 5: the private customer's acceptance, with the offers of S01.
@@ -57,6 +58,33 @@ const hex = (text: string) => Buffer.from(text, "latin1").toString("hex").toUppe
 /** WinAnsi: «€» is 0x80, «—» is 0x97, the no-break space 0xA0. */
 const EURO = "A080";
 const EM_DASH = "97";
+
+const AI_OK = { feeIncreaseAccepted: true };
+
+/** A provider's webhook over HTTP, as the provider sends it (the signed text). */
+const post = (path: string, webhook: { body: string; headers: Record<string, string> }) =>
+  fetch(`${h.baseUrl}${path}`, {
+    method: "POST",
+    headers: { ...webhook.headers, "content-type": "application/json" },
+    body: webhook.body,
+  });
+/**
+ * The agency's notifications about this request only: the test files share
+ * one database, and other requests notify the same agencies.
+ */
+const notesOf = (agency: string, eventKey: string) =>
+  system(async (tx) => {
+    const members = await tx.membership.findMany({ where: { organizationId: orgId(agency) } });
+    const auctions = await tx.auction.findMany({ where: { quoteRequestId: requestId } });
+    const ids = new Set<string>([requestId, ...auctions.map((a) => a.id)]);
+    const notes = await tx.notification.findMany({
+      where: { eventKey, userId: { in: members.map((m) => m.userId) } },
+    });
+    return notes.filter((n) => {
+      const payload = (n.payload ?? {}) as { auctionId?: string; quoteRequestId?: string };
+      return ids.has(payload.auctionId ?? "") || ids.has(payload.quoteRequestId ?? "");
+    });
+  });
 
 const system = <T>(work: Parameters<typeof withContext<T>>[2]) =>
   withContext(h.db, SYSTEM_CONTEXT, work);
@@ -183,7 +211,7 @@ describe("fase 5: the private customer's acceptance (S01)", () => {
 
   it("PRES-06 PRES-08 FEE-01 the AI comparison: suggestion saved with weights, scores, model and text; the fee becomes 35,00 €", async () => {
     const s = await r.json<{ recommendedOfferId: string; text: string }>(
-      await r.call(customer, `/requests/${requestId}/ai-comparison`, { body: {} }),
+      await r.call(customer, `/requests/${requestId}/ai-comparison`, { body: AI_OK }),
       200,
     );
     expect(s.text).toContain("Compagnia Beta");
@@ -203,6 +231,11 @@ describe("fase 5: the private customer's acceptance (S01)", () => {
       agencyIssuanceSpeed: 0.1,
     });
     expect((saved.scores as unknown[]).length).toBe(3);
+    // The data used for each offer, and the very text shown.
+    expect((saved.inputs as { offerId: string }[]).map((i) => i.offerId).sort()).toEqual(
+      [offers[0], offers[3], offers[4]].sort(),
+    );
+    expect(saved.text).toBe(s.text);
     const p = await presentation();
     expect(p.aiUsed).toBe(true);
     expect(p.offers[1]?.feeCents).toBe(3500);
@@ -212,7 +245,7 @@ describe("fase 5: the private customer's acceptance (S01)", () => {
     badText = true;
     try {
       const s = await r.json<{ text: string }>(
-        await r.call(customer, `/requests/${requestId}/ai-comparison`, { body: {} }),
+        await r.call(customer, `/requests/${requestId}/ai-comparison`, { body: AI_OK }),
         200,
       );
       expect(s.text).not.toContain("99,00");
@@ -302,25 +335,27 @@ describe("fase 5: the private customer's acceptance (S01)", () => {
       body: { code: "000000" },
     });
     expect(wrong.status).toBe(400);
-    await r.json(
-      await h.call(`/fake-providers/signature/${signingRef}/sign`, { body: { code: "123456" } }),
-      200,
-    );
-    const [request, ranking, unoNote] = await system((tx) =>
+    // The provider's webhook sent twice: handled once.
+    const webhook = await h.app.get<FakeSignatureProvider>(SIGNATURE).sign(signingRef, "123456");
+    if (!webhook) throw new Error("not signed");
+    for (let i = 0; i < 2; i += 1)
+      expect((await post("/webhooks/signature", webhook)).status).toBe(204);
+    const [request, rankings, signedLog] = await system((tx) =>
       Promise.all([
         tx.quoteRequest.findUniqueOrThrow({ where: { id: requestId } }),
-        tx.ranking.findFirstOrThrow({ where: { quoteRequestId: requestId } }),
-        tx.membership.findMany({ where: { organizationId: orgId("agenzia-uno") } }).then((m) =>
-          tx.notification.findFirst({
-            where: { eventKey: "ranking.available", userId: { in: m.map((x) => x.userId) } },
-          }),
-        ),
+        tx.ranking.findMany({ where: { quoteRequestId: requestId } }),
+        tx.auditLog.count({ where: { action: "ACCEPTANCE_SIGNED", targetId: requestId } }),
       ]),
     );
     expect(request.status).toBe("ACCEPTED");
-    expect(ranking.publishedAt).not.toBeNull();
+    expect(rankings).toHaveLength(1);
+    expect(rankings[0]?.publishedAt).not.toBeNull();
+    expect(signedLog).toBe(1);
+    const [unoNote] = await notesOf("agenzia-uno", "ranking.available");
+    const [cinqueNote] = await notesOf("agenzia-cinque", "ranking.available");
     expect(unoNote?.body).toContain("3ª su 5");
-    expect(JSON.stringify(unoNote)).not.toContain("€");
+    expect(cinqueNote?.body).toContain("1ª su 5");
+    expect(JSON.stringify([unoNote, cinqueNote])).not.toContain("€");
     const a = await r.json<{ acceptance: { status: string; documents: { signed: boolean }[] } }>(
       await r.call(customer, `/requests/${requestId}/acceptance`),
       200,
@@ -350,6 +385,31 @@ describe("fase 5: the private customer's acceptance (S01)", () => {
     for (const d of kept) expect((await h.storage.get(d.storageKey)).length).toBeGreaterThan(0);
   });
 
+  it("GAR-04 past the last useful moment the payment is refused too", async () => {
+    await system((tx) =>
+      tx.quoteRequest.update({
+        where: { id: requestId },
+        data: { startDate: new Date("2026-11-16") },
+      }),
+    );
+    try {
+      const refused = await r.json<{ errors: { issue: string }[] }>(
+        await r.call(customer, `/requests/${requestId}/acceptance/payment`, {
+          body: { returnPath: `/preventivi/${requestId}` },
+        }),
+        409,
+      );
+      expect(refused.errors.map((e) => e.issue)).toEqual(["TOO_LATE_TO_ACCEPT"]);
+    } finally {
+      await system((tx) =>
+        tx.quoteRequest.update({
+          where: { id: requestId },
+          data: { startDate: new Date("2026-11-20") },
+        }),
+      );
+    }
+  });
+
   it("PAG-03 a refused card brings the request back to «Offerte disponibili»; the customer retries", async () => {
     const first = await r.json<{ redirectUrl: string }>(
       await r.call(customer, `/requests/${requestId}/acceptance/payment`, {
@@ -372,6 +432,25 @@ describe("fase 5: the private customer's acceptance (S01)", () => {
     const won = await system((tx) => tx.offer.findUniqueOrThrow({ where: { id: offers[0] } }));
     expect(won.status).toBe("AWAITING_CUSTOMER");
     expect(JSON.stringify(await toIssue())).not.toContain(EMAIL);
+    // Nor in the agency's request page, nor in any notification to the agencies.
+    const auction = await system((tx) =>
+      tx.auction.findFirstOrThrow({ where: { quoteRequestId: requestId } }),
+    );
+    const detail = await h.call(`/agency/requests/${auction.id}`, {
+      token: await h.tokenFor("agenzia-uno-owner"),
+      context: membershipId("agenzia-uno-owner", "agenzia-uno"),
+    });
+    expect(detail.status).toBe(200);
+    expect(await detail.text()).not.toContain(EMAIL);
+    for (const agency of ["agenzia-uno", "agenzia-due", "agenzia-tre", "agenzia-cinque"]) {
+      const notes = await system(async (tx) => {
+        const members = await tx.membership.findMany({ where: { organizationId: orgId(agency) } });
+        return tx.notification.findMany({
+          where: { userId: { in: members.map((m) => m.userId) } },
+        });
+      });
+      expect(JSON.stringify(notes.map((n) => [n.title, n.body]))).not.toContain(EMAIL);
+    }
   });
 
   it("PAG-02 EMI-01 S01 paid 555,00 € by card: «In emissione», Uno «Vincente», the others «Non scelta», the deadline, the workflow told", async () => {
@@ -382,20 +461,22 @@ describe("fase 5: the private customer's acceptance (S01)", () => {
       200,
     );
     const ref = refOf(second.redirectUrl);
-    const paid = await r.json<{ status: string }>(
-      await h.call(`/fake-providers/payments/${ref}/pay`, {
-        body: { method: "CARD", cardNumber: "4242 4242 4242 4242" },
-      }),
-      200,
-    );
-    expect(paid.status).toBe("CAPTURED");
-    const [request, all, payments, outbox, acceptance] = await system((tx) =>
+    // S01: paid on Monday 16/11 at 12:30 in Rome; the same webhook arrives twice.
+    h.clock.set(new Date("2026-11-16T11:30:00Z"));
+    const webhook = h.app.get<FakePaymentsProvider>(PAYMENTS).pay(ref, {
+      method: "CARD",
+      cardNumber: "4242 4242 4242 4242",
+    });
+    for (let i = 0; i < 2; i += 1)
+      expect((await post("/webhooks/payments", webhook)).status).toBe(204);
+    const [request, all, payments, outbox, acceptance, confirmedLog] = await system((tx) =>
       Promise.all([
         tx.quoteRequest.findUniqueOrThrow({ where: { id: requestId } }),
         tx.offer.findMany({ where: { id: { in: offers } } }),
         tx.payment.findMany({ where: { acceptance: { quoteRequestId: requestId } } }),
-        tx.outboxEvent.count({ where: { type: "PaymentConfirmed" } }),
+        tx.outboxEvent.findMany({ where: { type: "PaymentConfirmed" } }),
         tx.acceptance.findFirstOrThrow({ where: { quoteRequestId: requestId, status: "PAID" } }),
+        tx.auditLog.count({ where: { action: "PAYMENT_CONFIRMED", targetId: requestId } }),
       ]),
     );
     expect(request.status).toBe("IN_ISSUANCE");
@@ -403,49 +484,15 @@ describe("fase 5: the private customer's acceptance (S01)", () => {
     expect(all.filter((o) => o.status === "NOT_CHOSEN")).toHaveLength(4);
     const captured = payments.find((p) => p.status === "CAPTURED");
     expect(captured).toMatchObject({ premiumCents: 52000, feeCents: 3500, method: "CARD" });
-    expect(outbox).toBeGreaterThan(0);
-    expect(acceptance.issuanceDeadlineAt).not.toBeNull();
+    expect(
+      outbox.filter((o) => (o.payload as { aggregateId?: string }).aggregateId === requestId),
+    ).toHaveLength(1);
+    expect(confirmedLog).toBe(1);
+    // EMI-01 S01: four working hours, 16:30 in Rome.
+    expect(acceptance.issuanceDeadlineAt?.toISOString()).toBe("2026-11-16T15:30:00.000Z");
     // VIS-02: now Agenzia Uno has the customer's contacts, in «Da emettere».
     const list = await toIssue();
     expect(list.find((x) => x.email === EMAIL)).toBeTruthy();
-  });
-
-  it("PAG-02 the same signed webhook twice is handled once", async () => {
-    const provider = h.app.get<FakePaymentsProvider>(PAYMENTS);
-    const payment = await system((tx) =>
-      tx.payment.findFirstOrThrow({
-        where: { status: "CAPTURED", acceptance: { quoteRequestId: requestId } },
-      }),
-    );
-    const webhook = provider.pay(payment.providerRef ?? "", {
-      method: "CARD",
-      cardNumber: "4242 4242 4242 4242",
-    });
-    expect(() => provider.parseWebhook(webhook.headers, webhook.body)).not.toThrow();
-    const eventId = (JSON.parse(webhook.body) as { eventId: string }).eventId;
-    const before = await system((tx) =>
-      tx.auditLog.count({ where: { action: "PAYMENT_CONFIRMED" } }),
-    );
-    for (let i = 0; i < 2; i += 1) {
-      const response = await fetch(`${h.baseUrl}/webhooks/payments`, {
-        method: "POST",
-        headers: { ...webhook.headers, "content-type": "application/json" },
-        body: webhook.body,
-      });
-      expect(response.status).toBe(204);
-    }
-    const [events, after, outbox] = await system((tx) =>
-      Promise.all([
-        tx.providerEvent.count({ where: { eventId } }),
-        tx.auditLog.count({ where: { action: "PAYMENT_CONFIRMED" } }),
-        tx.payment.count({
-          where: { status: "CAPTURED", acceptance: { quoteRequestId: requestId } },
-        }),
-      ]),
-    );
-    expect(events).toBe(1);
-    expect(after).toBe(before);
-    expect(outbox).toBe(1);
   });
 
   it("a webhook without a valid signature is refused and changes nothing", async () => {
@@ -469,7 +516,7 @@ describe("fase 5: the private customer's acceptance (S01)", () => {
       context: membershipId("broker-owner", "broker-demo"),
     };
     expect(
-      (await r.call(broker, `/requests/${requestId}/ai-comparison`, { body: {} })).status,
+      (await r.call(broker, `/requests/${requestId}/ai-comparison`, { body: AI_OK })).status,
     ).toBe(403);
   });
 

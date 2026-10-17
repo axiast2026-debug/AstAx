@@ -196,14 +196,14 @@ export function guaranteeActivities(
       }
       const { offers } = await waitingOffers(tx, request.id);
       if (offers.some((o) => isGuaranteed(o.guaranteeUntil, now))) return { expired: false };
-      if (request.status === "ACCEPTED") {
-        // Signed and not paid while every guarantee ended: the acceptance lapses (PAG-03).
-        await tx.acceptance.updateMany({
-          where: { quoteRequestId: request.id, status: { in: ["PENDING_SIGNATURE", "SIGNED"] } },
-          data: { status: "VOIDED", voidedAt: now, voidReason: "GUARANTEE_EXPIRED" },
-        });
-        transitionRequest("ACCEPTED", "OFFERS_AVAILABLE");
-      }
+      // Not paid while every guarantee ended: the acceptance lapses (PAG-03),
+      // also one signed whose payment was refused (the request is back to
+      // «Offerte disponibili»), so that a reconfirmation starts clean.
+      await tx.acceptance.updateMany({
+        where: { quoteRequestId: request.id, status: { in: ["PENDING_SIGNATURE", "SIGNED"] } },
+        data: { status: "VOIDED", voidedAt: now, voidReason: "GUARANTEE_EXPIRED" },
+      });
+      if (request.status === "ACCEPTED") transitionRequest("ACCEPTED", "OFFERS_AVAILABLE");
       await tx.offer.updateMany({
         where: { id: { in: offers.map((o) => o.id) }, status: "AWAITING_CUSTOMER" },
         data: { status: "EXPIRED" },

@@ -25,6 +25,8 @@ export interface PaymentsPort {
     methods: PaymentMethodKind[];
     returnUrl: string;
   }): Promise<{ providerRef: string; redirectUrl: string }>;
+  /** Closes a checkout not paid yet: the customer can no longer pay it (PAG-02). */
+  cancelCheckout(providerRef: string): Promise<void>;
   parseWebhook(headers: Record<string, string | undefined>, body: string): PaymentEvent;
 }
 
@@ -40,6 +42,7 @@ interface FakeCheckout {
   methods: PaymentMethodKind[];
   returnUrl: string;
   createdAt: string;
+  cancelledAt?: string;
 }
 
 /**
@@ -81,16 +84,37 @@ export class FakePaymentsProvider implements PaymentsPort {
     return { providerRef, redirectUrl: this.pageUrl(providerRef) };
   }
 
+  private async stored(providerRef: string): Promise<FakeCheckout> {
+    return JSON.parse(
+      new TextDecoder().decode(await this.storage.get(this.key(providerRef))),
+    ) as FakeCheckout;
+  }
+
   /** What the payment page shows. */
   async checkout(providerRef: string): Promise<{
     amounts: { premiumCents: number; feeCents: number };
     methods: PaymentMethodKind[];
     returnUrl: string;
+    cancelled: boolean;
   }> {
-    const c = JSON.parse(
-      new TextDecoder().decode(await this.storage.get(this.key(providerRef))),
-    ) as FakeCheckout;
-    return { amounts: c.amounts, methods: c.methods, returnUrl: c.returnUrl };
+    const c = await this.stored(providerRef);
+    return {
+      amounts: c.amounts,
+      methods: c.methods,
+      returnUrl: c.returnUrl,
+      cancelled: c.cancelledAt !== undefined,
+    };
+  }
+
+  async cancelCheckout(providerRef: string): Promise<void> {
+    const c = await this.stored(providerRef);
+    await this.storage.put({
+      key: this.key(providerRef),
+      body: new TextEncoder().encode(
+        JSON.stringify({ ...c, cancelledAt: this.clock.now().toISOString() }),
+      ),
+      contentType: "application/json",
+    });
   }
 
   /**

@@ -171,7 +171,6 @@ export class AcceptanceService {
           auctionId: last.id,
           // After the payment the chosen one is WINNING and the others NOT_CHOSEN (PAG-02).
           status: { in: ["AWAITING_CUSTOMER", "EXPIRED", "WINNING", "NOT_CHOSEN"] },
-          ...(onlyIds ? { id: { in: onlyIds } } : {}),
         },
       }),
     );
@@ -238,7 +237,12 @@ export class AcceptanceService {
         organizationId: offer.offer.organizationId,
       };
     });
-    return { rows, auctionId: last.id };
+    // PRES-02 first on every offer, then the subset (the link): never a row
+    // that is not the best of its company.
+    return {
+      rows: onlyIds ? rows.filter((r) => onlyIds.includes(r.id)) : rows,
+      auctionId: last.id,
+    };
   }
 
   /** What a row shows: never the agency (PRES-04). */
@@ -467,7 +471,7 @@ export class AcceptanceService {
     const live = await asSystem(tx, () =>
       tx.acceptance.findFirst({
         where: { quoteRequestId: fresh.id, status: { not: "VOIDED" } },
-        include: { signature: true },
+        include: { signature: true, payments: true },
       }),
     );
     if (live?.status === "PAID") {
@@ -475,8 +479,28 @@ export class AcceptanceService {
         { path: "request", issue: "ALREADY_PAID" },
       ]);
     }
-    if (live && live.offerId === offerId) return live.id;
+    // The same offer from the same accepter goes on; from another link of the
+    // broker it is a new acceptance, signed again by whoever has that link.
+    if (live && live.offerId === offerId && live.customerLinkId === accepter.customerLinkId) {
+      return live.id;
+    }
     if (live) {
+      // PAG-02: never two payments for one request. A transfer on its way
+      // blocks the change; an open checkout is closed at the provider first.
+      if (live.payments.some((p) => p.status === "AUTHORIZED")) {
+        throw new ProblemError("CONFLICT", "A payment is on its way", [
+          { path: "request", issue: "PAYMENT_IN_PROGRESS" },
+        ]);
+      }
+      for (const open of live.payments.filter((p) => p.status === "CREATED")) {
+        if (open.providerRef) await this.payments.cancelCheckout(open.providerRef);
+        await asSystem(tx, () =>
+          tx.payment.update({
+            where: { id: open.id },
+            data: { status: "FAILED", failedAt: now },
+          }),
+        );
+      }
       // Decision 22: another offer, a new acceptance and a new signature.
       await asSystem(tx, () =>
         tx.acceptance.update({
@@ -671,8 +695,12 @@ export class AcceptanceService {
     return { toSign, toRead };
   }
 
-  /** The acceptance as its requester sees it. */
-  async view(tx: DbTransaction, acceptanceId: string) {
+  /**
+   * The acceptance as its requester sees it. The signing and payment pages
+   * only for whoever signs and pays: never the broker, for the customer's
+   * acceptance (decision 26).
+   */
+  async view(tx: DbTransaction, acceptanceId: string, withLinks = true) {
     const a = await asSystem(tx, () =>
       tx.acceptance.findUniqueOrThrow({
         where: { id: acceptanceId },
@@ -694,7 +722,8 @@ export class AcceptanceService {
       totalCents: a.premiumCents + a.feeCents,
       feeRule: a.feeRule,
       aiUsed: a.aiUsed,
-      signingUrl: a.status === "PENDING_SIGNATURE" ? (a.signature?.signingUrl ?? null) : null,
+      signingUrl:
+        withLinks && a.status === "PENDING_SIGNATURE" ? (a.signature?.signingUrl ?? null) : null,
       documents: [...ids, ...signed].flatMap((id) => {
         const d = documents.find((x) => x.id === id);
         return d ? [{ id: d.id, kind: d.kind, signed: signed.includes(d.id) }] : [];
@@ -703,7 +732,7 @@ export class AcceptanceService {
         ? {
             status: payment.status,
             method: payment.method,
-            redirectUrl: payment.status === "CREATED" ? payment.redirectUrl : null,
+            redirectUrl: withLinks && payment.status === "CREATED" ? payment.redirectUrl : null,
           }
         : null,
       signedAt: a.signedAt?.toISOString() ?? null,
@@ -721,7 +750,7 @@ export class AcceptanceService {
       if (!live) return { acceptance: null, issuer: null };
       // Spec 03: after the payment, the issuing agency and its contacts.
       const issuer = live.status === "PAID" ? await this.issuerOf(tx, live.offerId) : null;
-      return { acceptance: await this.view(tx, live.id), issuer };
+      return { acceptance: await this.view(tx, live.id, request.channel === "PRIVATE"), issuer };
     });
   }
 

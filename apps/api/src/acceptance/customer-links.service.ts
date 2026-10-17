@@ -74,9 +74,18 @@ export class CustomerLinksService {
     return Array.isArray(link.offerIds) ? (link.offerIds as string[]) : [];
   }
 
+  /** Make and model only: no plate in notifications or before the code (rule 8). */
   private async vehicle(tx: DbTransaction, request: QuoteRequest) {
     const data = await this.acceptance.quoteDataOf(tx, request);
-    return `${data.vehicle.make} ${data.vehicle.model} ${data.vehicle.plate}`;
+    return `${data.vehicle.make} ${data.vehicle.model}`;
+  }
+
+  /**
+   * Where the providers send the customer back: the link's id, never its
+   * secret token (rule 8); the page finds the token in the customer's cookie.
+   */
+  private returnUrl(linkId: string) {
+    return `${this.config.WEB_URL}/offerta/ritorno/${linkId}`;
   }
 
   // ---------------------------------------------------------------- broker
@@ -228,7 +237,12 @@ export class CustomerLinksService {
   }
 
   /** The link usable now with its proof, or the reason why not. */
-  private async verified(tx: DbTransaction, token: string, proof: string | undefined) {
+  private async verified(
+    tx: DbTransaction,
+    token: string,
+    proof: string | undefined,
+    client: ClientInfo,
+  ) {
     const link = await this.linkOf(tx, token);
     const state = this.stateOf(link, this.clock.now());
     // A paid acceptance stays visible after the link ends; nothing else does.
@@ -240,7 +254,15 @@ export class CustomerLinksService {
         { path: "link", issue: "LINK_INVALID" },
       ]);
     }
-    if (!this.proofMatches(link, proof)) throw new ProblemError("FORBIDDEN");
+    if (!this.proofMatches(link, proof)) {
+      // Rule 4: a denied access, with the link and never the token.
+      await this.audit.record(this.linkActor(client), {
+        action: "ACCESS_DENIED",
+        targetType: "CustomerLink",
+        targetId: link.id,
+      });
+      throw new ProblemError("FORBIDDEN");
+    }
     return { link, request: link.quoteRequest, active: state === "ACTIVE" };
   }
 
@@ -257,6 +279,7 @@ export class CustomerLinksService {
         where: { id: link.ownerOrganizationId },
       });
       const base = {
+        linkId: link.id,
         state: this.stateOf(link, now),
         broker: organization.legalName,
         vehicle: await this.vehicle(tx, link.quoteRequest),
@@ -330,7 +353,7 @@ export class CustomerLinksService {
         code,
         now,
       );
-      if (!challenge) return { linkId: link.id, proof: null };
+      if (!challenge) return { linkId: link.id, proof: null, expiresAt: null };
       const updated = await tx.customerLink.update({
         where: { id: link.id },
         data: { otpVerifiedAt: now, updatedAt: now },
@@ -341,7 +364,11 @@ export class CustomerLinksService {
         targetId: link.quoteRequestId,
         after: { customerLinkId: link.id, otpChallengeId: challenge.id },
       });
-      return { linkId: link.id, proof: this.proofOf(updated) };
+      return {
+        linkId: link.id,
+        proof: this.proofOf(updated),
+        expiresAt: link.expiresAt.toISOString(),
+      };
     });
     if (!outcome.proof) {
       await this.audit.record(actor, {
@@ -353,19 +380,13 @@ export class CustomerLinksService {
         { path: "code", issue: "OTP_INVALID" },
       ]);
     }
-    return { proof: outcome.proof };
+    return { proof: outcome.proof, expiresAt: outcome.expiresAt, linkId: outcome.linkId };
   }
 
   /** PRES-05 on the link: only the offers the broker sent; the customer signs. */
-  async accept(
-    token: string,
-    proof: string | undefined,
-    offerId: string,
-    returnUrl: string,
-    client: ClientInfo,
-  ) {
+  async accept(token: string, proof: string | undefined, offerId: string, client: ClientInfo) {
     return withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
-      const { link, request, active } = await this.verified(tx, token, proof);
+      const { link, request, active } = await this.verified(tx, token, proof, client);
       if (!active) throw new ProblemError("CONFLICT");
       const customer = await tx.customer.findUniqueOrThrow({
         where: { id: request.customerId ?? "" },
@@ -380,18 +401,28 @@ export class CustomerLinksService {
           firstName: customer.person.givenName ?? customer.person.companyName ?? "",
           lastName: customer.person.surname ?? "",
         },
-        returnUrl,
+        this.returnUrl(link.id),
         this.linkActor(client),
       );
       return this.acceptance.view(tx, id);
     });
   }
 
-  async pay(token: string, proof: string | undefined, returnUrl: string, client: ClientInfo) {
+  async pay(token: string, proof: string | undefined, client: ClientInfo) {
     return withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
-      const { request, active } = await this.verified(tx, token, proof);
+      const { link, request, active } = await this.verified(tx, token, proof, client);
       if (!active) throw new ProblemError("CONFLICT");
-      const out = await this.acceptance.pay(tx, request, returnUrl);
+      // PAG-02: only the acceptance signed on this link; after a new link the
+      // customer chooses and signs again there.
+      const live = await tx.acceptance.findFirst({
+        where: { quoteRequestId: request.id, status: { not: "VOIDED" } },
+      });
+      if (!live || live.customerLinkId !== link.id) {
+        throw new ProblemError("CONFLICT", "Sign before paying", [
+          { path: "acceptance", issue: "NOT_SIGNED" },
+        ]);
+      }
+      const out = await this.acceptance.pay(tx, request, this.returnUrl(link.id));
       await this.audit.inTransaction(tx, this.linkActor(client), {
         action: "PAYMENT_STARTED",
         targetType: "QuoteRequest",
@@ -409,7 +440,7 @@ export class CustomerLinksService {
     client: ClientInfo,
   ) {
     const document = await withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
-      const { link, request } = await this.verified(tx, token, proof);
+      const { link, request } = await this.verified(tx, token, proof, client);
       let documentId: string | null;
       if ("offerId" in target) {
         const { rows } = await this.acceptance.rows(tx, request, this.offerIdsOf(link));

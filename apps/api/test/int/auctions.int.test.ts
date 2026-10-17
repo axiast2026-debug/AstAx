@@ -42,7 +42,7 @@ const COVERAGE = {
 };
 
 const offerFor = (agency: string, company: string, more: Record<string, unknown> = {}) => ({
-  annualGrossPremiumCents: 50500,
+  annualGrossPremiumCents: 50537,
   companyId: companies[company],
   productId: products[`${agency}:${company}`],
   coverage: COVERAGE,
@@ -283,8 +283,8 @@ describe("fase 3: claims and offers (OFF-01..07, BC-02, BC-04, BC-05)", () => {
     offerId = created.id;
     expect(created.version).toBe(1);
     for (const [key, agency, company, cents] of [
-      ["agenzia-cinque-owner", "agenzia-cinque", "Beta", 51700],
-      ["agenzia-sei-owner", "agenzia-sei", "Alfa", 52900],
+      ["agenzia-cinque-owner", "agenzia-cinque", "Beta", 51713],
+      ["agenzia-sei-owner", "agenzia-sei", "Alfa", 52931],
     ] as const) {
       await r.json(
         await sendOffer(
@@ -314,10 +314,12 @@ describe("fase 3: claims and offers (OFF-01..07, BC-02, BC-04, BC-05)", () => {
     });
     const everything = Object.values(dump).join(String.fromCharCode(10));
     // A premium as a value of its own: not the same digits inside a hash or an id.
-    for (const cents of ["50500", "51700", "52900"]) {
+    // Premiums nobody else uses: the test files share one database, and after a
+    // closing the acceptance tables keep premiums like S01's 505,00 € by right.
+    for (const cents of ["50537", "51713", "52931"]) {
       expect(everything, cents).not.toMatch(new RegExp(`(?<![0-9a-fA-F])${cents}(?![0-9a-fA-F])`));
     }
-    for (const plain of ["505,00", "Sconto fedeltà", "Rata mensile possibile"]) {
+    for (const plain of ["505,37", "Sconto fedeltà", "Rata mensile possibile"]) {
       expect(everything, plain).not.toContain(plain);
     }
     for (const table of ["Offer", "OfferVersion"]) {
@@ -341,7 +343,7 @@ describe("fase 3: claims and offers (OFF-01..07, BC-02, BC-04, BC-05)", () => {
       offer: { annualGrossPremiumCents: number; notes: string };
       hasPdf: boolean;
     }>(await r.call(uno, `/offers/${offerId}`), 200);
-    expect(own.offer.annualGrossPremiumCents).toBe(50500);
+    expect(own.offer.annualGrossPremiumCents).toBe(50537);
     expect(own.offer.notes).toBe("Sconto fedeltà");
     expect(own.hasPdf).toBe(true);
     const pdf = await r.call(uno, `/offers/${offerId}/pdf`);

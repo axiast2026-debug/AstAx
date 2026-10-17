@@ -39,6 +39,7 @@ const returnPath = z
   .max(200);
 const acceptSchema = z.strictObject({ offerId: uuid, returnPath });
 const paySchema = z.strictObject({ returnPath });
+const aiConfirmSchema = z.strictObject({ feeIncreaseAccepted: z.literal(true) });
 const sendLinkSchema = z.strictObject({ offerIds: z.array(uuid).min(1).max(20) });
 const PROOF_HEADER = "x-astax-link-proof";
 
@@ -78,7 +79,9 @@ export class AcceptanceController {
   @Post("ai-comparison")
   @HttpCode(200)
   @RequirePermission("aiComparison.use")
-  aiComparison(@CurrentAuth() auth: AuthContext, @Param("id") id: string) {
+  aiComparison(@CurrentAuth() auth: AuthContext, @Param("id") id: string, @Body() body: unknown) {
+    // PRES-06: the customer has seen the fee going up and confirms it.
+    parseInput(aiConfirmSchema, body);
     return this.acceptance.aiComparison(auth, parseInput(uuid, id));
   }
 
@@ -162,14 +165,7 @@ export class AcceptanceController {
 @ApiTags("customer-links")
 @Controller("customer-links/:token")
 export class CustomerLinksController {
-  constructor(
-    @Inject(CustomerLinksService) private readonly links: CustomerLinksService,
-    @Inject(CONFIG) private readonly config: ApiConfig,
-  ) {}
-
-  private returnUrl(token: string) {
-    return `${this.config.WEB_URL}/offerta/${token}`;
-  }
+  constructor(@Inject(CustomerLinksService) private readonly links: CustomerLinksService) {}
 
   @Get()
   @Public()
@@ -196,20 +192,14 @@ export class CustomerLinksController {
   @Public()
   accept(@Param("token") token: string, @Body() body: unknown, @Req() request: Request) {
     const input = parseInput(z.strictObject({ offerId: uuid }), body);
-    return this.links.accept(
-      token,
-      proofOf(request),
-      input.offerId,
-      this.returnUrl(token),
-      clientOf(request),
-    );
+    return this.links.accept(token, proofOf(request), input.offerId, clientOf(request));
   }
 
   @Post("acceptance/payment")
   @HttpCode(200)
   @Public()
   pay(@Param("token") token: string, @Req() request: Request) {
-    return this.links.pay(token, proofOf(request), this.returnUrl(token), clientOf(request));
+    return this.links.pay(token, proofOf(request), clientOf(request));
   }
 
   @Get("acceptance/documents/:documentId")
@@ -362,6 +352,15 @@ export class FakeProvidersController {
     const provider = this.fakePayments();
     const providerRef = this.ref(ref);
     const input = parseInput(payFakeSchema, body);
+    const checkout = await provider.checkout(providerRef).catch(() => {
+      throw new ProblemError("NOT_FOUND");
+    });
+    // A checkout closed by AstAx (the customer chose another offer) cannot be paid.
+    if (checkout.cancelled) {
+      throw new ProblemError("CONFLICT", "The payment is no longer open", [
+        { path: "payment", issue: "PAYMENT_CLOSED" },
+      ]);
+    }
     const webhook = provider.pay(providerRef, input);
     await this.events.paymentWebhook(webhook.headers, webhook.body);
     if (input.method === "INSTANT_TRANSFER") {
@@ -376,7 +375,7 @@ export class FakeProvidersController {
       }, 5_000).unref();
     }
     const status = JSON.parse(webhook.body) as { status: string };
-    return { returnUrl: (await provider.checkout(providerRef)).returnUrl, status: status.status };
+    return { returnUrl: checkout.returnUrl, status: status.status };
   }
 
   /** Development tools (proposal I): the instant transfer confirmed at once. */
@@ -384,6 +383,8 @@ export class FakeProvidersController {
   @HttpCode(200)
   @Public()
   async confirm(@Param("ref") ref: string) {
+    // Rule 13: a development tool, only with DEV_TOOLS=true.
+    if (!this.config.DEV_TOOLS) throw new ProblemError("NOT_FOUND");
     const webhook = this.fakePayments().confirmTransfer(this.ref(ref));
     await this.events.paymentWebhook(webhook.headers, webhook.body);
     return { confirmed: true };

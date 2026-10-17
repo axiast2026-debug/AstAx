@@ -44,14 +44,12 @@ export async function sendOfferCode(formData: FormData): Promise<void> {
 export async function confirmOfferCode(formData: FormData): Promise<void> {
   const token = tokenOf(formData);
   const code = String(formData.get("code") ?? "").replace(/\s/g, "");
-  const { status, body } = await publicApi<{ proof: string }>(`/customer-links/${token}/confirm`, {
-    method: "POST",
-    body: JSON.stringify({ code }),
-  });
+  const { status, body } = await publicApi<{ proof: string; expiresAt: string; linkId: string }>(
+    `/customer-links/${token}/confirm`,
+    { method: "POST", body: JSON.stringify({ code }) },
+  );
   if (status !== 200) redirect(`/offerta/${token}?codice=inviato&errore=OTP_INVALID`);
-  const expiresAt = new Date(String(formData.get("expiresAt") ?? ""));
-  // Without a valid end, a cookie that lasts as long as the browser session.
-  await saveLinkProof(token, body.proof, Number.isNaN(expiresAt.getTime()) ? undefined : expiresAt);
+  await saveLinkProof(token, body.linkId, body.proof, new Date(body.expiresAt));
   redirect(`/offerta/${token}`);
 }
 

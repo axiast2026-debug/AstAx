@@ -32,7 +32,7 @@ export async function confirmAiComparison(formData: FormData): Promise<void> {
   const requestId = idOf(formData, "requestId");
   const { status, body } = await api(`/requests/${requestId}/ai-comparison`, {
     method: "POST",
-    body: "{}",
+    body: JSON.stringify({ feeIncreaseAccepted: true }),
   });
   if (status !== 200)
     redirect(`${quotePage(requestId)}?errore=${encodeURIComponent(codesOf(body))}`);

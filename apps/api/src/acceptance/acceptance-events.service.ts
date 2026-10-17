@@ -161,12 +161,22 @@ export class AcceptanceEventsService {
         include: { acceptance: true },
       });
       if (!envelope || envelope.status !== "PENDING") return;
+      // The same lock as the acceptance and the payment: one change at a time.
+      await tx.$queryRaw`SELECT 1 FROM "QuoteRequest" WHERE "id" = ${envelope.acceptance.quoteRequestId}::uuid FOR UPDATE`;
       const now = this.clock.now();
       if (event.status !== "SIGNED") {
         await tx.signatureEnvelope.update({
           where: { id: envelope.id },
           data: { status: event.status },
         });
+        // Refused or expired: the acceptance lapses, the customer chooses again
+        // and gets a new envelope (decision 22).
+        if (envelope.acceptance.status === "PENDING_SIGNATURE") {
+          await tx.acceptance.update({
+            where: { id: envelope.acceptance.id },
+            data: { status: "VOIDED", voidedAt: now, voidReason: `SIGNATURE_${event.status}` },
+          });
+        }
         return;
       }
       const a = envelope.acceptance;
@@ -449,7 +459,11 @@ export class AcceptanceEventsService {
         { quoteRequestId: request.id },
       );
       const staff = await tx.membership.findMany({
-        where: { organization: { type: "ASTAX" }, role: "BO_VERIFIER", status: "ACTIVE" },
+        where: {
+          organization: { type: "ASTAX" },
+          role: { in: ["BO_VERIFIER", "BO_SUPERVISOR"] },
+          status: "ACTIVE",
+        },
         include: { user: true },
       });
       await this.notifications.inApp(

@@ -67,7 +67,9 @@ export async function OffersPanel({ requestId }: { requestId: string }) {
   // PRES-03: the cheapest still guaranteed, even when GAR-04 no longer lets it be accepted.
   const cheapestId = p.offers.find((o) => o.block !== "EXPIRED")?.id;
   const recommendedId = p.suggestion?.recommendedOfferId;
-  const fee = p.offers[0]?.feeCents ?? 0;
+  // FEE-02: below 200,00 € the fee is lower, so it may differ from row to row.
+  const fees = new Set(p.offers.filter((o) => !o.block).map((o) => o.feeCents));
+  const oneFee = fees.size <= 1 ? (p.offers.find((o) => !o.block)?.feeCents ?? 0) : null;
   const anyOpen = p.offers.some((o) => !o.block);
   return (
     <Card id="offerte">
@@ -126,6 +128,9 @@ export async function OffersPanel({ requestId }: { requestId: string }) {
                   : t("noSaving", { amount: formatEuroCents(-o.savingCents) })}
               </div>
             ) : null}
+            {oneFee === null && !o.block ? (
+              <div>{t("rowFee", { fee: formatEuroCents(o.feeCents) })}</div>
+            ) : null}
             <CoverageList coverage={o.coverage} />
             {o.notes ? (
               <p className="mt-2">
@@ -166,7 +171,9 @@ export async function OffersPanel({ requestId }: { requestId: string }) {
         ))}
       </ul>
 
-      <p className="mt-4 text-sm">{t("fee", { fee: formatEuroCents(fee) })}</p>
+      <p className="mt-4 text-sm">
+        {oneFee !== null ? t("fee", { fee: formatEuroCents(oneFee) }) : t("feeVaries")}
+      </p>
 
       {p.channel === "PRIVATE" && !p.aiUsed && anyOpen && !paid ? (
         <div className="mt-4 border-t border-warm-200 pt-4">

@@ -29,19 +29,41 @@ export default async function AiComparisonPage({
   const { status, body } = await api<Presentation>(`/requests/${id}/presentation`);
   if (status !== 200) notFound();
   if (body.aiUsed) redirect(`/preventivi/${id}#offerte`);
-  const row = body.offers.find((o) => !o.block);
+  const open = body.offers.filter((o) => !o.block && o.feeWithAiCents !== null);
+  const row = open[0];
   if (!row || row.feeWithAiCents === null) redirect(`/preventivi/${id}`);
+  // FEE-01, FEE-02: one sentence when every offer has the same fee, else offer by offer.
+  const same = open.every(
+    (o) => o.feeCents === row.feeCents && o.feeWithAiCents === row.feeWithAiCents,
+  );
   return (
     <AppShell viewer={viewer}>
       <ErrorSummary codes={query.errore} />
       <Card>
         <CardTitle>{t("title")}</CardTitle>
-        <p className="mt-2 text-sm">
-          {t("text", {
-            from: formatEuroCents(row.feeCents),
-            to: formatEuroCents(row.feeWithAiCents),
-          })}
-        </p>
+        {same ? (
+          <p className="mt-2 text-sm">
+            {t("text", {
+              from: formatEuroCents(row.feeCents),
+              to: formatEuroCents(row.feeWithAiCents),
+            })}
+          </p>
+        ) : (
+          <>
+            <p className="mt-2 text-sm">{t("textByOffer")}</p>
+            <ul className="mt-2 list-disc pl-5 text-sm">
+              {open.map((o) => (
+                <li key={o.id}>
+                  {t("offerFee", {
+                    offer: `${o.company} · ${o.product}`,
+                    from: formatEuroCents(o.feeCents),
+                    to: formatEuroCents(o.feeWithAiCents ?? o.feeCents),
+                  })}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
         <form action={confirmAiComparison} className="mt-4 flex flex-wrap items-center gap-4">
           <input type="hidden" name="requestId" value={id} />
           <Button type="submit">{t("confirm")}</Button>

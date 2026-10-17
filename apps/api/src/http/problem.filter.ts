@@ -1,3 +1,4 @@
+import { loggedPath } from "./request-logger.js";
 import { PROBLEM_CONTENT_TYPE, type ErrorCode } from "@astax/shared/errors";
 import { errorForLog, type Logger } from "@astax/shared/logging";
 import {
@@ -42,7 +43,7 @@ export class ProblemFilter implements ExceptionFilter {
       problem = toProblem(HTTP_CODES[exception.getStatus()] ?? "INTERNAL", instance);
     } else {
       this.logger.error(
-        { err: errorForLog(exception), path: instance, method: request.method },
+        { err: errorForLog(exception), path: loggedPath(instance), method: request.method },
         "unhandled error",
       );
       problem = toProblem("INTERNAL", instance);

@@ -69,7 +69,6 @@ export default async function CustomerOfferPage({
                 {t("codeSent")}
               </p>
               <input type="hidden" name="token" value={token} />
-              <input type="hidden" name="expiresAt" value={link.expiresAt} />
               <Field
                 label={t("code")}
                 name="code"
