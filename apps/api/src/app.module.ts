@@ -59,6 +59,8 @@ import { IssuanceService } from "./issuance/issuance.service.js";
 import { InvoicesService } from "./invoicing/invoices.service.js";
 import { InvoicingService } from "./invoicing/invoicing.service.js";
 import { RemittancesController } from "./remittances/remittances.controller.js";
+import { ResultsController } from "./results/results.controller.js";
+import { ResultsService } from "./results/results.service.js";
 import { RemittancesService } from "./remittances/remittances.service.js";
 import { SettingsController } from "./settings/settings.controller.js";
 import { SettingsService } from "./settings/settings.service.js";
@@ -83,6 +85,7 @@ export class AppModule {
         NextOfferController,
         PenaltiesController,
         RemittancesController,
+        ResultsController,
         AuditController,
         RequestsController,
         CustomersController,
@@ -128,6 +131,7 @@ export class AppModule {
         InvoicingService,
         InvoicesService,
         RemittancesService,
+        ResultsService,
         QuoteChecksService,
         RealtimeHub,
         RealtimeGateway,

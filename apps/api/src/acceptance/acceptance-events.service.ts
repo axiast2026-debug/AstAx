@@ -11,6 +11,7 @@ import type { ObjectStoragePort } from "@astax/adapters/storage";
 import {
   addRequestEvent,
   asSystem,
+  publishLastRanking,
   recordDomainEvent,
   SYSTEM_CONTEXT,
   withContext,
@@ -50,7 +51,7 @@ const SYSTEM_ACTOR = {
   userAgent: null,
 };
 
-interface Email {
+export interface Email {
   to: string;
   eventKey: string;
   variables: Record<string, string>;
@@ -93,7 +94,7 @@ export class AcceptanceEventsService {
     return created.count > 0;
   }
 
-  private async sendAll(emails: Email[]) {
+  async sendAll(emails: Email[]) {
     for (const e of emails) {
       await this.notifications
         .sendEmail(e.to, e.eventKey, e.variables, e.ids)
@@ -260,56 +261,39 @@ export class AcceptanceEventsService {
   }
 
   /**
-   * CLA-02, decision 32: at the signature, the ranking of the last round goes
-   * to the participating agencies, once. Each learns its position; the
-   * premiums are in the app (rule 8, question 15).
+   * CLA-02, decision 32: at the signature, or at the cancellation of a
+   * request without acceptance, the ranking of the last round with valid
+   * offers goes to the participating agencies, once. Each learns its
+   * position; the premiums are in the app (rule 8, question 15).
    */
-  private async publishRanking(
-    tx: DbTransaction,
-    emails: Email[],
-    request: QuoteRequest,
-    now: Date,
-  ) {
-    const last = await tx.auction.findFirst({
-      where: { quoteRequestId: request.id, status: "CLOSED" },
-      orderBy: { round: "desc" },
-    });
-    if (!last) return;
-    const ranking = await tx.ranking.findUnique({ where: { auctionId: last.id } });
-    if (!ranking || ranking.publishedAt) return;
-    await tx.ranking.update({ where: { id: ranking.id }, data: { publishedAt: now } });
+  async publishRanking(tx: DbTransaction, emails: Email[], request: QuoteRequest, now: Date) {
+    const published = await asSystem(tx, () => publishLastRanking(tx, request.id, now));
+    if (!published) return;
     await this.audit.inTransaction(tx, SYSTEM_ACTOR, {
       action: "RANKING_PUBLISHED",
       targetType: "Auction",
-      targetId: last.id,
-      after: { validCount: ranking.validCount },
+      targetId: published.auctionId,
+      after: { validCount: published.validCount },
     });
-    const entries = ranking.entries as {
-      offerId: string;
-      organizationId: string | null;
-      rank: number;
-    }[];
     const link = `${this.config.WEB_URL}/risultati`;
-    for (const e of entries) {
+    for (const e of published.entries) {
       if (!e.organizationId) continue;
-      const offer = await tx.offer.findUnique({ where: { id: e.offerId } });
       await this.tell(
         tx,
         emails,
-        await this.agencyUsers(tx, e.organizationId, offer?.userId ?? null),
+        await this.agencyUsers(tx, e.organizationId, published.authors[e.offerId] ?? null),
         "ranking.available",
         {
           codice: request.code,
           posizione: String(e.rank),
-          totale_offerte: String(ranking.validCount),
+          totale_offerte: String(published.validCount),
           link,
         },
         link,
-        { auctionId: last.id },
+        { auctionId: published.auctionId },
       );
     }
-    const excluded = await tx.offer.findMany({ where: { auctionId: last.id, status: "EXCLUDED" } });
-    for (const o of excluded) {
+    for (const o of published.excluded) {
       await this.tell(
         tx,
         emails,
@@ -317,7 +301,7 @@ export class AcceptanceEventsService {
         "ranking.available.excluded",
         { codice: request.code, link: `${this.config.WEB_URL}/le-mie-offerte` },
         `${this.config.WEB_URL}/le-mie-offerte`,
-        { auctionId: last.id },
+        { auctionId: published.auctionId },
       );
     }
   }

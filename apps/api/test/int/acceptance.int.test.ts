@@ -357,6 +357,23 @@ describe("fase 5: the private customer's acceptance (S01)", () => {
     expect(unoNote?.body).toContain("3ª su 5");
     expect(cinqueNote?.body).toContain("1ª su 5");
     expect(JSON.stringify([unoNote, cinqueNote])).not.toContain("€");
+    // CLA-03 «Risultati»: the first two premiums, the position, the gap; no agency nor company.
+    const results = await r.json<{
+      published: { code: string; view: Record<string, unknown> }[];
+    }>(
+      await r.call(
+        {
+          token: await h.tokenFor("agenzia-uno-owner"),
+          context: membershipId("agenzia-uno-owner", "agenzia-uno"),
+        },
+        "/agency/results",
+      ),
+      200,
+    );
+    const mine = results.published.find((p) => p.code === request.code);
+    expect(mine?.view).toMatchObject({ kind: "RANKED", position: 3, total: 5 });
+    expect(Object.keys(mine?.view ?? {})).not.toContain("company");
+    expect(JSON.stringify(mine)).not.toMatch(/agenzia|compagnia/i);
     const a = await r.json<{ acceptance: { status: string; documents: { signed: boolean }[] } }>(
       await r.call(customer, `/requests/${requestId}/acceptance`),
       200,

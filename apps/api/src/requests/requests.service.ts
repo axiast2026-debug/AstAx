@@ -37,6 +37,7 @@ import {
 import { calendarDateToDbDate, romeCalendarDate } from "@astax/shared/format";
 import { errorForLog, type Logger } from "@astax/shared/logging";
 import { Inject, Injectable } from "@nestjs/common";
+import { AcceptanceEventsService, type Email } from "../acceptance/acceptance-events.service.js";
 import { actorOf, AuditService } from "../audit/audit.service.js";
 import type { AuthContext } from "../auth/auth-context.js";
 import { ProblemError } from "../http/problem.js";
@@ -106,6 +107,7 @@ export class RequestsService {
     @Inject(NotificationService) private readonly notifications: NotificationService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(LOGGER) private readonly logger: Logger,
+    @Inject(AcceptanceEventsService) private readonly acceptanceEvents: AcceptanceEventsService,
   ) {}
 
   // -------------------------------------------------------------- reading
@@ -943,7 +945,8 @@ export class RequestsService {
     const now = this.clock.now();
     // The requester, or a back office supervisor (request.cancel).
     const backOffice = auth.membership?.organizationType === "ASTAX";
-    return withContext(this.db, auth.db, async (tx) => {
+    const emails: Email[] = [];
+    const out = await withContext(this.db, auth.db, async (tx) => {
       const request = backOffice
         ? await tx.quoteRequest.findUnique({ where: { id } })
         : await this.findOwn(tx, auth, id);
@@ -979,8 +982,12 @@ export class RequestsService {
         targetId: id,
         before: { status: request.status },
       });
+      // CLA-02: cancelled without acceptance, the ranking of the last round with valid offers.
+      await this.acceptanceEvents.publishRanking(tx, emails, request, now);
       return { id, status: "CANCELLED" as const };
     });
+    await this.acceptanceEvents.sendAll(emails);
+    return out;
   }
 }
 

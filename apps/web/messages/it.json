@@ -1318,5 +1318,31 @@
       "DELIVERED": "Consegnata",
       "REJECTED": "Scartata dallo SDI"
     }
+  },
+  "results": {
+    "title": "Risultati",
+    "scopeAgency": "Le offerte di tutta l’agenzia.",
+    "scopeOwn": "Solo le tue offerte.",
+    "rankingsTitle": "Classifiche pubblicate",
+    "noRankings": "Nessuna classifica ancora: si pubblica quando il cliente accetta un’offerta o annulla la richiesta.",
+    "publishedOn": "pubblicata il {date}",
+    "position": "{position}ª su {total}",
+    "excluded": "Esclusa",
+    "excludedReason": "Offerta esclusa: {reason}",
+    "first": "Prima {amount}",
+    "second": "seconda {amount}",
+    "own": "la tua {amount}",
+    "gap": "scarto {gap} dalla prima",
+    "statsTitle": "Statistiche",
+    "totals": "{invited, plural, one {# invito} other {# inviti}}, {offers, plural, one {# offerta} other {# offerte}} sulle aste chiuse, {wins, plural, one {# vittoria} other {# vittorie}}.",
+    "noData": "Nessun dato.",
+    "invited": "Inviti",
+    "offers": "Offerte",
+    "wins": "Vittorie",
+    "province": "Provincia",
+    "cuClass": "Classe CU",
+    "classLabel": "Classe {cu}",
+    "vehicleType": "Tipo di veicolo",
+    "company": "Compagnia"
   }
 }

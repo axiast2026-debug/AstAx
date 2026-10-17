@@ -1,5 +1,6 @@
 import {
   addRequestEvent,
+  publishLastRanking,
   reconfirmationPending,
   settingsAt,
   SYSTEM_CONTEXT,
@@ -20,6 +21,7 @@ import type { PendingEmail } from "../notifier.js";
 import {
   audit,
   quoteDataOf,
+  rankingRecipients,
   requesterLink,
   requesterOf,
   vehicleForRequester,
@@ -321,6 +323,50 @@ export function guaranteeActivities(
         new URL(requesterLink(urls, request)).pathname,
         { quoteRequestId: request.id },
       );
+      // CLA-02: cancelled without acceptance, the ranking of the last round with valid offers.
+      const published = await publishLastRanking(tx, request.id, now);
+      if (published) {
+        await audit(tx, now, {
+          action: "RANKING_PUBLISHED",
+          targetType: "Auction",
+          targetId: published.auctionId,
+          after: { validCount: published.validCount },
+        });
+        const link = `${urls.web}/risultati`;
+        for (const e of published.entries) {
+          if (!e.organizationId) continue;
+          await notifier.notify(
+            tx,
+            pending,
+            await rankingRecipients(
+              tx,
+              cipher,
+              e.organizationId,
+              published.authors[e.offerId] ?? null,
+            ),
+            "ranking.available",
+            () => ({
+              codice: request.code,
+              posizione: String(e.rank),
+              totale_offerte: String(published.validCount),
+              link,
+            }),
+            "/risultati",
+            { auctionId: published.auctionId },
+          );
+        }
+        for (const o of published.excluded) {
+          await notifier.notify(
+            tx,
+            pending,
+            await rankingRecipients(tx, cipher, o.organizationId, o.userId),
+            "ranking.available.excluded",
+            () => ({ codice: request.code, link: `${urls.web}/le-mie-offerte` }),
+            "/le-mie-offerte",
+            { auctionId: published.auctionId },
+          );
+        }
+      }
       return { cancelled: true };
     });
     await notifier.flush(pending);

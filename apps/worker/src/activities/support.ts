@@ -198,3 +198,31 @@ export function vehicleForRequester(quoteData: QuoteData): string {
 export function vehicleForAgency(quoteData: QuoteData): string {
   return `${quoteData.vehicle.make} ${quoteData.vehicle.model}`;
 }
+
+/**
+ * CLA-02: who learns the published ranking of an agency's offer: its owner
+ * and supervisors, and the operator who made the offer (an operator sees only
+ * its own results).
+ */
+export async function rankingRecipients(
+  tx: DbTransaction,
+  cipher: FieldCipher,
+  organizationId: string,
+  authorUserId: string | null,
+): Promise<Recipient[]> {
+  const memberships = await tx.membership.findMany({
+    where: {
+      organizationId,
+      status: "ACTIVE",
+      OR: [
+        { role: { in: ["OWNER", "SUPERVISOR"] } },
+        ...(authorUserId ? [{ userId: authorUserId }] : []),
+      ],
+    },
+  });
+  return recipientsOf(
+    tx,
+    cipher,
+    memberships.map((m) => m.userId),
+  );
+}

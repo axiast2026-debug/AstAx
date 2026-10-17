@@ -334,6 +334,7 @@ const ENDPOINTS: Endpoint[] = [
     body: {},
   },
   { action: "issuance.manage", method: "GET", path: () => "/agency/policies" },
+  { action: "ranking.view", method: "GET", path: () => "/agency/results" },
   { action: "request.viewOwn", method: "GET", path: () => "/policies" },
   { action: "issuance.decideMissed", method: "GET", path: () => "/back-office/issuance-problems" },
   {
