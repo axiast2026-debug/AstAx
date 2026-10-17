@@ -424,5 +424,45 @@
       "REJECTED": "Respinto",
       "FAILED": "Non riuscito"
     }
+  },
+  "penalties": {
+    "title": "Penali",
+    "contestedTitle": "Penali contestate",
+    "empty": "Nessuna penale da gestire.",
+    "contestText": "Contestazione: {text}",
+    "apply": "Applica",
+    "cancel": "Ritira",
+    "reason": "Motivo",
+    "uphold": "Confermata",
+    "annul": "Annullata",
+    "decision": "Motivazione",
+    "decide": "Decidi",
+    "type": {
+      "LATE_ISSUANCE": "Ritardo di emissione",
+      "MISSED_ISSUANCE": "Mancata emissione",
+      "CIRCUMVENTION": "Aggiramento"
+    },
+    "status": {
+      "PROPOSED": "Proposta",
+      "APPLIED": "Applicata",
+      "CONTESTED": "Contestata",
+      "UPHELD": "Confermata",
+      "CANCELLED": "Annullata"
+    }
+  },
+  "organizationsPage": {
+    "title": "Organizzazioni",
+    "error": "Operazione non riuscita ({code}).",
+    "done": "Fatto.",
+    "suspensions": "Sospensioni dagli inviti",
+    "noSuspensions": "Nessuna sospensione.",
+    "revoked": "Revocata",
+    "confirmed": "Confermata",
+    "toDecide": "Da decidere",
+    "since": "Dal {at}",
+    "confirm": "Conferma",
+    "revoke": "Revoca",
+    "reason": "Motivo",
+    "decide": "Decidi"
   }
 }

@@ -391,7 +391,9 @@
     "NOT_IN_ISSUANCE": "Questa polizza non è più da emettere.",
     "CASE_OPEN": "C'è già un caso aperto per questa richiesta: lo sta seguendo il back office.",
     "PROPOSAL_CLOSED": "Questa proposta non è più aperta.",
-    "NOTHING_TO_PAY": "Non c'è nulla da pagare: la differenza ti viene restituita."
+    "NOTHING_TO_PAY": "Non c'è nulla da pagare: la differenza ti viene restituita.",
+    "CONTEST_CLOSED": "Il termine per contestare questa penale è scaduto.",
+    "WRONG_STATE": "Questa operazione non è possibile in questo stato."
   },
   "wizard": {
     "choose": "Scegli",
@@ -1229,5 +1231,26 @@
     "until": "Rispondi entro",
     "confirm": "Confermo questa offerta",
     "refuse": "Chiedo il rimborso completo"
+  },
+  "accounting": {
+    "title": "Contabilità",
+    "penaltiesTitle": "Penali",
+    "noPenalties": "Nessuna penale.",
+    "contested": "Contestazione inviata: decide l'amministratore.",
+    "appliedAt": "Applicata il {at}",
+    "decision": "Decisione: {text}",
+    "contestLabel": "Contesta entro il {until}: spiega perché",
+    "contest": "Contesta la penale",
+    "type": {
+      "LATE_ISSUANCE": "Ritardo di emissione",
+      "MISSED_ISSUANCE": "Mancata emissione",
+      "CIRCUMVENTION": "Aggiramento"
+    },
+    "status": {
+      "APPLIED": "Applicata",
+      "CONTESTED": "Contestata",
+      "UPHELD": "Confermata",
+      "CANCELLED": "Annullata"
+    }
   }
 }

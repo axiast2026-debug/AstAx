@@ -11,7 +11,7 @@ Claude Code aggiorna questo file alla fine di ogni sessione di lavoro e alla chi
 | 3. Motore d'asta | In verifica | | Criteri con prova; verifica indipendente in tre giri, problemi corretti; manca la demo con Dan |
 | 4. Offerte | In verifica | | Tutti i passi fatti; verifica indipendente (primo giro) con i problemi corretti; manca la demo con Dan |
 | 5. Accettazione | In corso | | Tutti i passi del piano fatti (proposte A-I); in corso le prove finali e la verifica indipendente; poi la demo con Dan |
-| 6. Dopo l'acquisto | In corso | | Piano approvato da Dan il 2026-10-17 (proposte A-F); passi 0-5 fatti |
+| 6. Dopo l'acquisto | In corso | | Piano approvato da Dan il 2026-10-17 (proposte A-F); passi 0-6 fatti |
 | 7. Pannelli e notifiche | Da iniziare | | |
 | 8. Fornitori reali e sicurezza | Da iniziare | | |
 
@@ -31,7 +31,8 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 - Regola 8: tolti gli importi dagli avvisi di seconda offerta, nuovo prezzo e rimborso (domanda 15); gli importi sono nell'app.
 - Prove che soffrivano il database condiviso tra i file di test: la coda dei messaggi (team) e la busta chiusa (premi usati anche da altri test); corrette.
 - Debito: la seconda offerta per il cliente del broker (dal link) non è ancora fatta: oggi la vede e la decide solo il privato.
-- Prossimo passo: passo 6 (ciclo delle penali: applicazione, contestazione, decisione; sospensione da confermare o revocare).
+- Passo 6, penali (EMI-05) e sospensioni (EMI-06): il back office propone e il supervisore applica (in «Eccezioni»); l'agenzia contesta entro 10 giorni da «Contabilità»; l'amministratore decide (in «Organizzazioni»), dove conferma o revoca anche le sospensioni. Un'agenzia sospesa non viene più invitata alle nuove aste finché la sospensione non è revocata.
+- Prossimo passo: passo 7 (rimesse del lunedì, file SEPA, fatture alle agenzie, estratto conto; completamento dei dati di fatturazione).
 
 **2026-10-17 — fase 5, accettazione** (piano approvato da Dan il 2026-10-17 con le proposte A-I; Dan ha chiesto di andare avanti con le fasi e fare domande e demo alla fine).
 

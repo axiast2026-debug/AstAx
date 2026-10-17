@@ -131,8 +131,13 @@ export async function loadAgencyCandidates(
   tx: DbTransaction,
   day: Date,
 ): Promise<AgencyCandidate[]> {
+  // EMI-06, decision 30: an agency suspended (and not revoked) is out of the invitations.
+  const suspended = await tx.agencySuspension.findMany({
+    where: { revokedAt: null },
+    select: { organizationId: true },
+  });
   const agencies = await tx.organization.findMany({
-    where: { type: "AGENCY" },
+    where: { type: "AGENCY", id: { notIn: suspended.map((x) => x.organizationId) } },
     orderBy: { id: "asc" },
   });
   const ids = agencies.map((a) => a.id);

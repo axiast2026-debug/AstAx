@@ -52,6 +52,8 @@ import { ComplaintsIndexController } from "./settings/complaints-index.controlle
 import { ExceptionsController, NextOfferController } from "./issuance/exceptions.controller.js";
 import { ExceptionsService } from "./issuance/exceptions.service.js";
 import { IssuanceController } from "./issuance/issuance.controller.js";
+import { PenaltiesController } from "./penalties/penalties.controller.js";
+import { PenaltiesService } from "./penalties/penalties.service.js";
 import { RefundsService } from "./refunds/refunds.service.js";
 import { IssuanceService } from "./issuance/issuance.service.js";
 import { InvoicingService } from "./invoicing/invoicing.service.js";
@@ -76,6 +78,7 @@ export class AppModule {
         IssuanceController,
         ExceptionsController,
         NextOfferController,
+        PenaltiesController,
         AuditController,
         RequestsController,
         CustomersController,
@@ -117,6 +120,7 @@ export class AppModule {
         IssuanceService,
         ExceptionsService,
         RefundsService,
+        PenaltiesService,
         InvoicingService,
         QuoteChecksService,
         RealtimeHub,

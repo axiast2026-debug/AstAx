@@ -344,6 +344,62 @@ const ENDPOINTS: Endpoint[] = [
   },
   { action: "accounting.view", method: "GET", path: () => "/back-office/refunds" },
   {
+    action: "penalty.propose",
+    method: "GET",
+    path: () => "/back-office/penalties",
+  },
+  {
+    action: "penalty.propose",
+    method: "POST",
+    path: () => "/back-office/penalties",
+    body: {},
+  },
+  {
+    action: "penalty.apply",
+    method: "POST",
+    path: () => `/back-office/penalties/${randomUUID()}/apply`,
+    body: {},
+  },
+  {
+    action: "penalty.apply",
+    method: "POST",
+    path: () => `/back-office/penalties/${randomUUID()}/cancel`,
+    body: {},
+  },
+  {
+    action: "penalty.contest",
+    method: "GET",
+    path: () => "/agency/penalties",
+  },
+  {
+    action: "penalty.contest",
+    method: "POST",
+    path: () => `/agency/penalties/${randomUUID()}/contest`,
+    body: {},
+  },
+  {
+    action: "penalty.decideContest",
+    method: "GET",
+    path: () => "/admin/penalties",
+  },
+  {
+    action: "penalty.decideContest",
+    method: "POST",
+    path: () => `/admin/penalties/${randomUUID()}/decide`,
+    body: {},
+  },
+  {
+    action: "organization.suspend",
+    method: "GET",
+    path: () => "/admin/suspensions",
+  },
+  {
+    action: "organization.suspend",
+    method: "POST",
+    path: () => `/admin/suspensions/${randomUUID()}/decide`,
+    body: {},
+  },
+  {
     action: "refund.approve",
     method: "POST",
     path: () => `/back-office/refunds/${randomUUID()}/approve`,

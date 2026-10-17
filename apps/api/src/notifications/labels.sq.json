@@ -53,5 +53,14 @@
   },
   "suspension": {
     "reason": "tre moslëshime në gjashtë muajt e fundit"
+  },
+  "penaltyType": {
+    "LATE_ISSUANCE": "vonesë në lëshim",
+    "MISSED_ISSUANCE": "moslëshim",
+    "CIRCUMVENTION": "anashkalim"
+  },
+  "penaltyOutcome": {
+    "UPHELD": "gjoba u konfirmua",
+    "CANCELLED": "gjoba u anulua"
   }
 }

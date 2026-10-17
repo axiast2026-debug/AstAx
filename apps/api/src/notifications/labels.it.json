@@ -104,5 +104,14 @@
   },
   "suspension": {
     "reason": "tre mancate emissioni negli ultimi sei mesi"
+  },
+  "penaltyType": {
+    "LATE_ISSUANCE": "ritardo di emissione",
+    "MISSED_ISSUANCE": "mancata emissione",
+    "CIRCUMVENTION": "aggiramento"
+  },
+  "penaltyOutcome": {
+    "UPHELD": "penale confermata",
+    "CANCELLED": "penale annullata"
   }
 }

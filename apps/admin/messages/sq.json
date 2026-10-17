@@ -424,5 +424,45 @@
       "REJECTED": "Refuzuar",
       "FAILED": "Dështoi"
     }
+  },
+  "penalties": {
+    "title": "Gjoba",
+    "contestedTitle": "Gjoba të kundërshtuara",
+    "empty": "Asnjë gjobë për t'u trajtuar.",
+    "contestText": "Kundërshtimi: {text}",
+    "apply": "Apliko",
+    "cancel": "Tërhiq",
+    "reason": "Arsyeja",
+    "uphold": "Konfirmuar",
+    "annul": "Anuluar",
+    "decision": "Arsyetimi",
+    "decide": "Vendos",
+    "type": {
+      "LATE_ISSUANCE": "Vonesë në lëshim",
+      "MISSED_ISSUANCE": "Moslëshim",
+      "CIRCUMVENTION": "Anashkalim"
+    },
+    "status": {
+      "PROPOSED": "Propozuar",
+      "APPLIED": "Aplikuar",
+      "CONTESTED": "Kundërshtuar",
+      "UPHELD": "Konfirmuar",
+      "CANCELLED": "Anuluar"
+    }
+  },
+  "organizationsPage": {
+    "title": "Organizatat",
+    "error": "Veprimi nuk u krye ({code}).",
+    "done": "U krye.",
+    "suspensions": "Pezullime nga ftesat",
+    "noSuspensions": "Asnjë pezullim.",
+    "revoked": "Revokuar",
+    "confirmed": "Konfirmuar",
+    "toDecide": "Për t'u vendosur",
+    "since": "Që nga {at}",
+    "confirm": "Konfirmo",
+    "revoke": "Revoko",
+    "reason": "Arsyeja",
+    "decide": "Vendos"
   }
 }
