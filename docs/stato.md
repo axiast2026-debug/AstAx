@@ -123,6 +123,23 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 | GAR-04: dopo l'ultimo momento utile l'API rifiuta l'accettazione | Fatto | `acceptance.int.test.ts` («GAR-04 past the last useful moment…»); `acceptance.test.ts` (giovedì 19/11 alle 15:00) |
 | Contatti all'agenzia vincitrice solo dopo la conferma del pagamento (prima e dopo) | Fatto | `acceptance.int.test.ts` («PAG-03…» prima, «PAG-02 EMI-01 S01…» dopo), `customer-links.int.test.ts` |
 
+## Verifica indipendente (fase 5)
+
+Primo giro, 2026-10-17: da correggere (nessuno ancora corretto).
+
+1. Possibile doppio incasso: si può cambiare offerta con un pagamento aperto (bonifico in attesa); il link nuovo del broker può pagare l'accettazione firmata dal link precedente.
+2. Dati sensibili: il token del link finisce nei log delle richieste e negli indirizzi di ritorno dati ai fornitori; la targa è nell'email/SMS `offer.link_to_client` e si vede prima del codice.
+3. PAG-03 e decisione 22 solo in parte: pagamento abbandonato non gestito; dopo un rifiuto l'accettazione firmata resta viva anche dopo la scadenza delle garanzie.
+4. Regola 13: la conferma immediata del bonifico di prova non è legata a `DEV_TOOLS`.
+5. PRES-02: il broker può inviare un'offerta che non è la migliore della sua compagnia; il cliente firma e poi il pagamento fallisce.
+6. CLA-02 e decisione 32: la classifica pubblicata alla firma resta pubblica se poi il pagamento fallisce e arriva una riconferma (domanda per Dan).
+7. Fee nell'interfaccia: un solo fee mostrato per tutte le righe (sbagliato con offerte a cavallo dei 200 €).
+8. Il broker riceve l'indirizzo di firma del suo cliente e potrebbe firmare al suo posto.
+9. Firma rifiutata o scaduta: il cliente resta bloccato sulla stessa busta.
+10. Registro: la prova sbagliata sul link non è registrata; il webhook di firma non blocca la richiesta.
+11. Minori: voci doppie nel registro, testo di `offer.won`, set dei documenti scritto nel codice, testi italiani nel firmatario finto, destinatari di `offer.won.bo`.
+12. Prove deboli: GAR-04 al pagamento, contatti «prima» del pagamento (anche telefono e notifiche), webhook duplicato sul primo incasso e sulla firma, link scaduto o revocato all'accettazione e al pagamento, termine delle 16:30 a livello di API.
+
 ## Demo per Dan (fase 5)
 
 Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Searches\astax`, `pnpm infra:up`, `pnpm install`, `pnpm db:migrate` (tabelle nuove della fase 5), `pnpm db:seed`, poi `pnpm --filter @astax/ui build` e `pnpm dev`. Password e codici come nelle demo precedenti; il codice della firma di prova è sempre 123456.
