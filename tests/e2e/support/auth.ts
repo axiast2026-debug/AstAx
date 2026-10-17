@@ -12,9 +12,11 @@ export interface E2eState {
     marco: string;
     sofia: string;
     cinque: string;
+    tre: string;
     admin: string;
     verifier: string;
     supervisor: string;
+    brokerOwner: string;
     broker: string;
   };
 }

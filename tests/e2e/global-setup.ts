@@ -77,6 +77,24 @@ const E2E_USERS = [
     memberships: [{ org: "astax", role: "BO_SUPERVISOR" as const }],
   },
   {
+    // S05: the owner of Agenzia Tre issues the second offer.
+    key: "tre",
+    email: "e2e.titolare@agenzia-tre.test",
+    firstName: "Titolare",
+    lastName: "Tre E2E",
+    kind: "PROFESSIONAL" as const,
+    memberships: [{ org: "agenzia-tre", role: "OWNER" as const }],
+  },
+  {
+    // Phase 6: the broker's owner sees the statement (CONT-05).
+    key: "brokerOwner",
+    email: "e2e.titolare@broker-demo.test",
+    firstName: "Titolare",
+    lastName: "Broker E2E",
+    kind: "PROFESSIONAL" as const,
+    memberships: [{ org: "broker-demo", role: "OWNER" as const }],
+  },
+  {
     key: "broker",
     email: "e2e.paolo@broker-demo.test",
     firstName: "Paolo",
@@ -171,10 +189,12 @@ export default async function globalSetup(): Promise<void> {
       marco: emailOf("marco"),
       sofia: emailOf("sofia"),
       cinque: emailOf("cinque"),
+      tre: emailOf("tre"),
       admin: emailOf("admin"),
       verifier: emailOf("verifier"),
       supervisor: emailOf("supervisor"),
       broker: emailOf("broker"),
+      brokerOwner: emailOf("brokerOwner"),
     },
   };
   // OTP was just removed for every E2E user: no saved secret is valid any more.

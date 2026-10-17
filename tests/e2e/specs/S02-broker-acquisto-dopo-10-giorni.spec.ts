@@ -1,20 +1,29 @@
 import { SystemClock } from "@astax/adapters/clock";
+import { romeCalendarDate } from "@astax/shared/format";
 import { expect, test } from "@playwright/test";
 import { payWithCard, signDocuments } from "../support/acceptance.js";
 import { e2eState } from "../support/auth.js";
-import { approve, auctionCard, backOffice, fireUntil, WEB } from "../support/auction.js";
-import { inviteByHand, openIncoming, professional, sendOffer } from "../support/agency.js";
+import { ADMIN, approve, auctionCard, backOffice, fireUntil, WEB } from "../support/auction.js";
+import {
+  inviteByHand,
+  issuePolicy,
+  openIncoming,
+  professional,
+  sendOffer,
+} from "../support/agency.js";
 import { brokerLogin, submittedBrokerRequest } from "../support/broker.js";
 import { codeFromMail, latestMail } from "../support/requests.js";
 
 const clock = new SystemClock();
 
 /**
- * S02 up to the payment (fase 5): Paolo sees the offers without «Confronta
+ * S02 (phases 5 and 6): Paolo sees the offers without «Confronta
  * con AI», sends Alfa to Anna; Anna opens the link, confirms with the code,
- * signs and pays the premium only (FEE-03). The ten days of waiting and the
- * broker's invoice are phase 6; the link's end with the guarantee (GAR-02) is
- * in the integration tests.
+ * signs and pays the premium only (FEE-03). Phase 6: Agenzia Uno issues, the
+ * back office issues the monthly invoices B and the broker's owner sees the
+ * policy with the 30,00 € due and its invoice (CONT-03, CONT-05). The ten
+ * days of waiting and the link's end with the guarantee (GAR-02) are in the
+ * integration tests.
  */
 test.describe.serial("S02 — broker: il cliente compra dal link", () => {
   test.describe.configure({ timeout: 480_000 });
@@ -84,5 +93,26 @@ test.describe.serial("S02 — broker: il cliente compra dal link", () => {
     await expect(paolo.getByText(/Il cliente ha pagato/)).toBeVisible();
     await uno.goto(`${WEB}/da-emettere`);
     await expect(uno.locator("tr", { hasText: code })).toContainText(email);
+
+    // Phase 6, CONT-03 CONT-05: Agenzia Uno issues; the monthly invoice B bills
+    // the broker 30,00 € for this policy; the owner's statement shows it as due.
+    const policyNumber = `BRK-${code.slice(-6)}`;
+    await issuePolicy(uno, code, policyNumber);
+    const supervisor = await browser.newPage();
+    await backOffice(supervisor, "supervisor");
+    await supervisor.goto(`${ADMIN}/fatturazione`);
+    await supervisor
+      .getByLabel("Mese delle fatture ai broker")
+      .fill(romeCalendarDate(clock.now()).slice(0, 7));
+    await supervisor.getByRole("button", { name: "Emetti le fatture mensili ai broker" }).click();
+    await expect(supervisor.getByRole("status")).toBeVisible();
+    const owner = await browser.newPage();
+    await brokerLogin(owner, "brokerOwner");
+    await owner.goto(`${WEB}/contabilita`);
+    const row = owner.locator("tr", { hasText: code });
+    await expect(row).toContainText(policyNumber);
+    await expect(row).toContainText("30,00");
+    await expect(row).toContainText(/B-\d{4}-\d{6}/);
+    await expect(owner.getByRole("link", { name: "Esporta in CSV" })).toBeVisible();
   });
 });

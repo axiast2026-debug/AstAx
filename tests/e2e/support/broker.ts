@@ -23,12 +23,16 @@ import {
 const clock = new SystemClock();
 
 /** Paolo Verdi of Broker Demo Srl (spec 02). */
-export async function brokerLogin(page: Page): Promise<void> {
+export async function brokerLogin(
+  page: Page,
+  as: "broker" | "brokerOwner" = "broker",
+): Promise<void> {
   const { users, password } = e2eState();
+  const email = users[as];
   await page.goto(`${WEB}/auth/login?as=pro`);
-  const secret = savedSecret(users.broker);
-  if (secret) await loginProfessionalAgain(page, users.broker, password, secret);
-  else saveSecret(users.broker, await loginProfessional(page, users.broker, password));
+  const secret = savedSecret(email);
+  if (secret) await loginProfessionalAgain(page, email, password, secret);
+  else saveSecret(email, await loginProfessional(page, email, password));
   await acceptLegalIfAsked(page);
   await expect(page).toHaveURL(`${WEB}/`);
 }

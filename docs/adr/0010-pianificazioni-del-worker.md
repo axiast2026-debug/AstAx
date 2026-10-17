@@ -30,5 +30,5 @@ Il file della fase parla di «pianificazioni». Temporal ha gli «schedule», ma
 
 ## Conseguenze
 
-- Con più copie del worker il controllo gira in ognuna. Per le rimesse è innocuo: c'è un vincolo unico per agenzia e giorno. Per le fatture B c'è solo il controllo prima dell'emissione: con più copie del worker (fase 8) serve un vincolo unico per broker e mese, o un blocco.
+- Con più copie del worker il controllo gira in ognuna, ed è innocuo. Le rimesse hanno un vincolo unico per agenzia e giorno. Per le fatture B ogni polizza ricorda la fattura che l’ha fatturata e le polizze ancora da fatturare sono bloccate durante l’emissione: una polizza è fatturata una volta sola, anche se il back office emette a metà mese.
 - Se in produzione si vorrà un orario preciso (per esempio il lunedì alle 6), basta aggiungerlo come parametro al controllo.

@@ -145,6 +145,67 @@ describe("decision 24 the broker's monthly invoice", () => {
     expect(
       await system((tx) => tx.invoice.count({ where: { ownerOrganizationId: brokerId } })),
     ).toBe(1);
+    expect(
+      await system((tx) =>
+        tx.policy.count({ where: { ownerOrganizationId: brokerId, brokerInvoiceId: invoice.id } }),
+      ),
+    ).toBe(3);
+  });
+
+  it("decision 24 a policy not billed yet (issued after the invoice) goes in the next one, once", async () => {
+    await system(async (tx) => {
+      const request = await tx.quoteRequest.create({
+        data: {
+          code: `AX-${year}-${String(randomInt(0, 999_999)).padStart(6, "0")}`,
+          channel: "BROKER",
+          requesterUserId: userId("broker-owner"),
+          ownerOrganizationId: brokerId,
+        },
+      });
+      const acceptance = await tx.acceptance.create({
+        data: {
+          quoteRequestId: request.id,
+          offerId: randomUUID(),
+          ownerOrganizationId: brokerId,
+          acceptedByUserId: userId("broker-owner"),
+          premiumCents: 40_000,
+          feeCents: 0,
+          feeRule: "BROKER",
+          brokerFeeCents: 3000,
+          aiUsed: false,
+          status: "PAID",
+        },
+      });
+      await tx.policy.create({
+        data: {
+          quoteRequestId: request.id,
+          offerId: acceptance.offerId,
+          acceptanceId: acceptance.id,
+          organizationId: randomUUID(),
+          companyId: randomUUID(),
+          ownerOrganizationId: brokerId,
+          policyNumber: `BRK-${period}-late`,
+          startDate: new Date(`${period}-28`),
+          endDate: new Date(addCalendarDays(`${period}-28`, 365)),
+          premiumCents: 40_000,
+          issuedAt: new Date(`${period}-28T09:00:00Z`),
+          issuedByUserId: randomUUID(),
+        },
+      });
+    });
+    for (let i = 0; i < 2; i += 1) {
+      await r.json(
+        await r.call(await accounting(), "/back-office/invoices/broker-month", {
+          body: { period },
+        }),
+        200,
+      );
+    }
+    const invoices = await system((tx) =>
+      tx.invoice.findMany({ where: { ownerOrganizationId: brokerId }, orderBy: { number: "asc" } }),
+    );
+    expect(invoices).toHaveLength(2);
+    expect(invoices[1]).toMatchObject({ exemptCents: 3000, stampDutyCents: 0 });
   });
 
   it("CONT-05 the statement: policies, premium, fee due and the invoice that bills it; the CSV", async () => {
@@ -157,13 +218,15 @@ describe("decision 24 the broker's monthly invoice", () => {
       }[];
       invoices: { code: string; hasPdf: boolean }[];
     }>(await r.call(await owner(), "/broker/statement"), 200);
-    expect(statement.policies).toHaveLength(3);
-    expect(
-      statement.policies.every((p) => p.feeCents === 3000 && p.invoiceCode === invoiceCode),
-    ).toBe(true);
-    expect(statement.invoices).toEqual([
+    // Three policies in the first invoice, the late one in the second.
+    expect(statement.policies).toHaveLength(4);
+    expect(statement.policies.every((p) => p.feeCents === 3000)).toBe(true);
+    expect(statement.policies.filter((p) => p.invoiceCode === invoiceCode)).toHaveLength(3);
+    expect(statement.policies.every((p) => p.invoiceCode !== null)).toBe(true);
+    expect(statement.invoices).toHaveLength(2);
+    expect(statement.invoices).toContainEqual(
       expect.objectContaining({ code: invoiceCode, hasPdf: true }),
-    ]);
+    );
     const csv = await r.call(await owner(), "/broker/statement/csv");
     expect(csv.status).toBe(200);
     expect(csv.headers.get("content-type")).toContain("text/csv");

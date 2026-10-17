@@ -136,9 +136,10 @@ export async function createInvoice(
 
 /**
  * Decision 24, CONT-05: on the first day of the month, one invoice B to each
- * broker for the fees (FEE-03) of the policies issued for its customers in
- * the month before; payment by transfer at `invoicing.brokerPaymentTermDays`.
- * Running it again adds nothing: one invoice per broker and month.
+ * broker for the fees (FEE-03) of the policies issued for its customers up
+ * to the end of the month before and not billed yet; payment by transfer at
+ * `invoicing.brokerPaymentTermDays`. Each policy is billed once (it keeps
+ * the invoice): running it again adds nothing.
  */
 export async function issueBrokerInvoices(
   tx: DbTransaction,
@@ -147,7 +148,7 @@ export async function issueBrokerInvoices(
   lineDescription: string,
   now: Date,
 ): Promise<{ created: string[] }> {
-  const { from, to } = monthBounds(period);
+  const { to } = monthBounds(period);
   const { "invoicing.brokerPaymentTermDays": termDays } = await settingsAt(
     tx,
     ["invoicing.brokerPaymentTermDays"],
@@ -159,18 +160,16 @@ export async function issueBrokerInvoices(
   });
   const created: string[] = [];
   for (const broker of brokers) {
-    const existing = await tx.invoice.findFirst({
-      where: { series: "B", ownerOrganizationId: broker.id, period, creditedInvoiceId: null },
-    });
-    if (existing) continue;
+    // Every policy issued up to the end of the month and not billed yet: one
+    // issued late (or after an invoice made mid-month) goes in the next one.
+    const end = romeInstant(addCalendarDays(to, 1), "00:00");
+    await tx.$queryRaw`
+      SELECT 1 FROM "Policy"
+      WHERE "ownerOrganizationId" = ${broker.id}::uuid AND "brokerInvoiceId" IS NULL
+        AND "issuedAt" < ${end}
+      FOR UPDATE`;
     const policies = await tx.policy.findMany({
-      where: {
-        ownerOrganizationId: broker.id,
-        issuedAt: {
-          gte: romeInstant(from, "00:00"),
-          lt: romeInstant(addCalendarDays(to, 1), "00:00"),
-        },
-      },
+      where: { ownerOrganizationId: broker.id, brokerInvoiceId: null, issuedAt: { lt: end } },
     });
     if (policies.length === 0) continue;
     const acceptances = await tx.acceptance.findMany({
@@ -204,6 +203,10 @@ export async function issueBrokerInvoices(
       },
       now,
     );
+    await tx.policy.updateMany({
+      where: { id: { in: policies.map((p) => p.id) } },
+      data: { brokerInvoiceId: invoice.id, updatedAt: now },
+    });
     created.push(invoice.id);
   }
   return { created };

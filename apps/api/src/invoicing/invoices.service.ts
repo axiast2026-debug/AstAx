@@ -130,11 +130,9 @@ export class InvoicesService {
           }),
         ]),
       );
-      const monthly = invoices.filter((i) => i.series === "B");
       return {
         policies: policies.map((p) => {
           const commission = commissions.find((c) => c.policyId === p.id);
-          const period = romeCalendarDate(p.issuedAt).slice(0, 7);
           return {
             id: p.id,
             code: requests.find((q) => q.id === p.quoteRequestId)?.code ?? "",
@@ -150,7 +148,7 @@ export class InvoicesService {
                 }
               : null,
             feeCents: acceptances.find((a) => a.id === p.acceptanceId)?.brokerFeeCents ?? 0,
-            invoiceCode: monthly.find((i) => i.period === period)?.code ?? null,
+            invoiceCode: invoices.find((i) => i.id === p.brokerInvoiceId)?.code ?? null,
           };
         }),
         invoices: invoices.map((i) => this.row(i, false)),

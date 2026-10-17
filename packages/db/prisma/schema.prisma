@@ -1375,6 +1375,8 @@ model Policy {
   autoRenewal         Boolean      @default(false)
   /// The request opened for the renewal, once.
   renewalRequestId    String?      @db.Uuid
+  /// Decision 24: the broker's invoice B that billed its fee (FEE-03), once.
+  brokerInvoiceId     String?      @db.Uuid
   createdAt           DateTime     @default(now()) @db.Timestamptz(3)
   updatedAt           DateTime     @default(now()) @db.Timestamptz(3)
 
@@ -1382,6 +1384,7 @@ model Policy {
   @@index([ownerOrganizationId])
   @@index([ownerUserId])
   @@index([endDate])
+  @@index([brokerInvoiceId])
 }
 
 enum IssuanceProblemType {
