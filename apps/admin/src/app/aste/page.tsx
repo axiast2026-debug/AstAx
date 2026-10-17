@@ -143,6 +143,17 @@ export default async function AuctionsPage({
     agencies: { id: string; name: string }[];
   }>("/auctions");
   if (status === 403 || status === 404) notFound();
+  if (status !== 200) {
+    // An error of the API (for example a timeout): a message, never a broken page.
+    return (
+      <AppShell viewer={viewer}>
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm">
+          {t("error", { code: String(status) })}
+        </p>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell viewer={viewer}>

@@ -48,6 +48,28 @@ export class AuctionsService {
     }));
   }
 
+  /** The same counts for many rounds at once: two grouped reads, not two per round. */
+  private async countsOf(tx: DbTransaction, auctionIds: string[]) {
+    const [offers, invited] = await asSystem(tx, () =>
+      Promise.all([
+        tx.offer.groupBy({
+          by: ["auctionId"],
+          where: { auctionId: { in: auctionIds }, status: "SUBMITTED" },
+          _count: { _all: true },
+        }),
+        tx.invitation.groupBy({
+          by: ["auctionId"],
+          where: { auctionId: { in: auctionIds } },
+          _count: { _all: true },
+        }),
+      ]),
+    );
+    return (auctionId: string) => ({
+      offers: offers.find((o) => o.auctionId === auctionId)?._count._all ?? 0,
+      invited: invited.find((i) => i.auctionId === auctionId)?._count._all ?? 0,
+    });
+  }
+
   /** VIS-03: countdown and number of offers; the broker also the invited agencies, no names. */
   async forRequester(auth: AuthContext, requestId: string) {
     if (!isRequester(auth)) throw new ProblemError("NOT_FOUND");
@@ -276,9 +298,13 @@ export class AuctionsService {
         take: 200,
         include: { quoteRequest: true },
       });
+      const countsFor = await this.countsOf(
+        tx,
+        auctions.map((a) => a.id),
+      );
       const rows = [];
       for (const a of auctions) {
-        const counts = await this.counts(tx, a.id);
+        const counts = countsFor(a.id);
         rows.push({
           auctionId: a.id,
           requestId: a.quoteRequestId,
