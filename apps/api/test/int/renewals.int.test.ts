@@ -10,6 +10,7 @@ import {
   orgId,
   startHarness,
   TEST_CIPHER_KEYS,
+  userId,
   type Harness,
 } from "./fixtures.js";
 import { requestHelpers, type Who } from "./request-helpers.js";
@@ -161,5 +162,76 @@ describe("process 10 «Rinnova in asta»", () => {
         tx.auditLog.count({ where: { action: "ACCESS_DENIED", targetId: policy.id } }),
       ),
     ).toBe(2);
+  });
+});
+
+describe("spec 02 the broker's renewals", () => {
+  it("the month at once: only the renewals already open (renewal.daysBefore); the list is in the audit log", async () => {
+    const broker = {
+      token: await h.tokenFor("broker-owner"),
+      context: membershipId("broker-owner", "broker-demo"),
+    };
+    await acceptAllLegal(h, "broker-owner");
+    const saved = h.clock.now();
+    try {
+      const ids: string[] = [];
+      for (const end of ["2031-03-05", "2031-03-30"]) {
+        const request = await r.submittedPrivateRequest(customer, EMAIL);
+        const id = await system(async (tx) => {
+          await tx.quoteRequest.update({
+            where: { id: request.id },
+            data: {
+              channel: "BROKER",
+              ownerUserId: null,
+              ownerOrganizationId: orgId("broker-demo"),
+              requesterUserId: userId("broker-owner"),
+            },
+          });
+          const company = await tx.insuranceCompany.findFirstOrThrow({
+            where: { name: "Compagnia Alfa" },
+          });
+          const policy = await tx.policy.create({
+            data: {
+              quoteRequestId: request.id,
+              offerId: randomUUID(),
+              acceptanceId: randomUUID(),
+              organizationId: orgId("agenzia-uno"),
+              companyId: company.id,
+              ownerOrganizationId: orgId("broker-demo"),
+              policyNumber: `BLK-${end}-${randomUUID().slice(0, 6)}`,
+              startDate: new Date(addCalendarDays(end, -364)),
+              endDate: new Date(end),
+              premiumCents: 48_000,
+              issuedAt: new Date("2030-03-01T09:00:00Z"),
+              issuedByUserId: randomUUID(),
+            },
+          });
+          return policy.id;
+        });
+        ids.push(id);
+      }
+      // 20/02/2031: a policy ending on 05/03 is open (from 03/02), one ending on 30/03 not yet (from 28/02).
+      h.clock.set(new Date("2031-02-20T09:00:00Z"));
+      broker.token = await h.tokenFor("broker-owner");
+      const out = await r.json<{ created: number; notYet: number }>(
+        await r.call(broker, "/broker/renewals/bulk", { body: { period: "2031-03" } }),
+        200,
+      );
+      expect(out).toEqual({ period: "2031-03", created: 1, notYet: 1 });
+      const [open, notYet] = await system((tx) =>
+        Promise.all(ids.map((id) => tx.policy.findUniqueOrThrow({ where: { id } }))),
+      );
+      expect(open?.renewalRequestId).not.toBeNull();
+      expect(notYet?.renewalRequestId).toBeNull();
+      const before = await system((tx) =>
+        tx.auditLog.count({ where: { action: "RENEWALS_VIEWED" } }),
+      );
+      await r.json(await r.call(broker, "/broker/renewals"), 200);
+      expect(
+        await system((tx) => tx.auditLog.count({ where: { action: "RENEWALS_VIEWED" } })),
+      ).toBe(before + 1);
+    } finally {
+      h.clock.set(saved);
+    }
   });
 });

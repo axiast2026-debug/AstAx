@@ -1377,6 +1377,7 @@ model Policy {
   renewalRequestId    String?      @db.Uuid
   /// Decision 24: the broker's invoice B that billed its fee (FEE-03), once.
   brokerInvoiceId     String?      @db.Uuid
+  brokerInvoice       Invoice?     @relation("BrokerInvoicePolicies", fields: [brokerInvoiceId], references: [id], onDelete: Restrict)
   createdAt           DateTime     @default(now()) @db.Timestamptz(3)
   updatedAt           DateTime     @default(now()) @db.Timestamptz(3)
 
@@ -1638,6 +1639,8 @@ model Invoice {
   sdiRef              String?
   xmlKey              String?
   pdfDocumentId       String?              @db.Uuid
+  /// Decision 24: the policies billed in this broker invoice B.
+  brokerPolicies      Policy[]             @relation("BrokerInvoicePolicies")
   createdAt           DateTime             @default(now()) @db.Timestamptz(3)
   updatedAt           DateTime             @default(now()) @db.Timestamptz(3)
 

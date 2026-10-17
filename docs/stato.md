@@ -11,7 +11,7 @@ Claude Code aggiorna questo file alla fine di ogni sessione di lavoro e alla chi
 | 3. Motore d'asta | In verifica | | Criteri con prova; verifica indipendente in tre giri, problemi corretti; manca la demo con Dan |
 | 4. Offerte | In verifica | | Tutti i passi fatti; verifica indipendente (primo giro) con i problemi corretti; manca la demo con Dan |
 | 5. Accettazione | In corso | | Tutti i passi del piano fatti (proposte A-I); in corso le prove finali e la verifica indipendente; poi la demo con Dan |
-| 6. Dopo l'acquisto | In corso | | Piano approvato da Dan il 2026-10-17 (proposte A-F); passi 0-12 fatti; in corso le prove end-to-end e la verifica indipendente |
+| 6. Dopo l'acquisto | In verifica | | Tutti i passi fatti; due giri di verifica indipendente con le correzioni; E2E S01, S02, S05, S08, S09 verdi; manca la demo con Dan (e i punti aperti in «Verifica indipendente (fase 6, secondo giro)») |
 | 7. Pannelli e notifiche | Da iniziare | | |
 | 8. Fornitori reali e sicurezza | Da iniziare | | |
 
@@ -141,6 +141,21 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 - Prove del giro completo: `pnpm check` verde (36 compiti); E2E 17 su 18 al primo giro: `fase4-agenzia.spec.ts` dipendeva dalla rotazione della scelta automatica e ora fa invitare Agenzia Uno a mano; poi 3 giri su 4 verdi, il quarto fermo su un clic senza un errore riproducibile: da tenere d'occhio in CI.
 - Ambiente di sviluppo: durante `pnpm check` (che ricompila i pacchetti) l'API e il worker avviati da `pnpm dev` a volte si fermano al riavvio automatico e restano fermi; si riavviano con `pnpm dev`.
 - Debito: se il back office esclude l'ultima offerta rimasta, la richiesta passa a «Scaduta» solo al successivo controllo delle garanzie, non subito (domanda 16).
+
+## Verifica indipendente (fase 6, secondo giro)
+
+2026-10-18, agente verificatore sulle correzioni del primo giro. `pnpm check` verde. Problemi trovati e correzioni:
+
+1. Il worker trattava ancora l'agenzia colpevole come quella che deve emettere, mentre il rimborso era in attesa. Partivano l'avviso, la penale per ritardo e un nuovo caso alla decorrenza; il back office poteva decidere una seconda volta, con una seconda penale da 100 € contata per la sospensione. **Corretto**: niente passi per un'offerta «Mancata emissione», e nessuna decisione su un'offerta che non è più quella da emettere. Prove nel worker (fallisce con il codice vecchio) e in `second-offer.int`.
+2. Restava un'ultima lettura «di sistema» in parallelo a quelle normali (`acceptance.service`). **Corretto**.
+3. Pianificazioni senza prova. **Aggiunta** `apps/worker/test/int/schedules.int.test.ts`: il recupero del lunedì e del mese prima, una sola volta. Corretto anche il testo dell'ADR 0010.
+4. Rinnovi in blocco senza prova. **Aggiunta**: solo i rinnovi già aperti, il conteggio di quelli non ancora aperti e la lettura nel registro.
+5. Registro degli accessi negati non provato per penali e fatture. **Aggiunte** le prove. Per le fatture il tentativo non arrivava nemmeno al registro, perché il database nascondeva la riga prima: ora è registrato.
+6. La colonna nuova delle fatture B non era riempita per le fatture già emesse e non aveva una chiave esterna. **Corretto** con la migrazione `20261019120000_policy_broker_invoice_backfill`. La riga della fattura ora dice «fino al mese».
+7. Il bollo della fattura A si calcolava con i parametri del giorno della revisione. **Corretto**: usa quelli della preparazione della rimessa, come la trattenuta. Manca ancora una prova che cambi il parametro tra le due date.
+8. «Risultati»: **aggiunta** la prova del tempo medio di emissione. I limiti di lettura (1000 offerte, 5000 inviti) restano: da rivedere con le statistiche complete della fase 7.
+9. Questionario: **aggiunte** la prova di due invii contemporanei (una risposta, una segnalazione) e la scadenza in giorni di calendario di Roma.
+10. E2E rispetto agli scenari: S05 non arriva all'emissione di Tre né alla penale applicata e trattenuta, S01 non arriva alla rimessa con i numeri dello scenario, e il termine di emissione dopo la seconda offerta non è controllato da nessuna prova. Sono punti aperti per la chiusura con Dan; le parti mancanti sono coperte dalle prove di integrazione con dati generici.
 
 ## Verifica indipendente (fase 6, primo giro)
 

@@ -180,12 +180,13 @@ export class AcceptanceService {
         where: { id: { in: offers.flatMap((o) => (o.productId ? [o.productId] : [])) } },
       }),
     );
-    const [companies, pkg, fees, rules, quoteData] = await Promise.all([
+    // quoteDataOf reads as system too: on its own as well.
+    const quoteData = await this.quoteDataOf(tx, request);
+    const [companies, pkg, fees, rules] = await Promise.all([
       tx.insuranceCompany.findMany(),
       tx.coveragePackage.findUnique({ where: { code: request.packageCode ?? "" } }),
       this.feeSettings(tx, now),
       this.issuanceRules(tx, now),
-      this.quoteDataOf(tx, request),
     ]);
     const startDate = dbDateToCalendarDate(request.startDate);
     const today = romeCalendarDate(now);

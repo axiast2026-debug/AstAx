@@ -134,6 +134,16 @@ export class ExceptionsService {
       const paid = await asSystem(tx, () =>
         tx.acceptance.findFirstOrThrow({ where: { quoteRequestId: request.id, status: "PAID" } }),
       );
+      // EMI-04, decision 27, EMI-06: a case only for the offer still to be issued;
+      // one judged already never gets a second penalty or counts twice.
+      const offer = await asSystem(tx, () =>
+        tx.offer.findUniqueOrThrow({ where: { id: fresh.offerId } }),
+      );
+      if (offer.status !== "WINNING" || offer.id !== paid.offerId) {
+        throw new ProblemError("CONFLICT", "The offer is no longer the one to issue", [
+          { path: "problem", issue: "OFFER_NOT_WINNING" },
+        ]);
+      }
       let outcome: "SECOND_OFFER" | "REPRICE" | "REFUND";
       if (input.fault === "AGENCY") {
         outcome = await this.agencyFault(
@@ -256,7 +266,8 @@ export class ExceptionsService {
           updatedAt: now,
         },
       });
-      transitionOffer("WINNING", "MISSED_ISSUANCE");
+      const current = await tx.offer.findUniqueOrThrow({ where: { id: offerId } });
+      transitionOffer(current.status, "MISSED_ISSUANCE");
       await tx.offer.update({ where: { id: offerId }, data: { status: "MISSED_ISSUANCE" } });
     });
     await this.audit.inTransaction(tx, actorOf(auth), {

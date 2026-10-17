@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { SYSTEM_CONTEXT, withContext } from "@astax/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closedRound, openTestAuction } from "./auction-helpers.js";
@@ -224,5 +225,58 @@ describe("CLA-02 CLA-03 the published rankings", () => {
     // The offers above were made by the owner.
     expect(operator.published.filter((p) => mine.includes(p.code))).toEqual([]);
     expect(operator.totals.invited).toBe(0);
+  });
+});
+
+describe("spec 04 the averages of «Risultati»", () => {
+  it("the average time from the payment to the issuance, in minutes", async () => {
+    await acceptAllLegal(h, "agenzia-sette-owner");
+    const paidAt = new Date("2026-11-16T09:00:00Z");
+    await system(async (tx) => {
+      for (const minutes of [60, 120]) {
+        const request = await tx.quoteRequest.create({
+          data: {
+            code: `AX-R-${randomUUID().slice(0, 8)}`,
+            channel: "PRIVATE",
+            requesterUserId: userId("private-elena-sala"),
+            ownerUserId: userId("private-elena-sala"),
+          },
+        });
+        const acceptance = await tx.acceptance.create({
+          data: {
+            quoteRequestId: request.id,
+            offerId: randomUUID(),
+            ownerUserId: userId("private-elena-sala"),
+            acceptedByUserId: userId("private-elena-sala"),
+            premiumCents: 50_000,
+            feeCents: 3000,
+            feeRule: "PRIVATE",
+            aiUsed: false,
+            status: "PAID",
+            paidAt,
+          },
+        });
+        await tx.policy.create({
+          data: {
+            quoteRequestId: request.id,
+            offerId: acceptance.offerId,
+            acceptanceId: acceptance.id,
+            organizationId: orgId("agenzia-sette"),
+            companyId: randomUUID(),
+            policyNumber: `AVG-${minutes}-${randomUUID().slice(0, 6)}`,
+            startDate: new Date("2026-11-20"),
+            endDate: new Date("2027-11-19"),
+            premiumCents: 50_000,
+            issuedAt: new Date(paidAt.getTime() + minutes * 60_000),
+            issuedByUserId: randomUUID(),
+          },
+        });
+      }
+    });
+    const sette = await r.json<{ totals: { averageIssuanceMinutes: number | null } }>(
+      await r.call(await who("agenzia-sette-owner", "agenzia-sette"), "/agency/results"),
+      200,
+    );
+    expect(sette.totals.averageIssuanceMinutes).toBe(90);
   });
 });

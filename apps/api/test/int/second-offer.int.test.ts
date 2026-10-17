@@ -343,6 +343,32 @@ describe("fase 6: S05 variant, the customer refuses and gets everything back", (
       const res = await r.call(unoOwner, path, body ? { body } : {});
       expect(res.status).toBe(404);
     }
+    // Decision 27, EMI-06: a new case on the offer already judged cannot be decided again.
+    const judged = await system(async (tx) =>
+      tx.issuanceProblem.create({
+        data: {
+          quoteRequestId: requestId,
+          offerId: problem.offerId,
+          organizationId: problem.organizationId,
+          type: "MISSED_DEADLINE",
+          openedAt: h.clock.now(),
+        },
+      }),
+    );
+    const second = await r.json<{ errors: { issue: string }[] }>(
+      await r.call(
+        await who("bo-verifier", "astax"),
+        `/back-office/issuance-problems/${judged.id}/decide`,
+        { body: { fault: "AGENCY", reason: "Di nuovo" } },
+      ),
+      409,
+    );
+    expect(second.errors[0]?.issue).toBe("OFFER_NOT_WINNING");
+    expect(
+      await system((tx) =>
+        tx.penalty.count({ where: { quoteRequestId: requestId, type: "MISSED_ISSUANCE" } }),
+      ),
+    ).toBe(1);
     // PAG-05: only the supervisor approves.
     const verifier = await r.call(
       await who("bo-verifier", "astax"),

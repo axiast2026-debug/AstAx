@@ -1312,3 +1312,82 @@ describe("phase 6: the policy steps (decision 39, process 10, proposal E)", () =
     });
   });
 });
+
+describe("phase 6: the agency at fault has nothing more to do (EMI-04, decision 27)", () => {
+  it("EMI-04 no reminder, no delay penalty, no new case once the offer is «Mancata emissione»", async () => {
+    h.clock.set(MONDAY_9);
+    const created = await approvedRequest(h);
+    const opened = await h.activities.openRound({ requestId: created.id, kind: "MAIN", round: 1 });
+    if (!opened.opened) throw new Error("not opened");
+    const offer = await sealedOffer(
+      h,
+      opened.auctionId,
+      "agenzia-uno",
+      {
+        company: "Compagnia Alfa",
+        annualGrossPremiumCents: 52000,
+        coverage: FULL_BASE_COVERAGE,
+        guaranteeUntil: "2026-12-05",
+        notes: null,
+      },
+      new Date(Date.parse(MONDAY_9) + 60_000),
+    );
+    const request = await read(async (tx) => {
+      const updated = await tx.quoteRequest.update({
+        where: { id: created.id },
+        data: { status: "IN_ISSUANCE", startDate: new Date("2026-11-20") },
+      });
+      await tx.offer.update({ where: { id: offer.id }, data: { status: "WINNING" } });
+      const acceptance = await tx.acceptance.create({
+        data: {
+          quoteRequestId: updated.id,
+          offerId: offer.id,
+          ownerUserId: updated.ownerUserId,
+          ownerOrganizationId: updated.ownerOrganizationId,
+          acceptedByUserId: updated.requesterUserId,
+          premiumCents: 52000,
+          feeCents: 3000,
+          feeRule: "PRIVATE",
+          aiUsed: false,
+          status: "PAID",
+          paidAt: new Date("2026-11-16T11:30:00.000Z"),
+          issuanceDeadlineAt: new Date("2026-11-16T15:30:00.000Z"),
+        },
+      });
+      await tx.payment.create({
+        data: {
+          acceptanceId: acceptance.id,
+          ownerUserId: updated.ownerUserId,
+          ownerOrganizationId: updated.ownerOrganizationId,
+          provider: "fake-payments",
+          premiumCents: 52000,
+          feeCents: 3000,
+          idempotencyKey: `${acceptance.id}-1`,
+          status: "CAPTURED",
+          capturedAt: new Date("2026-11-16T11:30:00.000Z"),
+        },
+      });
+      return updated;
+    });
+    await read((tx) =>
+      tx.offer.update({ where: { id: offer.id }, data: { status: "MISSED_ISSUANCE" } }),
+    );
+    expect(await h.activities.issuanceSteps({ requestId: request.id })).toEqual({
+      inIssuance: true,
+      issued: false,
+      nextStepAt: null,
+    });
+    h.clock.set("2026-11-20T08:00:00.000Z");
+    // Reminder, deadline and start of cover would all be due by now.
+    for (let i = 0; i < 3; i += 1) {
+      await h.activities.runIssuanceStep({ requestId: request.id, force: true });
+    }
+    const [penalties, problems] = await read((tx) =>
+      Promise.all([
+        tx.penalty.count({ where: { quoteRequestId: request.id } }),
+        tx.issuanceProblem.count({ where: { quoteRequestId: request.id } }),
+      ]),
+    );
+    expect({ penalties, problems }).toEqual({ penalties: 0, problems: 0 });
+  });
+});

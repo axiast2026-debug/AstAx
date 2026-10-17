@@ -290,6 +290,13 @@ describe("CONT-01 the weekly remittance", () => {
       `/invoices/${statement.invoices[0]?.id ?? ""}/pdf`,
     );
     expect(other.status).toBe(404);
+    expect(
+      await system((tx) =>
+        tx.auditLog.count({
+          where: { action: "ACCESS_DENIED", targetId: statement.invoices[0]?.id ?? "" },
+        }),
+      ),
+    ).toBe(1);
   });
 
   it("CONT-01 a penalty bigger than the net is carried to the next week", async () => {

@@ -17,7 +17,13 @@ const who = async (key: Parameters<Harness["tokenFor"]>[0], org: string): Promis
 beforeAll(async () => {
   h = await startHarness();
   r = requestHelpers(h);
-  for (const key of ["bo-verifier", "bo-supervisor", "admin", "agenzia-nove-owner"] as const) {
+  for (const key of [
+    "bo-verifier",
+    "bo-supervisor",
+    "admin",
+    "agenzia-nove-owner",
+    "agenzia-due-owner",
+  ] as const) {
     await acceptAllLegal(h, key);
   }
 });
@@ -73,6 +79,18 @@ describe("EMI-05 the cycle of a penalty", () => {
   });
 
   it("EMI-05 the agency contests within the time; the administrator decides", async () => {
+    // Rule 4: another agency cannot contest it; the attempt is in the audit log.
+    const other = await r.call(
+      await who("agenzia-due-owner", "agenzia-due"),
+      `/agency/penalties/${penaltyId}/contest`,
+      { body: { text: "Non è nostra" } },
+    );
+    expect(other.status).toBe(404);
+    expect(
+      await system((tx) =>
+        tx.auditLog.count({ where: { action: "ACCESS_DENIED", targetId: penaltyId } }),
+      ),
+    ).toBe(1);
     const owner = await who("agenzia-nove-owner", "agenzia-nove");
     const mine = await r.json<{ id: string; status: string }[]>(
       await r.call(owner, "/agency/penalties"),

@@ -285,9 +285,9 @@ export class InvoicesService {
   /** The courtesy PDF: to its recipient (invoice.viewOwn) or to the back office (accounting.view). */
   async pdf(auth: AuthContext, id: string, staff: boolean) {
     const key = await withContext(this.db, auth.db, async (tx) => {
-      const invoice = staff
-        ? await asSystem(tx, () => tx.invoice.findUnique({ where: { id } }))
-        : await tx.invoice.findUnique({ where: { id } });
+      // Read as system, then checked here: an invoice of someone else is a denial in the
+      // audit log (rule 4), not a silent 404 of the row security.
+      const invoice = await asSystem(tx, () => tx.invoice.findUnique({ where: { id } }));
       const mine =
         staff ||
         (auth.membership

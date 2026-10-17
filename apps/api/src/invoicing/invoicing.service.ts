@@ -69,6 +69,7 @@ export class InvoicingService {
       remittanceId?: string | null;
       period?: string | null;
       dueOn?: string | null;
+      settingsAt?: Date | null;
     },
   ): Promise<Invoice> {
     return this.create(tx, { ...input, creditedInvoiceId: null });

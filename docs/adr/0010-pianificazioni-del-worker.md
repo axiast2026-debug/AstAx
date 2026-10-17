@@ -17,7 +17,7 @@ Il file della fase parla di «pianificazioni». Temporal ha gli «schedule», ma
 
 - Un timer del worker (`apps/worker/src/schedules.ts`) controlla ogni `SCHEDULES_INTERVAL_MS` (5 minuti di base) con l'orologio dell'applicazione.
 - Rimesse: prepara sempre quelle dell'ultimo giorno di rimessa fino a oggi. Una rimessa per agenzia e giorno, quindi ripetere non crea doppioni e un worker fermo il lunedì recupera appena riparte.
-- Fatture B: emette ogni giorno quelle del mese prima che mancano, una per broker e mese. Un worker fermo il primo del mese recupera il giorno dopo.
+- Fatture B: ogni giorno fattura le polizze dei broker emesse fino alla fine del mese prima e non ancora fatturate. Ogni polizza ricorda la sua fattura, quindi è fatturata una volta sola. Un worker fermo il primo del mese recupera il giorno dopo.
 - Il back office ha comunque i pulsanti a mano: «Prepara le rimesse della settimana» in «Pagamenti» e «Emetti le fatture mensili ai broker» in «Fatturazione».
 - Le fatture B create dal worker partono allo SDI dall'API, che ha il fornitore SDI e genera il PDF. Oggi succede quando il back office apre «Fatturazione»; in fase 8 un invio automatico.
 

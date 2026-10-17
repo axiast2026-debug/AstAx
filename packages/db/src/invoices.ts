@@ -49,6 +49,12 @@ export interface NewInvoice {
   period?: string | null;
   dueOn?: string | null;
   creditedInvoiceId?: string | null;
+  /**
+   * The moment whose parameters (VAT nature, legal reference, stamp duty)
+   * apply; by default the issue. The agency's invoice A uses the preparation
+   * of its remittance, so it charges the stamp duty the remittance held back.
+   */
+  settingsAt?: Date | null;
 }
 
 const INVOICING_KEYS = [
@@ -90,7 +96,7 @@ export async function createInvoice(
 ): Promise<Invoice> {
   const issuedOn = romeCalendarDate(now);
   const year = Number(issuedOn.slice(0, 4));
-  const s = await settingsAt(tx, INVOICING_KEYS, now);
+  const s = await settingsAt(tx, INVOICING_KEYS, input.settingsAt ?? now);
   // A credit note gives back an amount: no stamp duty on it.
   const totals = invoiceTotals(input.lines, {
     vatNature: s["invoicing.vatNature"],

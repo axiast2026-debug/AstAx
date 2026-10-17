@@ -23,8 +23,8 @@ labels:
     it: "Puoi preparare il rinnovo con i dati già salvati."
     sq: "Mund ta përgatitësh rinovimin me të dhënat e ruajtura."
   invoice.brokerLine:
-    it: "Fee AstAx sulle polizze acquistate, mese"
-    sq: "Tarifa AstAx për policat e blera, muaji"
+    it: "Fee AstAx sulle polizze acquistate fino al mese"
+    sq: "Tarifa AstAx për policat e blera deri në muajin"
 
 events:
 

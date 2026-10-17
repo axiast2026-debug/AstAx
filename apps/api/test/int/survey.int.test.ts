@@ -115,6 +115,19 @@ describe("the questionnaire after the sale", () => {
       }),
     );
     expect((await h.call(`/surveys/${old.token}`)).status).toBe(404);
+    // Two answers sent at the same moment: one is kept, and one flag only.
+    const twice = await surveyFor("agenzia-due");
+    const yes = { overall: 3, clarity: 3, agency: 3, contactedByOthers: true };
+    const statuses = await Promise.all([
+      h.call(`/surveys/${twice.token}`, { body: yes }),
+      h.call(`/surveys/${twice.token}`, { body: yes }),
+    ]).then((rs) => rs.map((x) => x.status).sort());
+    expect(statuses).toEqual([200, 409]);
+    expect(
+      await system((tx) =>
+        tx.flag.count({ where: { quoteRequestId: twice.policy.quoteRequestId } }),
+      ),
+    ).toBe(1);
     const wrong = randomBytes(32).toString("base64url");
     expect((await h.call(`/surveys/${wrong}`)).status).toBe(404);
   });

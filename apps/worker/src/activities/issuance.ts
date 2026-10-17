@@ -81,6 +81,19 @@ export function issuanceActivities(
             : [],
       };
     }
+    // EMI-04, decision 27: the agency judged at fault («Mancata emissione») has
+    // nothing more to do; the request waits for the refund or a new acceptance,
+    // with no reminder, no delay penalty and no new case.
+    const offer = paid ? await tx.offer.findUnique({ where: { id: paid.offerId } }) : null;
+    if (offer && offer.status !== "WINNING" && request.status === "IN_ISSUANCE") {
+      return {
+        request,
+        paid,
+        proposal,
+        stage: true,
+        steps: [] as { kind: StepKind; at: Date; done: boolean }[],
+      };
+    }
     if (request.status !== "IN_ISSUANCE" || !paid?.issuanceDeadlineAt || !request.startDate) {
       return {
         request,

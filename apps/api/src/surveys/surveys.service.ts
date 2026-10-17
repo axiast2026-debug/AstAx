@@ -8,6 +8,8 @@ import {
   type DbClient,
   type DbTransaction,
 } from "@astax/db";
+import { addCalendarDays } from "@astax/shared/domain";
+import { romeCalendarDate } from "@astax/shared/format";
 import { Inject, Injectable } from "@nestjs/common";
 import { actorOf, AuditService } from "../audit/audit.service.js";
 import type { AuthContext } from "../auth/auth-context.js";
@@ -61,7 +63,8 @@ export class SurveysService {
     if (!survey) throw new ProblemError("NOT_FOUND");
     const now = this.clock.now();
     const { "survey.linkValidDays": days } = await settingsAt(tx, ["survey.linkValidDays"], now);
-    if (now.getTime() > survey.sentAt.getTime() + days * 86_400_000) {
+    // Rule 6: whole calendar days in Rome from the day of the sending.
+    if (romeCalendarDate(now) > addCalendarDays(romeCalendarDate(survey.sentAt), days)) {
       throw new ProblemError("NOT_FOUND");
     }
     return survey;

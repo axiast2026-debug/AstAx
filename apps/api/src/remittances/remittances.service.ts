@@ -162,6 +162,8 @@ export class RemittancesService {
           `${labels.invoice.agencyLine} ${formatDate(r.runDate.toISOString().slice(0, 10))}`,
         ),
         remittanceId: r.id,
+        // CONT-03, proposal C: the parameters of the preparation, as the stamp duty held back.
+        settingsAt: r.createdAt,
       });
       await asSystem(tx, () =>
         tx.remittance.update({

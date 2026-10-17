@@ -72,7 +72,7 @@
     "total": "Totale",
     "privateLine": "Compenso di intermediazione, richiesta",
     "agencyLine": "Fee AstAx sulle polizze emesse, rimessa del",
-    "brokerLine": "Fee AstAx sulle polizze acquistate, mese"
+    "brokerLine": "Fee AstAx sulle polizze acquistate fino al mese"
   },
   "receipt": {
     "title": "Ricevuta di pagamento",
