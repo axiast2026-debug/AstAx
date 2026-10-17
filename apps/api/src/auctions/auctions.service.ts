@@ -269,6 +269,14 @@ export class AuctionsService {
           OR: [
             { status: { in: ["OPEN", "CLOSING"] } },
             { closedAt: { gte: new Date(this.clock.now().getTime() - recentDays * 86_400_000) } },
+            // Requests still waiting on their offers (guarantees, «Scaduta», reconfirmation):
+            // their last rounds stay in the list, however long ago they closed.
+            {
+              status: "CLOSED",
+              quoteRequest: {
+                status: { in: ["OFFERS_AVAILABLE", "EXPIRED", "IN_RECONFIRMATION"] },
+              },
+            },
           ],
         },
         orderBy: { scheduledCloseAt: "asc" },

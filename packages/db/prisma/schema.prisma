@@ -1046,11 +1046,46 @@ model Offer {
   createdAt               DateTime    @default(now()) @db.Timestamptz(3)
   updatedAt               DateTime    @default(now()) @db.Timestamptz(3)
 
-  auction  Auction        @relation(fields: [auctionId], references: [id])
-  versions OfferVersion[]
+  auction    Auction          @relation(fields: [auctionId], references: [id])
+  versions   OfferVersion[]
+  quoteCheck OfferQuoteCheck?
 
   @@index([auctionId])
   @@index([organizationId, status])
+}
+
+enum QuoteCheckResult {
+  MATCH
+  MISMATCH
+  UNREADABLE
+}
+
+enum QuoteCheckDecision {
+  EXCLUDED
+  KEPT
+}
+
+/// OFF-09: after the closing, the PDF quote read and compared with the declared
+/// offer. A difference is a flag for the back office, which may exclude the
+/// offer with a reason until the customer accepts it; it never excludes by itself.
+model OfferQuoteCheck {
+  id              String              @id @default(uuid(7)) @db.Uuid
+  offerId         String              @unique @db.Uuid
+  quoteRequestId  String              @db.Uuid
+  checkedAt       DateTime            @db.Timestamptz(3)
+  result          QuoteCheckResult
+  /// The fields that differ, with the declared and the read value (whole cents or names).
+  differences     Json                @default("[]")
+  readerModel     String
+  promptVersion   String
+  decision        QuoteCheckDecision?
+  decidedAt       DateTime?           @db.Timestamptz(3)
+  decidedByUserId String?             @db.Uuid
+  createdAt       DateTime            @default(now()) @db.Timestamptz(3)
+
+  offer Offer @relation(fields: [offerId], references: [id])
+
+  @@index([result, decision])
 }
 
 /// Earlier versions of an offer, always sealed; rows are only added.

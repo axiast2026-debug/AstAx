@@ -85,6 +85,7 @@ export function auctionActivities(
   | "expireRequest"
   | "expiredSchedule"
   | "autoCancelExpired"
+  | "reviewQuotes"
 > {
   const { db, kms, clock, cipher, notifier, urls } = deps;
 

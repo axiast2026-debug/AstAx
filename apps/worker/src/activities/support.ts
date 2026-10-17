@@ -1,6 +1,7 @@
 import type { Clock } from "@astax/adapters/clock";
 import type { FieldCipher } from "@astax/adapters/crypto";
 import type { KmsPort } from "@astax/adapters/kms";
+import type { DocumentReaderPort } from "@astax/adapters/document-reader";
 import type { ObjectStoragePort } from "@astax/adapters/storage";
 import {
   appendAudit,
@@ -35,6 +36,8 @@ export interface ActivityDeps {
   clock: Clock;
   cipher: FieldCipher;
   storage: ObjectStoragePort;
+  /** OFF-09: reads the PDF quotes after the closing (fake in development and tests). */
+  reader: DocumentReaderPort;
   notifier: WorkerNotifier;
   logger: Logger;
   urls: { web: string; admin: string };

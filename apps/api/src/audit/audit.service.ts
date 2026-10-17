@@ -69,6 +69,8 @@ export type AuditAction =
   | "PRODUCT_UPDATED"
   | "PRODUCT_DOCUMENT_UPLOADED"
   | "RECONFIRMATION_REQUESTED"
+  | "OFFER_EXCLUDED_AFTER_REVIEW"
+  | "OFFER_KEPT_AFTER_REVIEW"
   | "OTP_FAILED";
 
 export interface AuditEvent {

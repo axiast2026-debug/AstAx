@@ -98,19 +98,20 @@ export class DevToolsService implements OnApplicationBootstrap, OnApplicationShu
     return { fired: true };
   }
 
-  async advanceClock(auth: AuthContext, minutes: number) {
+  /** Moves the application clock forward by `minutes`, or back to the real time (null). */
+  async advanceClock(auth: AuthContext, minutes: number | null) {
     this.enabled();
     if (!(this.clock instanceof OffsetClock) || !this.#redis) {
       throw new ProblemError("CONFLICT", "The application clock cannot be moved here");
     }
-    const offset = this.clock.offsetMs + minutes * 60_000;
+    const offset = minutes === null ? 0 : this.clock.offsetMs + minutes * 60_000;
     await this.#redis.set(DEV_CLOCK_OFFSET_KEY, String(offset));
     this.clock.setOffset(offset);
     await this.audit.record(actorOf(auth), {
       action: "DEV_TOOL_USED",
       targetType: "Clock",
       targetId: null,
-      after: { tool: "advanceClock", minutes },
+      after: { tool: minutes === null ? "resetClock" : "advanceClock", minutes },
     });
     return { offsetMinutes: offset / 60_000, now: this.clock.now().toISOString() };
   }
@@ -182,7 +183,13 @@ export class DevToolsService implements OnApplicationBootstrap, OnApplicationShu
         notes: null,
         binding: true,
       };
-      const pdf = new TextEncoder().encode(`%PDF-1.7\n% Preventivo di prova (dati sintetici)\n`);
+      // OFF-09, proposal E: the fake reader reads «Premio:» from the quote. The
+      // second test offer's PDF says 10,00 € more, to show the flag in the demo.
+      const written = offer.annualGrossPremiumCents + (i === 1 ? 1_000 : 0);
+      const euros = `${Math.floor(written / 100)},${String(written % 100).padStart(2, "0")}`;
+      const pdf = new TextEncoder().encode(
+        `%PDF-1.7\n% Preventivo di prova (dati sintetici)\nPremio: ${euros}\n`,
+      );
       const created = await this.offers.submit(agency, auctionId, offer, {
         body: pdf,
         contentType: "application/pdf",

@@ -66,3 +66,31 @@ describe("fake document reader", () => {
     }
   });
 });
+
+describe("fake reader of the quote PDF (OFF-09, proposal E)", () => {
+  const files: Record<string, string> = {
+    "q/1": "%PDF-1.7\nPreventivo di prova\nCompagnia: Compagnia Alfa\nPremio: 1.505,00\n",
+    "q/2": "%PDF-1.7\nPreventivo senza righe\n",
+  };
+  const quotes = new FakeDocumentReader(clock, plates, undefined, async (key) =>
+    new TextEncoder().encode(files[key] ?? ""),
+  );
+  const quote = (key: string) => ({
+    key,
+    fileName: "preventivo.pdf",
+    contentType: "application/pdf",
+  });
+
+  it("OFF-09 reads premium (whole cents) and company from the PDF text", async () => {
+    const result = await quotes.extract({ kind: "QUOTE_PDF", files: [quote("q/1")] });
+    expect(result.fields.annualGrossPremiumCents?.value).toBe(150500);
+    expect(result.fields.companyName?.value).toBe("Compagnia Alfa");
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("OFF-09 a PDF without the lines gives no field and NOT_FOUND", async () => {
+    const result = await quotes.extract({ kind: "QUOTE_PDF", files: [quote("q/2")] });
+    expect(result.fields).toEqual({});
+    expect(result.warnings).toEqual(["NOT_FOUND"]);
+  });
+});

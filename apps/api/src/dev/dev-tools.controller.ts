@@ -37,16 +37,20 @@ export class DevToolsController {
   @HttpCode(200)
   @RequirePermission("devTools.use")
   advance(@CurrentAuth() auth: AuthContext, @Body() body: unknown) {
-    const { advanceMinutes } = parseInput(
-      z.strictObject({
-        advanceMinutes: z
-          .number()
-          .int()
-          .min(1)
-          .max(60 * 24 * 60),
-      }),
+    const input = parseInput(
+      z.union([
+        z.strictObject({
+          advanceMinutes: z
+            .number()
+            .int()
+            .min(1)
+            .max(60 * 24 * 60),
+        }),
+        // Back to the real time (tests, the end of a demo).
+        z.strictObject({ reset: z.literal(true) }),
+      ]),
       body,
     );
-    return this.tools.advanceClock(auth, advanceMinutes);
+    return this.tools.advanceClock(auth, "reset" in input ? null : input.advanceMinutes);
   }
 }

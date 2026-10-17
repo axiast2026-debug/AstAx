@@ -89,5 +89,7 @@ export interface AuctionActivities {
   sendGuaranteeReminder(input: { requestId: string; offerId: string }): Promise<void>;
   expireRequest(input: { requestId: string }): Promise<{ expired: boolean }>;
   expiredSchedule(input: { requestId: string }): Promise<ExpiredSchedule>;
+  /** OFF-09: counts only (BC-07): never a premium nor a company. */
+  reviewQuotes(input: { auctionId: string }): Promise<{ checked: number; flagged: number }>;
   autoCancelExpired(input: { requestId: string }): Promise<{ cancelled: boolean }>;
 }

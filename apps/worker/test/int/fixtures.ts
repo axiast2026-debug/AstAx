@@ -2,6 +2,7 @@ import { ManualClock } from "@astax/adapters/clock";
 import { LocalFieldCipher } from "@astax/adapters/crypto";
 import { InMemoryEmailSender } from "@astax/adapters/email";
 import { encryptFile, KMS_KEYS, LocalKms, seal } from "@astax/adapters/kms";
+import { FakeDocumentReader } from "@astax/adapters/document-reader";
 import { InMemoryObjectStorage } from "@astax/adapters/storage";
 import {
   createDbClient,
@@ -59,6 +60,7 @@ export function harness(start: string): Harness {
     clock,
     cipher,
     storage,
+    reader: new FakeDocumentReader(clock, undefined, undefined, (key) => storage.get(key)),
     notifier: new WorkerNotifier(email, logger),
     logger,
     urls: { web: "http://web.test", admin: "http://admin.test" },
@@ -174,7 +176,11 @@ export const FULL_BASE_COVERAGE: OfferCoverage = {
  * An offer as the API stores it (step 7): sealed with the auction's public
  * key, the PDF encrypted, an owner copy (here a placeholder: the API's key).
  */
-type TestPayload = Omit<OfferPayload, "companyId" | "productId"> & { company?: string };
+type TestPayload = Omit<OfferPayload, "companyId" | "productId"> & {
+  company?: string;
+  /** The text of the PDF quote (OFF-09: the fake reader reads «Premio:» and «Compagnia:»). */
+  pdfText?: string;
+};
 
 export function sealedOffer(
   h: Harness,
@@ -217,7 +223,9 @@ export async function insertSealedOffer(
       companyId: product.companyId,
       productId: product.id,
     };
-    const pdf = await encryptFile(new TextEncoder().encode(`%PDF-1.7 preventivo ${agency}`));
+    const pdf = await encryptFile(
+      new TextEncoder().encode(payload.pdfText ?? `%PDF-1.7 preventivo ${agency}`),
+    );
     const pdfKey = `sealed/${crypto.randomUUID()}`;
     await h.storage.put({
       key: pdfKey,

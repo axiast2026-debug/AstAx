@@ -22,6 +22,24 @@ async function post(path: string, payload: unknown): Promise<void> {
   redirect("/aste?fatto=1");
 }
 
+/** OFF-09: exclude the offer whose PDF differs, or keep it; always with a reason. */
+export async function decideQuoteCheck(formData: FormData): Promise<void> {
+  const id = String(formData.get("checkId") ?? "");
+  if (!/^[0-9a-f-]{36}$/i.test(id)) redirect("/aste");
+  const decision = formData.get("decision") === "KEPT" ? "KEPT" : "EXCLUDED";
+  const { status, body } = await api(`/back-office/quote-checks/${id}/decision`, {
+    method: "POST",
+    body: JSON.stringify({ decision, reason: reasonOf(formData) }),
+  });
+  if (status !== 200) {
+    const problem = (body ?? {}) as { code?: string; errors?: { issue: string }[] };
+    redirect(
+      `/aste?errore=${encodeURIComponent(problem.errors?.[0]?.issue ?? problem.code ?? "INTERNAL")}`,
+    );
+  }
+  redirect("/aste?fatto=1");
+}
+
 export async function extendAuction(formData: FormData): Promise<void> {
   await post(`/auctions/${auctionOf(formData)}/extend`, {
     workingHours: Number(formData.get("workingHours") ?? 1),
@@ -61,6 +79,10 @@ export async function fireNextTimer(formData: FormData): Promise<void> {
   const requestId = String(formData.get("requestId") ?? "");
   if (!/^[0-9a-f-]{36}$/i.test(requestId)) redirect("/aste");
   await devPost(`/dev/requests/${requestId}/fire-next-timer`, {});
+}
+
+export async function resetClock(): Promise<void> {
+  await devPost("/dev/clock", { reset: true });
 }
 
 export async function advanceClock(formData: FormData): Promise<void> {

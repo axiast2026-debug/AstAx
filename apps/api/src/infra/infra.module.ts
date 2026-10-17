@@ -121,7 +121,13 @@ export class InfraModule {
           provide: TOKEN_VERIFIER,
           useValue:
             overrides.tokenVerifier ??
-            JwtTokenVerifier.forKeycloak(config.KEYCLOAK_URL, config.KEYCLOAK_REALM, clock),
+            // Keycloak signs the tokens with the real time: the development clock,
+            // moved forward to reach a guarantee's end (rule 13), must not expire them.
+            JwtTokenVerifier.forKeycloak(
+              config.KEYCLOAK_URL,
+              config.KEYCLOAK_REALM,
+              clock instanceof OffsetClock ? new SystemClock() : clock,
+            ),
         },
         {
           provide: IDENTITY_ADMIN,

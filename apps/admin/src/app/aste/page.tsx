@@ -1,4 +1,4 @@
-import { formatDateTime } from "@astax/shared/format";
+import { formatDateTime, formatEuroCents } from "@astax/shared/format";
 import { Badge, Button, Card } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -9,7 +9,9 @@ import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
 import {
   advanceClock,
+  resetClock,
   cancelAuction,
+  decideQuoteCheck,
   extendAuction,
   fireNextTimer,
   inviteAgencies,
@@ -32,6 +34,87 @@ interface AuctionRow {
   invited: number;
   offers: number | null;
   closedAt: string | null;
+}
+
+interface QuoteCheck {
+  id: string;
+  requestCode: string;
+  agency: string;
+  company: string;
+  offerStatus: string;
+  differences: { field: string; declared: string | number; read: string | number }[];
+  checkedAt: string;
+  decision: "EXCLUDED" | "KEPT" | null;
+  excludable: boolean;
+}
+
+/** OFF-09: the PDF quotes that differ from the declared offer, for the back office to decide. */
+async function QuoteChecks() {
+  const t = await getTranslations("auctions.checks");
+  const { status, body: checks } = await api<QuoteCheck[]>("/back-office/quote-checks");
+  if (status !== 200 || checks.length === 0) return null;
+  const value = (field: string, v: string | number) =>
+    field === "annualGrossPremiumCents" && typeof v === "number" ? formatEuroCents(v) : String(v);
+  return (
+    <section aria-labelledby="quote-checks" className="mt-6">
+      <h2 id="quote-checks" className="text-lg font-semibold">
+        {t("title")}
+      </h2>
+      <p className="mt-1 text-sm text-warm-600">{t("intro")}</p>
+      <div className="mt-3 space-y-3">
+        {checks.map((c) => (
+          <Card
+            key={c.id}
+            role="region"
+            aria-label={t("region", { code: c.requestCode, agency: c.agency })}
+          >
+            <p className="font-semibold">{`${c.requestCode} · ${c.agency} · ${c.company}`}</p>
+            <ul className="mt-2 list-disc pl-5 text-sm">
+              {c.differences.map((d) => (
+                <li key={d.field}>
+                  {t("difference", {
+                    field: t(`fields.${d.field}`),
+                    declared: value(d.field, d.declared),
+                    read: value(d.field, d.read),
+                  })}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1 text-xs text-warm-600">
+              {t("checkedAt", { at: formatDateTime(c.checkedAt) })}
+            </p>
+            {c.decision ? (
+              <Badge className="mt-2" tone={c.decision === "EXCLUDED" ? "danger" : "neutral"}>
+                {t(`decision.${c.decision}`)}
+              </Badge>
+            ) : (
+              <form action={decideQuoteCheck} className="mt-3 flex flex-wrap items-end gap-2">
+                <input type="hidden" name="checkId" value={c.id} />
+                <input
+                  name="reason"
+                  required
+                  minLength={3}
+                  placeholder={t("reason")}
+                  aria-label={t("reason")}
+                  className={`${INPUT} flex-1`}
+                />
+                {c.excludable ? (
+                  <Button type="submit" name="decision" value="EXCLUDED" size="sm">
+                    {t("exclude")}
+                  </Button>
+                ) : (
+                  <span className="text-xs text-warm-600">{t("notExcludable")}</span>
+                )}
+                <Button type="submit" name="decision" value="KEPT" size="sm" variant="outline">
+                  {t("keep")}
+                </Button>
+              </form>
+            )}
+          </Card>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 const TONE = {
@@ -95,8 +178,14 @@ export default async function AuctionsPage({
               {t("dev.advanceClock")}
             </Button>
           </form>
+          <form action={resetClock} className="mt-2">
+            <Button type="submit" size="sm" variant="outline">
+              {t("dev.resetClock")}
+            </Button>
+          </form>
         </Card>
       ) : null}
+      <QuoteChecks />
       {body.auctions.length === 0 ? (
         <Card className="mt-6">
           <p className="text-sm">{t("empty")}</p>
@@ -131,7 +220,10 @@ export default async function AuctionsPage({
                   </>
                 ) : null}
               </dl>
-              {DEV_TOOLS && ["AUCTION_OPEN", "OFFERS_AVAILABLE"].includes(a.requestStatus) ? (
+              {DEV_TOOLS &&
+              ["AUCTION_OPEN", "OFFERS_AVAILABLE", "IN_RECONFIRMATION"].includes(
+                a.requestStatus,
+              ) ? (
                 <div className="mt-4 flex flex-wrap gap-2 border-t border-dashed border-orange-500 pt-3">
                   {a.status === "OPEN" ? (
                     <form action={sendTestOffers}>

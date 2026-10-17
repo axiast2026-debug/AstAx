@@ -11,6 +11,7 @@ export interface E2eState {
     owner: string;
     marco: string;
     sofia: string;
+    cinque: string;
     admin: string;
     verifier: string;
     broker: string;

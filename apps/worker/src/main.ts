@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
 import { DEV_CLOCK_OFFSET_KEY, OffsetClock, SystemClock } from "@astax/adapters/clock";
 import { LocalFieldCipher } from "@astax/adapters/crypto";
+import { FakeDocumentReader } from "@astax/adapters/document-reader";
 import { MailpitEmailSender } from "@astax/adapters/email";
 import { KMS_KEYS, LocalKms } from "@astax/adapters/kms";
 import {
@@ -64,6 +65,7 @@ const email = new MailpitEmailSender(config.MAILPIT_URL, {
   email: config.EMAIL_FROM,
   name: "AstAx",
 });
+const storage = storageFor(config);
 const activities = createActivities({
   db,
   // ADR 0005: the worker holds only the key of the sealed bids.
@@ -73,7 +75,9 @@ const activities = createActivities({
   ),
   clock,
   cipher: new LocalFieldCipher(config.FIELD_ENCRYPTION_KEY, config.BLIND_INDEX_KEY),
-  storage: storageFor(config),
+  storage,
+  // Rule 9: the fake reader until phase 8; it reads the stored quote itself.
+  reader: new FakeDocumentReader(clock, undefined, undefined, (key) => storage.get(key)),
   notifier: new WorkerNotifier(email, logger),
   logger,
   urls: { web: config.WEB_URL, admin: config.ADMIN_URL },

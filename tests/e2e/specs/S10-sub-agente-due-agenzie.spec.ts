@@ -1,12 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
-import {
-  acceptLegalIfAsked,
-  e2eState,
-  loginProfessional,
-  loginProfessionalAgain,
-  savedSecret,
-  saveSecret,
-} from "../support/auth.js";
+import { expect, test } from "@playwright/test";
+import { e2eState } from "../support/auth.js";
 import {
   approve,
   auctionCard,
@@ -15,56 +8,19 @@ import {
   submittedRequest,
   WEB,
 } from "../support/auction.js";
+import {
+  inviteByHand,
+  openIncoming,
+  professional,
+  sendOffer,
+  switchTo,
+} from "../support/agency.js";
 
 /**
  * S10 (fase 4): Marco Rossi works for Agenzia Uno and Agenzia Tre, both
  * invited to the same auction. One person works on it for one agency only,
  * and makes one offer only (OFF-02, OFF-03); his colleague Sofia offers for Tre.
  */
-async function professional(page: Page, email: string): Promise<void> {
-  const { password } = e2eState();
-  await page.goto(`${WEB}/auth/login?as=pro`);
-  const secret = savedSecret(email);
-  if (secret) await loginProfessionalAgain(page, email, password, secret);
-  else saveSecret(email, await loginProfessional(page, email, password));
-  await acceptLegalIfAsked(page);
-}
-
-async function switchTo(page: Page, agency: string): Promise<void> {
-  await page.getByLabel("Passa a").selectOption({ label: agency });
-  await page.getByRole("button", { name: "Vai", exact: true }).click();
-  await expect(page.getByRole("banner").locator("span", { hasText: /^Agenzia / })).toHaveText(
-    agency,
-  );
-}
-
-/** Opens the request from «Richieste in arrivo», once the invitation has arrived. */
-async function openIncoming(page: Page, code: string): Promise<void> {
-  await expect(async () => {
-    await page.goto(`${WEB}/richieste-in-arrivo`);
-    await expect(page.getByRole("link", { name: code })).toBeVisible({ timeout: 1000 });
-  }).toPass({ timeout: 60_000 });
-  await page.getByRole("link", { name: code }).click();
-  await expect(page.getByText("Ogni apertura di questa richiesta")).toBeVisible();
-}
-
-async function sendOffer(page: Page, company: string, premium: string): Promise<void> {
-  await page.getByLabel("Premio annuo lordo (€)").fill(premium);
-  await page.getByLabel("Compagnia", { exact: true }).selectOption({ label: company });
-  const product = page.getByLabel("Prodotto", { exact: true });
-  const first = product.locator(`optgroup[label="${company}"] option`).first();
-  await product.selectOption((await first.getAttribute("value")) ?? "");
-  await page.getByLabel("Massimale unico (€)").fill("10000000");
-  await page.getByLabel("PDF del preventivo").setInputFiles({
-    name: "preventivo.pdf",
-    mimeType: "application/pdf",
-    buffer: Buffer.from("%PDF-1.4 e2e S10"),
-  });
-  await page.getByLabel(/Confermo che l'offerta è vincolante/).check();
-  await page.getByRole("button", { name: "Invia l'offerta" }).click();
-  await expect(page.getByText("Offerta registrata")).toBeVisible();
-}
-
 test.describe.serial("S10 — sub-agente di due agenzie", () => {
   test.describe.configure({ timeout: 360_000 });
 
@@ -79,14 +35,7 @@ test.describe.serial("S10 — sub-agente di due agenzie", () => {
     await approve(operator, code);
     // Both agencies invited, whatever the automatic choice (ASTA-06).
     for (const agency of ["Agenzia Uno", "Agenzia Tre"]) {
-      const card = await auctionCard(operator, code);
-      const form = card.locator("form", {
-        has: operator.getByRole("button", { name: "Invita" }),
-      });
-      await form.getByLabel("Agenzia", { exact: true }).selectOption({ label: agency });
-      await form.getByLabel("Motivo").fill("Prova S10");
-      await form.getByRole("button", { name: "Invita" }).click();
-      await expect(operator.getByText("Richiesta inviata")).toBeVisible();
+      await inviteByHand(operator, await auctionCard(operator, code), agency);
     }
 
     const { users } = e2eState();

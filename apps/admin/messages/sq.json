@@ -336,7 +336,27 @@
       "minutes": "Minuta",
       "advanceClock": "Çoje orën përpara",
       "testOffers": "Dërgo 3 oferta prove",
-      "fireNextTimer": "Kalo menjëherë në hapin tjetër"
+      "fireNextTimer": "Kalo menjëherë në hapin tjetër",
+      "resetClock": "Ktheje orën te sot"
+    },
+    "checks": {
+      "title": "Oferta për t'u kontrolluar",
+      "intro": "Në mbyllje, oferta PDF e këtyre ofertave nuk përputhet me atë që u deklarua. Oferta detyruese mbetet ajo e deklaruar: mund ta përjashtosh, me arsye, para se klienti ta pranojë.",
+      "region": "Kontrolli {code} · {agency}",
+      "difference": "{field}: deklaruar {declared}, në PDF {read}",
+      "fields": {
+        "annualGrossPremiumCents": "Primi",
+        "companyName": "Kompania"
+      },
+      "checkedAt": "Kontrolluar më {at}",
+      "reason": "Arsyeja",
+      "exclude": "Përjashto ofertën",
+      "keep": "Në rregull",
+      "notExcludable": "Klienti e ka pranuar: nuk mund të përjashtohet më.",
+      "decision": {
+        "EXCLUDED": "E përjashtuar",
+        "KEPT": "E mbajtur"
+      }
     }
   }
 }

@@ -246,6 +246,15 @@ describe("fase 3: claims and offers (OFF-01..07, BC-02, BC-04, BC-05)", () => {
       path: "companyId",
       issue: "COMPANY_NOT_MANDATED",
     });
+    // VIS-11: emails and links also written with words or spaces.
+    expect(
+      await issues(
+        offerFor("agenzia-uno", "Alfa", { notes: "scrivimi a mario chiocciola esempio punto it" }),
+      ),
+    ).toContainEqual({ path: "notes", issue: "NOTES_EMAIL" });
+    expect(
+      await issues(offerFor("agenzia-uno", "Alfa", { notes: "dettagli su www.esempio.it" })),
+    ).toContainEqual({ path: "notes", issue: "NOTES_LINK" });
     expect(await issues(offerFor("agenzia-uno", "Alfa"), null)).toContainEqual({
       path: "pdf",
       issue: "PDF_REQUIRED",
@@ -422,7 +431,8 @@ describe("fase 3: claims and offers (OFF-01..07, BC-02, BC-04, BC-05)", () => {
     );
     expect(status.auction).toMatchObject({ status: "OPEN", offers: 3 });
     expect(status.auction).not.toHaveProperty("invitedAgencies");
-    expect(JSON.stringify(status)).not.toContain("499");
+    // Not the premium (49900 cents, 499,00 €); an id may hold the digits by chance.
+    expect(JSON.stringify(status)).not.toMatch(/(?<![0-9a-f])499(00|,00)?(?![0-9a-f])/);
   });
 
   it("OFF-08 an invited agency declines, with a reason from the list", async () => {
@@ -501,7 +511,7 @@ describe("fase 3: claims and offers (OFF-01..07, BC-02, BC-04, BC-05)", () => {
     }>(await r.call(verifierLater, "/auctions"), 200);
     const row = list.auctions.find((a) => a.auctionId === auctionId);
     expect(row).toMatchObject({ offers: 3, invited: 5 });
-    expect(JSON.stringify(row)).not.toContain("499");
+    expect(JSON.stringify(row)).not.toMatch(/(?<![0-9a-f])499(00|,00)?(?![0-9a-f])/);
   });
 
   it("BC-05 a submission that waits for the closing's lock is refused once the auction is closed", async () => {

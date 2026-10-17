@@ -149,6 +149,10 @@ function fakes(script: Script) {
         }
       );
     },
+    async reviewQuotes(input) {
+      record("reviewQuotes", input);
+      return { checked: 0, flagged: 0 };
+    },
     async autoCancelExpired(input) {
       record("autoCancelExpired", input);
       return { cancelled: true };

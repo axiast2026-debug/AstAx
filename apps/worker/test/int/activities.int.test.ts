@@ -813,3 +813,85 @@ describe("closing against submissions (BC-03, BC-05) and what reaches Temporal (
     }
   });
 });
+
+describe("OFF-09 check of the PDF quotes after the closing (decision 16)", () => {
+  it("OFF-09 a premium in the PDF different from the declared one is a flag for the back office, never an exclusion", async () => {
+    h.clock.set(MONDAY_9);
+    const request = await approvedRequest(h);
+    const opened = await h.activities.openRound({ requestId: request.id, kind: "MAIN", round: 1 });
+    if (!opened.opened) throw new Error("not opened");
+    const at = new Date(Date.parse(MONDAY_9) + 10 * 60_000);
+    const base = { coverage: FULL_BASE_COVERAGE, guaranteeUntil: "2026-12-10", notes: null };
+    const differs = await sealedOffer(
+      h,
+      opened.auctionId,
+      "agenzia-uno",
+      {
+        ...base,
+        company: "Compagnia Alfa",
+        annualGrossPremiumCents: 48000,
+        pdfText: "%PDF-1.7\nCompagnia: Compagnia Alfa\nPremio: 470,00\n",
+      },
+      at,
+    );
+    const same = await sealedOffer(
+      h,
+      opened.auctionId,
+      "agenzia-tre",
+      {
+        ...base,
+        company: "Compagnia Beta",
+        annualGrossPremiumCents: 50500,
+        pdfText: "%PDF-1.7\nCompagnia: Compagnia Beta\nPremio: 505,00\n",
+      },
+      at,
+    );
+    const unreadable = await sealedOffer(
+      h,
+      opened.auctionId,
+      "agenzia-cinque",
+      { ...base, company: "Compagnia Beta", annualGrossPremiumCents: 51000 },
+      at,
+    );
+    // Decision 16: never before the closing.
+    expect(await h.activities.reviewQuotes({ auctionId: opened.auctionId })).toEqual({
+      checked: 0,
+      flagged: 0,
+    });
+    h.clock.set(opened.scheduledCloseAt);
+    expect((await h.activities.closeRound({ auctionId: opened.auctionId })).validOffers).toBe(3);
+    expect(await h.activities.reviewQuotes({ auctionId: opened.auctionId })).toEqual({
+      checked: 3,
+      flagged: 1,
+    });
+    // A repetition writes nothing twice.
+    expect(await h.activities.reviewQuotes({ auctionId: opened.auctionId })).toEqual({
+      checked: 0,
+      flagged: 0,
+    });
+    const checks = await read((tx) =>
+      tx.offerQuoteCheck.findMany({ where: { quoteRequestId: request.id } }),
+    );
+    const of = (id: string) => checks.find((c) => c.offerId === id);
+    expect(of(differs.id)).toMatchObject({
+      result: "MISMATCH",
+      differences: [{ field: "annualGrossPremiumCents", declared: 48000, read: 47000 }],
+    });
+    expect(of(same.id)?.result).toBe("MATCH");
+    expect(of(unreadable.id)?.result).toBe("UNREADABLE");
+    // The binding offer stays the declared one: nothing excluded by the check.
+    const offer = await read((tx) => tx.offer.findUniqueOrThrow({ where: { id: differs.id } }));
+    expect(offer.status).toBe("AWAITING_CUSTOMER");
+    // Rule 8: the back office is told without the premiums.
+    const notes = await read((tx) =>
+      tx.notification.findMany({
+        where: {
+          eventKey: "offer.quote_mismatch.bo",
+          payload: { path: ["quoteRequestId"], equals: request.id },
+        },
+      }),
+    );
+    expect(notes.length).toBeGreaterThan(0);
+    expect(JSON.stringify(notes)).not.toMatch(/470|480|€/);
+  });
+});

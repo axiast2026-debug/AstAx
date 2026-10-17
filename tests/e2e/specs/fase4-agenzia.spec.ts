@@ -15,6 +15,7 @@ import {
   submittedRequest,
   WEB,
 } from "../support/auction.js";
+import { inviteByHand, openIncoming } from "../support/agency.js";
 
 /**
  * Fase 4: the agency area (spec 04). The owner of Agenzia Uno finds the
@@ -33,7 +34,8 @@ test.describe.serial("fase 4 — area agenzia", () => {
     const operator = await browser.newPage();
     await backOffice(operator);
     await approve(operator, code);
-    await auctionCard(operator, code);
+    // Agenzia Uno invited whatever the rotation of the automatic choice (ASTA-06).
+    await inviteByHand(operator, await auctionCard(operator, code), "Agenzia Uno");
 
     const { users, password } = e2eState();
     const agency = await browser.newPage();
@@ -48,8 +50,7 @@ test.describe.serial("fase 4 — area agenzia", () => {
       .getByRole("navigation", { name: "Menu principale" })
       .getByRole("link", { name: "Richieste in arrivo" })
       .click();
-    await agency.getByRole("link", { name: code }).click();
-    await expect(agency.getByText("Ogni apertura di questa richiesta")).toBeVisible();
+    await openIncoming(agency, code);
     // VIS-01: the customer's email never reaches the agency.
     expect(await agency.locator("main").innerText()).not.toContain(email);
 

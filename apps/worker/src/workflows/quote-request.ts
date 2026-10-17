@@ -173,7 +173,13 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
         reminded = true;
       } else {
         const result = await acts.closeRound({ auctionId: times.auctionId });
-        return result.cancelled ? null : result.validOffers;
+        if (result.cancelled) return null;
+        // OFF-09: the PDF quotes are checked after the closing, never before.
+        // patched(): the histories recorded before this step keep their path.
+        if (result.validOffers > 0 && patched("offer-quote-check")) {
+          await acts.reviewQuotes({ auctionId: times.auctionId });
+        }
+        return result.validOffers;
       }
     }
   }

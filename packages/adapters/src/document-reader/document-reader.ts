@@ -74,13 +74,45 @@ function resolveValue(value: ExtractedValue, clock: Clock): ExtractedValue {
  * `default.json`. A file name containing `low-confidence` gives every field
  * confidence 0.6. For a registration certificate the technical data come from
  * the plate lookup, so the two fakes agree.
+ *
+ * A quote (QUOTE_PDF, OFF-09) is read from its text when the reader can load
+ * the file: a line «Premio: 505,00» gives the premium in cents and a line
+ * «Compagnia: Compagnia Alfa» the company (proposal E of phase 4). A PDF
+ * without them gives no field and the warning NOT_FOUND.
  */
 export class FakeDocumentReader implements DocumentReaderPort {
   constructor(
     private readonly clock: Clock,
     private readonly plateLookup?: PlateLookupPort,
     private readonly fixturesDir = FIXTURES_DIR,
+    private readonly load?: (key: string) => Promise<Uint8Array>,
   ) {}
+
+  private async readQuote(file: StoredFileRef): Promise<ExtractionResult> {
+    const load = this.load;
+    if (!load) throw new Error("No file loader for the quote");
+    const text = new TextDecoder("latin1").decode(await load(file.key));
+    const fields: ExtractionResult["fields"] = {};
+    const premium = /Premio:\s*(\d{1,3}(?:\.\d{3})+|\d+),(\d{2})/.exec(text);
+    if (premium) {
+      const euros = Number((premium[1] ?? "0").replace(/\./g, ""));
+      fields.annualGrossPremiumCents = {
+        value: euros * 100 + Number(premium[2]),
+        confidence: HIGH_CONFIDENCE,
+      };
+    }
+    const company = /Compagnia:\s*([^\r\n)]+)/.exec(text);
+    if (company?.[1]) {
+      fields.companyName = { value: company[1].trim(), confidence: HIGH_CONFIDENCE };
+    }
+    return {
+      kind: "QUOTE_PDF",
+      fields,
+      warnings: Object.keys(fields).length === 0 ? ["NOT_FOUND"] : [],
+      model: FAKE_READER_MODEL,
+      promptVersion: FAKE_PROMPT_VERSION,
+    };
+  }
 
   fixtureNames(kind: ExtractableDocument): string[] {
     const dir = join(this.fixturesDir, kind);
@@ -113,6 +145,7 @@ export class FakeDocumentReader implements DocumentReaderPort {
         model: FAKE_READER_MODEL,
         promptVersion: FAKE_PROMPT_VERSION,
       };
+    if (input.kind === "QUOTE_PDF" && this.load) return this.readQuote(first);
     const values = this.fixture(input.kind, first.fileName);
     if (
       input.kind === "REGISTRATION_CERTIFICATE" &&

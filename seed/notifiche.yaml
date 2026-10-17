@@ -205,6 +205,26 @@ events:
         Kërkesa {{codice}} ({{veicolo}}) mbeti pa oferta edhe pas rihapjes automatike.
         Vendos nëse do të hapësh një ankand të ri me filtra më të gjerë apo do ta mbyllësh me një njoftim për klientin: {{link}}
 
+  offer.quote_mismatch.bo:
+    recipients: [bo_verifiers, bo_supervisors]
+    channels: [in_app, email]
+    # OFF-09: ids and code only, never the premiums that differ (rule 8).
+    variables: [codice, numero, link]
+    it:
+      title: "Preventivi da controllare: {{codice}}"
+      body: "{{numero}} preventivi PDF non corrispondono all'offerta dichiarata."
+      emailSubject: "Preventivi da controllare: {{codice}}"
+      emailBody: |
+        Alla chiusura della richiesta {{codice}}, {{numero}} preventivi PDF non corrispondono all'offerta dichiarata.
+        Controllali e decidi se escludere l'offerta, finché il cliente non ha accettato: {{link}}
+    sq:
+      title: "Oferta për t'u kontrolluar: {{codice}}"
+      body: "{{numero}} oferta PDF nuk përputhen me ofertën e deklaruar."
+      emailSubject: "Oferta për t'u kontrolluar: {{codice}}"
+      emailBody: |
+        Në mbylljen e kërkesës {{codice}}, {{numero}} oferta PDF nuk përputhen me ofertën e deklaruar.
+        Kontrolloji dhe vendos nëse e përjashton ofertën, para se klienti ta pranojë: {{link}}
+
   offer.excluded_after_review:
     recipients: [participating_agency_users]
     channels: [in_app, email]

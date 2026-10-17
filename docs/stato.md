@@ -73,6 +73,23 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 - Debito: la classifica pubblicata all'annullamento senza accettazione (decisione 32) arriva con le fasi 5-6; lo scenario S03 end-to-end è nel passo 8.
 - Prossimo passo: fase 4, passo 7 (controllo del PDF dell'offerta, OFF-09).
 
+**2026-10-17 — fase 4, passi 7 e 8.**
+
+- Passo 7 (OFF-09, decisione 16):
+  - dopo la chiusura, mai prima, il worker legge il PDF di ogni offerta valida e lo confronta con quanto dichiarato (premio e compagnia), con il lettore finto (proposta E: legge le righe «Premio: 505,00» e «Compagnia: …»); campi sotto `documents.confidenceThreshold` non confrontati;
+  - esito per ogni offerta nella tabella nuova `OfferQuoteCheck` (migrazione `20261018090000_offer_quote_checks`, solo AstAx la legge): uguale, diverso o illeggibile; le differenze diventano una segnalazione al back office (`offer.quote_mismatch.bo`, senza prezzi). Il controllo non esclude mai da solo: l'offerta vincolante resta quella dichiarata;
+  - nella pagina «Aste» del back office la sezione «Preventivi da controllare»: «Escludi l'offerta» (con motivo, solo finché il cliente non ha accettato) o «Va bene così»; l'agenzia riceve `offer.excluded_after_review` con il motivo; tutto nel registro;
+  - le offerte di prova degli strumenti di sviluppo hanno ora la riga «Premio:», e la seconda ha apposta 10,00 € in più nel PDF, per mostrare la segnalazione nella demo.
+- Correzioni trovate strada facendo:
+  - con l'orologio di sviluppo spostato in avanti l'API considerava scaduti gli accessi (la scadenza dei token si controllava con l'orologio spostato): ora con l'ora reale, quella di Keycloak;
+  - la pagina «Aste» non mostrava più le aste chiuse da tempo anche se la richiesta aveva ancora offerte aperte o era «Scaduta»: ora le mostra;
+  - un test vecchio poteva fallire per caso quando un identificativo casuale conteneva le cifre del prezzo cercato.
+- Nuovo strumento di sviluppo: «Riporta l'orologio a oggi».
+- Passo 8 (prove): E2E `S03-riconferma.spec.ts`, `S06-parita.spec.ts`, S10 con aiuti comuni in `tests/e2e/support/agency.ts`, nuova utenza di prova per Agenzia Cinque; integrazione: ogni risposta dell'area agenzia senza telefono né email del cliente (anche nei PDF), lettura della copia dell'offerta per ruolo (autore, titolare, supervisore, operatore solo con `canSeeColleagueOffers`), avviso sulle coperture sotto il pacchetto, note con email o link scritti a parole, decisioni del back office sui PDF.
+- Prove del giro completo: `pnpm check` verde (36 compiti); E2E 17 su 18 al primo giro: `fase4-agenzia.spec.ts` dipendeva dalla rotazione della scelta automatica e ora fa invitare Agenzia Uno a mano; poi 3 giri su 4 verdi, il quarto fermo su un clic senza un errore riproducibile: da tenere d'occhio in CI.
+- Ambiente di sviluppo: durante `pnpm check` (che ricompila i pacchetti) l'API e il worker avviati da `pnpm dev` a volte si fermano al riavvio automatico e restano fermi; si riavviano con `pnpm dev`.
+- Debito: se il back office esclude l'ultima offerta rimasta, la richiesta passa a «Scaduta» solo al successivo controllo delle garanzie, non subito.
+
 ## Criteri della fase 3
 
 | Criterio | Stato | Prova |

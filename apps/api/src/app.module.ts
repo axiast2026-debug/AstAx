@@ -24,6 +24,8 @@ import { ReferenceService } from "./requests/reference.service.js";
 import { RequestsController } from "./requests/requests.controller.js";
 import { RequestsService } from "./requests/requests.service.js";
 import { AgencyController } from "./agency/agency.controller.js";
+import { QuoteChecksController } from "./auctions/auctions.controller.js";
+import { QuoteChecksService } from "./auctions/quote-checks.service.js";
 import { AgencyService } from "./agency/agency.service.js";
 import { AgencySettingsService } from "./agency/agency-settings.service.js";
 import { AuctionsController } from "./auctions/auctions.controller.js";
@@ -62,6 +64,7 @@ export class AppModule {
         NotificationsController,
         AuctionsController,
         AgencyController,
+        QuoteChecksController,
         RealtimeController,
         DevToolsController,
       ],
@@ -84,6 +87,7 @@ export class AppModule {
         AuctionsService,
         AgencyService,
         AgencySettingsService,
+        QuoteChecksService,
         RealtimeHub,
         RealtimeGateway,
         DevToolsService,

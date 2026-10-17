@@ -2,6 +2,7 @@ import { errorForLog, type Logger } from "@astax/shared/logging";
 import { ApplicationFailure, Context } from "@temporalio/activity";
 import { auctionActivities } from "./auctions.js";
 import { guaranteeActivities } from "./guarantees.js";
+import { quoteCheckActivities } from "./quote-checks.js";
 import type { ActivityDeps } from "./support.js";
 import type { AuctionActivities } from "./types.js";
 
@@ -53,7 +54,11 @@ export function safe<A extends unknown[], R>(
 }
 
 export function createActivities(deps: ActivityDeps): AuctionActivities {
-  const all = { ...auctionActivities(deps), ...guaranteeActivities(deps) };
+  const all = {
+    ...auctionActivities(deps),
+    ...guaranteeActivities(deps),
+    ...quoteCheckActivities(deps),
+  };
   return Object.fromEntries(
     Object.entries(all).map(([name, fn]) => [
       name,

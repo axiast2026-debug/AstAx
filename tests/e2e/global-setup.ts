@@ -43,6 +43,15 @@ const E2E_USERS = [
     memberships: [{ org: "agenzia-tre", role: "OPERATOR" as const }],
   },
   {
+    // S06: the owner of Agenzia Cinque, who offers Beta at the same price as Tre.
+    key: "cinque",
+    email: "e2e.titolare@agenzia-cinque.test",
+    firstName: "Titolare",
+    lastName: "Cinque E2E",
+    kind: "PROFESSIONAL" as const,
+    memberships: [{ org: "agenzia-cinque", role: "OWNER" as const }],
+  },
+  {
     key: "admin",
     email: "e2e.admin@astax.test",
     firstName: "Admin",
@@ -152,6 +161,7 @@ export default async function globalSetup(): Promise<void> {
       owner: emailOf("owner"),
       marco: emailOf("marco"),
       sofia: emailOf("sofia"),
+      cinque: emailOf("cinque"),
       admin: emailOf("admin"),
       verifier: emailOf("verifier"),
       broker: emailOf("broker"),

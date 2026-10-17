@@ -284,6 +284,14 @@ const ENDPOINTS: Endpoint[] = [
     body: { membershipId: randomUUID() },
   },
   { action: "offer.readOwnDuringAuction", method: "GET", path: () => "/agency/offers" },
+  // Fase 4: OFF-09 decisions on the PDF quotes
+  { action: "offer.excludeAfterPdfCheck", method: "GET", path: () => "/back-office/quote-checks" },
+  {
+    action: "offer.excludeAfterPdfCheck",
+    method: "POST",
+    path: () => `/back-office/quote-checks/${randomUUID()}/decision`,
+    body: {},
+  },
   // Fase 4: filters, capacity, product library, access log
   { action: "memberFilters.manageOwn", method: "GET", path: () => "/agency/filters" },
   { action: "agencyFilters.manage", method: "PUT", path: () => "/agency/filters", body: {} },

@@ -1,3 +1,4 @@
+import { LocalFieldCipher } from "@astax/adapters/crypto";
 import { SYSTEM_CONTEXT, withContext } from "@astax/db";
 import { PDFDocument } from "pdf-lib";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -7,6 +8,7 @@ import {
   membershipId,
   orgId,
   startHarness,
+  TEST_CIPHER_KEYS,
   type Harness,
   type UserKey,
 } from "./fixtures.js";
@@ -192,5 +194,130 @@ describe("fase 4: the agency area (spec 04)", () => {
     );
     expect(rows.find((x) => x.auctionId === auctionId)?.state).toBe("CLAIMED_BY_ME");
     expect(await audit("AUCTION_CLAIM_ASSIGNED", auctionId)).toHaveLength(1);
+  });
+
+  let offerId: string;
+
+  it("OFF-04 the operator sends the offer the supervisor gave them", async () => {
+    const operator = await who("agenzia-uno-operator", "agenzia-uno");
+    const detail = await r.json<{
+      companies: { id: string }[];
+      products: { id: string; companyId: string }[];
+      package: { requirements: Record<string, { required?: boolean }> } | null;
+    }>(await r.call(operator, `/agency/requests/${auctionId}`), 200);
+    const company = detail.companies[0]?.id ?? "";
+    const offer = {
+      annualGrossPremiumCents: 50500,
+      companyId: company,
+      productId: detail.products.find((p) => p.companyId === company)?.id,
+      coverage: {
+        rca: { limitType: "SINGLE_LIMIT", singleLimitEur: 10_000_000 },
+        recourseWaiver: { included: false },
+        roadsideAssistance: { included: false },
+        legalProtection: { included: false },
+        driverAccident: { included: false },
+        theftFire: { included: false },
+        naturalEventsVandalism: { included: false },
+        glass: { included: false },
+      },
+      guaranteeUntil: "2026-12-20",
+      notes: null,
+      binding: true,
+    };
+    const response = await fetch(`${h.baseUrl}/auctions/${auctionId}/offers`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${operator.token}`,
+        "x-astax-context": operator.context ?? "",
+        "x-offer": Buffer.from(JSON.stringify(offer)).toString("base64url"),
+        "content-type": "application/pdf",
+      },
+      body: new TextEncoder().encode("%PDF-1.7 preventivo"),
+    });
+    expect(response.status).toBe(201);
+    const sent = (await response.json()) as { id: string; coverageWarnings: string[] };
+    offerId = sent.id;
+    // OFF-06: a declaration below the package is accepted with a warning, and excluded at the closing.
+    const roadside = detail.package?.requirements.roadsideAssistance?.required === true;
+    if (roadside) expect(sent.coverageWarnings).toContain("roadsideAssistance");
+    else expect(sent.coverageWarnings).toEqual([]);
+  });
+
+  it("BC-04 the agency's copy: author, owner, supervisor and operators with canSeeColleagueOffers; the others 403; every reading logged", async () => {
+    const read = async (key: UserKey) =>
+      (await r.call(await who(key, "agenzia-uno"), `/offers/${offerId}`)).status;
+    const before = (await audit("OFFER_OWNER_COPY_READ", offerId)).length;
+    expect(await read("agenzia-uno-operator")).toBe(200);
+    expect(await read("agenzia-uno-owner")).toBe(200);
+    expect(await read("agenzia-uno-supervisor")).toBe(200);
+    // Marco, operator of Agenzia Uno too: not without the permission of the owner.
+    await acceptAllLegal(h, "marco-rossi");
+    expect(await read("marco-rossi")).toBe(403);
+    await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.membership.update({
+        where: { id: membershipId("marco-rossi", "agenzia-uno") },
+        data: { canSeeColleagueOffers: true },
+      }),
+    );
+    // The permission reaches a new token: the flags are read at each call.
+    expect(await read("marco-rossi")).toBe(200);
+    await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.membership.update({
+        where: { id: membershipId("marco-rossi", "agenzia-uno") },
+        data: { canSeeColleagueOffers: false },
+      }),
+    );
+    expect((await audit("OFFER_OWNER_COPY_READ", offerId)).length - before).toBe(4);
+  });
+
+  it("VIS-01 every answer of the agency area holds no phone or email of the customer", async () => {
+    // The customer has a phone too, for this check.
+    await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.user.updateMany({
+        where: {
+          emailHash: new LocalFieldCipher(
+            TEST_CIPHER_KEYS.encryption,
+            TEST_CIPHER_KEYS.blindIndex,
+          ).blindIndex("email", CUSTOMER_EMAIL),
+        },
+        data: {
+          phoneEnc: new LocalFieldCipher(
+            TEST_CIPHER_KEYS.encryption,
+            TEST_CIPHER_KEYS.blindIndex,
+          ).encrypt("+39 333 1234567"),
+        },
+      }),
+    );
+    const detail = await r.json<{ documents: { id: string }[] }>(
+      await r.call(await who("agenzia-uno-owner", "agenzia-uno"), `/agency/requests/${auctionId}`),
+      200,
+    );
+    const paths = [
+      "/agency/dashboard",
+      "/agency/requests",
+      `/agency/requests/${auctionId}`,
+      "/agency/offers",
+      "/agency/filters",
+      "/agency/products",
+      "/agency/access-log",
+      `/offers/${offerId}`,
+      `/auctions/${auctionId}/offers`,
+      "/me/notifications",
+      ...detail.documents.map((d) => `/agency/requests/${auctionId}/documents/${d.id}`),
+    ];
+    for (const key of [
+      "agenzia-uno-owner",
+      "agenzia-uno-supervisor",
+      "agenzia-uno-operator",
+    ] as const) {
+      const agent = await who(key, "agenzia-uno");
+      for (const path of paths) {
+        const response = await r.call(agent, path);
+        const text = new TextDecoder("latin1").decode(await response.arrayBuffer());
+        for (const contact of [CUSTOMER_EMAIL, "333 1234567", "3331234567", "+39"]) {
+          expect(text, `${key} ${path}`).not.toContain(contact);
+        }
+      }
+    }
   });
 });

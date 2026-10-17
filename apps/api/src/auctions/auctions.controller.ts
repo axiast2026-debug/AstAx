@@ -21,6 +21,7 @@ import { parseInput } from "../http/validation.js";
 import { sendFile } from "../requests/requests.controller.js";
 import { AuctionsService } from "./auctions.service.js";
 import { OffersService, type PdfInput } from "./offers.service.js";
+import { QuoteChecksService } from "./quote-checks.service.js";
 
 const uuid = z.uuid();
 const reason = z.string().trim().min(3).max(500);
@@ -57,6 +58,32 @@ function pdfOf(request: Request, contentType: string | undefined): PdfInput | nu
     body: new Uint8Array(body),
     contentType: (contentType ?? "").split(";")[0]?.trim() ?? "",
   };
+}
+
+const decideSchema = z.strictObject({
+  decision: z.enum(["EXCLUDED", "KEPT"]),
+  reason: z.string().trim().min(3).max(500),
+});
+
+/** OFF-09: the back office decides on the PDF quotes that differ from the declared offer. */
+@ApiTags("back-office")
+@ApiBearerAuth()
+@Controller("back-office/quote-checks")
+export class QuoteChecksController {
+  constructor(@Inject(QuoteChecksService) private readonly checks: QuoteChecksService) {}
+
+  @Get()
+  @RequirePermission("offer.excludeAfterPdfCheck")
+  list(@CurrentAuth() auth: AuthContext) {
+    return this.checks.list(auth);
+  }
+
+  @Post(":id/decision")
+  @HttpCode(200)
+  @RequirePermission("offer.excludeAfterPdfCheck")
+  decide(@CurrentAuth() auth: AuthContext, @Param("id") id: string, @Body() body: unknown) {
+    return this.checks.decide(auth, parseInput(uuid, id), parseInput(decideSchema, body));
+  }
 }
 
 /** Auctions and offers (phase 3; the agency screens arrive in phase 4). */

@@ -99,11 +99,7 @@ export default async function AgencyPage({
                           <span className="text-orange-700">{t("missing")}</span>
                         )}
                         {library.canManage ? (
-                          <form
-                            action={uploadProductDocument}
-                            encType="multipart/form-data"
-                            className="flex items-center gap-2"
-                          >
+                          <form action={uploadProductDocument} className="flex items-center gap-2">
                             <input type="hidden" name="productId" value={p.id} />
                             <input type="hidden" name="kind" value={kind} />
                             <label className="sr-only" htmlFor={`f-${p.id}-${kind}`}>

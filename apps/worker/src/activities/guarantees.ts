@@ -117,7 +117,8 @@ export function guaranteeActivities(
         bestExpiresAt: best
           ? new Date(endOfRomeDay(best.guaranteeUntil).getTime() + 1).toISOString()
           : null,
-        allExpiredAt: Number.isFinite(last) ? new Date(last + 1).toISOString() : null,
+        // OFF-09: no offer left (the back office excluded the last one): «Scaduta» now.
+        allExpiredAt: Number.isFinite(last) ? new Date(last + 1).toISOString() : now.toISOString(),
       };
     });
   }

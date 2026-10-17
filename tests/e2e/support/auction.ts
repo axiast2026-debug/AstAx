@@ -77,9 +77,12 @@ export async function approve(page: Page, code: string): Promise<void> {
   await expect(page.getByText("Richiesta approvata")).toBeVisible();
 }
 
-/** The card of the request in «Aste», once the worker has opened the auction. */
+/**
+ * The card of the request in «Aste», once the worker has opened the auction:
+ * the latest round (a reopening or a reconfirmation has a card of its own).
+ */
 export async function auctionCard(page: Page, code: string) {
-  const card = page.getByRole("region", { name: code });
+  const card = page.getByRole("region", { name: code }).last();
   await expect(async () => {
     await page.goto(`${ADMIN}/aste`);
     await expect(card).toBeVisible({ timeout: 1000 });
@@ -89,7 +92,7 @@ export async function auctionCard(page: Page, code: string) {
 
 export async function fireUntil(page: Page, code: string, status: string): Promise<void> {
   await expect(async () => {
-    const card = page.getByRole("region", { name: code });
+    const card = page.getByRole("region", { name: code }).last();
     if (!(await card.getByText(status, { exact: true }).isVisible())) {
       const fire = card.getByRole("button", { name: "Fai scattare il prossimo passo" });
       if (await fire.isVisible()) await fire.click();

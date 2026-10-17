@@ -63,6 +63,7 @@ Ogni utente sceglie i canali per evento nel profilo. Restano sempre attivi: le n
 | `offer.excluded_after_review` | `participating_agency_users` | In app, email |
 | `guarantee.expiring` | `requester` | In app, push, email |
 | `request.expired` | `requester` | In app, push, email |
+| `offer.quote_mismatch.bo` | `bo_verifiers`, `bo_supervisors` | In app, email |
 | `reconfirmation.requested` | Agenzie con offerta valida | In app, push, email |
 | `reconfirmation.completed.requester` | `requester` | In app, push, email |
 | `request.auto_cancelled` | `requester` | In app, email |
