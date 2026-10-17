@@ -1288,5 +1288,35 @@
       "DELIVERED": "Consegnata",
       "REJECTED": "Scartata dallo SDI"
     }
+  },
+  "brokerAccounting": {
+    "statementTitle": "Estratto conto",
+    "exportCsv": "Esporta in CSV",
+    "noPolicies": "Nessuna polizza emessa per i tuoi clienti.",
+    "request": "Richiesta",
+    "policy": "Polizza",
+    "issuedOn": "Emessa il",
+    "premium": "Premio",
+    "commission": "Provvigione",
+    "fee": "Fee AstAx",
+    "invoice": "Fattura",
+    "nextInvoice": "Nella fattura del mese",
+    "feeTotal": "Totale dei fee AstAx in elenco: {amount} (esenti IVA).",
+    "commissionStatus": {
+      "ACCRUED": "maturata",
+      "SETTLED": "liquidata"
+    },
+    "invoicesTitle": "Fatture e note di credito",
+    "noInvoices": "Nessuna fattura.",
+    "monthly": "Fattura mensile",
+    "creditNote": "Nota di credito",
+    "dueOn": "da pagare con bonifico entro il {date}",
+    "download": "Scarica la copia",
+    "sdiStatus": {
+      "TO_SEND": "Da inviare allo SDI",
+      "SENT": "Inviata allo SDI",
+      "DELIVERED": "Consegnata",
+      "REJECTED": "Scartata dallo SDI"
+    }
   }
 }

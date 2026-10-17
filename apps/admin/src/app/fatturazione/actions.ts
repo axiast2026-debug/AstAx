@@ -39,3 +39,16 @@ export async function completeRecipient(formData: FormData): Promise<void> {
   if (status !== 200) redirect(`/fatturazione?errore=${encodeURIComponent(codesOf(body))}`);
   redirect("/fatturazione?fatto=1");
 }
+
+/** Decision 24: the brokers' invoices of a month, as the schedule of the first day does. */
+export async function issueBrokerMonth(formData: FormData): Promise<void> {
+  const period = String(formData.get("period") ?? "");
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(period)) redirect("/fatturazione");
+  const { status, body } = await api("/back-office/invoices/broker-month", {
+    method: "POST",
+    body: JSON.stringify({ period }),
+  });
+  revalidatePath("/fatturazione");
+  if (status !== 200) redirect(`/fatturazione?errore=${encodeURIComponent(codesOf(body))}`);
+  redirect("/fatturazione?fatto=1");
+}

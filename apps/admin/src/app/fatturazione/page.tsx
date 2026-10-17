@@ -7,7 +7,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
-import { completeRecipient } from "./actions";
+import { completeRecipient, issueBrokerMonth } from "./actions";
 
 interface InvoiceRow {
   id: string;
@@ -60,6 +60,17 @@ export default async function InvoicingPage({
         <p role="status" className="mt-4 rounded-lg bg-green-50 p-3 text-sm">
           {t("done")}
         </p>
+      ) : null}
+      {canComplete ? (
+        <form action={issueBrokerMonth} className="mt-4 flex flex-wrap items-end gap-3 text-sm">
+          <label className="grid gap-1">
+            {t("brokerMonth")}
+            <input type="month" name="period" required className={field} />
+          </label>
+          <Button type="submit" size="sm" variant="outline">
+            {t("issueBrokerMonth")}
+          </Button>
+        </form>
       ) : null}
       <p className="mt-4 text-sm">
         {onlyToComplete ? (

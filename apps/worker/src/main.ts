@@ -67,6 +67,7 @@ const email = new MailpitEmailSender(config.MAILPIT_URL, {
   name: "AstAx",
 });
 const storage = storageFor(config);
+const fieldCipher = new LocalFieldCipher(config.FIELD_ENCRYPTION_KEY, config.BLIND_INDEX_KEY);
 const activities = createActivities({
   db,
   // ADR 0005: the worker holds only the key of the sealed bids.
@@ -75,7 +76,7 @@ const activities = createActivities({
     kmsEventRecorder(db, "worker", () => clock.now()),
   ),
   clock,
-  cipher: new LocalFieldCipher(config.FIELD_ENCRYPTION_KEY, config.BLIND_INDEX_KEY),
+  cipher: fieldCipher,
   storage,
   // Rule 9: the fake reader until phase 8; it reads the stored quote itself.
   reader: new FakeDocumentReader(clock, undefined, undefined, (key) => storage.get(key)),
@@ -122,7 +123,10 @@ const outboxTimer =
           });
       }, config.OUTBOX_DISPATCH_INTERVAL_MS);
 
-const stopSchedules = startSchedules(db, clock, logger, config.SCHEDULES_INTERVAL_MS);
+const stopSchedules = startSchedules(
+  { db, clock, cipher: fieldCipher, logger },
+  config.SCHEDULES_INTERVAL_MS,
+);
 
 const stop = () => {
   stopSchedules();

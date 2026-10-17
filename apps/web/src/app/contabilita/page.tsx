@@ -7,6 +7,7 @@ import { ErrorSummary } from "@/components/form";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
 import { contestPenalty } from "./actions";
+import { BrokerAccounting } from "./broker-accounting";
 
 interface PenaltyRow {
   id: string;
@@ -69,8 +70,16 @@ export default async function AccountingPage({
   searchParams: Promise<{ errore?: string; fatto?: string }>;
 }) {
   const viewer = await requireViewer();
-  if (viewer.activeMembership?.organization.type !== "AGENCY") notFound();
   const t = await getTranslations("accounting");
+  if (viewer.activeMembership?.organization.type === "BROKER") {
+    return (
+      <AppShell viewer={viewer}>
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        <BrokerAccounting />
+      </AppShell>
+    );
+  }
+  if (viewer.activeMembership?.organization.type !== "AGENCY") notFound();
   const query = await searchParams;
   const [{ status, body: penalties }, statement] = await Promise.all([
     api<PenaltyRow[]>("/agency/penalties"),

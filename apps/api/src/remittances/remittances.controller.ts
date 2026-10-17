@@ -108,6 +108,30 @@ export class RemittancesController {
     return this.invoices.complete(auth, parseInput(uuid, id), parseInput(completeSchema, body));
   }
 
+  @Post("back-office/invoices/broker-month")
+  @HttpCode(200)
+  @RequirePermission("remittance.execute")
+  brokerMonth(@CurrentAuth() auth: AuthContext, @Body() body: unknown) {
+    const { period } = parseInput(
+      z.strictObject({ period: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/) }),
+      body,
+    );
+    return this.invoices.issueBrokerMonth(auth, period);
+  }
+
+  // CONT-05, spec 02 «Contabilità».
+  @Get("broker/statement")
+  @RequirePermission("accounting.brokerStatement")
+  brokerStatement(@CurrentAuth() auth: AuthContext) {
+    return this.invoices.brokerStatement(auth);
+  }
+
+  @Get("broker/statement/csv")
+  @RequirePermission("accounting.brokerStatement")
+  async brokerCsv(@CurrentAuth() auth: AuthContext, @Res() response: Response) {
+    sendFile(response, await this.invoices.brokerCsv(auth));
+  }
+
   @Get("back-office/invoices/:id/pdf")
   @RequirePermission("accounting.view")
   async staffPdf(

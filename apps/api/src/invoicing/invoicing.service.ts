@@ -5,58 +5,34 @@ import type { EInvoicingPort } from "@astax/adapters/e-invoicing";
 import type { ObjectStoragePort } from "@astax/adapters/storage";
 import {
   asSystem,
-  settingsAt,
+  createInvoice,
+  invoiceAddress,
   SYSTEM_CONTEXT,
   withContext,
   type DbClient,
   type DbTransaction,
   type Invoice,
+  type InvoiceRecipient,
+  type NewInvoice,
+  type StoredAddress,
 } from "@astax/db";
-import {
-  invoiceNumber,
-  invoiceTotals,
-  type InvoiceLine,
-  type InvoiceSeries,
-} from "@astax/shared/domain";
-import { formatEuroCents, romeCalendarDate } from "@astax/shared/format";
+import { type InvoiceLine, type InvoiceSeries } from "@astax/shared/domain";
+import { formatEuroCents } from "@astax/shared/format";
 import type { Logger } from "@astax/shared/logging";
 import { errorForLog } from "@astax/shared/logging";
 import { Inject, Injectable } from "@nestjs/common";
 import { acceptancePdf } from "../acceptance/documents-pdf.js";
 import { CLOCK, DB, E_INVOICING, FIELD_CIPHER, LOGGER, OBJECT_STORAGE } from "../infra/tokens.js";
 import labels from "../notifications/labels.it.json" with { type: "json" };
-import { decryptJson, encryptJson } from "../requests/request-support.js";
+import { decryptJson } from "../requests/request-support.js";
 
-/**
- * Who the invoice is addressed to (encrypted on the invoice, ADR 0007). An
- * invoice whose recipient lacks the fiscal data is kept «da completare» and
- * not sent (proposal D of phase 6).
- */
-export interface InvoiceRecipient {
-  name: string;
-  givenName?: string | null;
-  surname?: string | null;
-  fiscalCode?: string | null;
-  vatNumber?: string | null;
-  address?: { street: string; postalCode: string; city: string; province?: string | null } | null;
-  /** SDI code, «0000000» for a private person. */
-  sdiCode?: string | null;
-  pec?: string | null;
-}
+export type { InvoiceRecipient };
 
 /** The «uploader» of what AstAx itself produces (no user uploads a fee invoice). */
 const ASTAX_ISSUED = "00000000-0000-0000-0000-000000000000";
 
 export const recipientComplete = (r: InvoiceRecipient) =>
   Boolean((r.fiscalCode || r.vatNumber) && r.address);
-
-const INVOICING_KEYS = [
-  "invoicing.vatNature",
-  "invoicing.legalReference",
-  "invoicing.stampDuty.thresholdCents",
-  "invoicing.stampDuty.amountCents",
-  "invoicing.stampDuty.chargedTo",
-] as const;
 
 /**
  * CONT-03, CONT-04, decisions 24 and 34: AstAx's fee invoices. The number is
@@ -76,19 +52,8 @@ export class InvoicingService {
   ) {}
 
   /** The municipality's name from its ISTAT code, for the address on the invoice. */
-  async addressOf(
-    tx: DbTransaction,
-    address: { street: string; postalCode: string; municipalityIstat: string; province: string },
-  ): Promise<InvoiceRecipient["address"]> {
-    const municipality = await tx.municipality.findUnique({
-      where: { istatCode: address.municipalityIstat },
-    });
-    return {
-      street: address.street,
-      postalCode: address.postalCode,
-      city: municipality?.name ?? address.municipalityIstat,
-      province: address.province,
-    };
+  addressOf(tx: DbTransaction, address: StoredAddress): Promise<InvoiceRecipient["address"]> {
+    return invoiceAddress(tx, address);
   }
 
   async issue(
@@ -140,69 +105,10 @@ export class InvoicingService {
     });
   }
 
-  private async create(
-    tx: DbTransaction,
-    input: {
-      series: InvoiceSeries;
-      recipientType: "PRIVATE" | "AGENCY" | "BROKER";
-      ownerUserId: string | null;
-      ownerOrganizationId: string | null;
-      recipient: InvoiceRecipient;
-      lines: InvoiceLine[];
-      quoteRequestId?: string | null;
-      remittanceId?: string | null;
-      period?: string | null;
-      dueOn?: string | null;
-      creditedInvoiceId: string | null;
-    },
-  ): Promise<Invoice> {
-    const now = this.clock.now();
-    const issuedOn = romeCalendarDate(now);
-    const year = Number(issuedOn.slice(0, 4));
-    const s = await settingsAt(tx, INVOICING_KEYS, now);
-    // A credit note gives back an amount: no stamp duty on it.
-    const totals = invoiceTotals(input.lines, {
-      vatNature: s["invoicing.vatNature"],
-      legalReference: s["invoicing.legalReference"],
-      stampDutyThresholdCents:
-        input.series === "N" ? Number.MAX_SAFE_INTEGER : s["invoicing.stampDuty.thresholdCents"],
-      stampDutyCents: s["invoicing.stampDuty.amountCents"],
-      stampDutyChargedTo: s["invoicing.stampDuty.chargedTo"],
-    });
-    return asSystem(tx, async () => {
-      const [counter] = await tx.$queryRaw<{ last: number }[]>`
-        INSERT INTO "InvoiceCounter" ("series", "year", "last")
-        VALUES (${input.series}::"InvoiceSeries", ${year}, 1)
-        ON CONFLICT ("series", "year") DO UPDATE SET "last" = "InvoiceCounter"."last" + 1
-        RETURNING "last"`;
-      const number = counter?.last ?? 0;
-      return tx.invoice.create({
-        data: {
-          series: input.series,
-          year,
-          number,
-          code: invoiceNumber(input.series, year, number),
-          recipientType: input.recipientType,
-          ownerUserId: input.ownerUserId,
-          ownerOrganizationId: input.ownerOrganizationId,
-          recipientEnc: encryptJson(this.cipher, input.recipient),
-          lines: input.lines as unknown as object[],
-          exemptCents: totals.exemptCents,
-          stampDutyCents: totals.stampDutyCents,
-          totalCents: totals.totalCents,
-          vatNature: totals.vatNature,
-          legalReference: totals.legalReference,
-          issuedOn: new Date(issuedOn),
-          dueOn: input.dueOn ? new Date(input.dueOn) : null,
-          quoteRequestId: input.quoteRequestId ?? null,
-          remittanceId: input.remittanceId ?? null,
-          period: input.period ?? null,
-          creditedInvoiceId: input.creditedInvoiceId,
-          createdAt: now,
-          updatedAt: now,
-        },
-      });
-    });
+  private async create(tx: DbTransaction, input: NewInvoice): Promise<Invoice> {
+    return asSystem(tx, () =>
+      createInvoice(tx, (plain) => this.cipher.encrypt(plain), input, this.clock.now()),
+    );
   }
 
   /**
@@ -280,6 +186,23 @@ export class InvoicingService {
     } catch (error) {
       this.logger.error({ invoiceId, err: errorForLog(error) }, "invoice not delivered");
     }
+  }
+
+  /**
+   * The invoices issued and not delivered yet: the broker's monthly ones
+   * (issued by the worker's schedule) and those whose delivery failed. Each
+   * delivery is idempotent; the incomplete recipients stay «da completare».
+   */
+  async deliverPending(): Promise<number> {
+    const pending = await withContext(this.db, SYSTEM_CONTEXT, (tx) =>
+      tx.invoice.findMany({
+        where: { sdiStatus: "TO_SEND", OR: [{ xmlKey: null }, { pdfDocumentId: null }] },
+        select: { id: true },
+        take: 100,
+      }),
+    );
+    for (const { id } of pending) await this.deliver(id);
+    return pending.length;
   }
 
   /** The SDI state of an invoice still on its way (the fake delivers after a few seconds). */

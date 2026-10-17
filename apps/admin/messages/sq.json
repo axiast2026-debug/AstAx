@@ -514,6 +514,8 @@
       "SENT": "Dërguar në SDI",
       "DELIVERED": "E dorëzuar",
       "REJECTED": "Refuzuar nga SDI"
-    }
+    },
+    "brokerMonth": "Muaji i faturave për brokerët",
+    "issueBrokerMonth": "Lësho faturat mujore për brokerët"
   }
 }

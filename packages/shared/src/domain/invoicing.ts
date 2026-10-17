@@ -1,3 +1,5 @@
+import { daysInMonth } from "./calendar-date.js";
+
 /**
  * CONT-03, CONT-04, decisions 24 and 34: the invoices of AstAx's fees, all
  * exempt from VAT. Series per year: P to the private customers (one per
@@ -77,4 +79,38 @@ export function creditNoteCents(
   if (requestedCents > left)
     throw new Error("A credit note cannot exceed what is left on the invoice");
   return requestedCents;
+}
+
+/** The month before the one of a date, as `YYYY-MM` (the broker's monthly invoice). */
+export function previousMonth(date: string): string {
+  const [year, month] = date.split("-").map(Number) as [number, number];
+  return month === 1 ? `${year - 1}-12` : `${year}-${String(month - 1).padStart(2, "0")}`;
+}
+
+/** First and last calendar day of a `YYYY-MM` month. */
+export function monthBounds(period: string): { from: string; to: string } {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(period)) throw new Error("period");
+  const [year, month] = period.split("-").map(Number) as [number, number];
+  return {
+    from: `${period}-01`,
+    to: `${period}-${String(daysInMonth(year, month)).padStart(2, "0")}`,
+  };
+}
+
+/**
+ * Decision 24: the lines of the broker's monthly invoice, one per fee
+ * amount (the parameter may change during the month), with the number of
+ * policies issued for the broker's customers.
+ */
+export function brokerInvoiceLines(
+  feesCents: readonly number[],
+  description: string,
+): InvoiceLine[] {
+  const byAmount = new Map<number, number>();
+  for (const cents of feesCents) {
+    if (cents > 0) byAmount.set(cents, (byAmount.get(cents) ?? 0) + 1);
+  }
+  return [...byAmount.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([unitCents, quantity]) => ({ description, quantity, unitCents }));
 }

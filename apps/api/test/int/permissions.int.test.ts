@@ -385,7 +385,15 @@ const ENDPOINTS: Endpoint[] = [
     path: () => `/back-office/invoices/${randomUUID()}/recipient`,
     body: {},
   },
+  {
+    action: "remittance.execute",
+    method: "POST",
+    path: () => "/back-office/invoices/broker-month",
+    body: {},
+  },
   { action: "accounting.agencyStatement", method: "GET", path: () => "/agency/statement" },
+  { action: "accounting.brokerStatement", method: "GET", path: () => "/broker/statement" },
+  { action: "accounting.brokerStatement", method: "GET", path: () => "/broker/statement/csv" },
   { action: "invoice.viewOwn", method: "GET", path: () => "/invoices" },
   { action: "invoice.viewOwn", method: "GET", path: () => `/invoices/${randomUUID()}/pdf` },
   {

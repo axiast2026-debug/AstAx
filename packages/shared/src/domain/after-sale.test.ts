@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { FeeSettings } from "./acceptance.js";
 import {
+  brokerInvoiceLines,
   creditNoteCents,
   invoiceNumber,
   invoiceTotals,
+  monthBounds,
+  previousMonth,
   type InvoicingSettings,
 } from "./invoicing.js";
 import {
@@ -156,6 +159,17 @@ describe("CONT-03 CONT-04 invoices", () => {
   it("CONT-03 a credit note never exceeds what is left on the invoice", () => {
     expect(creditNoteCents(3500, 0, 3500)).toBe(3500);
     expect(() => creditNoteCents(3500, 3000, 1000)).toThrow();
+  });
+
+  it("decision 24 the broker invoice covers the month before, one line per fee amount", () => {
+    expect(previousMonth("2026-11-01")).toBe("2026-10");
+    expect(previousMonth("2027-01-01")).toBe("2026-12");
+    expect(monthBounds("2028-02")).toEqual({ from: "2028-02-01", to: "2028-02-29" });
+    expect(() => monthBounds("2026-13")).toThrow();
+    expect(brokerInvoiceLines([3000, 3000, 0, 2500, 3000], "Fee")).toEqual([
+      { description: "Fee", quantity: 1, unitCents: 2500 },
+      { description: "Fee", quantity: 3, unitCents: 3000 },
+    ]);
   });
 });
 

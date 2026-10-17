@@ -514,6 +514,8 @@
       "SENT": "Inviata allo SDI",
       "DELIVERED": "Consegnata",
       "REJECTED": "Scartata dallo SDI"
-    }
+    },
+    "brokerMonth": "Mese delle fatture ai broker",
+    "issueBrokerMonth": "Emetti le fatture mensili ai broker"
   }
 }

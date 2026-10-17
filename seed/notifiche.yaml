@@ -16,6 +16,9 @@ labels:
   offerExclusion.none: { it: "", sq: "" }
   guarantee.none: { it: "—", sq: "—" }
   offerQuote.fileName: { it: "preventivo.pdf", sq: "oferta.pdf" }
+  invoice.brokerLine:
+    it: "Fee AstAx sulle polizze acquistate, mese"
+    sq: "Tarifa AstAx për policat e blera, muaji"
 
 events:
 
