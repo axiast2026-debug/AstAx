@@ -9,7 +9,7 @@ Claude Code aggiorna questo file alla fine di ogni sessione di lavoro e alla chi
 | 1. Fondamenta | Chiusa | 2026-10-15 | Criteri soddisfatti; verifica indipendente in due giri; demo vista e chiusura confermata da Dan |
 | 2. Richiesta e verifica | In verifica | | Criteri con prova; verifica indipendente in due giri, problemi corretti; CI verde. Demo provata da Dan il 2026-10-16: «tante cose non tornano», da riprendere in seguito; non chiusa |
 | 3. Motore d'asta | In verifica | | Criteri con prova; verifica indipendente in tre giri, problemi corretti; manca la demo con Dan |
-| 4. Offerte | In corso | | Piano approvato da Dan il 2026-10-16 (proposte A-G), con le fasi 2 e 3 ancora aperte |
+| 4. Offerte | In verifica | | Tutti i passi fatti; verifica indipendente (primo giro) con i problemi corretti; manca la demo con Dan |
 | 5. Accettazione | Da iniziare | | |
 | 6. Dopo l'acquisto | Da iniziare | | |
 | 7. Pannelli e notifiche | Da iniziare | | |
@@ -88,7 +88,63 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 - Passo 8 (prove): E2E `S03-riconferma.spec.ts`, `S06-parita.spec.ts`, S10 con aiuti comuni in `tests/e2e/support/agency.ts`, nuova utenza di prova per Agenzia Cinque; integrazione: ogni risposta dell'area agenzia senza telefono né email del cliente (anche nei PDF), lettura della copia dell'offerta per ruolo (autore, titolare, supervisore, operatore solo con `canSeeColleagueOffers`), avviso sulle coperture sotto il pacchetto, note con email o link scritti a parole, decisioni del back office sui PDF.
 - Prove del giro completo: `pnpm check` verde (36 compiti); E2E 17 su 18 al primo giro: `fase4-agenzia.spec.ts` dipendeva dalla rotazione della scelta automatica e ora fa invitare Agenzia Uno a mano; poi 3 giri su 4 verdi, il quarto fermo su un clic senza un errore riproducibile: da tenere d'occhio in CI.
 - Ambiente di sviluppo: durante `pnpm check` (che ricompila i pacchetti) l'API e il worker avviati da `pnpm dev` a volte si fermano al riavvio automatico e restano fermi; si riavviano con `pnpm dev`.
-- Debito: se il back office esclude l'ultima offerta rimasta, la richiesta passa a «Scaduta» solo al successivo controllo delle garanzie, non subito.
+- Debito: se il back office esclude l'ultima offerta rimasta, la richiesta passa a «Scaduta» solo al successivo controllo delle garanzie, non subito (domanda 16).
+
+## Criteri della fase 4
+
+| Criterio | Stato | Prova |
+| --- | --- | --- |
+| Scenari S03, S06 (end-to-end) e S10 | Fatto (S03 in parte) | E2E `S03-riconferma.spec.ts`, `S06-parita.spec.ts`, `S10-sub-agente-due-agenzie.spec.ts`. S03: le risposte delle agenzie sono offerte di prova, non conferma/aggiornamento/rinuncia dalle schermate; le regole di S03 (24 ore lavorative, garanzia minima, solo le agenzie dell'ultimo giro, busta chiusa) sono provate in `apps/worker/test/int/activities.int.test.ts` e `apps/api/test/int/reconfirmation.int.test.ts` |
+| Il modulo rifiuta compagnia senza mandato, garanzia sotto il minimo, PDF mancante, note con telefono, email o link; coperture sotto il pacchetto: avviso all'invio ed esclusione alla chiusura | Fatto | `auctions.int.test.ts` («OFF-04 OFF-05 VIS-11…»), `agency.int.test.ts` («OFF-04 the operator sends…», avviso), `activities.int.test.ts` («OFF-06…») |
+| Copia per l'agenzia solo a chi ne ha diritto, gli altri 403, ogni lettura registrata | Fatto | `agency.int.test.ts` («BC-04 the agency's copy…»), `auctions.int.test.ts` («S07 BC-01…») |
+| Due prese in carico nello stesso istante: una sola riesce | Fatto | `agency.int.test.ts` («OFF-03 two users…») |
+| Filigrana sui documenti, verificata sul file | Fatto | `apps/api/test/watermark.test.ts` (testo disegnato su ogni pagina, metadati del cliente tolti), `agency.int.test.ts` («VIS-10…») |
+| Tutti gli endpoint dell'area agenzia senza telefono ed email del cliente | Fatto | `agency.int.test.ts` («VIS-01 every answer…»: tre ruoli, risposte vere controllate, documenti compresi) |
+| Controllo del PDF: segnalazione, esclusione con motivo, rifiutata dopo l'accettazione | Fatto | `activities.int.test.ts` («OFF-09…»), `quote-checks.int.test.ts` |
+| I filtri personali non allargano quelli dell'agenzia | Fatto | `agency-filters.test.ts`, `agency-settings.int.test.ts` («VIS-06…») |
+| Il titolare vede gli accessi dei propri utenti | Fatto | `agency-settings.int.test.ts` («VIS-08…», anche senza le voci di un'altra agenzia), E2E `fase4-agenzia.spec.ts` |
+
+## Verifica indipendente (fase 4)
+
+Primo giro, 2026-10-17: 17 problemi. Corretti:
+
+1. I metadati del PDF del cliente (titolo, autore, XMP) arrivavano all'agenzia (VIS-01): ora tolti; test sul file.
+2. Il test dei contatti non poteva vederli: nuovo test sul file e sulle pagine.
+3. In riconferma un aggiornamento del premio senza PDF nuovo teneva il PDF vecchio: ora il PDF nuovo serve sempre, tranne per la conferma dello stesso premio, compagnia e prodotto.
+4. Il test «ogni endpoint» non controllava che le risposte fossero vere: ora controlla l'esito.
+5. La protezione contro una seconda riconferma confrontava gli orari di due programmi: ora usa il numero della riconferma.
+6. L'annullamento automatico poteva scattare subito dopo una richiesta di riconferma: ora no, e il workflow aspetta il segnale.
+7. I 30 giorni erano blocchi di 24 ore: ora giorni di calendario di Roma.
+8. L'avviso di esclusione dopo il controllo del PDF andava a tutti i membri: ora solo a chi può vedere quell'offerta.
+9. L'affidamento a un collega non controllava i suoi filtri e le sue offerte per un'altra agenzia, e trasformava ogni errore in «lavora per un'altra agenzia»: corretto, con test.
+10. Numeri di business nel codice (finestra di 30 giorni e ora del cruscotto): ora parametri `agency.dashboard.statsDays` e `agency.dashboard.closingSoonMinutes`.
+11. «Offerte aperte» mostrava anche offerte con la garanzia scaduta: ora solo quelle ancora garantite.
+12. Alcuni rifiuti a utenti non di agenzia non erano registrati: ora sì.
+13. Il contatore «chiudono entro un'ora» contava anche le richieste rinunciate: corretto.
+14. Il caricamento dei documenti dei prodotti e dei PDF delle offerte si fidava del tipo dichiarato: ora controlla che il file sia un PDF.
+15. Nel «Team» l'ultimo accesso contava anche il lavoro per altre agenzie: ora solo per questa.
+16. Nuovi test: registro degli accessi senza le voci di un'altra agenzia, busta chiusa durante la riconferma, scadenza esatta della riconferma (24 ore lavorative con la festa dell'8 dicembre).
+
+Dopo le correzioni: `pnpm check` verde (36 compiti, dopo un primo giro interrotto da un crash di Windows in un processo di test del database); E2E 17 su 18, poi S06 verde da solo (al primo giro il worker di sviluppo era fermo e l'asta non si era aperta).
+
+Rinviati, come debito o domanda:
+
+- nessun test di «replay» dei workflow con una storia della fase 3 (le modifiche sono protette con `patched` e con percorsi nuovi solo dopo l'ultimo passo registrato);
+- domanda 16 per Dan: cosa fare quando il back office esclude l'ultima offerta rimasta;
+- S03 end-to-end con risposte delle agenzie dalle schermate (oggi offerte di prova).
+
+## Demo per Dan (fase 4)
+
+Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Searches\astax`, `pnpm infra:up`, `pnpm install`, `pnpm db:migrate` (due tabelle nuove), `pnpm db:seed` (Sofia Marchi e le altre utenze), poi `pnpm --filter @astax/ui build` e `pnpm dev`. Password dei professionisti e codici come nelle demo precedenti. Servono tre finestre del browser (o una normale, una in incognito e un altro browser): Agenzia Uno, Marco Rossi e Giulia (privata). Il back office (`arta.hoxha@astax.test`) in una quarta.
+
+1. **La richiesta arriva alle agenzie.** Giulia invia una richiesta, il back office la approva. In «Aste», sulla scheda dell'asta, con «Invita» (motivo «demo») invita a mano Agenzia Uno e Agenzia Tre, così sono sicure tra le invitate.
+2. **L'area dell'agenzia.** Entra come `anna.moretti@agenzia-uno.test` (titolare di Agenzia Uno). La home è il cruscotto dell'agenzia. In «Richieste in arrivo» c'è la richiesta di Giulia con le colonne della scheda e il conto alla rovescia. Aprila: tutti i dati per quotare, nessun telefono né email, l'avviso «ogni apertura viene registrata». Apri un documento: è un PDF con il nome dell'agenzia, il tuo nome, data e ora.
+3. **Marco lavora per due agenzie.** Entra come `marco.rossi@collaboratori.test`, scegli Agenzia Uno e premi «Prendi in carico». Con il selettore in alto passa ad Agenzia Tre: la stessa richiesta dice «Hai già preso in carico questa richiesta per Agenzia Uno» e non puoi né prenderla né offrire. Torna su Agenzia Uno e premi «Rilascia».
+4. **Sofia offre per Agenzia Tre.** Entra come `sofia.marchi@agenzia-tre.test`, prendi in carico e compila l'offerta: premio, Compagnia Beta e il suo prodotto, le coperture voce per voce (accanto c'è quello che chiede il pacchetto), la data di garanzia, il PDF, la conferma che è vincolante. Prova a scrivere un numero di telefono o «chiocciola» nelle note: viene rifiutato.
+5. **Anna offre per Agenzia Uno.** Come titolare, in «Le mie offerte» vedi le offerte per stato e la sezione «Offerte aperte». In «Team» vedi le persone con RUI, permessi e ultimo accesso; con «Registro degli accessi» vedi chi ha aperto i dati della richiesta di Giulia. In «Filtri e capacità» e in «Agenzia» (libreria prodotti con DIP e condizioni) puoi provare a cambiare qualcosa.
+6. **La chiusura e il controllo dei PDF.** In «Aste» premi «Invia 3 offerte di prova» e poi «Fai scattare il prossimo passo» fino a «Chiusa». Giulia vede le offerte. Il back office trova la sezione «Preventivi da controllare»: una delle offerte di prova ha nel PDF un premio di 10,00 € più alto di quello dichiarato. Puoi «Escludi l'offerta» con un motivo oppure «Va bene così».
+7. **Scadenza e riconferma.** In «Aste», negli strumenti di sviluppo, scrivi 64800 minuti (45 giorni) e premi «Sposta avanti l'orologio», poi «Fai scattare il prossimo passo» qualche volta: la richiesta di Giulia diventa «Scaduta» e lei vede «Chiedi riconferma» («Ti restano 2 riconferme»). Premilo: Giulia vede «Riconferma in corso»; le agenzie che avevano offerto trovano la richiesta con il segno «Riconferma» e il modulo già compilato con la loro offerta («Conferma lo stesso premio» o «Invia il premio aggiornato»). Fai rispondere le agenzie (anche con «Invia 3 offerte di prova») e chiudi con «Fai scattare il prossimo passo»: Giulia vede le nuove offerte con le nuove date di garanzia.
+8. **Fine.** Premi «Riporta l'orologio a oggi».
 
 ## Criteri della fase 3
 

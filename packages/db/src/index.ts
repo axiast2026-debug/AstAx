@@ -23,4 +23,10 @@ export {
   type AuctionSettingsSnapshot,
 } from "./auction-data.js";
 export { kmsEventRecorder, type KmsEventInput } from "./kms-events.js";
-export { addRequestEvent, type ActorKind, type RequestEventType } from "./request-events.js";
+export {
+  addRequestEvent,
+  reconfirmationAsked,
+  type ActorKind,
+  type RequestEventType,
+} from "./request-events.js";
+export { isUniqueViolation, looksLikePdf } from "./errors.js";

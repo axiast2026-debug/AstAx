@@ -1,7 +1,7 @@
 import { SYSTEM_CONTEXT, addRequestEvent, withContext } from "@astax/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { openTestAuction } from "./auction-helpers.js";
-import { acceptAllLegal, membershipId, startHarness, type Harness } from "./fixtures.js";
+import { acceptAllLegal, membershipId, orgId, startHarness, type Harness } from "./fixtures.js";
 import { requestHelpers, type Who } from "./request-helpers.js";
 
 // Phase 4: «Chiedi riconferma» (GAR-06) and the agencies' answers (GAR-07, proposal C).
@@ -52,6 +52,17 @@ beforeAll(async () => {
 afterAll(async () => {
   await h.close();
 });
+
+const COVERAGE = {
+  rca: { limitType: "SINGLE_LIMIT", singleLimitEur: 10_000_000 },
+  recourseWaiver: { included: false },
+  roadsideAssistance: { included: false },
+  legalProtection: { included: false },
+  driverAccident: { included: false },
+  theftFire: { included: false },
+  naturalEventsVandalism: { included: false },
+  glass: { included: false },
+};
 
 const ask = () => r.call(customer, `/requests/${requestId}/reconfirmation`, { body: {} });
 
@@ -104,51 +115,104 @@ describe("fase 4: reconfirmation (GAR-06, GAR-07)", () => {
     expect(problem.errors.map((e) => e.issue)).toEqual(["RECONFIRMATIONS_USED_UP"]);
   });
 
-  it("GAR-07 proposal C in a reconfirmation the agency may answer without a new PDF", async () => {
-    const auctionId = await openTestAuction(h, requestId, ["agenzia-uno"], {
-      kind: "RECONFIRMATION",
-      round: 2,
-    });
+  it("GAR-07 proposal C OFF-04 without a new PDF only a confirmation of the same premium, company and product is accepted", async () => {
     const uno: Who = {
       token: await h.tokenFor("agenzia-uno-owner"),
       context: membershipId("agenzia-uno-owner", "agenzia-uno"),
     };
+    // The last closed round: Agenzia Uno's offer, now expired, with its quote.
+    const main = await openTestAuction(h, requestId, ["agenzia-uno"]);
     const detail = await r.json<{
-      kind: string;
-      companies: { id: string; name: string }[];
+      companies: { id: string }[];
       products: { id: string; companyId: string }[];
-      minGuaranteeDate: string;
-    }>(await r.call(uno, `/agency/requests/${auctionId}`), 200);
-    expect(detail.kind).toBe("RECONFIRMATION");
-    await r.json(await r.call(uno, `/auctions/${auctionId}/claim`, { body: {} }), 200);
+    }>(await r.call(uno, `/agency/requests/${main}`), 200);
     const company = detail.companies[0]?.id ?? "";
-    const offer = {
-      annualGrossPremiumCents: 48000,
-      companyId: company,
-      productId: detail.products.find((p) => p.companyId === company)?.id,
-      coverage: {
-        rca: { limitType: "SINGLE_LIMIT", singleLimitEur: 10_000_000 },
-        recourseWaiver: { included: false },
-        roadsideAssistance: { included: false },
-        legalProtection: { included: false },
-        driverAccident: { included: false },
-        theftFire: { included: false },
-        naturalEventsVandalism: { included: false },
-        glass: { included: false },
-      },
-      guaranteeUntil: "2026-12-20",
-      notes: null,
-      binding: true,
-    };
-    const response = await fetch(`${h.baseUrl}/auctions/${auctionId}/offers`, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${uno.token}`,
-        "x-astax-context": uno.context ?? "",
-        "x-offer": Buffer.from(JSON.stringify(offer)).toString("base64url"),
-      },
+    const productId = detail.products.find((p) => p.companyId === company)?.id ?? "";
+    const owner = membershipId("agenzia-uno-owner", "agenzia-uno");
+    await system(async (tx) => {
+      const member = await tx.membership.findUniqueOrThrow({ where: { id: owner } });
+      const document = await tx.document.create({
+        data: {
+          kind: "OFFER_QUOTE",
+          ownerUserId: (await tx.quoteRequest.findUniqueOrThrow({ where: { id: requestId } }))
+            .ownerUserId,
+          quoteRequestId: requestId,
+          storageKey: `documents/test-${main}`,
+          sha256: "0".repeat(64),
+          mime: "application/pdf",
+          size: 10,
+          fileName: "preventivo.pdf",
+          uploadedByUserId: member.userId,
+        },
+      });
+      await tx.offer.create({
+        data: {
+          auctionId: main,
+          organizationId: orgId("agenzia-uno"),
+          membershipId: owner,
+          userId: member.userId,
+          submittedAt: h.clock.now(),
+          lastChangedAt: h.clock.now(),
+          sealedPayload: "test",
+          ownerCopy: "test",
+          status: "EXPIRED",
+          annualGrossPremiumCents: 48000,
+          companyId: company,
+          productId,
+          guaranteeUntil: new Date("2026-12-01"),
+          pdfDocumentId: document.id,
+        },
+      });
+      await tx.auction.update({ where: { id: main }, data: { status: "CLOSED" } });
     });
-    expect(response.status).toBe(201);
+    const auctionId = await openTestAuction(h, requestId, ["agenzia-uno"], {
+      kind: "RECONFIRMATION",
+      round: 2,
+    });
+    const answer = await r.json<{
+      kind: string;
+      previousOffer: { annualGrossPremiumCents: number };
+    }>(await r.call(uno, `/agency/requests/${auctionId}`), 200);
+    expect(answer.kind).toBe("RECONFIRMATION");
+    expect(answer.previousOffer.annualGrossPremiumCents).toBe(48000);
+    await r.json(await r.call(uno, `/auctions/${auctionId}/claim`, { body: {} }), 200);
+    const send = (premium: number) =>
+      fetch(`${h.baseUrl}/auctions/${auctionId}/offers`, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${uno.token}`,
+          "x-astax-context": uno.context ?? "",
+          "x-offer": Buffer.from(
+            JSON.stringify({
+              annualGrossPremiumCents: premium,
+              companyId: company,
+              productId,
+              coverage: COVERAGE,
+              guaranteeUntil: "2026-12-20",
+              notes: null,
+              binding: true,
+            }),
+          ).toString("base64url"),
+        },
+      });
+    // An update of the premium needs its own quote: the old PDF says another price.
+    const update = await r.json<{ errors: { path: string; issue: string }[] }>(
+      await send(45000),
+      400,
+    );
+    expect(update.errors).toContainEqual({ path: "pdf", issue: "PDF_REQUIRED" });
+    const confirmed = await send(48000);
+    expect(confirmed.status).toBe(201);
+    const { id: answerId } = (await confirmed.json()) as { id: string };
+    // BC-06: the answers of the round stay sealed for everybody else until its closing.
+    const verifier: Who = {
+      token: await h.tokenFor("bo-verifier"),
+      context: membershipId("bo-verifier", "astax"),
+    };
+    for (const path of [`/offers/${answerId}`, `/auctions/${auctionId}/offers`]) {
+      expect((await r.call(verifier, path)).status, path).toBe(403);
+    }
+    expect((await r.call(customer, `/offers/${answerId}`)).status).toBe(403);
   });
 
   it("only the requester asks for a reconfirmation", async () => {

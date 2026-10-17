@@ -260,6 +260,12 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
       if (!reconfirm) {
         const s = await acts.expiredSchedule({ requestId });
         if (!s.expired || !s.autoCancelAt) return "EXPIRED_CLOSED";
+        if (s.pending) {
+          // Asked, its signal on the way from the outbox: wait for it, never cancel.
+          await condition(() => fire || reconfirm, "1 hour");
+          fire = false;
+          continue;
+        }
         const ms = Date.parse(s.autoCancelAt) - Date.now();
         if (ms > 0) await condition(() => fire || reconfirm, ms);
         fire = false;

@@ -215,6 +215,18 @@ describe("fase 4: filters, capacity, products, access log (spec 04)", () => {
     );
     expect(log.entries[0]).toMatchObject({ action: "ACCESS_DENIED" });
     expect(log.entries[0]?.user).toBeTruthy();
+    // VIS-08: another agency's owner never sees these entries.
+    const dieciNames = (
+      await r.json<{ members: { firstName: string; lastName: string }[] }>(
+        await r.call(owner, "/team"),
+        200,
+      )
+    ).members.map((m) => `${m.firstName} ${m.lastName}`);
+    const uno = await r.json<{ entries: { user: string | null }[] }>(
+      await r.call(await who("agenzia-uno-owner", "agenzia-uno"), "/agency/access-log"),
+      200,
+    );
+    expect(uno.entries.filter((e) => e.user && dieciNames.includes(e.user))).toEqual([]);
     expect((await r.call(await who("agenzia-dieci-supervisor"), "/agency/access-log")).status).toBe(
       403,
     );

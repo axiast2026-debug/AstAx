@@ -1,7 +1,14 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { Clock } from "@astax/adapters/clock";
 import type { ObjectStoragePort } from "@astax/adapters/storage";
-import { asSystem, settingsAt, withContext, type DbClient, type DbTransaction } from "@astax/db";
+import {
+  asSystem,
+  looksLikePdf,
+  settingsAt,
+  withContext,
+  type DbClient,
+  type DbTransaction,
+} from "@astax/db";
 import {
   AgencyFilterCriteriaSchema,
   memberFilterProblems,
@@ -25,6 +32,7 @@ export const PRODUCT_DOCUMENT_KINDS = [
 export type ProductDocumentKind = (typeof PRODUCT_DOCUMENT_KINDS)[number];
 
 export const CapacityInputSchema = z.strictObject({
+  // The upper bound only refuses typing mistakes; it is not a business limit.
   dailyMax: z.number().int().positive().max(1000).nullable(),
   receptionHours: WeeklyHoursSchema,
   pausedUntil: z.iso.datetime({ offset: true }).nullable(),
@@ -342,7 +350,7 @@ export class AgencySettingsService {
     if (!(PRODUCT_DOCUMENT_KINDS as readonly string[]).includes(kind)) {
       throw new ProblemError("VALIDATION_FAILED", undefined, [{ path: "kind", issue: "invalid" }]);
     }
-    if (file.contentType !== "application/pdf") {
+    if (file.contentType !== "application/pdf" || !looksLikePdf(file.body)) {
       throw new ProblemError("VALIDATION_FAILED", undefined, [
         { path: "file", issue: "NOT_A_PDF" },
       ]);

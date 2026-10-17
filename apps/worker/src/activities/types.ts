@@ -49,6 +49,8 @@ export interface GuaranteeSchedule {
 export interface ExpiredSchedule {
   expired: boolean;
   autoCancelAt: string | null;
+  /** The requester has asked for a reconfirmation, whose signal is on its way. */
+  pending?: boolean;
 }
 
 export interface ReopenPolicy {

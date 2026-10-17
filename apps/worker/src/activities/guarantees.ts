@@ -1,5 +1,6 @@
 import {
   addRequestEvent,
+  reconfirmationAsked,
   settingsAt,
   SYSTEM_CONTEXT,
   withContext,
@@ -14,7 +15,7 @@ import {
   transitionRequest,
   type RankedOffer,
 } from "@astax/shared/domain";
-import { dbDateToCalendarDate, formatDate } from "@astax/shared/format";
+import { dbDateToCalendarDate, formatDate, romeCalendarDate } from "@astax/shared/format";
 import type { PendingEmail } from "../notifier.js";
 import {
   audit,
@@ -232,7 +233,10 @@ export function guaranteeActivities(
       ["requests.autoCancelExpiredDays"],
       now,
     );
-    return { at: new Date((since?.at ?? now).getTime() + days * 86_400_000), days };
+    // Calendar days in Rome (rule 6): from the start of the day after the last
+    // of them, whatever the change to and from summer time in between.
+    const expiredOn = romeCalendarDate(since?.at ?? now);
+    return { at: romeInstant(addCalendarDays(expiredOn, days + 1), "00:00"), days };
   }
 
   async function expiredSchedule(input: { requestId: string }): Promise<ExpiredSchedule> {
@@ -240,7 +244,8 @@ export function guaranteeActivities(
       const request = await tx.quoteRequest.findUniqueOrThrow({ where: { id: input.requestId } });
       if (request.status !== "EXPIRED") return { expired: false, autoCancelAt: null };
       const { at } = await autoCancelAtOf(tx, request.id, clock.now());
-      return { expired: true, autoCancelAt: at.toISOString() };
+      const pending = await reconfirmationAsked(tx, request.id, request.reconfirmationsUsed);
+      return { expired: true, autoCancelAt: at.toISOString(), ...(pending ? { pending } : {}) };
     });
   }
 
@@ -252,6 +257,10 @@ export function guaranteeActivities(
       if (request.status !== "EXPIRED") return { cancelled: request.status === "CANCELLED" };
       const { at, days } = await autoCancelAtOf(tx, request.id, now);
       if (now < at) return { cancelled: false };
+      // GAR-06: a reconfirmation asked just before the end is an action: no cancellation.
+      if (await reconfirmationAsked(tx, request.id, request.reconfirmationsUsed)) {
+        return { cancelled: false };
+      }
       transitionRequest("EXPIRED", "CANCELLED");
       await tx.quoteRequest.update({ where: { id: request.id }, data: { status: "CANCELLED" } });
       await addRequestEvent(tx, request, {

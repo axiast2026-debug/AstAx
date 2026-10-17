@@ -3,6 +3,7 @@ import type { Clock } from "@astax/adapters/clock";
 import {
   addRequestEvent,
   asSystem,
+  reconfirmationAsked,
   recordDomainEvent,
   settingsAt,
   auctionSettings,
@@ -90,15 +91,9 @@ export class AuctionsService {
       now,
     );
     // Asked and not yet opened by the worker: a second click changes nothing.
-    const [asked, opened] = await Promise.all(
-      (["RECONFIRMATION_REQUESTED", "RECONFIRMATION_OPENED"] as const).map((type) =>
-        tx.quoteRequestEvent.findFirst({
-          where: { quoteRequestId: request.id, type },
-          orderBy: { at: "desc" },
-        }),
-      ),
-    );
-    const pending = request.status === "EXPIRED" && !!asked && (!opened || opened.at < asked.at);
+    const pending =
+      request.status === "EXPIRED" &&
+      (await reconfirmationAsked(tx, request.id, request.reconfirmationsUsed));
     return {
       used: request.reconfirmationsUsed,
       max,
@@ -136,6 +131,7 @@ export class AuctionsService {
         actorKind: "REQUESTER",
         actorUserId: auth.userId,
         at: now,
+        details: { used: state.used },
       });
       await recordDomainEvent(tx, {
         aggregateType: "QuoteRequest",

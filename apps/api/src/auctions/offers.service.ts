@@ -5,6 +5,7 @@ import type { ObjectStoragePort } from "@astax/adapters/storage";
 import {
   asSystem,
   filterableRequest,
+  looksLikePdf,
   settingsAt,
   withContext,
   type Auction,
@@ -126,7 +127,14 @@ export class OffersService {
     tx: DbTransaction,
     auth: AuthContext,
   ): Promise<AgencyFilterCriteria | "all" | null> {
-    const m = this.agency(auth);
+    return this.memberScopeOf(tx, this.agency(auth));
+  }
+
+  /** VIS-06: what one member of the agency sees (the caller, or a colleague given a claim). */
+  async memberScopeOf(
+    tx: DbTransaction,
+    m: { id: string; organizationId: string; role: string },
+  ): Promise<AgencyFilterCriteria | "all" | null> {
     if (m.role !== "OPERATOR") return "all";
     const capacity = await tx.agencyCapacity.findUnique({
       where: { organizationId: m.organizationId },
@@ -294,7 +302,9 @@ export class OffersService {
       errors.push({ path: "notes", issue: `NOTES_${problem}` });
     }
     if (pdf) {
-      if (pdf.contentType !== "application/pdf") errors.push({ path: "pdf", issue: "NOT_A_PDF" });
+      if (pdf.contentType !== "application/pdf" || !looksLikePdf(pdf.body)) {
+        errors.push({ path: "pdf", issue: "NOT_A_PDF" });
+      }
       if (pdf.body.length > settings["documents.maxUploadMb"] * 1024 * 1024)
         errors.push({ path: "pdf", issue: "TOO_LARGE" });
     } else if (pdfRequired) {
@@ -446,8 +456,6 @@ export class OffersService {
     const result = await withContext(this.db, auth.db, async (tx) => {
       const auction = await this.lockOpen(tx, auth, auctionId);
       await this.invitation(tx, auth, auction);
-      // GAR-07, proposal C: a reconfirmation may keep the quote of the previous
-      // round (the worker links it at the closing); a new PDF replaces it.
       const payload = await this.validate(
         tx,
         auth,
@@ -456,6 +464,7 @@ export class OffersService {
         pdf,
         auction.kind !== "RECONFIRMATION",
       );
+      if (!pdf) await this.reconfirmationKeepsQuote(tx, auth, auction, payload);
       await this.ensureClaim(tx, auth, auction);
       const existing = await tx.offer.findFirst({
         where: { auctionId, organizationId: m.organizationId, status: "SUBMITTED" },
@@ -546,6 +555,41 @@ export class OffersService {
     return JSON.parse(new TextDecoder().decode(plain)) as OwnerCopy;
   }
 
+  /**
+   * GAR-07, proposal C, OFF-04: in a reconfirmation an answer without a new PDF
+   * keeps the quote of the previous round, which the worker links at the
+   * closing. Only a confirmation may do so: same premium, company and product,
+   * and a previous quote to keep. Any other answer needs its own PDF.
+   */
+  private async reconfirmationKeepsQuote(
+    tx: DbTransaction,
+    auth: AuthContext,
+    auction: Auction,
+    payload: OfferPayload,
+  ): Promise<void> {
+    if (auction.kind !== "RECONFIRMATION") return;
+    const m = this.agency(auth);
+    const previous = await tx.offer.findFirst({
+      where: {
+        organizationId: m.organizationId,
+        status: "EXPIRED",
+        auction: { quoteRequestId: auction.quoteRequestId, status: "CLOSED" },
+      },
+      orderBy: { auction: { round: "desc" } },
+    });
+    const same =
+      previous !== null &&
+      previous.pdfDocumentId !== null &&
+      previous.annualGrossPremiumCents === payload.annualGrossPremiumCents &&
+      previous.companyId === payload.companyId &&
+      previous.productId === payload.productId;
+    if (!same) {
+      throw new ProblemError("VALIDATION_FAILED", undefined, [
+        { path: "pdf", issue: "PDF_REQUIRED" },
+      ]);
+    }
+  }
+
   /** OFF-07: a change until the closing; the previous version stays sealed. */
   async change(auth: AuthContext, offerId: string, raw: unknown, pdf: PdfInput | null) {
     await this.checkMemberFilters(auth, { offerId });
@@ -558,6 +602,9 @@ export class OffersService {
         throw new ProblemError("CONFLICT", "The offer is not active");
       await this.ensureClaim(tx, auth, auction);
       const payload = await this.validate(tx, auth, auction, raw, pdf, false);
+      if (!pdf && !offer.sealedPdfKey) {
+        await this.reconfirmationKeepsQuote(tx, auth, auction, payload);
+      }
       const previous = await this.readCopy(offer);
       // BC-04: every decryption of the owner copy is logged.
       await this.audit.inTransaction(tx, actorOf(auth), {

@@ -13,6 +13,7 @@ import {
   filterableRequest,
   loadAgencyCandidates,
   loadWorkingCalendar,
+  reconfirmationAsked,
   recordDomainEvent,
   settingsAt,
   SYSTEM_CONTEXT,
@@ -187,16 +188,8 @@ export function auctionActivities(
       return { opened: false, reason: "NOT_RECONFIRMABLE" };
     }
     // The signal may arrive twice (at-least-once delivery): only a request of the
-    // requester newer than the last reconfirmation opens one.
-    const [asked, previous] = await Promise.all(
-      (["RECONFIRMATION_REQUESTED", "RECONFIRMATION_OPENED"] as const).map((type) =>
-        tx.quoteRequestEvent.findFirst({
-          where: { quoteRequestId: request.id, type },
-          orderBy: { at: "desc" },
-        }),
-      ),
-    );
-    if (!asked || (previous && previous.at >= asked.at)) {
+    // requester for this very reconfirmation (by count, not by time) opens one.
+    if (!(await reconfirmationAsked(tx, request.id, request.reconfirmationsUsed))) {
       return { opened: false, reason: "NOT_RECONFIRMABLE" };
     }
     const lastClosed = [...rounds].reverse().find((r) => r.status === "CLOSED");

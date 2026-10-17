@@ -46,7 +46,7 @@ export default async function MyOffersPage({
   const view: View = asked && asked in VIEWS ? (asked as View) : "inCorso";
   const { body: all } = await api<MyOfferRow[]>("/agency/offers");
   const rows = all.filter((o) => (VIEWS[view] as readonly string[]).includes(o.status));
-  const openOffers = all.filter((o) => o.status === "AWAITING_CUSTOMER");
+  const openOffers = all.filter((o) => o.guaranteed);
 
   return (
     <AppShell viewer={viewer}>

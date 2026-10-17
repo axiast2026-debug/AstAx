@@ -57,3 +57,23 @@ export async function addRequestEvent(
     ],
   });
 }
+
+/**
+ * GAR-06: whether the requester asked for the reconfirmation number `used + 1`.
+ * The request carries the count it was made at, not a time, so that the API
+ * and the worker agree whatever their clocks (development clock included).
+ */
+export async function reconfirmationAsked(
+  tx: DbTransaction,
+  quoteRequestId: string,
+  used: number,
+): Promise<boolean> {
+  const asked = await tx.quoteRequestEvent.count({
+    where: {
+      quoteRequestId,
+      type: "RECONFIRMATION_REQUESTED",
+      details: { path: ["used"], equals: used },
+    },
+  });
+  return asked > 0;
+}

@@ -3,7 +3,7 @@ import type { Clock } from "@astax/adapters/clock";
 import type { FieldCipher } from "@astax/adapters/crypto";
 import type { EmailSender } from "@astax/adapters/email";
 import { KEYCLOAK_CLIENTS } from "@astax/adapters/identity";
-import { asSystem, recordDomainEvent, withContext, type DbClient } from "@astax/db";
+import { recordDomainEvent, withContext, type DbClient } from "@astax/db";
 import { membershipGrantProblems } from "@astax/shared/domain";
 import { formatDate } from "@astax/shared/format";
 import type { Logger } from "@astax/shared/logging";
@@ -100,16 +100,17 @@ export class TeamService {
         where: { organizationId, acceptedAt: null, revokedAt: null, expiresAt: { gt: now } },
         orderBy: { createdAt: "asc" },
       });
-      // Spec 04 «Team»: the last access of each member. Logins are recorded
-      // without an organization context, so they are read as a system step,
-      // after the team.manage check of the controller.
-      const logins = await asSystem(tx, () =>
-        tx.auditLog.groupBy({
-          by: ["targetId"],
-          where: { action: "LOGIN", targetId: { in: members.map((m) => m.user.id) } },
-          _max: { at: true },
-        }),
-      );
+      // Spec 04 «Team»: the last access of each member to this organization, from
+      // the audit log of its own context (a sub-agent's work for another agency,
+      // and the logins, recorded without a context, are not shown).
+      const logins = await tx.auditLog.groupBy({
+        by: ["actorMembershipId"],
+        where: {
+          actorOrganizationId: organizationId,
+          actorMembershipId: { in: members.map((m) => m.id) },
+        },
+        _max: { at: true },
+      });
       return {
         members: members.map((m) => ({
           membershipId: m.id,
@@ -121,7 +122,8 @@ export class TeamService {
           flags: flagsOf(m),
           ruiNumberE: m.ruiNumberE,
           ruiVerified: m.ruiVerifiedAt !== null,
-          lastLoginAt: logins.find((l) => l.targetId === m.user.id)?._max.at?.toISOString() ?? null,
+          lastLoginAt:
+            logins.find((l) => l.actorMembershipId === m.id)?._max.at?.toISOString() ?? null,
         })),
         pendingInvites: invites.map((i) => ({
           id: i.id,

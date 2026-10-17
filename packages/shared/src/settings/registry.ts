@@ -69,6 +69,8 @@ export const settingSchemas = {
   "guarantee.reminderDaysBefore": positiveInt,
   "guarantee.reminderTime": clockTime,
   "backOffice.recentAuctionsDays": positiveInt,
+  "agency.dashboard.statsDays": positiveInt,
+  "agency.dashboard.closingSoonMinutes": positiveInt,
   "reconfirmation.workingHours": positiveInt,
   "reconfirmation.maxPerRequest": nonNegativeInt,
   "requests.autoCancelExpiredDays": positiveInt,

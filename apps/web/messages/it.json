@@ -768,7 +768,7 @@
       "binding": "Confermo che l'offerta è vincolante fino alla data di prezzo garantito.",
       "send": "Invia l'offerta",
       "change": "Salva la modifica",
-      "pdfKept": "Se non carichi un nuovo PDF resta valido quello del giro precedente.",
+      "pdfKept": "Per confermare lo stesso premio, con la stessa compagnia e lo stesso prodotto, puoi lasciare il PDF del giro precedente; se aggiorni il premio serve il PDF nuovo.",
       "confirmSame": "Conferma lo stesso premio",
       "sendUpdated": "Invia il premio aggiornato"
     },

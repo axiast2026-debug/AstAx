@@ -90,6 +90,8 @@ export interface MyOfferRow {
   author: string | null;
   exclusionReason: string | null;
   scheduledCloseAt: string;
+  /** GAR-08: the guarantee has not ended yet. */
+  guaranteed: boolean;
 }
 
 export interface AgencyDashboard {

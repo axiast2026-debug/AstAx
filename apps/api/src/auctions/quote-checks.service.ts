@@ -121,8 +121,18 @@ export class QuoteChecksService {
       });
       if (input.decision === "EXCLUDED") {
         const members = await asSystem(tx, () =>
+          // VIS-06: only who may see this offer: owner, supervisors, its author,
+          // operators allowed to see their colleagues' offers.
           tx.membership.findMany({
-            where: { organizationId: offer.organizationId, status: "ACTIVE" },
+            where: {
+              organizationId: offer.organizationId,
+              status: "ACTIVE",
+              OR: [
+                { role: { in: ["OWNER", "SUPERVISOR"] } },
+                { userId: offer.userId },
+                { canSeeColleagueOffers: true },
+              ],
+            },
             include: { user: true },
           }),
         );

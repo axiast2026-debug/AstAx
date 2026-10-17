@@ -270,6 +270,29 @@ describe("fase 4: the agency area (spec 04)", () => {
     expect((await audit("OFFER_OWNER_COPY_READ", offerId)).length - before).toBe(4);
   });
 
+  it("OFF-02 OFF-03 a claim is not given to a colleague who already works on the request for another agency", async () => {
+    const marcoTre = await who("marco-rossi", "agenzia-tre");
+    await r.json(await r.call(marcoTre, `/auctions/${auctionId}/claim`, { body: {} }), 200);
+    const supervisor = await who("agenzia-uno-supervisor", "agenzia-uno");
+    const refused = await r.json<{ errors: { issue: string }[] }>(
+      await r.call(supervisor, `/agency/requests/${auctionId}/assign`, {
+        body: { membershipId: membershipId("marco-rossi", "agenzia-uno") },
+      }),
+      409,
+    );
+    expect(refused.errors.map((e) => e.issue)).toEqual(["ONE_PERSON_ONE_AGENCY"]);
+    // Nothing changed for Agenzia Uno: the operator keeps the claim.
+    const claims = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.claim.findMany({
+        where: { auctionId, organizationId: orgId("agenzia-uno"), releasedAt: null },
+      }),
+    );
+    expect(claims.map((c) => c.membershipId)).toEqual([
+      membershipId("agenzia-uno-operator", "agenzia-uno"),
+    ]);
+    await r.json(await r.call(marcoTre, `/auctions/${auctionId}/release`, { body: {} }), 200);
+  });
+
   it("VIS-01 every answer of the agency area holds no phone or email of the customer", async () => {
     // The customer has a phone too, for this check.
     await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
@@ -313,6 +336,10 @@ describe("fase 4: the agency area (spec 04)", () => {
       const agent = await who(key, "agenzia-uno");
       for (const path of paths) {
         const response = await r.call(agent, path);
+        // A refusal proves nothing: every answer here is a real one, but the access log
+        // is the owner's only (VIS-08).
+        const expected = path === "/agency/access-log" && key !== "agenzia-uno-owner" ? 403 : 200;
+        expect(response.status, `${key} ${path}`).toBe(expected);
         const text = new TextDecoder("latin1").decode(await response.arrayBuffer());
         for (const contact of [CUSTOMER_EMAIL, "333 1234567", "3331234567", "+39"]) {
           expect(text, `${key} ${path}`).not.toContain(contact);

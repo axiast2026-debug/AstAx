@@ -320,6 +320,7 @@ describe("closing (docs/busta-chiusa.md, step 5)", () => {
         actorKind: "REQUESTER",
         actorUserId: null,
         at: new Date(at),
+        details: { used: request.reconfirmationsUsed },
       });
     });
   let reconfirmationId: string;
@@ -353,6 +354,9 @@ describe("closing (docs/busta-chiusa.md, step 5)", () => {
     expect(round.kind).toBe("RECONFIRMATION");
     expect(round.round).toBe(main.round + 1);
     expect(round.durationHours).toBe(24);
+    // GAR-07 ASTA-02: 24 working hours from Monday 7/12 at 9:00, Tuesday 8/12 a holiday:
+    // Monday 10, Wednesday 10, Thursday 4 hours: Thursday 10/12 at 13:00 in Rome.
+    expect(round.scheduledCloseAt.toISOString()).toBe("2026-12-10T12:00:00.000Z");
     expect(round.publicKey).not.toEqual(main.publicKey);
     expect(request.status).toBe("IN_RECONFIRMATION");
     expect(request.reconfirmationsUsed).toBe(1);
@@ -440,11 +444,9 @@ describe("GAR-06 automatic cancellation (proposal D)", () => {
       });
     });
     const schedule = await h.activities.expiredSchedule({ requestId: approved.id });
-    expect(schedule).toEqual({
-      expired: true,
-      autoCancelAt: new Date(expiredAt.getTime() + 30 * 86_400_000).toISOString(),
-    });
-    h.clock.set("2026-12-30T10:00:00.000Z");
+    // Expired on 1/12 (Rome): closed at the start of 1/1, after 30 whole calendar days.
+    expect(schedule).toEqual({ expired: true, autoCancelAt: "2026-12-31T23:00:00.000Z" });
+    h.clock.set("2026-12-31T22:59:00.000Z");
     expect(await h.activities.autoCancelExpired({ requestId: approved.id })).toEqual({
       cancelled: false,
     });

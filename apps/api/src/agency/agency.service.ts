@@ -3,6 +3,8 @@ import type { FieldCipher } from "@astax/adapters/crypto";
 import type { ObjectStoragePort } from "@astax/adapters/storage";
 import {
   asSystem,
+  isUniqueViolation,
+  settingsAt,
   withContext,
   type Auction,
   type DbClient,
@@ -225,6 +227,10 @@ export class AgencyService {
    * logged and the page says so (VIS-09).
    */
   async detail(auth: AuthContext, auctionId: string) {
+    // Rule 4: a refusal to a member of another kind of organization is logged too.
+    if (auth.membership?.organizationType !== "AGENCY") {
+      return this.denied(auth, "Auction", auctionId);
+    }
     const m = this.agency(auth);
     const found = await withContext(this.db, auth.db, async (tx) => {
       const target = await this.invited(tx, auth, auctionId);
@@ -374,6 +380,9 @@ export class AgencyService {
 
   /** A document of the request, always as a watermarked PDF (VIS-10), logged (VIS-09). */
   async documentFile(auth: AuthContext, auctionId: string, documentId: string) {
+    if (auth.membership?.organizationType !== "AGENCY") {
+      return this.denied(auth, "Document", documentId);
+    }
     const m = this.agency(auth);
     const found = await withContext(this.db, auth.db, async (tx) => {
       const target = await this.invited(tx, auth, auctionId);
@@ -435,7 +444,13 @@ export class AgencyService {
       const awaiting = await tx.offer.findMany({
         where: { organizationId: m.organizationId, status: "AWAITING_CUSTOMER", ...mine },
       });
-      const since = new Date(now - 30 * 86_400_000);
+      const settings = await settingsAt(
+        tx,
+        ["agency.dashboard.statsDays", "agency.dashboard.closingSoonMinutes"],
+        new Date(now),
+      );
+      const since = new Date(now - settings["agency.dashboard.statsDays"] * 86_400_000);
+      const soon = settings["agency.dashboard.closingSoonMinutes"] * 60_000;
       const closedInvitations = await tx.invitation.count({
         where: {
           organizationId: m.organizationId,
@@ -455,7 +470,11 @@ export class AgencyService {
         counters: {
           newInTarget: open.filter((r) => r.state === "NEW").length,
           closingWithinHourWithoutOffer: open.filter(
-            (r) => r.state !== "OFFERED" && Date.parse(r.scheduledCloseAt) - now <= 3_600_000,
+            // The requests the agency declined are no longer its business.
+            (r) =>
+              r.state !== "OFFERED" &&
+              r.state !== "DECLINED" &&
+              Date.parse(r.scheduledCloseAt) - now <= soon,
           ).length,
           awaitingCustomer: awaiting.length,
           openGuarantees: awaiting.filter(
@@ -532,6 +551,11 @@ export class AgencyService {
         author: author ? `${author.firstName} ${author.lastName}`.trim() : null,
         exclusionReason: o.exclusionReason,
         scheduledCloseAt: o.auction.scheduledCloseAt.toISOString(),
+        // GAR-08: still binding (by the server's clock): the «offerte aperte».
+        guaranteed:
+          o.status === "AWAITING_CUSTOMER" &&
+          o.guaranteeUntil !== null &&
+          isGuaranteed(dbDateToCalendarDate(o.guaranteeUntil), this.clock.now()),
       });
     }
     return out;
@@ -552,6 +576,45 @@ export class AgencyService {
         where: { id: membershipId, organizationId: m.organizationId, status: "ACTIVE" },
       });
       if (!member) throw new ProblemError("NOT_FOUND");
+      // VIS-06: the colleague must see the request, or the claim would block everyone.
+      const scope = await this.offers.memberScopeOf(tx, member);
+      if (!this.offers.fitsScope(scope, target.request, auction.openedAt)) {
+        throw new ProblemError("CONFLICT", "The request is outside the member's filters", [
+          { path: "membershipId", issue: "OUTSIDE_MEMBER_FILTERS" },
+        ]);
+      }
+      // OFF-02: one offer per person per round, also after a released claim.
+      const offeredElsewhere = await asSystem(tx, () =>
+        tx.offer.count({
+          where: {
+            auctionId,
+            userId: member.userId,
+            status: { not: "WITHDRAWN" },
+            organizationId: { not: m.organizationId },
+          },
+        }),
+      );
+      // OFF-02: the colleague already holds a claim on this auction for another agency.
+      const claimedElsewhere = await asSystem(tx, () =>
+        tx.claim.count({
+          where: {
+            auctionId,
+            userId: member.userId,
+            releasedAt: null,
+            organizationId: { not: m.organizationId },
+          },
+        }),
+      );
+      if (claimedElsewhere > 0) {
+        throw new ProblemError("CONFLICT", "The person already works on this auction", [
+          { path: "claim", issue: "ONE_PERSON_ONE_AGENCY" },
+        ]);
+      }
+      if (offeredElsewhere > 0) {
+        throw new ProblemError("CONFLICT", "The person already offered for another agency", [
+          { path: "membershipId", issue: "ONE_PERSON_ONE_OFFER" },
+        ]);
+      }
       const now = this.clock.now();
       await tx.claim.updateMany({
         where: { auctionId, organizationId: m.organizationId, releasedAt: null },
@@ -572,8 +635,15 @@ export class AgencyService {
           }),
         );
         await tx.$executeRaw`RELEASE SAVEPOINT claim_assign`;
-      } catch {
+      } catch (error) {
         await tx.$executeRaw`ROLLBACK TO SAVEPOINT claim_assign`;
+        // A claim made at the same instant elsewhere (the checks above passed): the
+        // unique index refuses it, and the restore of asSystem then reports the
+        // aborted statement (25P02). Anything else is a fault.
+        const aborted =
+          (error as { meta?: { driverAdapterError?: { cause?: { originalCode?: string } } } }).meta
+            ?.driverAdapterError?.cause?.originalCode === "25P02";
+        if (!isUniqueViolation(error) && !aborted) throw error;
         // OFF-02: that person already works on this auction for another agency.
         throw new ProblemError("CONFLICT", "The person already works on this auction", [
           { path: "claim", issue: "ONE_PERSON_ONE_AGENCY" },

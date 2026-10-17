@@ -33,6 +33,8 @@
     { "key": "guarantee.defaultMinValidityDays", "value": 15, "description": "Validità minima predefinita", "rule": "GAR-01" },
     { "key": "guarantee.reminderDaysBefore", "value": 2, "description": "Promemoria al richiedente prima della scadenza della garanzia", "rule": "GAR-05" },
     { "key": "guarantee.reminderTime", "value": "09:00", "description": "Ora (di Roma) del promemoria GAR-05, nel giorno che cade i giorni indicati prima della scadenza. Valore proposto, da confermare (domanda aperta 14)", "rule": "GAR-05" },
+    { "key": "agency.dashboard.statsDays", "value": 30, "description": "Giorni degli indicatori nel cruscotto dell'agenzia (tasso di risposta e gli altri)", "rule": "—" },
+    { "key": "agency.dashboard.closingSoonMinutes", "value": 60, "description": "Minuti prima della chiusura per il contatore «chiudono entro un'ora senza offerta» del cruscotto dell'agenzia", "rule": "—" },
     { "key": "backOffice.recentAuctionsDays", "value": 7, "description": "Giorni per cui le aste chiuse restano nell'elenco «Aste» del back office", "rule": "—" },
     { "key": "reconfirmation.workingHours", "value": 24, "description": "Tempo delle agenzie per rispondere alla riconferma", "rule": "GAR-07" },
     { "key": "reconfirmation.maxPerRequest", "value": 2, "description": "Riconferme al massimo per richiesta", "rule": "GAR-06" },
