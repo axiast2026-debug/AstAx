@@ -3,6 +3,7 @@ import { ApplicationFailure, Context } from "@temporalio/activity";
 import { auctionActivities } from "./auctions.js";
 import { guaranteeActivities } from "./guarantees.js";
 import { issuanceActivities } from "./issuance.js";
+import { policyActivities } from "./policies.js";
 import { quoteCheckActivities } from "./quote-checks.js";
 import type { ActivityDeps } from "./support.js";
 import type { AuctionActivities } from "./types.js";
@@ -60,6 +61,7 @@ export function createActivities(deps: ActivityDeps): AuctionActivities {
     ...guaranteeActivities(deps),
     ...quoteCheckActivities(deps),
     ...issuanceActivities(deps),
+    ...policyActivities(deps),
   };
   return Object.fromEntries(
     Object.entries(all).map(([name, fn]) => [

@@ -1214,7 +1214,10 @@
       "EXPIRED": "Scaduta",
       "WITHDRAWN": "Receduta",
       "CANCELLED": "Annullata"
-    }
+    },
+    "renew": "Rinnova in asta",
+    "renewHint": "Con i dati già salvati: serve solo il nuovo attestato di rischio.",
+    "renewalOpen": "Vai al rinnovo"
   },
   "nextOffer": {
     "secondTitle": "L'agenzia non ha potuto emettere la polizza",
@@ -1344,5 +1347,25 @@
     "classLabel": "Classe {cu}",
     "vehicleType": "Tipo di veicolo",
     "company": "Compagnia"
+  },
+  "renewals": {
+    "title": "Rinnovi",
+    "intro": "Le scadenze dei prossimi {days} giorni, per settimana. Il rinnovo è una nuova richiesta con i dati già salvati: carica il nuovo attestato e inviala. L’agenzia attuale è invitata in automatico.",
+    "empty": "Nessuna scadenza nel periodo.",
+    "week": "Settimana del {date}",
+    "endsOn": "scade il {date}",
+    "auto": "Rinnovo automatico",
+    "autoOn": "Attivo",
+    "autoOff": "Spento",
+    "turnOn": "Attiva",
+    "turnOff": "Spegni",
+    "prepare": "Prepara il rinnovo",
+    "open": "Vai al rinnovo {code}",
+    "notYet": "Il rinnovo si apre {days} giorni prima della scadenza.",
+    "bulkTitle": "Azione in blocco",
+    "bulkMonth": "Mese di scadenza",
+    "bulk": "Prepara i rinnovi del mese",
+    "prepared": "{count, plural, =0 {Nessun rinnovo da preparare.} one {# rinnovo preparato.} other {# rinnovi preparati.}}",
+    "error": "Operazione non riuscita ({code})."
   }
 }

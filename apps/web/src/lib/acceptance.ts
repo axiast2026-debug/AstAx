@@ -96,6 +96,9 @@ export interface PolicyRow {
   premiumCents: number;
   status: string;
   autoRenewal?: boolean;
+  /** Process 10: «Rinnova in asta» is open, and the renewal request once made. */
+  renewable?: boolean;
+  renewalRequestId?: string | null;
   documents?: { id: string; kind: string }[];
 }
 

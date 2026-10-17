@@ -16,6 +16,12 @@ labels:
   offerExclusion.none: { it: "", sq: "" }
   guarantee.none: { it: "—", sq: "—" }
   offerQuote.fileName: { it: "preventivo.pdf", sq: "oferta.pdf" }
+  renewal.autoDraftReady:
+    it: "Rinnovo automatico attivo: la bozza è pronta, manca solo il nuovo attestato."
+    sq: "Rinovimi automatik aktiv: drafti është gati, mungon vetëm dëshmia e re."
+  renewal.autoOff:
+    it: "Puoi preparare il rinnovo con i dati già salvati."
+    sq: "Mund ta përgatitësh rinovimin me të dhënat e ruajtura."
   invoice.brokerLine:
     it: "Fee AstAx sulle polizze acquistate, mese"
     sq: "Tarifa AstAx për policat e blera, muaji"

@@ -9,6 +9,8 @@ import {
   reconfirmationRequestedSignal,
   workflowIdOf,
 } from "./workflows/quote-request.js";
+import { policyChangedSignal, policyWorkflow } from "./workflows/policy.js";
+import { policyWorkflowIdOf } from "@astax/shared/workflows";
 
 /**
  * Delivery of the outbox events (ADR 0008). `RequestApproved` starts the
@@ -50,6 +52,18 @@ export function outboxHandler(client: Client, taskQueue: string, logger: Logger)
         taskQueue,
         args: [{ requestId }],
         signal: issuanceChangedSignal,
+        signalArgs: [],
+      });
+    }
+    // Decision 39: the policy issued starts its workflow; a change makes it read again.
+    if (["PolicyIssued", "PolicyChanged"].includes(message.type)) {
+      const requestId = message.payload.aggregateId;
+      if (typeof requestId !== "string") throw new Error(`${message.type} without aggregateId`);
+      await client.workflow.signalWithStart(policyWorkflow, {
+        workflowId: policyWorkflowIdOf(requestId),
+        taskQueue,
+        args: [{ requestId }],
+        signal: policyChangedSignal,
         signalArgs: [],
       });
     }

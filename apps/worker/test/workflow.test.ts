@@ -8,6 +8,7 @@ import type {
   CloseResult,
   GuaranteeSchedule,
   IssuanceSteps,
+  PolicySteps,
   OpenResult,
   RoundTimes,
 } from "../src/activities/types.js";
@@ -22,6 +23,8 @@ import {
   quoteRequestWorkflow,
   workflowIdOf,
 } from "../src/workflows/quote-request.js";
+import { policyWorkflow } from "../src/workflows/policy.js";
+import { policyWorkflowIdOf } from "@astax/shared/workflows";
 
 // QuoteRequestWorkflow with Temporal's time-skipping test server and fake
 // activities: the times and the order of the steps (ADR 0008). The activities
@@ -59,6 +62,8 @@ interface Script {
   issuance?: { deadlineAt: string | null; reminderAt: string | null };
   /** Phase 6: the issuance steps as the activity reads them, in order. */
   steps?: IssuanceSteps[];
+  /** Decision 39: the policy steps as the activity reads them, in order. */
+  policySteps?: PolicySteps[];
 }
 
 /** Fake activities that record the calls, with the time of the workflow environment. */
@@ -68,6 +73,7 @@ function fakes(script: Script) {
   const guarantees = [...(script.guarantees ?? [])];
   const expired = [...(script.expired ?? [])];
   const steps = [...(script.steps ?? [])];
+  const policySteps = [...(script.policySteps ?? [])];
   let close = 0;
   let round = 0;
   // The time of the test server (skipped forward), not of this process.
@@ -169,6 +175,13 @@ function fakes(script: Script) {
     },
     async runIssuanceStep(input) {
       record("runIssuanceStep", input);
+    },
+    async policySteps(input) {
+      record("policySteps", input);
+      return policySteps.shift() ?? { active: false, nextStepAt: null };
+    },
+    async runPolicyStep(input) {
+      record("runPolicyStep", input);
     },
     async reviewQuotes(input) {
       record("reviewQuotes", input);
@@ -497,5 +510,39 @@ describe("QuoteRequestWorkflow (ADR 0008)", () => {
     const result = await second.runUntil(handle.result());
     expect(fake.names().filter((n) => n === "closeRound")).toHaveLength(1);
     expect(result).toBe("OFFERS_CLOSED");
+  });
+});
+
+describe("PolicyWorkflow (decision 39)", () => {
+  it("the questionnaire, the renewal notice and the end of the policy, each at its instant", async () => {
+    const now = await env.currentTimeMs();
+    const DAY = 24 * HOUR;
+    const fake = fakes({
+      closings: [],
+      policySteps: [
+        { active: true, nextStepAt: new Date(now + 7 * DAY).toISOString() },
+        { active: true, nextStepAt: new Date(now + 335 * DAY).toISOString() },
+        { active: true, nextStepAt: new Date(now + 365 * DAY).toISOString() },
+        { active: false, nextStepAt: null },
+      ],
+    });
+    const taskQueue = `test-${(counter += 1)}`;
+    const requestId = `00000000-0000-7000-8000-${String(counter).padStart(12, "0")}`;
+    const worker = await Worker.create({
+      connection: env.nativeConnection,
+      taskQueue,
+      workflowsPath,
+      activities: fake.activities,
+    });
+    const result = await worker.runUntil(
+      env.client.workflow.execute(policyWorkflow, {
+        workflowId: policyWorkflowIdOf(requestId),
+        taskQueue,
+        args: [{ requestId }],
+      }),
+    );
+    const steps = fake.calls.filter((c) => c.name === "runPolicyStep").map((c) => c.at - now);
+    expect(steps.map((ms) => Math.round(ms / DAY))).toEqual([7, 335, 365]);
+    expect(result).toBe("CLOSED");
   });
 });

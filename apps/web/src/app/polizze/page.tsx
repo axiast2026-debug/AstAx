@@ -1,11 +1,12 @@
 import { formatDate, formatEuroCents } from "@astax/shared/format";
-import { Badge, Card } from "@astax/ui";
+import { Badge, Button, Card } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import type { PolicyRow } from "@/lib/acceptance";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
+import { renewPolicy } from "../renewal-actions";
 
 const TONE: Record<string, "success" | "warning" | "neutral" | "danger"> = {
   ACTIVE: "success",
@@ -71,6 +72,22 @@ export default async function PoliciesPage() {
                     </>
                   ) : null}
                 </dl>
+                {!isAgency && p.renewalRequestId ? (
+                  <p className="mt-3 text-sm">
+                    <a className="underline" href={`${base}/${p.renewalRequestId}`}>
+                      {t("renewalOpen")}
+                    </a>
+                  </p>
+                ) : !isAgency && p.renewable ? (
+                  <form action={renewPolicy} className="mt-3 flex flex-wrap items-center gap-3">
+                    <input type="hidden" name="policyId" value={p.id} />
+                    <input type="hidden" name="base" value={base} />
+                    <Button type="submit" size="sm">
+                      {t("renew")}
+                    </Button>
+                    <span className="text-sm text-warm-600">{t("renewHint")}</span>
+                  </form>
+                ) : null}
                 {p.documents && p.requestId ? (
                   <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
                     {p.documents.map((d) => (

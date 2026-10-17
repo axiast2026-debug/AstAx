@@ -78,6 +78,7 @@ export const settingSchemas = {
   "issuance.reminderMinutesBefore": positiveInt,
   "secondOffer.customerConfirmHours": positiveInt,
   "renewal.daysBefore": positiveInt,
+  "renewal.brokerHorizonDays": positiveInt,
   "survey.daysAfterIssuance": positiveInt,
   "fees.private.amountCents": cents,
   "fees.private.aiSupplementCents": cents,

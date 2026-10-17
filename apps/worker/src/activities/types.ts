@@ -55,6 +55,12 @@ export interface IssuanceSteps {
   nextStepAt: string | null;
 }
 
+/** Decision 39: whether the policy still has steps (survey, renewal notice, end), and the next. */
+export interface PolicySteps {
+  active: boolean;
+  nextStepAt: string | null;
+}
+
 export interface IssuanceSchedule {
   deadlineAt: string | null;
   reminderAt: string | null;
@@ -113,4 +119,6 @@ export interface AuctionActivities {
   sendIssuanceReminder(input: { requestId: string }): Promise<void>;
   issuanceSteps(input: { requestId: string }): Promise<IssuanceSteps>;
   runIssuanceStep(input: { requestId: string; force: boolean }): Promise<void>;
+  policySteps(input: { requestId: string }): Promise<PolicySteps>;
+  runPolicyStep(input: { requestId: string; force: boolean }): Promise<void>;
 }

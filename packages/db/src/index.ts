@@ -41,3 +41,4 @@ export {
   type StoredAddress,
 } from "./invoices.js";
 export { publishLastRanking, type PublishedRanking } from "./rankings.js";
+export { createRenewalDraft, nextRequestCode } from "./renewals.js";

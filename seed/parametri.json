@@ -43,6 +43,7 @@
     { "key": "issuance.reminderMinutesBefore", "value": 60, "description": "Avviso all'agenzia e al back office prima del termine di emissione", "rule": "EMI-01" },
     { "key": "secondOffer.customerConfirmHours", "value": 24, "description": "Tempo del cliente per confermare la seconda offerta", "rule": "EMI-04" },
     { "key": "renewal.daysBefore", "value": 30, "description": "Proposta di rinnovo prima della scadenza della polizza", "rule": "—" },
+    { "key": "renewal.brokerHorizonDays", "value": 60, "description": "Scadenze mostrate al broker nella pagina «Rinnovi»", "rule": "—" },
     { "key": "survey.daysAfterIssuance", "value": 7, "description": "Invio del questionario post-vendita", "rule": "—" },
     { "key": "fees.private.amountCents", "value": 3000, "description": "Fee del privato", "rule": "FEE-01" },
     { "key": "fees.private.aiSupplementCents", "value": 500, "description": "Supplemento se il privato usa il confronto AI", "rule": "FEE-01" },

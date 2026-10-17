@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { addRequestEvent, SYSTEM_CONTEXT, withContext } from "@astax/db";
 import { dbDateToCalendarDate } from "@astax/shared/format";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -8,6 +9,7 @@ import {
   insertSealedOffer,
   orgId,
   sealedOffer,
+  userId,
   type Harness,
 } from "./fixtures.js";
 
@@ -1161,6 +1163,127 @@ describe("phase 6: the issuance steps (EMI-01, EMI-03, EMI-04)", () => {
       premiumCents: 52000,
       feeCents: 3000,
       status: "REQUESTED",
+    });
+  });
+});
+
+describe("phase 6: the policy steps (decision 39, process 10, proposal E)", () => {
+  async function issuedPolicy(options: { broker: boolean; agency: string }) {
+    const created = await approvedRequest(h);
+    return read(async (tx) => {
+      if (options.broker) {
+        await tx.quoteRequest.update({
+          where: { id: created.id },
+          data: {
+            channel: "BROKER",
+            ownerUserId: null,
+            ownerOrganizationId: orgId("broker-demo"),
+            requesterUserId: userId("broker-owner"),
+          },
+        });
+      }
+      const company = await tx.insuranceCompany.findFirstOrThrow({
+        where: { name: "Compagnia Alfa" },
+      });
+      const policy = await tx.policy.create({
+        data: {
+          quoteRequestId: created.id,
+          offerId: randomUUID(),
+          acceptanceId: randomUUID(),
+          organizationId: orgId(options.agency),
+          companyId: company.id,
+          ...(options.broker
+            ? { ownerOrganizationId: orgId("broker-demo") }
+            : { ownerUserId: userId("private-giulia-neri") }),
+          policyNumber: `POL-${created.code}`,
+          startDate: new Date("2026-11-20"),
+          endDate: new Date("2027-11-19"),
+          premiumCents: 52000,
+          issuedAt: new Date(MONDAY_9),
+          issuedByUserId: userId(`${options.agency}-operator`),
+          autoRenewal: options.broker,
+        },
+      });
+      return { requestId: created.id, policy };
+    });
+  }
+
+  it("the questionnaire 7 days after the issuance, by email only, once", async () => {
+    h.clock.set(MONDAY_9);
+    const { requestId, policy } = await issuedPolicy({ broker: false, agency: "agenzia-uno" });
+    // Monday 23/11 at 9:00 in Rome.
+    expect(await h.activities.policySteps({ requestId })).toEqual({
+      active: true,
+      nextStepAt: "2026-11-23T08:00:00.000Z",
+    });
+    await h.activities.runPolicyStep({ requestId, force: false });
+    expect(await read((tx) => tx.postSaleSurvey.count({ where: { policyId: policy.id } }))).toBe(0);
+    h.clock.set("2026-11-23T08:00:00.000Z");
+    const before = h.email.sent.length;
+    await h.activities.runPolicyStep({ requestId, force: false });
+    await h.activities.runPolicyStep({ requestId, force: false });
+    expect(await read((tx) => tx.postSaleSurvey.count({ where: { policyId: policy.id } }))).toBe(1);
+    const mails = h.email.sent.slice(before);
+    expect(mails).toHaveLength(1);
+    expect(mails[0]?.text).toContain("http://web.test/questionario/");
+  });
+
+  it("the renewal notice 30 days before the end: «In scadenza»; a broker's customer with the automatic renewal gets the draft", async () => {
+    h.clock.set(MONDAY_9);
+    const { requestId, policy } = await issuedPolicy({ broker: true, agency: "agenzia-dieci" });
+    // The questionnaire first (forced), then the notice: 20/10/2027 at 9:00 in Rome.
+    await h.activities.runPolicyStep({ requestId, force: true });
+    expect(await h.activities.policySteps({ requestId })).toEqual({
+      active: true,
+      nextStepAt: "2027-10-20T07:00:00.000Z",
+    });
+    h.clock.set("2027-10-20T07:00:00.000Z");
+    await h.activities.runPolicyStep({ requestId, force: false });
+    const [after, notes] = await read((tx) =>
+      Promise.all([
+        tx.policy.findUniqueOrThrow({ where: { id: policy.id } }),
+        tx.notification.findMany({
+          where: {
+            eventKey: "renewal.upcoming.broker",
+            payload: { path: ["policyId"], equals: policy.id },
+          },
+        }),
+      ]),
+    );
+    expect(after.status).toBe("EXPIRING");
+    expect(after.renewalRequestId).not.toBeNull();
+    expect(notes).toHaveLength(1);
+    expect(notes[0]?.body).toContain("la bozza è pronta");
+    const draft = await read((tx) =>
+      tx.quoteRequest.findUniqueOrThrow({ where: { id: after.renewalRequestId ?? "" } }),
+    );
+    expect(draft).toMatchObject({ status: "DRAFT", renewalOfPolicyId: policy.id });
+
+    // Process 10: the renewal's auction invites the agency that issued the policy.
+    const renewal = await approvedRequest(h);
+    await read((tx) =>
+      tx.quoteRequest.update({
+        where: { id: renewal.id },
+        data: { renewalOfPolicyId: policy.id },
+      }),
+    );
+    h.clock.set(MONDAY_9);
+    const opened = await h.activities.openRound({ requestId: renewal.id, kind: "MAIN", round: 1 });
+    if (!opened.opened) throw new Error("not opened");
+    const invited = await read((tx) =>
+      tx.invitation.findMany({ where: { auctionId: opened.auctionId } }),
+    );
+    expect(invited.map((i) => i.organizationId)).toContain(orgId("agenzia-dieci"));
+
+    // The end: «Scaduta» the day after the last day, 00:00 in Rome; then no more steps.
+    h.clock.set("2027-11-19T23:00:00.000Z");
+    await h.activities.runPolicyStep({ requestId, force: false });
+    expect(
+      (await read((tx) => tx.policy.findUniqueOrThrow({ where: { id: policy.id } }))).status,
+    ).toBe("EXPIRED");
+    expect(await h.activities.policySteps({ requestId })).toEqual({
+      active: false,
+      nextStepAt: null,
     });
   });
 });

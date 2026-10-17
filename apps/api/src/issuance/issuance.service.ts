@@ -17,6 +17,7 @@ import {
 import {
   noteProblems,
   policyEndDate,
+  renewalNoticeDate,
   transitionOffer,
   transitionRequest,
 } from "@astax/shared/domain";
@@ -25,6 +26,7 @@ import {
   formatDate,
   formatDateTime,
   formatEuroCents,
+  romeCalendarDate,
 } from "@astax/shared/format";
 import { Inject, Injectable } from "@nestjs/common";
 import { AcceptanceService } from "../acceptance/acceptance.service.js";
@@ -637,6 +639,12 @@ export class IssuanceService {
         orderBy: { issuedAt: "desc" },
         take: 200,
       });
+      const { "renewal.daysBefore": renewalDays } = await settingsAt(
+        tx,
+        ["renewal.daysBefore"],
+        this.clock.now(),
+      );
+      const today = romeCalendarDate(this.clock.now());
       const [companies, documents] = await Promise.all([
         tx.insuranceCompany.findMany(),
         tx.document.findMany({
@@ -674,6 +682,12 @@ export class IssuanceService {
           premiumCents: p.premiumCents,
           status: p.status,
           autoRenewal: p.autoRenewal,
+          // Spec 03: «Rinnova in asta» from the renewal notice day (process 10).
+          renewable:
+            ["ACTIVE", "EXPIRING"].includes(p.status) &&
+            today >= renewalNoticeDate(dbDateToCalendarDate(p.endDate), renewalDays) &&
+            today <= dbDateToCalendarDate(p.endDate),
+          renewalRequestId: p.renewalRequestId,
           documents: documents
             .filter((d) => d.quoteRequestId === p.quoteRequestId)
             .map((d) => ({ id: d.id, kind: d.kind })),

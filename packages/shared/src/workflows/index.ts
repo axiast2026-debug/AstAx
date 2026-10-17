@@ -17,6 +17,12 @@ export const SIGNALS = {
   paymentConfirmed: "paymentConfirmed",
   /** EMI-02, EMI-04: the issuance changed (issued, second offer, cancelled): read it again. */
   issuanceChanged: "issuanceChanged",
+  /** Decision 39: the policy changed (withdrawn, renewal started): read it again. */
+  policyChanged: "policyChanged",
 } as const;
 
 export const workflowIdOf = (requestId: string) => `quote-request-${requestId}`;
+
+/** Decision 39: the policy workflow of the request whose policy was issued. */
+export const POLICY_WORKFLOW = "policyWorkflow";
+export const policyWorkflowIdOf = (requestId: string) => `policy-${requestId}`;

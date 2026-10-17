@@ -335,6 +335,20 @@ const ENDPOINTS: Endpoint[] = [
   },
   { action: "issuance.manage", method: "GET", path: () => "/agency/policies" },
   { action: "ranking.view", method: "GET", path: () => "/agency/results" },
+  {
+    action: "request.create",
+    method: "POST",
+    path: () => `/policies/${randomUUID()}/renew`,
+    body: {},
+  },
+  {
+    action: "request.create",
+    method: "POST",
+    path: () => `/policies/${randomUUID()}/auto-renewal`,
+    body: {},
+  },
+  { action: "request.create", method: "POST", path: () => "/broker/renewals/bulk", body: {} },
+  { action: "request.viewOwn", method: "GET", path: () => "/broker/renewals" },
   { action: "request.viewOwn", method: "GET", path: () => "/policies" },
   { action: "issuance.decideMissed", method: "GET", path: () => "/back-office/issuance-problems" },
   {

@@ -91,6 +91,8 @@ export function auctionActivities(
   | "sendIssuanceReminder"
   | "issuanceSteps"
   | "runIssuanceStep"
+  | "policySteps"
+  | "runPolicyStep"
 > {
   const { db, kms, clock, cipher, notifier, urls } = deps;
 
@@ -127,7 +129,7 @@ export function auctionActivities(
     auction: Auction,
     request: QuoteRequest,
     organizationIds: readonly string[],
-    source: "AUTO" | "TOP_UP" | "BACK_OFFICE" | "REOPEN",
+    source: "AUTO" | "TOP_UP" | "BACK_OFFICE" | "REOPEN" | "RENEWAL",
     invitedByUserId: string | null,
   ) {
     const now = clock.now();
@@ -432,6 +434,22 @@ export function auctionActivities(
         input.kind === "MAIN" ? "AUTO" : "REOPEN",
         null,
       );
+      // Process 10: a renewal invites the agency that issued the policy, filters aside,
+      // unless it is suspended, not active or excluded from this request.
+      if (input.kind === "MAIN" && request.renewalOfPolicyId) {
+        const policy = await tx.policy.findUnique({ where: { id: request.renewalOfPolicyId } });
+        const current = policy?.organizationId;
+        if (current && !organizationIds.includes(current)) {
+          const [org, suspended] = await Promise.all([
+            tx.organization.findUnique({ where: { id: current } }),
+            tx.agencySuspension.count({ where: { organizationId: current, revokedAt: null } }),
+          ]);
+          const excluded = exclusions.some((e) => e.organizationId === current);
+          if (org?.status === "ACTIVE" && suspended === 0 && !excluded) {
+            await invite(tx, pending, auction, request, [current], "RENEWAL", null);
+          }
+        }
+      }
       await setRequestStatus(tx, request, "AUCTION_OPEN");
       await addRequestEvent(tx, request, {
         type: input.kind === "MAIN" ? "AUCTION_OPENED" : "AUCTION_REOPENED",
