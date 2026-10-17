@@ -437,6 +437,9 @@ importers:
       libsodium-wrappers:
         specifier: 0.8.4
         version: 0.8.4
+      pdf-lib:
+        specifier: 1.17.1
+        version: 1.17.1
     devDependencies:
       '@astax/config':
         specifier: workspace:*
