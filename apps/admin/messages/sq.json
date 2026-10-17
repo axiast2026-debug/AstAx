@@ -517,5 +517,27 @@
     },
     "brokerMonth": "Muaji i faturave për brokerët",
     "issueBrokerMonth": "Lësho faturat mujore për brokerët"
+  },
+  "flagsPage": {
+    "title": "Sinjalizimet",
+    "error": "Veprimi nuk u krye.",
+    "done": "Rezultati u ruajt.",
+    "empty": "Asnjë sinjalizim.",
+    "outcomeLabel": "Rezultati",
+    "reason": "Arsyeja",
+    "decide": "Ruaj rezultatin",
+    "type": {
+      "CIRCUMVENTION": "Anashkalim i mundshëm",
+      "FRAUD": "Mashtrim i mundshëm"
+    },
+    "status": {
+      "OPEN": "Për t’u vlerësuar",
+      "ARCHIVED": "Arkivuar",
+      "PENALTY_PROPOSED": "Gjobë e propozuar",
+      "SUSPENSION_PROPOSED": "Pezullim i propozuar"
+    },
+    "source": {
+      "SURVEY": "Nga pyetësori i klientit"
+    }
   }
 }

@@ -1379,5 +1379,22 @@
     "bulk": "Prepara i rinnovi del mese",
     "prepared": "{count, plural, =0 {Nessun rinnovo da preparare.} one {# rinnovo preparato.} other {# rinnovi preparati.}}",
     "error": "Operazione non riuscita ({code})."
+  },
+  "survey": {
+    "brand": "AstAx",
+    "title": "Com’è andata?",
+    "question": {
+      "overall": "Quanto sei soddisfatto di AstAx, nel complesso?",
+      "clarity": "Le offerte erano chiare e facili da confrontare?",
+      "agency": "Come valuti l’agenzia che ha emesso la polizza?",
+      "contactedByOthers": "Dopo l’acquisto, qualcuno ti ha contattato per proporti un’assicurazione fuori da AstAx?"
+    },
+    "scale": "1 = per niente, 5 = moltissimo",
+    "yes": "Sì",
+    "no": "No",
+    "contactedHint": "Ci aiuta a proteggere i tuoi dati: le agenzie non possono usarli fuori da AstAx.",
+    "send": "Invia",
+    "thanks": "Grazie: le tue risposte sono arrivate.",
+    "error": "Non siamo riusciti a salvare le risposte: riprova."
   }
 }

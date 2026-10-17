@@ -7,7 +7,7 @@ const REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
 
 /** The secret tokens of the customers' links never reach the logs (rule 8). */
 export function loggedPath(path: string): string {
-  return path.replace(/^\/(customer-links|consent-links)\/[^/]+/, "/$1/:token");
+  return path.replace(/^\/(customer-links|consent-links|surveys)\/[^/]+/, "/$1/:token");
 }
 
 /**

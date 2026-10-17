@@ -517,5 +517,27 @@
     },
     "brokerMonth": "Mese delle fatture ai broker",
     "issueBrokerMonth": "Emetti le fatture mensili ai broker"
+  },
+  "flagsPage": {
+    "title": "Segnalazioni",
+    "error": "Operazione non riuscita.",
+    "done": "Esito salvato.",
+    "empty": "Nessuna segnalazione.",
+    "outcomeLabel": "Esito",
+    "reason": "Motivo",
+    "decide": "Salva l’esito",
+    "type": {
+      "CIRCUMVENTION": "Possibile aggiramento",
+      "FRAUD": "Possibile frode"
+    },
+    "status": {
+      "OPEN": "Da valutare",
+      "ARCHIVED": "Archiviata",
+      "PENALTY_PROPOSED": "Penale proposta",
+      "SUSPENSION_PROPOSED": "Sospensione proposta"
+    },
+    "source": {
+      "SURVEY": "Dal questionario del cliente"
+    }
   }
 }

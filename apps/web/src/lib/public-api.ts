@@ -5,8 +5,9 @@ import { browserClient } from "./auth";
 loadEnv(process.cwd());
 
 /**
- * Calls to the API without a session: only the consent page the broker's
- * customer opens from the link (the token in the path is the proof).
+ * Calls to the API without a session: the consent page the broker's
+ * customer opens from the link and the questionnaire after the sale (the
+ * token in the path is the proof).
  */
 export async function publicApi<T>(
   path: string,

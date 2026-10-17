@@ -356,6 +356,13 @@ const ENDPOINTS: Endpoint[] = [
     body: {},
   },
   { action: "withdrawal.manage", method: "GET", path: () => "/back-office/withdrawals" },
+  { action: "complaint.manage", method: "GET", path: () => "/back-office/flags" },
+  {
+    action: "complaint.manage",
+    method: "POST",
+    path: () => `/back-office/flags/${randomUUID()}/decide`,
+    body: {},
+  },
   {
     action: "withdrawal.manage",
     method: "POST",
@@ -694,6 +701,8 @@ const PUBLIC_ROUTES = [
   "GET /fake-providers/payments/{ref}",
   "POST /fake-providers/payments/{ref}/pay",
   "POST /fake-providers/payments/{ref}/confirm",
+  "GET /surveys/{token}",
+  "POST /surveys/{token}",
   "GET /consent-links/{token}",
   "POST /consent-links/{token}/code",
   "POST /consent-links/{token}/confirm",
