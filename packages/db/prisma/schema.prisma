@@ -695,6 +695,12 @@ enum DocumentKind {
   ENGAGEMENT_LETTER
   SIGNED_DOCUMENT
   SIGNATURE_EVIDENCE
+  /// Phase 6 (EMI-02): what the agency uploads at the issuance.
+  ISSUED_POLICY
+  POLICY_RECEIPT
+  INSURANCE_CERTIFICATE
+  /// Phase 6 (CONT-03): the courtesy copy of an invoice.
+  INVOICE_PDF
   OTHER
 }
 
@@ -1328,4 +1334,442 @@ model ProviderEvent {
   receivedAt DateTime @db.Timestamptz(3)
 
   @@unique([provider, eventId])
+}
+
+// ---------------------------------------------------------------------------
+// Phase 6: after the purchase (docs/modello-dati.md, «Accettazione, pagamenti,
+// polizze»). Amounts in whole cents (rule 5); the system writes, the owners read.
+// ---------------------------------------------------------------------------
+
+enum PolicyStatus {
+  ACTIVE
+  EXPIRING
+  EXPIRED
+  WITHDRAWN
+  CANCELLED
+}
+
+/// EMI-02: the policy the winning agency issued. Owner fields are the
+/// requester's (private user or broker); `organizationId` is the issuing agency.
+model Policy {
+  id                  String       @id @default(uuid(7)) @db.Uuid
+  quoteRequestId      String       @unique @db.Uuid
+  offerId             String       @db.Uuid
+  acceptanceId        String       @db.Uuid
+  organizationId      String       @db.Uuid
+  companyId           String       @db.Uuid
+  ownerUserId         String?      @db.Uuid
+  ownerOrganizationId String?      @db.Uuid
+  policyNumber        String
+  startDate           DateTime     @db.Date
+  endDate             DateTime     @db.Date
+  premiumCents        Int
+  issuedAt            DateTime     @db.Timestamptz(3)
+  issuedByUserId      String       @db.Uuid
+  status              PolicyStatus @default(ACTIVE)
+  /// Spec 02 «Rinnovi»: the broker's automatic renewal.
+  autoRenewal         Boolean      @default(false)
+  /// The request opened for the renewal, once.
+  renewalRequestId    String?      @db.Uuid
+  createdAt           DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime     @default(now()) @db.Timestamptz(3)
+
+  @@index([organizationId, issuedAt])
+  @@index([ownerOrganizationId])
+  @@index([ownerUserId])
+  @@index([endDate])
+}
+
+enum IssuanceProblemType {
+  DATA_MISMATCH
+  CANNOT_ISSUE
+  /// EMI-04: no issuance before the start of cover; opened by the system.
+  MISSED_DEADLINE
+}
+
+enum IssuanceFault {
+  AGENCY
+  CUSTOMER
+}
+
+enum IssuanceProblemStatus {
+  OPEN
+  DECIDED
+}
+
+/// EMI-04: a case for the back office, opened by the agency or the system.
+model IssuanceProblem {
+  id              String                @id @default(uuid(7)) @db.Uuid
+  quoteRequestId  String                @db.Uuid
+  offerId         String                @db.Uuid
+  organizationId  String                @db.Uuid
+  type            IssuanceProblemType
+  /// Written by the agency: no contacts (checked as the offer notes).
+  description     String?
+  openedByUserId  String?               @db.Uuid
+  openedAt        DateTime              @db.Timestamptz(3)
+  status          IssuanceProblemStatus @default(OPEN)
+  fault           IssuanceFault?
+  decidedByUserId String?               @db.Uuid
+  decidedAt       DateTime?             @db.Timestamptz(3)
+  decisionReason  String?
+  createdAt       DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime              @default(now()) @db.Timestamptz(3)
+
+  @@index([quoteRequestId])
+  @@index([status])
+}
+
+enum NextOfferKind {
+  /// EMI-04, decision 28: the best offer still guaranteed of another agency.
+  SECOND_OFFER
+  /// EMI-04: wrong customer data, the same agency's new price.
+  REPRICE
+}
+
+enum NextOfferStatus {
+  PROPOSED
+  ACCEPTED
+  REFUSED
+  EXPIRED
+}
+
+/// EMI-04: what the customer is asked to confirm within
+/// `secondOffer.customerConfirmHours`.
+model NextOfferProposal {
+  id                  String          @id @default(uuid(7)) @db.Uuid
+  quoteRequestId      String          @db.Uuid
+  ownerUserId         String?         @db.Uuid
+  ownerOrganizationId String?         @db.Uuid
+  kind                NextOfferKind
+  fromOfferId         String          @db.Uuid
+  toOfferId           String          @db.Uuid
+  premiumCents        Int
+  feeCents            Int
+  /// Positive: the customer pays it; negative: AstAx gives it back.
+  differenceCents     Int
+  expiresAt           DateTime        @db.Timestamptz(3)
+  status              NextOfferStatus @default(PROPOSED)
+  decidedAt           DateTime?       @db.Timestamptz(3)
+  createdAt           DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime        @default(now()) @db.Timestamptz(3)
+
+  @@index([quoteRequestId])
+  @@index([status, expiresAt])
+}
+
+enum PenaltyType {
+  LATE_ISSUANCE
+  MISSED_ISSUANCE
+  CIRCUMVENTION
+}
+
+enum PenaltyStatus {
+  PROPOSED
+  APPLIED
+  CONTESTED
+  UPHELD
+  CANCELLED
+}
+
+/// EMI-05, decision 29: proposed, applied by the supervisor, contested within
+/// `penalties.contestDays`, decided by the administrator; held back from the
+/// remittances (RemittanceLine) until paid.
+model Penalty {
+  id               String        @id @default(uuid(7)) @db.Uuid
+  organizationId   String        @db.Uuid
+  type             PenaltyType
+  amountCents      Int
+  quoteRequestId   String?       @db.Uuid
+  status           PenaltyStatus @default(PROPOSED)
+  reason           String
+  proposedByUserId String?       @db.Uuid
+  proposedAt       DateTime      @db.Timestamptz(3)
+  appliedByUserId  String?       @db.Uuid
+  appliedAt        DateTime?     @db.Timestamptz(3)
+  contestUntil     DateTime?     @db.Timestamptz(3)
+  contestText      String?
+  contestedAt      DateTime?     @db.Timestamptz(3)
+  decision         String?
+  decidedByUserId  String?       @db.Uuid
+  decidedAt        DateTime?     @db.Timestamptz(3)
+  /// Decision 27: the missed issuance replaces the delay.
+  replacesId       String?       @db.Uuid
+  createdAt        DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime      @default(now()) @db.Timestamptz(3)
+
+  @@index([organizationId, status])
+  @@index([quoteRequestId])
+}
+
+/// EMI-06, decision 30: out of the invitations until the administrator revokes.
+model AgencySuspension {
+  id                String    @id @default(uuid(7)) @db.Uuid
+  organizationId    String    @db.Uuid
+  reason            String
+  startedAt         DateTime  @db.Timestamptz(3)
+  confirmedByUserId String?   @db.Uuid
+  confirmedAt       DateTime? @db.Timestamptz(3)
+  revokedByUserId   String?   @db.Uuid
+  revokedAt         DateTime? @db.Timestamptz(3)
+  createdAt         DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([organizationId])
+}
+
+enum RemittanceStatus {
+  DRAFT
+  READY
+  FILE_GENERATED
+  EXECUTED
+}
+
+/// CONT-01, CONT-02: the weekly transfer of the premiums to an agency.
+model Remittance {
+  id               String           @id @default(uuid(7)) @db.Uuid
+  organizationId   String           @db.Uuid
+  runDate          DateTime         @db.Date
+  cutoffAt         DateTime         @db.Timestamptz(3)
+  grossCents       Int
+  feesCents        Int
+  heldCents        Int
+  netCents         Int
+  carriedCents     Int
+  status           RemittanceStatus @default(DRAFT)
+  reviewedByUserId String?          @db.Uuid
+  sepaFileKey      String?
+  executedAt       DateTime?        @db.Timestamptz(3)
+  executedByUserId String?          @db.Uuid
+  invoiceId        String?          @db.Uuid
+  createdAt        DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime         @default(now()) @db.Timestamptz(3)
+
+  lines RemittanceLine[]
+
+  @@unique([organizationId, runDate])
+}
+
+enum RemittanceLineKind {
+  POLICY
+  BROKER_SHARE
+  CARRIED_OVER
+  RECOVERY
+  PENALTY
+}
+
+/// One policy, or one hold-back as applied (whole or in part).
+model RemittanceLine {
+  id             String             @id @default(uuid(7)) @db.Uuid
+  remittanceId   String             @db.Uuid
+  organizationId String             @db.Uuid
+  kind           RemittanceLineKind
+  /// The policy, penalty, refund or earlier remittance.
+  ref            String             @db.Uuid
+  /// For a policy: the premium; for a hold-back: what it asked.
+  requestedCents Int
+  /// For a policy: the agency fee; for a hold-back: what was held this week.
+  appliedCents   Int
+  createdAt      DateTime           @default(now()) @db.Timestamptz(3)
+
+  remittance Remittance @relation(fields: [remittanceId], references: [id])
+
+  @@index([remittanceId])
+  @@index([kind, ref])
+}
+
+enum InvoiceSeries {
+  P
+  A
+  B
+  /// Credit notes (CONT-03), numbered on their own.
+  N
+}
+
+enum InvoiceRecipientType {
+  PRIVATE
+  AGENCY
+  BROKER
+}
+
+enum SdiStatus {
+  TO_SEND
+  SENT
+  DELIVERED
+  REJECTED
+}
+
+/// CONT-03, CONT-04, decision 34: the invoices of AstAx's fees, all exempt.
+/// A credit note is an Invoice of series N with `creditedInvoiceId`.
+model Invoice {
+  id                  String               @id @default(uuid(7)) @db.Uuid
+  series              InvoiceSeries
+  year                Int
+  number              Int
+  code                String               @unique
+  recipientType       InvoiceRecipientType
+  ownerUserId         String?              @db.Uuid
+  ownerOrganizationId String?              @db.Uuid
+  /// Name, fiscal code or VAT number and address, encrypted (ADR 0007).
+  recipientEnc        String
+  lines               Json
+  exemptCents         Int
+  stampDutyCents      Int
+  totalCents          Int
+  vatNature           String
+  legalReference      String
+  issuedOn            DateTime             @db.Date
+  dueOn               DateTime?            @db.Date
+  quoteRequestId      String?              @db.Uuid
+  remittanceId        String?              @db.Uuid
+  /// For the broker's monthly invoice: «2026-11».
+  period              String?
+  creditedInvoiceId   String?              @db.Uuid
+  sdiStatus           SdiStatus            @default(TO_SEND)
+  sdiRef              String?
+  xmlKey              String?
+  pdfDocumentId       String?              @db.Uuid
+  createdAt           DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime             @default(now()) @db.Timestamptz(3)
+
+  @@unique([series, year, number])
+  @@index([ownerOrganizationId])
+  @@index([ownerUserId])
+}
+
+/// The gap-free numbering: one row per series and year, locked while a number is taken.
+model InvoiceCounter {
+  series InvoiceSeries
+  year   Int
+  last   Int           @default(0)
+
+  @@id([series, year])
+}
+
+enum RefundReason {
+  BEFORE_ISSUANCE
+  WITHDRAWAL
+  SECOND_OFFER_DIFFERENCE
+  INVALID_ACCEPTANCE
+}
+
+enum RefundStatus {
+  REQUESTED
+  APPROVED
+  EXECUTED
+  REJECTED
+  FAILED
+}
+
+/// PAG-04, PAG-05: every refund is approved by the back office supervisor.
+model Refund {
+  id                        String       @id @default(uuid(7)) @db.Uuid
+  paymentId                 String       @db.Uuid
+  quoteRequestId            String       @db.Uuid
+  ownerUserId               String?      @db.Uuid
+  ownerOrganizationId       String?      @db.Uuid
+  reason                    RefundReason
+  premiumCents              Int
+  feeCents                  Int
+  /// PAG-04: the agency the refunded premium is recovered from (RemittanceLine RECOVERY).
+  recoverFromOrganizationId String?      @db.Uuid
+  requestedByUserId         String?      @db.Uuid
+  requestedAt               DateTime     @db.Timestamptz(3)
+  approvedByUserId          String?      @db.Uuid
+  approvedAt                DateTime?    @db.Timestamptz(3)
+  status                    RefundStatus @default(REQUESTED)
+  providerRef               String?
+  executedAt                DateTime?    @db.Timestamptz(3)
+  createdAt                 DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt                 DateTime     @default(now()) @db.Timestamptz(3)
+
+  @@index([quoteRequestId])
+  @@index([status])
+  @@index([recoverFromOrganizationId])
+}
+
+enum WithdrawalStatus {
+  REQUESTED
+  PRICED
+  APPROVED
+  REJECTED
+}
+
+/// PAG-04 after the issuance: the customer's withdrawal, priced by the agency.
+model ConsumerWithdrawal {
+  id                  String           @id @default(uuid(7)) @db.Uuid
+  policyId            String           @unique @db.Uuid
+  quoteRequestId      String           @db.Uuid
+  organizationId      String           @db.Uuid
+  ownerUserId         String?          @db.Uuid
+  ownerOrganizationId String?          @db.Uuid
+  requestedAt         DateTime         @db.Timestamptz(3)
+  requestedByUserId   String           @db.Uuid
+  refundableCents     Int?
+  pricedByUserId      String?          @db.Uuid
+  pricedAt            DateTime?        @db.Timestamptz(3)
+  status              WithdrawalStatus @default(REQUESTED)
+  decidedByUserId     String?          @db.Uuid
+  decidedAt           DateTime?        @db.Timestamptz(3)
+  refundId            String?          @db.Uuid
+  createdAt           DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime         @default(now()) @db.Timestamptz(3)
+}
+
+enum BrokerCommissionStatus {
+  ACCRUED
+  SETTLED
+}
+
+/// Decision 25: the broker's quota, off (0 %) until the lawyer validates it.
+model BrokerCommission {
+  id             String                 @id @default(uuid(7)) @db.Uuid
+  policyId       String                 @unique @db.Uuid
+  organizationId String                 @db.Uuid
+  amountCents    Int
+  status         BrokerCommissionStatus @default(ACCRUED)
+  settledAt      DateTime?              @db.Timestamptz(3)
+  createdAt      DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime               @default(now()) @db.Timestamptz(3)
+}
+
+/// The questionnaire after the sale (`survey.daysAfterIssuance`), opened by link.
+model PostSaleSurvey {
+  id                String    @id @default(uuid(7)) @db.Uuid
+  policyId          String    @unique @db.Uuid
+  tokenHash         String    @unique
+  sentAt            DateTime  @db.Timestamptz(3)
+  answeredAt        DateTime? @db.Timestamptz(3)
+  /// Scores and choices only: no free text with personal data.
+  answers           Json?
+  contactedByOthers Boolean?
+  createdAt         DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime  @default(now()) @db.Timestamptz(3)
+}
+
+enum FlagType {
+  CIRCUMVENTION
+  FRAUD
+}
+
+enum FlagStatus {
+  OPEN
+  ARCHIVED
+  PENALTY_PROPOSED
+  SUSPENSION_PROPOSED
+}
+
+/// Spec 06 «Segnalazioni»: for the back office only.
+model Flag {
+  id             String     @id @default(uuid(7)) @db.Uuid
+  type           FlagType
+  source         String
+  quoteRequestId String?    @db.Uuid
+  organizationId String?    @db.Uuid
+  status         FlagStatus @default(OPEN)
+  outcome        String?
+  createdAt      DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime   @default(now()) @db.Timestamptz(3)
+
+  @@index([status])
 }

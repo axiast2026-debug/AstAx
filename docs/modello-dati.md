@@ -147,6 +147,10 @@ Telefono ed email non fanno parte di `quoteData`: le agenzie ricevono `quoteData
 | `BrokerCommission` | `policyId`, `organizationId`, `amountCents`, `status` (`ACCRUED`, `SETTLED`), `settledAt` | Spenta finché il parametro è 0 |
 | `ConsumerWithdrawal` | `policyId`, `requestedAt`, `refundableCents`, `decidedBy`, `status` | Recesso |
 | `PostSaleSurvey` | `policyId`, `sentAt`, `answers`, `contactedByOthers` | Alimenta le segnalazioni |
+| `NextOfferProposal` | `quoteRequestId`, `kind` (`SECOND_OFFER`, `REPRICE`), `fromOfferId`, `toOfferId`, `premiumCents`, `feeCents`, `differenceCents`, `expiresAt`, `status` | EMI-04: la seconda offerta o il nuovo prezzo da confermare (fase 6) |
+| `AgencySuspension` | `organizationId`, `reason`, `startedAt`, `confirmedAt`, `revokedAt` | EMI-06 (fase 6) |
+| `RemittanceLine` | `remittanceId`, `kind` (`POLICY`, `BROKER_SHARE`, `CARRIED_OVER`, `RECOVERY`, `PENALTY`), `ref`, `requestedCents`, `appliedCents` | Le righe della rimessa al posto di `items` in JSON: così si sa quanto resta di ogni penale (fase 6) |
+| `InvoiceCounter` | `series`, `year`, `last` | Numerazione senza buchi (fase 6); le note di credito sono fatture della serie N |
 
 ## Assistenza e controllo (fase 7)
 
