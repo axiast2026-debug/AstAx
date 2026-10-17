@@ -50,7 +50,8 @@ export async function createApp(
   // The information set of a product of the agency library (decision 17).
   app.use(/^\/agency\/products\/[^/]+\/documents$/, raw({ type: () => true, limit: "60mb" }));
   // The providers sign the exact bytes of their webhooks: kept as text to check them.
-  app.use(/^\/webhooks\//, text({ type: () => true, limit: "1mb" }));
+  // A path, not a regular expression: Express 5 never matched /^\/webhooks\//.
+  app.use("/webhooks", text({ type: () => true, limit: "1mb" }));
   app.enableShutdownHooks();
 
   const document = buildOpenApi(app);

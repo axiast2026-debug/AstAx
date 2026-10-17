@@ -1,4 +1,5 @@
 import { Writable } from "node:stream";
+import type { AiExplainerPort } from "@astax/adapters/ai-explainer";
 import { ManualClock } from "@astax/adapters/clock";
 import { InMemoryEmailSender } from "@astax/adapters/email";
 import { InMemoryObjectStorage } from "@astax/adapters/storage";
@@ -136,7 +137,7 @@ export interface Harness {
 }
 
 export async function startHarness(
-  options: { env?: Record<string, string> } = {},
+  options: { env?: Record<string, string>; aiExplainer?: AiExplainerPort } = {},
 ): Promise<Harness> {
   const clock = new ManualClock("2026-11-16T09:00:00.000Z");
   const { privateKey, publicKey } = await generateKeyPair("RS256");
@@ -169,6 +170,7 @@ export async function startHarness(
     workflowSignals: signals,
     objectStorage: storage,
     tokenVerifier: verifier,
+    ...(options.aiExplainer ? { aiExplainer: options.aiExplainer } : {}),
     // API_TEST_LOGS=1 shows the (redacted) API logs while debugging a test.
     logger: process.env.API_TEST_LOGS
       ? createLogger({ name: "api-int", level: "debug" })

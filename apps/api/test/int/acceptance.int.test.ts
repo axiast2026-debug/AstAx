@@ -1,7 +1,10 @@
+import { FakeAiExplainer, type AiExplainerPort } from "@astax/adapters/ai-explainer";
+import type { FakePaymentsProvider } from "@astax/adapters/payments";
 import { SYSTEM_CONTEXT, withContext } from "@astax/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closedRound } from "./auction-helpers.js";
 import { acceptAllLegal, membershipId, orgId, startHarness, type Harness } from "./fixtures.js";
+import { PAYMENTS } from "../../src/infra/tokens.js";
 import { requestHelpers, type Who } from "./request-helpers.js";
 
 // Phase 5: the private customer's acceptance, with the offers of S01.
@@ -11,6 +14,19 @@ let customer: Who;
 let requestId: string;
 let offers: string[];
 const EMAIL = "privato.accettazione@example.test";
+
+/** The fake explainer, or (proposal D) a model text with a figure it was never given. */
+let badText = false;
+const explainer: AiExplainerPort = {
+  explain: async (input) =>
+    badText
+      ? {
+          text: "Scegli Compagnia Beta: costa solo 99,00 €.",
+          model: "fake-bad",
+          promptVersion: "x",
+        }
+      : new FakeAiExplainer().explain(input),
+};
 
 const system = <T>(work: Parameters<typeof withContext<T>>[2]) =>
   withContext(h.db, SYSTEM_CONTEXT, work);
@@ -34,7 +50,7 @@ interface Row {
 }
 
 beforeAll(async () => {
-  h = await startHarness();
+  h = await startHarness({ aiExplainer: explainer });
   r = requestHelpers(h);
   await acceptAllLegal(h, "bo-verifier");
   await acceptAllLegal(h, "agenzia-uno-owner");
@@ -160,6 +176,27 @@ describe("fase 5: the private customer's acceptance (S01)", () => {
     const p = await presentation();
     expect(p.aiUsed).toBe(true);
     expect(p.offers[1]?.feeCents).toBe(3500);
+  });
+
+  it("PRES-08 a model text that fails the check is replaced by the fallback, and the problems are saved", async () => {
+    badText = true;
+    try {
+      const s = await r.json<{ text: string }>(
+        await r.call(customer, `/requests/${requestId}/ai-comparison`, { body: {} }),
+        200,
+      );
+      expect(s.text).not.toContain("99,00");
+      expect(s.text).toContain("Secondo i criteri del confronto");
+      const saved = await system((tx) =>
+        tx.aiSuggestion.findFirstOrThrow({
+          where: { quoteRequestId: requestId, model: "fake-bad" },
+        }),
+      );
+      expect(saved.textSource).toBe("FALLBACK");
+      expect((saved.textProblems as unknown[]).length).toBeGreaterThan(0);
+    } finally {
+      badText = false;
+    }
   });
 
   it("GAR-04 past the last useful moment the acceptance is refused by the API", async () => {
@@ -308,7 +345,45 @@ describe("fase 5: the private customer's acceptance (S01)", () => {
     expect(list.find((x) => x.email === EMAIL)).toBeTruthy();
   });
 
-  it("a duplicated webhook changes nothing; an unsigned one is refused", async () => {
+  it("PAG-02 the same signed webhook twice is handled once", async () => {
+    const provider = h.app.get<FakePaymentsProvider>(PAYMENTS);
+    const payment = await system((tx) =>
+      tx.payment.findFirstOrThrow({
+        where: { status: "CAPTURED", acceptance: { quoteRequestId: requestId } },
+      }),
+    );
+    const webhook = provider.pay(payment.providerRef ?? "", {
+      method: "CARD",
+      cardNumber: "4242 4242 4242 4242",
+    });
+    expect(() => provider.parseWebhook(webhook.headers, webhook.body)).not.toThrow();
+    const eventId = (JSON.parse(webhook.body) as { eventId: string }).eventId;
+    const before = await system((tx) =>
+      tx.auditLog.count({ where: { action: "PAYMENT_CONFIRMED" } }),
+    );
+    for (let i = 0; i < 2; i += 1) {
+      const response = await fetch(`${h.baseUrl}/webhooks/payments`, {
+        method: "POST",
+        headers: { ...webhook.headers, "content-type": "application/json" },
+        body: webhook.body,
+      });
+      expect(response.status).toBe(204);
+    }
+    const [events, after, outbox] = await system((tx) =>
+      Promise.all([
+        tx.providerEvent.count({ where: { eventId } }),
+        tx.auditLog.count({ where: { action: "PAYMENT_CONFIRMED" } }),
+        tx.payment.count({
+          where: { status: "CAPTURED", acceptance: { quoteRequestId: requestId } },
+        }),
+      ]),
+    );
+    expect(events).toBe(1);
+    expect(after).toBe(before);
+    expect(outbox).toBe(1);
+  });
+
+  it("a webhook without a valid signature is refused and changes nothing", async () => {
     const before = await system((tx) =>
       tx.auditLog.count({ where: { action: "PAYMENT_CONFIRMED" } }),
     );
