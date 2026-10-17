@@ -391,3 +391,61 @@ describe("proposal D the invoice to complete", () => {
     expect(JSON.stringify({ ...audit, seq: String(audit.seq) })).not.toContain("FRRLNE80A41H501X");
   });
 });
+
+describe("decision 23b the stamp duty that did not fit", () => {
+  it("CONT-01 is carried to the next week before the older debts", async () => {
+    const week3 = addCalendarDays(runDate, 14);
+    const week4 = addCalendarDays(runDate, 21);
+    const policy = (premiumCents: number, issuedOn: string, n: string) =>
+      system((tx) =>
+        tx.policy.create({
+          data: {
+            quoteRequestId: randomUUID(),
+            offerId: randomUUID(),
+            acceptanceId: randomUUID(),
+            organizationId: agencyId,
+            companyId: randomUUID(),
+            policyNumber: `RIM-${n}`,
+            startDate: new Date(issuedOn),
+            endDate: new Date(addCalendarDays(issuedOn, 364)),
+            premiumCents,
+            issuedAt: new Date(`${issuedOn}T10:00:00Z`),
+            issuedByUserId: userId("agenzia-otto-owner"),
+          },
+        }),
+      );
+    // Six policies of 15,00 €: an invoice of 90,00 € (stamp duty), nothing left to hold it.
+    for (let i = 0; i < 6; i += 1) await policy(1500, addCalendarDays(week3, -4), `${week3}-${i}`);
+    h.clock.set(new Date(`${week3}T08:00:00Z`));
+    await r.json(
+      await r.call(await accounting(), "/back-office/remittances/prepare", { body: {} }),
+      200,
+    );
+    const third = await system((tx) =>
+      tx.remittance.findFirstOrThrow({
+        where: { organizationId: agencyId, runDate: new Date(week3) },
+        include: { lines: true },
+      }),
+    );
+    expect(third.lines.find((l) => l.kind === "STAMP_DUTY")).toMatchObject({
+      requestedCents: 200,
+      appliedCents: 0,
+    });
+    await policy(50_000, addCalendarDays(week4, -4), `${week4}-0`);
+    h.clock.set(new Date(`${week4}T08:00:00Z`));
+    await r.json(
+      await r.call(await accounting(), "/back-office/remittances/prepare", { body: {} }),
+      200,
+    );
+    const fourth = await system((tx) =>
+      tx.remittance.findFirstOrThrow({
+        where: { organizationId: agencyId, runDate: new Date(week4) },
+        include: { lines: true },
+      }),
+    );
+    expect(fourth.lines.find((l) => l.kind === "CARRIED_OVER")).toMatchObject({
+      requestedCents: 200,
+      appliedCents: 200,
+    });
+  });
+});

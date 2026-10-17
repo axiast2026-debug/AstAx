@@ -1,6 +1,6 @@
 import {
   addCalendarDays,
-  brokerInvoiceLines,
+  linesByUnitAmount,
   invoiceNumber,
   invoiceTotals,
   monthBounds,
@@ -177,7 +177,7 @@ export async function issueBrokerInvoices(
       where: { id: { in: policies.map((p) => p.acceptanceId) } },
       select: { brokerFeeCents: true },
     });
-    const lines = brokerInvoiceLines(
+    const lines = linesByUnitAmount(
       acceptances.map((a) => a.brokerFeeCents),
       `${lineDescription} ${period.slice(5)}/${period.slice(0, 4)}`,
     );

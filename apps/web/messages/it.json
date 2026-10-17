@@ -1358,7 +1358,9 @@
     "cuClass": "Classe CU",
     "classLabel": "Classe {cu}",
     "vehicleType": "Tipo di veicolo",
-    "company": "Compagnia"
+    "company": "Compagnia",
+    "averageGap": "Scarto medio dal vincitore, quando non sei primo: {gap}",
+    "averageIssuance": "Tempo medio di emissione dal pagamento: {hours} h {minutes} min"
   },
   "renewals": {
     "title": "Rinnovi",
@@ -1378,7 +1380,8 @@
     "bulkMonth": "Mese di scadenza",
     "bulk": "Prepara i rinnovi del mese",
     "prepared": "{count, plural, =0 {Nessun rinnovo da preparare.} one {# rinnovo preparato.} other {# rinnovi preparati.}}",
-    "error": "Operazione non riuscita ({code})."
+    "error": "Operazione non riuscita ({code}).",
+    "notYetCount": "{count, plural, one {# polizza} other {# polizze}} del mese non ancora rinnovabili: il rinnovo si apre {days} giorni prima della scadenza."
   },
   "survey": {
     "brand": "AstAx",

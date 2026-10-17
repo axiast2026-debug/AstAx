@@ -79,6 +79,7 @@ Abilitazioni aggiuntive di un'appartenenza, decise dal titolare:
 | Decidere una mancata emissione, passare alla seconda offerta | `BO_VERIFIER`, `BO_SUPERVISOR` | EMI-04 |
 | Chiedere un rimborso | `BO_SUPPORT`, `BO_ACCOUNTING`, `BO_SUPERVISOR` | — |
 | Approvare un rimborso | `BO_SUPERVISOR` | PAG-05 |
+| Chiedere il recesso dalla propria polizza, entro `withdrawal.days` dall’emissione | Privato; utenti del broker per i propri clienti (VIS-13) | PAG-04 |
 | Gestire una richiesta di recesso | `BO_SUPPORT`, `BO_SUPERVISOR`; l'agenzia indica il premio da rimborsare | PAG-04 |
 
 ## Contabilità e penali
@@ -89,7 +90,7 @@ Abilitazioni aggiuntive di un'appartenenza, decise dal titolare:
 | Generare il file dei bonifici e segnare la rimessa eseguita | `BO_ACCOUNTING`, `BO_SUPERVISOR` | — |
 | Vedere l'estratto conto dell'agenzia | `OWNER`; `SUPERVISOR` con `canSeeAccounting` | — |
 | Vedere l'estratto conto del broker | `OWNER` di broker | — |
-| Vedere le proprie fatture | Il destinatario (privato; titolare dell'organizzazione) | — |
+| Vedere le proprie fatture | Il destinatario (privato; titolare dell'organizzazione; supervisore di agenzia con `canSeeAccounting`) | — |
 | Proporre una penale | Sistema; `BO_VERIFIER`, `BO_SUPERVISOR` | — |
 | Applicare una penale | `BO_SUPERVISOR` | — |
 | Contestare una penale | `OWNER`; `SUPERVISOR` con `canSeeAccounting` | Entro il termine (EMI-05) |

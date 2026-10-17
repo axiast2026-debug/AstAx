@@ -58,7 +58,10 @@ export async function withContext<T>(
  * Calls on the same transaction may overlap (several inside one
  * `Promise.all`): the setting is taken by the first and given back by the
  * last, so one that ends early never puts the caller's context back under
- * another still reading.
+ * another still reading. The setting holds for the whole transaction, so a
+ * query of the caller's own that overlaps a system call runs as system too:
+ * never put `asSystem` and the caller's queries in the same `Promise.all`
+ * (one `asSystem` around a `Promise.all` of system reads is fine).
  */
 const systemDepth = new WeakMap<object, { depth: number; previous: string }>();
 

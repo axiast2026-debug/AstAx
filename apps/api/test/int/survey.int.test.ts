@@ -106,6 +106,15 @@ describe("the questionnaire after the sale", () => {
     expect(
       await system((tx) => tx.flag.count({ where: { quoteRequestId: policy.quoteRequestId } })),
     ).toBe(0);
+    // A link older than survey.linkValidDays no longer opens.
+    const old = await surveyFor("agenzia-due");
+    await system((tx) =>
+      tx.postSaleSurvey.update({
+        where: { policyId: old.policy.id },
+        data: { sentAt: new Date(h.clock.now().getTime() - 31 * 86_400_000) },
+      }),
+    );
+    expect((await h.call(`/surveys/${old.token}`)).status).toBe(404);
     const wrong = randomBytes(32).toString("base64url");
     expect((await h.call(`/surveys/${wrong}`)).status).toBe(404);
   });

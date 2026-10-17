@@ -80,6 +80,7 @@ export const settingSchemas = {
   "renewal.daysBefore": positiveInt,
   "renewal.brokerHorizonDays": positiveInt,
   "survey.daysAfterIssuance": positiveInt,
+  "survey.linkValidDays": positiveInt,
   "withdrawal.days": positiveInt,
   "fees.private.amountCents": cents,
   "fees.private.aiSupplementCents": cents,

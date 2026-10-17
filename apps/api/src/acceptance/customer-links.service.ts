@@ -148,15 +148,15 @@ export class CustomerLinksService {
           },
         });
       });
-      const [customer, organization] = await Promise.all([
-        asSystem(tx, () =>
-          tx.customer.findUniqueOrThrow({
-            where: { id: request.customerId as string },
-            include: { person: true },
-          }),
-        ),
-        tx.organization.findUniqueOrThrow({ where: { id: request.ownerOrganizationId } }),
-      ]);
+      const customer = await asSystem(tx, () =>
+        tx.customer.findUniqueOrThrow({
+          where: { id: request.customerId as string },
+          include: { person: true },
+        }),
+      );
+      const organization = await tx.organization.findUniqueOrThrow({
+        where: { id: request.ownerOrganizationId },
+      });
       await this.audit.inTransaction(tx, actorOf(auth), {
         action: "CUSTOMER_LINK_SENT",
         targetType: "QuoteRequest",

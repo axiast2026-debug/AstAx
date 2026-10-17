@@ -30,7 +30,7 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 - Passo 12, questionario: pagina pubblica dal link dell'email, tre voti e «qualcuno ti ha contattato fuori da AstAx?»; un «sì» apre una segnalazione di aggiramento con la richiesta e l'agenzia, che il supervisore chiude con un esito in «Segnalazioni».
 - Passo 13 (prove): E2E `S01-privato-con-ai.spec.ts` esteso fino all'emissione, alle polizze del cliente con la fattura e a «Risultati»; nuovo `S08-recesso.spec.ts`; nuova utenza di prova del supervisore del back office. Integrazione: `remittances.int`, `broker-accounting.int`, `results.int`, `renewals.int`, `withdrawal.int`, `survey.int`; worker: `PolicyWorkflow` a tempo accelerato e i passi della polizza su PostgreSQL.
 - Errore trovato con le prove end-to-end e corretto alla radice: `asSystem` (il passaggio al contesto di sistema dentro una transazione) non reggeva due chiamate sovrapposte nella stessa transazione. La prima che finiva rimetteva il contesto normale mentre l'altra stava ancora leggendo, e l'ultima lasciava la transazione «di sistema» fino alla fine, cioè con più permessi del dovuto. Effetto visibile: in «Da emettere» i documenti caricati dall'agenzia a volte non comparivano e «Segna come emessa» restava bloccato. Ora il contesto si prende alla prima chiamata e si restituisce all'ultima; prova `packages/db/test/context.int.test.ts` (fallisce con il codice vecchio) e controllo aggiunto in `acceptance.int`.
-- E2E: S01 completo e S08 verdi in locale (2 su 2).
+- E2E: S01 completo, S08 e S09 verdi in locale (3 su 3, anche dopo le correzioni della verifica).
 - Scelta tecnica: le pianificazioni del lunedì e del primo del mese sono un timer del worker che segue l'orologio dell'applicazione (anche quello spostato in sviluppo), non uno «schedule» di Temporal; ripeterle lo stesso giorno non crea doppioni.
 - Debiti: le fatture B create dal worker partono allo SDI quando il back office apre «Fatturazione» (l'API ha il fornitore SDI e il PDF): in fase 8 un invio automatico; l'avviso `invoice.available` non è ancora mandato; E2E di S05 e S09 e S02 fino alla fattura del broker da scrivere; il back office non ha ancora una schermata per avviare il recesso per conto del cliente (c'è l'API); i suggerimenti di «Risultati» (profili simili da aggiungere ai filtri) sono rinviati alla fase 7.
 
@@ -139,6 +139,28 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 - Prove del giro completo: `pnpm check` verde (36 compiti); E2E 17 su 18 al primo giro: `fase4-agenzia.spec.ts` dipendeva dalla rotazione della scelta automatica e ora fa invitare Agenzia Uno a mano; poi 3 giri su 4 verdi, il quarto fermo su un clic senza un errore riproducibile: da tenere d'occhio in CI.
 - Ambiente di sviluppo: durante `pnpm check` (che ricompila i pacchetti) l'API e il worker avviati da `pnpm dev` a volte si fermano al riavvio automatico e restano fermi; si riavviano con `pnpm dev`.
 - Debito: se il back office esclude l'ultima offerta rimasta, la richiesta passa a «Scaduta» solo al successivo controllo delle garanzie, non subito (domanda 16).
+
+## Verifica indipendente (fase 6, primo giro)
+
+2026-10-17, agente verificatore su tutto il codice della fase 6. Esito e correzioni:
+
+1. Un'agenzia giudicata colpevole della mancata emissione poteva ancora leggere i contatti, emettere la polizza e aprire un nuovo caso finché il rimborso non era approvato. **Corretto**: dopo «Mancata emissione» l'agenzia non vede più la richiesta (404 nel registro); prova in `second-offer.int`.
+2. Con la correzione di `asSystem`, una query normale in parallelo a una «di sistema» girava anche lei come sistema. **Corretto**: nei sei punti trovati le letture di sistema non sono più in parallelo con le altre; la regola è scritta nel commento di `asSystem`.
+3. Accessi negati non registrati nei servizi nuovi (recessi, penali, fatture, rinnovi). **Corretto**: ora c'è `ACCESS_DENIED` nel registro, con le prove tra organizzazioni diverse.
+4. La fattura A all'agenzia prendeva il fee dal parametro del giorno della revisione, non da quello trattenuto nella rimessa. **Corretto**: le righe della fattura vengono dalle righe della rimessa.
+5. Bollo e quota del broker non trattenuti per mancanza di capienza andavano persi. **Corretto**: si riportano alla settimana dopo come «da trattenere», prima dei debiti più vecchi; prova in `remittances.int`.
+6. Pianificazioni senza ADR e senza recupero dei giorni persi. **Corretto**: ADR 0010; se il worker è fermo il lunedì o il primo del mese, recupera appena riparte.
+7. «Risultati» senza scarto medio e tempo medio di emissione. **Aggiunti**.
+8. Permessi: il recesso usava un permesso di lettura; il supervisore con la contabilità non poteva scaricare le fatture che vede. **Corretto**: nuovo permesso `withdrawal.request`; `invoice.viewOwn` anche al supervisore con `canSeeAccounting`; `docs/permessi.md` aggiornato.
+9. Questionario: link senza scadenza, due invii contemporanei potevano creare due segnalazioni. **Corretto**: nuovo parametro `survey.linkValidDays` (30) e riga bloccata durante la risposta. Resta il debito: se l'email del questionario non parte, non si rimanda.
+10. Rinnovi del broker: l'azione in blocco non rispettava i 30 giorni, una transazione sola per tutte le polizze, lettura dei nomi dei clienti non registrata. **Corretto**.
+11. CSV del broker con aritmetica in virgola mobile. **Corretto**: solo interi.
+12. Punti aperti, da decidere o da fare:
+    - la quota del broker si calcola sul premio lordo, mentre il parametro si chiama `percentOfNetPremium`: da chiarire con Dan e il legale (la quota oggi è spenta);
+    - manca una prova di integrazione con la quota del broker accesa e una con natura e dicitura cambiate nei parametri;
+    - il fee dell'agenzia non è «fotografato» all'apertura dell'asta come il fee del broker: se il parametro cambia, vale quello del giorno della preparazione della rimessa;
+    - E2E di S02 fino alla fattura del broker e di S05 da scrivere;
+    - debiti già annotati: seconda offerta per il cliente del broker, avviso `invoice.available`, invio automatico allo SDI delle fatture B.
 
 ## Criteri della fase 5
 
@@ -501,3 +523,4 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 | 0008 | [Worker delle aste e tempo reale](adr/0008-worker-delle-aste-e-tempo-reale.md) | 2026-10-16 |
 | 0007 | [Dati della richiesta cifrati, bozza a sezioni, proprietà delle righe](adr/0007-dati-della-richiesta-cifrati.md) | 2026-10-15 |
 | 0009 | [File SEPA e fatture elettroniche: formato e controllo](adr/0009-file-sepa-e-fatture-elettroniche.md) | 2026-10-17 |
+| 0010 | [Pianificazioni del lunedì e del primo del mese](adr/0010-pianificazioni-del-worker.md) | 2026-10-17 |

@@ -332,6 +332,17 @@ describe("fase 6: S05 variant, the customer refuses and gets everything back", (
       feeCents: 3000,
       status: "REQUESTED",
     });
+    // EMI-04: while the refund waits, the agency at fault can no longer read,
+    // issue or open a case (the request is back «In emissione»).
+    const unoOwner = await who("agenzia-uno-owner", "agenzia-uno");
+    for (const [path, body] of [
+      [`/agency/issuance/${requestId}`, undefined],
+      [`/agency/issuance/${requestId}/issue`, { policyNumber: "ALFA-LATE-1" }],
+      [`/agency/issuance/${requestId}/problem`, { type: "CANNOT_ISSUE", description: "Riprovo" }],
+    ] as const) {
+      const res = await r.call(unoOwner, path, body ? { body } : {});
+      expect(res.status).toBe(404);
+    }
     // PAG-05: only the supervisor approves.
     const verifier = await r.call(
       await who("bo-verifier", "astax"),

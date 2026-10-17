@@ -24,6 +24,12 @@ export interface ResultsBucket {
  * The statistics are on the agency's own data only: invitations, offers and
  * wins by province, CU class, vehicle type and company.
  */
+/** Whole-number average, null when there is nothing to average. */
+function average(values: readonly number[]): number | null {
+  if (values.length === 0) return null;
+  return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+}
+
 @Injectable()
 export class ResultsService {
   constructor(@Inject(DB) private readonly db: DbClient) {}
@@ -97,6 +103,19 @@ export class ResultsService {
           ];
         });
 
+        const issued = await tx.policy.findMany({
+          where: {
+            organizationId: m.organizationId,
+            ...(onlyOwn ? { issuedByUserId: auth.userId } : {}),
+          },
+          select: { acceptanceId: true, issuedAt: true },
+          take: 1000,
+        });
+        const paid = await tx.acceptance.findMany({
+          where: { id: { in: issued.map((p) => p.acceptanceId) } },
+          select: { id: true, paidAt: true },
+        });
+
         // Statistics on the closed rounds (before the closing the offers are sealed).
         const closed = offers.filter((o) => o.auction.status === "CLOSED");
         const requestOf = (id: string) => requests.find((q) => q.id === id);
@@ -129,6 +148,19 @@ export class ResultsService {
             invited: invitations.length,
             offers: closed.length,
             wins: closed.filter((o) => (WON as readonly string[]).includes(o.status)).length,
+            // Spec 04: the average gap from the winner when not first, in basis points.
+            averageGapBasisPoints: average(
+              published.flatMap((p) =>
+                p.view.kind === "RANKED" && p.view.position > 1 ? [p.view.gapBasisPoints] : [],
+              ),
+            ),
+            // Spec 04: the average time from the payment to the issuance, in minutes.
+            averageIssuanceMinutes: average(
+              issued.flatMap((p) => {
+                const paidAt = paid.find((a) => a.id === p.acceptanceId)?.paidAt;
+                return paidAt ? [Math.round((+p.issuedAt - +paidAt) / 60_000)] : [];
+              }),
+            ),
           },
           byProvince: group((r) => requestOf(r)?.province ?? null),
           byClass: group((r) => {

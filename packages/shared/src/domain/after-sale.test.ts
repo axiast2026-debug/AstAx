@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { FeeSettings } from "./acceptance.js";
 import {
-  brokerInvoiceLines,
+  linesByUnitAmount,
   creditNoteCents,
   invoiceNumber,
   invoiceTotals,
@@ -166,7 +166,7 @@ describe("CONT-03 CONT-04 invoices", () => {
     expect(previousMonth("2027-01-01")).toBe("2026-12");
     expect(monthBounds("2028-02")).toEqual({ from: "2028-02-01", to: "2028-02-29" });
     expect(() => monthBounds("2026-13")).toThrow();
-    expect(brokerInvoiceLines([3000, 3000, 0, 2500, 3000], "Fee")).toEqual([
+    expect(linesByUnitAmount([3000, 3000, 0, 2500, 3000], "Fee")).toEqual([
       { description: "Fee", quantity: 1, unitCents: 2500 },
       { description: "Fee", quantity: 3, unitCents: 3000 },
     ]);

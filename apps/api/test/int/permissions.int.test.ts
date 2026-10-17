@@ -350,7 +350,7 @@ const ENDPOINTS: Endpoint[] = [
   { action: "request.create", method: "POST", path: () => "/broker/renewals/bulk", body: {} },
   { action: "request.viewOwn", method: "GET", path: () => "/broker/renewals" },
   {
-    action: "request.viewOwn",
+    action: "withdrawal.request",
     method: "POST",
     path: () => `/policies/${randomUUID()}/withdrawal`,
     body: {},

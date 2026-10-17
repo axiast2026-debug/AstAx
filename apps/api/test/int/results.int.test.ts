@@ -1,7 +1,14 @@
 import { SYSTEM_CONTEXT, withContext } from "@astax/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closedRound, openTestAuction } from "./auction-helpers.js";
-import { acceptAllLegal, membershipId, startHarness, userId, type Harness } from "./fixtures.js";
+import {
+  acceptAllLegal,
+  membershipId,
+  orgId,
+  startHarness,
+  userId,
+  type Harness,
+} from "./fixtures.js";
 import { requestHelpers, type Who } from "./request-helpers.js";
 
 // Phase 6, step 9: «Risultati» (spec 04). The ranking published when the
@@ -20,7 +27,12 @@ const who = async (key: Parameters<Harness["tokenFor"]>[0], org: string): Promis
 interface Results {
   scope: "OWN" | "AGENCY";
   published: { code: string; view: { kind: string; [k: string]: unknown } }[];
-  totals: { invited: number; offers: number; wins: number };
+  totals: {
+    invited: number;
+    offers: number;
+    wins: number;
+    averageGapBasisPoints: number | null;
+  };
   byProvince: { key: string; offers: number }[];
 }
 const resultsOf = async (key: Parameters<Harness["tokenFor"]>[0], org: string) =>
@@ -91,6 +103,7 @@ beforeAll(async () => {
     "agenzia-uno-owner",
     "agenzia-uno-operator",
     "agenzia-due-owner",
+    "agenzia-tre-owner",
   ] as const) {
     await acceptAllLegal(h, key);
   }
@@ -107,6 +120,26 @@ describe("CLA-02 CLA-03 the published rankings", () => {
     const before = await resultsOf("agenzia-uno-owner", "agenzia-uno");
     expect(before.published.find((p) => p.code === a.code)).toBeUndefined();
 
+    // An offer of Agenzia Tre excluded at the closing (not in the ranking).
+    await system(async (tx) => {
+      const owner = await tx.membership.findFirstOrThrow({
+        where: { organizationId: orgId("agenzia-tre"), role: "OWNER" },
+      });
+      await tx.offer.create({
+        data: {
+          auctionId: a.auctionId,
+          organizationId: orgId("agenzia-tre"),
+          membershipId: owner.id,
+          userId: owner.userId,
+          submittedAt: h.clock.now(),
+          lastChangedAt: h.clock.now(),
+          sealedPayload: "sealed",
+          ownerCopy: "copy",
+          status: "EXCLUDED",
+          exclusionReason: "Massimale sotto il pacchetto",
+        },
+      });
+    });
     await r.json(await r.call(customer, `/requests/${a.id}/cancel`, { body: {} }), 200);
     const ranking = await system((tx) =>
       tx.ranking.findUniqueOrThrow({ where: { auctionId: a.auctionId } }),
@@ -137,6 +170,13 @@ describe("CLA-02 CLA-03 the published rankings", () => {
       }),
     );
     expect(note?.body).toContain("2ª su 2");
+    // CLA-03: the excluded offer sees «esclusa» with the reason, and nothing else.
+    const tre = await resultsOf("agenzia-tre-owner", "agenzia-tre");
+    expect(tre.published.find((p) => p.code === a.code)?.view).toEqual({
+      kind: "EXCLUDED",
+      reason: "Massimale sotto il pacchetto",
+    });
+    expect(due.totals).toHaveProperty("averageGapBasisPoints");
     // The statistics count the agency's closed offers.
     expect(uno.totals.offers).toBeGreaterThanOrEqual(1);
     expect(uno.byProvince.length).toBeGreaterThanOrEqual(1);

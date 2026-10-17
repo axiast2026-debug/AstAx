@@ -1268,12 +1268,37 @@ describe("phase 6: the policy steps (decision 39, process 10, proposal E)", () =
       }),
     );
     h.clock.set(MONDAY_9);
-    const opened = await h.activities.openRound({ requestId: renewal.id, kind: "MAIN", round: 1 });
-    if (!opened.opened) throw new Error("not opened");
-    const invited = await read((tx) =>
-      tx.invitation.findMany({ where: { auctionId: opened.auctionId } }),
+    // Agenzia Dieci on pause: the automatic choice leaves it out, the renewal does not.
+    const capacity = await read((tx) =>
+      tx.agencyCapacity.findUnique({ where: { organizationId: orgId("agenzia-dieci") } }),
     );
-    expect(invited.map((i) => i.organizationId)).toContain(orgId("agenzia-dieci"));
+    await read((tx) =>
+      tx.agencyCapacity.update({
+        where: { organizationId: orgId("agenzia-dieci") },
+        data: { pausedUntil: new Date("2030-01-01T00:00:00Z") },
+      }),
+    );
+    try {
+      const opened = await h.activities.openRound({
+        requestId: renewal.id,
+        kind: "MAIN",
+        round: 1,
+      });
+      if (!opened.opened) throw new Error("not opened");
+      const invited = await read((tx) =>
+        tx.invitation.findMany({ where: { auctionId: opened.auctionId } }),
+      );
+      expect(invited.find((i) => i.organizationId === orgId("agenzia-dieci"))?.source).toBe(
+        "RENEWAL",
+      );
+    } finally {
+      await read((tx) =>
+        tx.agencyCapacity.update({
+          where: { organizationId: orgId("agenzia-dieci") },
+          data: { pausedUntil: capacity?.pausedUntil ?? null },
+        }),
+      );
+    }
 
     // The end: «Scaduta» the day after the last day, 00:00 in Rome; then no more steps.
     h.clock.set("2027-11-19T23:00:00.000Z");

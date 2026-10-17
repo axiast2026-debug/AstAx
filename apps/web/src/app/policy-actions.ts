@@ -46,13 +46,13 @@ export async function setAutoRenewal(formData: FormData): Promise<void> {
 export async function renewMonth(formData: FormData): Promise<void> {
   const period = String(formData.get("period") ?? "");
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(period)) redirect("/rinnovi");
-  const { status, body } = await api<{ created: number }>("/broker/renewals/bulk", {
+  const { status, body } = await api<{ created: number; notYet: number }>("/broker/renewals/bulk", {
     method: "POST",
     body: JSON.stringify({ period }),
   });
   revalidatePath("/rinnovi");
   if (status !== 200) redirect(`/rinnovi?errore=${encodeURIComponent(codesOf(body))}`);
-  redirect(`/rinnovi?preparati=${body.created}`);
+  redirect(`/rinnovi?preparati=${body.created}&nonAncora=${body.notYet}`);
 }
 
 /** S08: the customer asks for the withdrawal; the agency prices it, the supervisor approves. */

@@ -152,5 +152,14 @@ describe("process 10 «Rinnova in asta»", () => {
     };
     await acceptAllLegal(h, "broker-owner");
     expect((await r.call(broker, `/policies/${policy.id}/renew`, { body: {} })).status).toBe(404);
+    expect(
+      (await r.call(broker, `/policies/${policy.id}/auto-renewal`, { body: { enabled: true } }))
+        .status,
+    ).toBe(404);
+    expect(
+      await system((tx) =>
+        tx.auditLog.count({ where: { action: "ACCESS_DENIED", targetId: policy.id } }),
+      ),
+    ).toBe(2);
   });
 });

@@ -170,14 +170,13 @@ export class AuctionsService {
           where: { auctionId: last.id, status: { in: ["AWAITING_CUSTOMER", "EXPIRED"] } },
         }),
       );
-      const [companies, products] = await Promise.all([
-        tx.insuranceCompany.findMany(),
-        asSystem(tx, () =>
-          tx.insuranceProduct.findMany({
-            where: { id: { in: rows.flatMap((r) => (r.productId ? [r.productId] : [])) } },
-          }),
-        ),
-      ]);
+      // In sequence: a system read must not overlap the caller's queries (asSystem).
+      const companies = await tx.insuranceCompany.findMany();
+      const products = await asSystem(tx, () =>
+        tx.insuranceProduct.findMany({
+          where: { id: { in: rows.flatMap((r) => (r.productId ? [r.productId] : [])) } },
+        }),
+      );
       const ranked = rows.flatMap((o) =>
         o.annualGrossPremiumCents !== null && o.companyId && o.guaranteeUntil
           ? [

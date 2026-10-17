@@ -40,6 +40,7 @@ const EXPECTED: Record<ActorRole, Action[]> = {
     "reconfirmation.request",
     "invoice.viewOwn",
     "complaint.open",
+    "withdrawal.request",
   ],
   BROKER_CLIENT_LINK: ["legal.acceptOwn", "offers.viewPresented", "offer.accept"],
   BROKER_OWNER: [
@@ -55,6 +56,7 @@ const EXPECTED: Record<ActorRole, Action[]> = {
     "offers.viewPresented",
     "customerLink.send",
     "reconfirmation.request",
+    "withdrawal.request",
     "accounting.brokerStatement",
     "invoice.viewOwn",
     "team.manage",
@@ -73,6 +75,7 @@ const EXPECTED: Record<ActorRole, Action[]> = {
     "offers.viewPresented",
     "customerLink.send",
     "reconfirmation.request",
+    "withdrawal.request",
   ],
   AGENCY_OWNER: [
     ...PRO_SELF,
@@ -291,6 +294,9 @@ describe("flags granted by the owner", () => {
     expect(can(plain, "penalty.contest")).toBe(false);
     expect(can(withFlag, "accounting.agencyStatement")).toBe(true);
     expect(can(withFlag, "penalty.contest")).toBe(true);
+    // Its statement links the fee invoices: it downloads them too.
+    expect(can(plain, "invoice.viewOwn")).toBe(false);
+    expect(can(withFlag, "invoice.viewOwn")).toBe(true);
   });
 
   it("a flag never extends to a role it was not designed for", () => {

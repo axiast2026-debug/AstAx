@@ -1,6 +1,13 @@
 import { createHash } from "node:crypto";
 import type { Clock } from "@astax/adapters/clock";
-import { asSystem, SYSTEM_CONTEXT, withContext, type DbClient } from "@astax/db";
+import {
+  asSystem,
+  settingsAt,
+  SYSTEM_CONTEXT,
+  withContext,
+  type DbClient,
+  type DbTransaction,
+} from "@astax/db";
 import { Inject, Injectable } from "@nestjs/common";
 import { actorOf, AuditService } from "../audit/audit.service.js";
 import type { AuthContext } from "../auth/auth-context.js";
@@ -44,21 +51,32 @@ export class SurveysService {
     return createHash("sha256").update(token).digest("hex");
   }
 
-  async view(token: string) {
-    const survey = await withContext(this.db, SYSTEM_CONTEXT, (tx) =>
-      tx.postSaleSurvey.findUnique({ where: { tokenHash: this.hash(token) } }),
-    );
+  /** The questionnaire of a link still valid (`survey.linkValidDays` from the sending). */
+  private async valid(tx: DbTransaction, token: string, lock: boolean) {
+    const tokenHash = this.hash(token);
+    if (lock) {
+      await tx.$queryRaw`SELECT 1 FROM "PostSaleSurvey" WHERE "tokenHash" = ${tokenHash} FOR UPDATE`;
+    }
+    const survey = await tx.postSaleSurvey.findUnique({ where: { tokenHash } });
     if (!survey) throw new ProblemError("NOT_FOUND");
+    const now = this.clock.now();
+    const { "survey.linkValidDays": days } = await settingsAt(tx, ["survey.linkValidDays"], now);
+    if (now.getTime() > survey.sentAt.getTime() + days * 86_400_000) {
+      throw new ProblemError("NOT_FOUND");
+    }
+    return survey;
+  }
+
+  async view(token: string) {
+    const survey = await withContext(this.db, SYSTEM_CONTEXT, (tx) => this.valid(tx, token, false));
     return { answered: survey.answeredAt !== null };
   }
 
   async answer(token: string, answers: SurveyAnswers) {
     const now = this.clock.now();
     return withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
-      const survey = await tx.postSaleSurvey.findUnique({
-        where: { tokenHash: this.hash(token) },
-      });
-      if (!survey) throw new ProblemError("NOT_FOUND");
+      // Locked: two answers sent at once make one, and one flag.
+      const survey = await this.valid(tx, token, true);
       if (survey.answeredAt) {
         throw new ProblemError("CONFLICT", "Already answered", [
           { path: "survey", issue: "ALREADY_ANSWERED" },

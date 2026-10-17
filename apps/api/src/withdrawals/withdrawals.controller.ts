@@ -17,7 +17,7 @@ export class WithdrawalsController {
 
   @Post("policies/:id/withdrawal")
   @HttpCode(201)
-  @RequirePermission("request.viewOwn")
+  @RequirePermission("withdrawal.request")
   request(@CurrentAuth() auth: AuthContext, @Param("id") id: string) {
     return this.withdrawals.request(auth, parseInput(uuid, id));
   }

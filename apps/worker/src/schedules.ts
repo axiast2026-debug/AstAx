@@ -8,7 +8,7 @@ import {
   withContext,
   type DbClient,
 } from "@astax/db";
-import { isRemittanceDay, previousMonth } from "@astax/shared/domain";
+import { addCalendarDays, isRemittanceDay, previousMonth } from "@astax/shared/domain";
 import { romeCalendarDate } from "@astax/shared/format";
 import { errorForLog, type Logger } from "@astax/shared/logging";
 import { label, loadNotificationLabels } from "@astax/shared/notifications";
@@ -23,13 +23,15 @@ import { label, loadNotificationLabels } from "@astax/shared/notifications";
 export async function prepareRemittancesIfDue(
   db: DbClient,
   now: Date,
-): Promise<{ runDate: string; created: number } | null> {
+): Promise<{ runDate: string; created: number }> {
   return withContext(db, SYSTEM_CONTEXT, async (tx) => {
     const { "remittance.runDay": runDay } = await settingsAt(tx, ["remittance.runDay"], now);
-    const today = romeCalendarDate(now);
-    if (!isRemittanceDay(today, runDay)) return null;
-    const { created } = await prepareRemittances(tx, today, now);
-    return { runDate: today, created: created.length };
+    // The latest run day up to today: a worker stopped on Monday catches up
+    // later (one remittance per agency and run day, so it adds nothing twice).
+    let runDate = romeCalendarDate(now);
+    while (!isRemittanceDay(runDate, runDay)) runDate = addCalendarDays(runDate, -1);
+    const { created } = await prepareRemittances(tx, runDate, now);
+    return { runDate, created: created.length };
   });
 }
 
@@ -44,10 +46,10 @@ export async function issueBrokerInvoicesIfDue(
   cipher: FieldCipher,
   now: Date,
   lineDescription: string,
-): Promise<{ period: string; created: number } | null> {
-  const today = romeCalendarDate(now);
-  if (!today.endsWith("-01")) return null;
-  const period = previousMonth(today);
+): Promise<{ period: string; created: number }> {
+  // Every day for the month before: a worker stopped on the first catches up
+  // (one invoice per broker and month).
+  const period = previousMonth(romeCalendarDate(now));
   const { created } = await withContext(db, SYSTEM_CONTEXT, (tx) =>
     issueBrokerInvoices(tx, (plain) => cipher.encrypt(plain), period, lineDescription, now),
   );
@@ -69,10 +71,10 @@ export function startSchedules(
     const now = clock.now();
     Promise.all([
       prepareRemittancesIfDue(db, now).then((result) => {
-        if (result && result.created > 0) logger.info(result, "remittances prepared");
+        if (result.created > 0) logger.info(result, "remittances prepared");
       }),
       issueBrokerInvoicesIfDue(db, cipher, now, brokerLine).then((result) => {
-        if (result && result.created > 0) logger.info(result, "broker invoices issued");
+        if (result.created > 0) logger.info(result, "broker invoices issued");
       }),
     ])
       .catch((error: unknown) => logger.error({ err: errorForLog(error) }, "scheduled job failed"))

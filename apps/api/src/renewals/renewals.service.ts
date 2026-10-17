@@ -42,6 +42,12 @@ export class RenewalsService {
     @Inject(AcceptanceService) private readonly acceptance: AcceptanceService,
   ) {}
 
+  /** Rule 4: an access to something not one's own is a denial in the audit log, then 404. */
+  private async denied(auth: AuthContext, targetType: string, targetId: string): Promise<never> {
+    await this.audit.record(actorOf(auth), { action: "ACCESS_DENIED", targetType, targetId });
+    throw new ProblemError("NOT_FOUND");
+  }
+
   /** The caller's policies (row security, and VIS-13 for a broker's operator). */
   private async ownPolicies(tx: DbTransaction, auth: AuthContext, where: object = {}) {
     const requests = await tx.quoteRequest.findMany({
@@ -100,7 +106,7 @@ export class RenewalsService {
     const now = this.clock.now();
     return withContext(this.db, auth.db, async (tx) => {
       const [policy] = await this.ownPolicies(tx, auth, { id: policyId });
-      if (!policy) throw new ProblemError("NOT_FOUND");
+      if (!policy) return this.denied(auth, "Policy", policyId);
       const { "renewal.daysBefore": days } = await settingsAt(tx, ["renewal.daysBefore"], now);
       const today = romeCalendarDate(now);
       const end = dbDateToCalendarDate(policy.endDate);
@@ -163,6 +169,13 @@ export class RenewalsService {
           renewal,
         });
       }
+      // Rule 4: the customers' names and vehicles were opened.
+      await this.audit.inTransaction(tx, actorOf(auth), {
+        action: "RENEWALS_VIEWED",
+        targetType: "Organization",
+        targetId: auth.membership?.organizationId ?? null,
+        after: { policies: out.length },
+      });
       return {
         horizonDays: s["renewal.brokerHorizonDays"],
         noticeDays: s["renewal.daysBefore"],
@@ -176,7 +189,7 @@ export class RenewalsService {
     if (auth.membership?.organizationType !== "BROKER") throw new ProblemError("NOT_FOUND");
     return withContext(this.db, auth.db, async (tx) => {
       const [policy] = await this.ownPolicies(tx, auth, { id: policyId });
-      if (!policy) throw new ProblemError("NOT_FOUND");
+      if (!policy) return this.denied(auth, "Policy", policyId);
       await asSystem(tx, () =>
         tx.policy.update({
           where: { id: policy.id },
@@ -194,18 +207,33 @@ export class RenewalsService {
     });
   }
 
-  /** Spec 02: the renewal drafts of every policy ending in a month, at once. */
+  /**
+   * Spec 02: the renewal drafts of every policy ending in a month, at once,
+   * for those whose renewal is open (`renewal.daysBefore`, as «Rinnova in
+   * asta»); one transaction per policy, so a long list never times out.
+   */
   async bulk(auth: AuthContext, period: string) {
     if (auth.membership?.organizationType !== "BROKER") throw new ProblemError("NOT_FOUND");
     const { from, to } = monthBounds(period);
-    return withContext(this.db, auth.db, async (tx) => {
+    const now = this.clock.now();
+    const { open, notYet } = await withContext(this.db, auth.db, async (tx) => {
+      const { "renewal.daysBefore": days } = await settingsAt(tx, ["renewal.daysBefore"], now);
+      const today = romeCalendarDate(now);
       const policies = await this.ownPolicies(tx, auth, {
         status: { in: ["ACTIVE", "EXPIRING"] },
         renewalRequestId: null,
         endDate: { gte: new Date(from), lte: new Date(to) },
       });
-      for (const p of policies) await this.draft(tx, auth, p);
-      return { period, created: policies.length };
+      const ready = policies.filter(
+        (p) => today >= renewalNoticeDate(dbDateToCalendarDate(p.endDate), days),
+      );
+      return { open: ready, notYet: policies.length - ready.length };
     });
+    let created = 0;
+    for (const p of open) {
+      const out = await withContext(this.db, auth.db, (tx) => this.draft(tx, auth, p));
+      if (out.created) created += 1;
+    }
+    return { period, created, notYet };
   }
 }

@@ -11,7 +11,7 @@ import {
   type DbTransaction,
   type Remittance,
 } from "@astax/db";
-import { addCalendarDays, isRemittanceDay } from "@astax/shared/domain";
+import { addCalendarDays, linesByUnitAmount, isRemittanceDay } from "@astax/shared/domain";
 import { formatDate, romeCalendarDate } from "@astax/shared/format";
 import { Inject, Injectable } from "@nestjs/common";
 import { actorOf, AuditService } from "../audit/audit.service.js";
@@ -125,15 +125,18 @@ export class RemittancesService {
 
   /** Accounting reviews: the remittance is ready, and the agency's fee invoice A is issued. */
   async review(auth: AuthContext, id: string) {
-    const now = this.clock.now();
     const out = await withContext(this.db, auth.db, async (tx) => {
       const r = await this.locked(tx, id);
       if (r.status !== "DRAFT") throw this.wrong();
       const agency = await asSystem(tx, () =>
         tx.organization.findUniqueOrThrow({ where: { id: r.organizationId } }),
       );
-      const policies = await asSystem(tx, () =>
-        tx.remittanceLine.count({ where: { remittanceId: r.id, kind: "POLICY" } }),
+      // CONT-03: the fees the remittance kept, as prepared (never the parameter of today).
+      const fees = await asSystem(tx, () =>
+        tx.remittanceLine.findMany({
+          where: { remittanceId: r.id, kind: "POLICY" },
+          select: { appliedCents: true },
+        }),
       );
       const address = agency.address as {
         street: string;
@@ -148,24 +151,16 @@ export class RemittancesService {
         sdiCode: "0000000",
         pec: agency.pec,
       };
-      const { "fees.agency.amountCents": agencyFee } = await settingsAt(
-        tx,
-        ["fees.agency.amountCents"],
-        now,
-      );
       const invoice = await this.invoicing.issue(tx, {
         series: "A",
         recipientType: "AGENCY",
         ownerUserId: null,
         ownerOrganizationId: agency.id,
         recipient,
-        lines: [
-          {
-            description: `${labels.invoice.agencyLine} ${formatDate(r.runDate.toISOString().slice(0, 10))}`,
-            quantity: policies,
-            unitCents: agencyFee,
-          },
-        ],
+        lines: linesByUnitAmount(
+          fees.map((l) => l.appliedCents),
+          `${labels.invoice.agencyLine} ${formatDate(r.runDate.toISOString().slice(0, 10))}`,
+        ),
         remittanceId: r.id,
       });
       await asSystem(tx, () =>

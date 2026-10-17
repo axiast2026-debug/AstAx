@@ -82,7 +82,13 @@ async function issuedPolicy(agency: string) {
 beforeAll(async () => {
   h = await startHarness();
   r = requestHelpers(h);
-  for (const key of ["bo-verifier", "bo-supervisor", "bo-support", "agenzia-tre-owner"] as const) {
+  for (const key of [
+    "bo-verifier",
+    "bo-supervisor",
+    "bo-support",
+    "agenzia-tre-owner",
+    "agenzia-nove-owner",
+  ] as const) {
     await acceptAllLegal(h, key);
   }
   customer = {
@@ -131,6 +137,18 @@ describe("S08 the withdrawal within the term", () => {
     );
     expect(told).toBeGreaterThan(0);
 
+    // Rule 4: another agency cannot price it; the attempt is in the audit log.
+    const other = await r.call(
+      await who("agenzia-nove-owner", "agenzia-nove"),
+      `/agency/withdrawals/${asked.id}/price`,
+      { body: { refundableCents: 100 } },
+    );
+    expect(other.status).toBe(404);
+    expect(
+      await system((tx) =>
+        tx.auditLog.count({ where: { action: "ACCESS_DENIED", targetId: asked.id } }),
+      ),
+    ).toBe(1);
     const agency = await who("agenzia-tre-owner", "agenzia-tre");
     const listed = await r.json<{ id: string; status: string }[]>(
       await r.call(agency, "/agency/withdrawals"),

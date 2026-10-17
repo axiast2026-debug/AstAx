@@ -86,6 +86,10 @@ export class IssuanceService {
       if (!acceptance) return null;
       const offer = await tx.offer.findUnique({ where: { id: acceptance.offerId } });
       if (!offer || offer.organizationId !== m.organizationId) return null;
+      // EMI-04: an agency judged at fault («Mancata emissione») has lost the
+      // request, even while the customer waits for the refund or answers a
+      // second offer: no contacts, no issuance, no new case.
+      if (!["WINNING", "ISSUED"].includes(offer.status)) return null;
       return { request, acceptance, offer };
     });
     if (!found) {
@@ -125,21 +129,24 @@ export class IssuanceService {
       const { request, acceptance, offer } = await this.won(tx, auth, requestId);
       const data = await this.acceptance.quoteDataOf(tx, request);
       const contacts = await this.contactsOf(tx, request);
-      const [company, product, signed, uploaded, policy] = await Promise.all([
-        offer.companyId ? tx.insuranceCompany.findUnique({ where: { id: offer.companyId } }) : null,
-        offer.productId
-          ? asSystem(tx, () =>
-              tx.insuranceProduct.findUnique({ where: { id: offer.productId ?? "" } }),
-            )
-          : null,
-        asSystem(tx, () =>
-          tx.document.findMany({
-            where: { quoteRequestId: request.id, kind: "SIGNED_DOCUMENT", deletedAt: null },
-          }),
-        ),
-        this.issuanceDocuments(tx, request.id),
-        asSystem(tx, () => tx.policy.findUnique({ where: { quoteRequestId: request.id } })),
-      ]);
+      // In sequence: a system read must not overlap the caller's queries (asSystem).
+      const company = offer.companyId
+        ? await tx.insuranceCompany.findUnique({ where: { id: offer.companyId } })
+        : null;
+      const product = offer.productId
+        ? await asSystem(tx, () =>
+            tx.insuranceProduct.findUnique({ where: { id: offer.productId ?? "" } }),
+          )
+        : null;
+      const signed = await asSystem(tx, () =>
+        tx.document.findMany({
+          where: { quoteRequestId: request.id, kind: "SIGNED_DOCUMENT", deletedAt: null },
+        }),
+      );
+      const uploaded = await this.issuanceDocuments(tx, request.id);
+      const policy = await asSystem(tx, () =>
+        tx.policy.findUnique({ where: { quoteRequestId: request.id } }),
+      );
       await this.audit.inTransaction(tx, actorOf(auth), {
         action: "CUSTOMER_CONTACTS_VIEWED",
         targetType: "QuoteRequest",

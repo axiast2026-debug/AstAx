@@ -23,7 +23,13 @@ interface Results {
     publishedAt: string;
     view: AgencyRankingView;
   }[];
-  totals: { invited: number; offers: number; wins: number };
+  totals: {
+    invited: number;
+    offers: number;
+    wins: number;
+    averageGapBasisPoints: number | null;
+    averageIssuanceMinutes: number | null;
+  };
   byProvince: Bucket[];
   byClass: Bucket[];
   byVehicleType: Bucket[];
@@ -135,6 +141,19 @@ export default async function ResultsPage() {
           wins: body.totals.wins,
         })}
       </p>
+      {body.totals.averageGapBasisPoints !== null ? (
+        <p className="mt-1 text-sm">
+          {t("averageGap", { gap: formatGapPercent(body.totals.averageGapBasisPoints) })}
+        </p>
+      ) : null}
+      {body.totals.averageIssuanceMinutes !== null ? (
+        <p className="mt-1 text-sm">
+          {t("averageIssuance", {
+            hours: Math.floor(body.totals.averageIssuanceMinutes / 60),
+            minutes: body.totals.averageIssuanceMinutes % 60,
+          })}
+        </p>
+      ) : null}
       {table(t("province"), body.byProvince, (k) => k)}
       {table(t("cuClass"), body.byClass, (k) => t("classLabel", { cu: k }))}
       {table(t("vehicleType"), body.byVehicleType, (k) => (tv.has(k) ? tv(k) : k))}

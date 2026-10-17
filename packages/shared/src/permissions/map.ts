@@ -174,6 +174,11 @@ export const PERMISSIONS = {
   "issuance.decideMissed": { grants: ["BO_VERIFIER", "BO_SUPERVISOR"], conditions: "EMI-04" },
   "refund.request": { grants: ["BO_SUPPORT", "BO_ACCOUNTING", "BO_SUPERVISOR"] },
   "refund.approve": { grants: ["BO_SUPERVISOR"], conditions: "PAG-05" },
+  "withdrawal.request": {
+    grants: ["PRIVATE", ...BROKER_USERS],
+    conditions:
+      "own policy, within withdrawal.days (PAG-04); broker operator own customers (VIS-13)",
+  },
   "withdrawal.manage": { grants: ["BO_SUPPORT", "BO_SUPERVISOR"], conditions: "PAG-04" },
   "withdrawal.indicateRefundablePremium": {
     grants: ISSUERS,
@@ -186,7 +191,7 @@ export const PERMISSIONS = {
   "accounting.agencyStatement": { grants: AGENCY_ACCOUNTING },
   "accounting.brokerStatement": { grants: ["BROKER_OWNER"] },
   "invoice.viewOwn": {
-    grants: ["PRIVATE", "AGENCY_OWNER", "BROKER_OWNER"],
+    grants: ["PRIVATE", ...AGENCY_ACCOUNTING, "BROKER_OWNER"],
     conditions: "recipient of the invoice only",
   },
   "penalty.propose": {

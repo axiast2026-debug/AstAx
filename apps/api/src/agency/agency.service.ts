@@ -239,17 +239,18 @@ export class AgencyService {
       const { invitation, auction, request } = target;
       const now = this.clock.now();
       const quoteData = await this.quoteDataOf(tx, request);
-      const [documents, claim, offer, pkg, mandates] = await Promise.all([
-        asSystem(tx, () =>
-          tx.document.findMany({
-            where: {
-              quoteRequestId: request.id,
-              deletedAt: null,
-              kind: { in: [...AGENCY_DOCUMENT_KINDS] },
-            },
-            orderBy: { createdAt: "asc" },
-          }),
-        ),
+      // The system read on its own: it must not overlap the agency's queries.
+      const documents = await asSystem(tx, () =>
+        tx.document.findMany({
+          where: {
+            quoteRequestId: request.id,
+            deletedAt: null,
+            kind: { in: [...AGENCY_DOCUMENT_KINDS] },
+          },
+          orderBy: { createdAt: "asc" },
+        }),
+      );
+      const [claim, offer, pkg, mandates] = await Promise.all([
         tx.claim.findFirst({
           where: { auctionId, organizationId: m.organizationId, releasedAt: null },
         }),

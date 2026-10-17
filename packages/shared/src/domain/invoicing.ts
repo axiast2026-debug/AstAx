@@ -98,11 +98,11 @@ export function monthBounds(period: string): { from: string; to: string } {
 }
 
 /**
- * Decision 24: the lines of the broker's monthly invoice, one per fee
- * amount (the parameter may change during the month), with the number of
- * policies issued for the broker's customers.
+ * Decision 24, CONT-03: the lines of a fee invoice (the broker's monthly one,
+ * the agency's for a remittance), one per fee amount (the parameter may
+ * change in the period), with the number of policies at that amount.
  */
-export function brokerInvoiceLines(
+export function linesByUnitAmount(
   feesCents: readonly number[],
   description: string,
 ): InvoiceLine[] {

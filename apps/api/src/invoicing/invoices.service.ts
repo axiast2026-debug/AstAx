@@ -40,6 +40,12 @@ export class InvoicesService {
     @Inject(InvoicingService) private readonly invoicing: InvoicingService,
   ) {}
 
+  /** Rule 4: an access to something not one's own is a denial in the audit log, then 404. */
+  private async denied(auth: AuthContext, targetType: string, targetId: string): Promise<never> {
+    await this.audit.record(actorOf(auth), { action: "ACCESS_DENIED", targetType, targetId });
+    throw new ProblemError("NOT_FOUND");
+  }
+
   private row(i: Invoice, withRecipient: boolean) {
     const recipient = decryptJson(this.cipher, i.recipientEnc) as InvoiceRecipient;
     return {
@@ -157,7 +163,9 @@ export class InvoicesService {
     auth: AuthContext,
   ): Promise<{ body: Uint8Array; mime: string; fileName: string }> {
     const { policies } = await this.brokerStatement(auth);
-    const amount = (cents: number) => (cents / 100).toFixed(2).replace(".", ",");
+    // Rule 5: whole cents only, «1234,56» with no floating point.
+    const amount = (cents: number) =>
+      `${Math.trunc(cents / 100)},${String(Math.abs(cents % 100)).padStart(2, "0")}`;
     const cell = (value: string) => `"${value.replace(/"/g, '""')}"`;
     const head = [
       "richiesta",
@@ -287,7 +295,8 @@ export class InvoicesService {
         (auth.membership
           ? invoice?.ownerOrganizationId === auth.membership.organizationId
           : invoice?.ownerUserId === auth.userId && invoice.ownerOrganizationId === null);
-      if (!invoice?.pdfDocumentId || !mine) throw new ProblemError("NOT_FOUND");
+      if (!invoice?.pdfDocumentId) throw new ProblemError("NOT_FOUND");
+      if (!mine) return this.denied(auth, "Invoice", id);
       const doc = await asSystem(tx, () =>
         tx.document.findUniqueOrThrow({ where: { id: invoice.pdfDocumentId ?? "" } }),
       );

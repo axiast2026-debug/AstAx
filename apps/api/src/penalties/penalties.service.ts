@@ -40,6 +40,12 @@ export class PenaltiesService {
     @Inject(NotificationService) private readonly notifications: NotificationService,
   ) {}
 
+  /** Rule 4: an access to something not one's own is a denial in the audit log, then 404. */
+  private async denied(auth: AuthContext, targetType: string, targetId: string): Promise<never> {
+    await this.audit.record(actorOf(auth), { action: "ACCESS_DENIED", targetType, targetId });
+    throw new ProblemError("NOT_FOUND");
+  }
+
   private postbox() {
     return new Postbox(this.notifications, this.cipher, this.config.WEB_URL);
   }
@@ -249,7 +255,7 @@ export class PenaltiesService {
     const postbox = this.postbox();
     const out = await withContext(this.db, auth.db, async (tx) => {
       const penalty = await this.locked(tx, id);
-      if (penalty.organizationId !== m.organizationId) throw new ProblemError("NOT_FOUND");
+      if (penalty.organizationId !== m.organizationId) return this.denied(auth, "Penalty", id);
       if (penalty.status !== "APPLIED") throw this.wrongState();
       if (!penalty.contestUntil || penalty.contestUntil <= now) {
         throw new ProblemError("CONFLICT", "The time to contest is over", [

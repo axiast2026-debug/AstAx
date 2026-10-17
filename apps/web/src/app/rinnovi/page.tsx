@@ -38,7 +38,7 @@ function mondayOf(date: string): string {
 export default async function RenewalsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ errore?: string; preparati?: string }>;
+  searchParams: Promise<{ errore?: string; preparati?: string; nonAncora?: string }>;
 }) {
   const viewer = await requireViewer();
   if (viewer.activeMembership?.organization.type !== "BROKER") notFound();
@@ -60,6 +60,9 @@ export default async function RenewalsPage({
       {query.preparati !== undefined ? (
         <p role="status" className="mt-4 rounded-lg bg-green-50 p-3 text-sm">
           {t("prepared", { count: Number(query.preparati) || 0 })}
+          {Number(query.nonAncora) > 0
+            ? ` ${t("notYetCount", { count: Number(query.nonAncora), days: body.noticeDays })}`
+            : ""}
         </p>
       ) : null}
       <Card className="mt-6">

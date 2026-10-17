@@ -174,13 +174,14 @@ export class AcceptanceService {
         },
       }),
     );
-    const [companies, products, pkg, fees, rules, quoteData] = await Promise.all([
+    // The system read first, on its own: it must not overlap the caller's queries.
+    const products = await asSystem(tx, () =>
+      tx.insuranceProduct.findMany({
+        where: { id: { in: offers.flatMap((o) => (o.productId ? [o.productId] : [])) } },
+      }),
+    );
+    const [companies, pkg, fees, rules, quoteData] = await Promise.all([
       tx.insuranceCompany.findMany(),
-      asSystem(tx, () =>
-        tx.insuranceProduct.findMany({
-          where: { id: { in: offers.flatMap((o) => (o.productId ? [o.productId] : [])) } },
-        }),
-      ),
       tx.coveragePackage.findUnique({ where: { code: request.packageCode ?? "" } }),
       this.feeSettings(tx, now),
       this.issuanceRules(tx, now),
@@ -678,27 +679,30 @@ export class AcceptanceService {
     feeCents: number,
     now: Date,
   ) {
-    const [astax, agency, legal, product] = await Promise.all([
-      asSystem(tx, () => tx.organization.findFirstOrThrow({ where: { type: "ASTAX" } })),
-      asSystem(tx, () => tx.organization.findUniqueOrThrow({ where: { id: row.organizationId } })),
-      tx.legalDocument.findMany({
-        where: { key: { in: ["precontractual-information", "engagement-letter"] } },
-        include: {
-          versions: { where: { publishedAt: { not: null } }, orderBy: { number: "desc" }, take: 1 },
-        },
-      }),
-      row.productId
-        ? asSystem(tx, () =>
-            tx.document.findMany({
+    // System reads all in one call, never overlapping the caller's queries (asSystem).
+    const [astax, agency, product] = await asSystem(tx, () =>
+      Promise.all([
+        tx.organization.findFirstOrThrow({ where: { type: "ASTAX" } }),
+        tx.organization.findUniqueOrThrow({ where: { id: row.organizationId } }),
+        row.productId
+          ? tx.document.findMany({
               where: {
                 productId: row.productId,
                 deletedAt: null,
                 createdAt: { lte: row.lastSubmittedAt },
               },
               orderBy: { createdAt: "desc" },
-            }),
-          )
-        : Promise.resolve([]),
+            })
+          : Promise.resolve([]),
+      ]),
+    );
+    const [legal] = await Promise.all([
+      tx.legalDocument.findMany({
+        where: { key: { in: ["precontractual-information", "engagement-letter"] } },
+        include: {
+          versions: { where: { publishedAt: { not: null } }, orderBy: { number: "desc" }, take: 1 },
+        },
+      }),
     ]);
     const l = labels.acceptanceDocuments;
     const text = (key: string) => {

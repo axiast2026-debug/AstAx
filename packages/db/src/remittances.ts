@@ -97,6 +97,27 @@ export async function prepareRemittances(
         deductions.push({ kind: "BROKER_SHARE", ref: p.id, cents });
       }
     }
+    // Decision 23b: the stamp duty and broker quotas of earlier weeks that did
+    // not fit (their lines record what was asked and what was held), less what
+    // the carried-over lines have taken since. Penalties and recoveries are
+    // recomputed from what is still due, below.
+    const earlier = await tx.remittanceLine.groupBy({
+      by: ["kind"],
+      where: {
+        organizationId: agency.id,
+        kind: { in: ["STAMP_DUTY", "BROKER_SHARE", "CARRIED_OVER"] },
+      },
+      _sum: { requestedCents: true, appliedCents: true },
+    });
+    const sum = (kind: string, field: "requestedCents" | "appliedCents") =>
+      earlier.find((e) => e.kind === kind)?._sum[field] ?? 0;
+    const carried =
+      sum("STAMP_DUTY", "requestedCents") -
+      sum("STAMP_DUTY", "appliedCents") +
+      sum("BROKER_SHARE", "requestedCents") -
+      sum("BROKER_SHARE", "appliedCents") -
+      sum("CARRIED_OVER", "appliedCents");
+    if (carried > 0) deductions.push({ kind: "CARRIED_OVER", ref: agency.id, cents: carried });
     const heldBefore = async (kind: "RECOVERY" | "PENALTY", ref: string) =>
       (
         await tx.remittanceLine.aggregate({
@@ -155,17 +176,15 @@ export async function prepareRemittances(
           appliedCents: agencyFee,
           createdAt: now,
         })),
-        ...result.applied
-          .filter((d) => d.kind !== "CARRIED_OVER")
-          .map((d) => ({
-            remittanceId: remittance.id,
-            organizationId: agency.id,
-            kind: d.kind as "STAMP_DUTY" | "BROKER_SHARE" | "RECOVERY" | "PENALTY",
-            ref: d.ref,
-            requestedCents: d.cents,
-            appliedCents: d.appliedCents,
-            createdAt: now,
-          })),
+        ...result.applied.map((d) => ({
+          remittanceId: remittance.id,
+          organizationId: agency.id,
+          kind: d.kind,
+          ref: d.ref,
+          requestedCents: d.cents,
+          appliedCents: d.appliedCents,
+          createdAt: now,
+        })),
       ],
     });
     created.push(remittance.id);

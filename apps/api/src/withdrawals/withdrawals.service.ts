@@ -43,6 +43,12 @@ export class WithdrawalsService {
     @Inject(RefundsService) private readonly refunds: RefundsService,
   ) {}
 
+  /** Rule 4: an access to something not one's own is a denial in the audit log, then 404. */
+  private async denied(auth: AuthContext, targetType: string, targetId: string): Promise<never> {
+    await this.audit.record(actorOf(auth), { action: "ACCESS_DENIED", targetType, targetId });
+    throw new ProblemError("NOT_FOUND");
+  }
+
   private postbox() {
     return new Postbox(this.notifications, this.cipher, this.config.WEB_URL);
   }
@@ -121,7 +127,7 @@ export class WithdrawalsService {
       const policy = await tx.policy.findFirst({
         where: { id: policyId, quoteRequestId: { in: requests.map((r) => r.id) } },
       });
-      if (!policy) throw new ProblemError("NOT_FOUND");
+      if (!policy) return this.denied(auth, "Policy", policyId);
       return this.open(tx, auth, policy);
     });
     await out.postbox.flush();
@@ -187,7 +193,8 @@ export class WithdrawalsService {
     const out = await withContext(this.db, auth.db, async (tx) => {
       await tx.$queryRaw`SELECT 1 FROM "ConsumerWithdrawal" WHERE "id" = ${id}::uuid FOR UPDATE`;
       const w = await asSystem(tx, () => tx.consumerWithdrawal.findUnique({ where: { id } }));
-      if (!w || w.organizationId !== m.organizationId) throw new ProblemError("NOT_FOUND");
+      if (!w || w.organizationId !== m.organizationId)
+        return this.denied(auth, "ConsumerWithdrawal", id);
       if (w.status !== "REQUESTED") throw this.wrong("ALREADY_PRICED");
       const policy = await asSystem(tx, () =>
         tx.policy.findUniqueOrThrow({ where: { id: w.policyId } }),
