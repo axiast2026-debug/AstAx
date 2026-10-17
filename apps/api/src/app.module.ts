@@ -48,6 +48,7 @@ import { RealtimeHub } from "./realtime/realtime-hub.js";
 import { AgencyPreviewService } from "./verification/agency-preview.service.js";
 import { VerificationController } from "./verification/verification.controller.js";
 import { VerificationService } from "./verification/verification.service.js";
+import { ComplaintsIndexController } from "./settings/complaints-index.controller.js";
 import { SettingsController } from "./settings/settings.controller.js";
 import { SettingsService } from "./settings/settings.service.js";
 import { TeamController } from "./team/team.controller.js";
@@ -65,6 +66,7 @@ export class AppModule {
         LegalController,
         TeamController,
         SettingsController,
+        ComplaintsIndexController,
         AuditController,
         RequestsController,
         CustomersController,

@@ -332,4 +332,45 @@ describe("fase 5: the private customer's acceptance (S01)", () => {
       (await r.call(broker, `/requests/${requestId}/ai-comparison`, { body: {} })).status,
     ).toBe(403);
   });
+
+  it("PRES-07 the complaints index: the administrator sets it, the change is logged with before and after", async () => {
+    await acceptAllLegal(h, "admin");
+    const admin = { token: await h.tokenFor("admin"), context: membershipId("admin", "astax") };
+    const list = await r.json<{ companyId: string; company: string }[]>(
+      await r.call(admin, "/admin/complaints-index"),
+      200,
+    );
+    const alfa = list.find((c) => c.company === "Compagnia Alfa");
+    for (const value of [3.2, 2.9]) {
+      await r.json(
+        await r.call(admin, "/admin/complaints-index", {
+          method: "PUT",
+          body: {
+            companyId: alfa?.companyId,
+            year: 2025,
+            value,
+            source: "Dati inventati di prova",
+          },
+        }),
+        200,
+      );
+    }
+    const [stored, logged] = await system((tx) =>
+      Promise.all([
+        tx.companyComplaintsIndex.findMany({ where: { companyId: alfa?.companyId, year: 2025 } }),
+        tx.auditLog.findMany({
+          where: { action: "COMPLAINTS_INDEX_SET", targetId: alfa?.companyId },
+          orderBy: { at: "asc" },
+        }),
+      ]),
+    );
+    expect(stored.map((s) => s.value)).toEqual([2.9]);
+    expect(logged.at(-1)?.before).toMatchObject({ value: 3.2 });
+    expect(logged.at(-1)?.after).toMatchObject({ value: 2.9 });
+    const verifier = {
+      token: await h.tokenFor("bo-verifier"),
+      context: membershipId("bo-verifier", "astax"),
+    };
+    expect((await r.call(verifier, "/admin/complaints-index")).status).toBe(403);
+  });
 });

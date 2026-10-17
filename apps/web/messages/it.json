@@ -70,7 +70,8 @@
     "legalDocuments": "Contratti e documenti legali",
     "communications": "Comunicazioni",
     "integrations": "Integrazioni",
-    "reports": "Report ed esportazioni"
+    "reports": "Report ed esportazioni",
+    "complaintsIndex": "Indice reclami"
   },
   "home": {
     "welcome": "Ciao {name}",

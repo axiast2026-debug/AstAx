@@ -66,7 +66,8 @@
     "legalDocuments": "Kontratat dhe dokumentet ligjore",
     "communications": "Komunikimet",
     "integrations": "Integrimet",
-    "reports": "Raporte dhe eksportime"
+    "reports": "Raporte dhe eksportime",
+    "complaintsIndex": "Indeksi i ankesave"
   },
   "home": {
     "welcome": "Përshëndetje {name}",
@@ -358,5 +359,19 @@
         "KEPT": "E mbajtur"
       }
     }
+  },
+  "complaintsIndex": {
+    "title": "Indeksi i ankesave të kompanive",
+    "intro": "Ankesa për çdo 10.000 kontrata, sipas kompanisë dhe vitit (burimi IVASS). E përdor krahasimi me AI: më i ulët është më mirë; nëse mungon, kriteri është neutral. Çdo ndryshim shkon në regjistër.",
+    "company": "Kompania",
+    "latest": "Vlera e fundit",
+    "none": "Asnjë vlerë",
+    "year": "Viti",
+    "value": "Ankesa për 10.000 kontrata",
+    "source": "Burimi",
+    "save": "Ruaj",
+    "saved": "Vlera u ruajt.",
+    "entry": "{value} në {year} ({source})",
+    "error": "Veprimi nuk u krye ({code})."
   }
 }

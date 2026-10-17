@@ -81,6 +81,7 @@ describe("menus by role (docs/specifiche 02-07)", () => {
       "auctionRules",
       "packages",
       "economy",
+      "complaintsIndex",
       "users",
       "organizations",
       "legalDocuments",

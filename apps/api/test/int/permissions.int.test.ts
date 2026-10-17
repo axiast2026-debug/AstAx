@@ -91,6 +91,13 @@ const ENDPOINTS: Endpoint[] = [
     path: () => "/admin/settings/invitations.max",
     body: {},
   },
+  { action: "admin.settings.manage", method: "GET", path: () => "/admin/complaints-index" },
+  {
+    action: "admin.settings.manage",
+    method: "PUT",
+    path: () => "/admin/complaints-index",
+    body: {},
+  },
   {
     action: "admin.legal.manage",
     method: "POST",

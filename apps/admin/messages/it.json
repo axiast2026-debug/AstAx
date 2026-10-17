@@ -62,7 +62,8 @@
     "legalDocuments": "Contratti e documenti legali",
     "communications": "Comunicazioni",
     "integrations": "Integrazioni",
-    "reports": "Report ed esportazioni"
+    "reports": "Report ed esportazioni",
+    "complaintsIndex": "Indice reclami"
   },
   "home": {
     "welcome": "Ciao {name}",
@@ -358,5 +359,19 @@
         "KEPT": "Tenuta"
       }
     }
+  },
+  "complaintsIndex": {
+    "title": "Indice reclami delle compagnie",
+    "intro": "Reclami ogni 10.000 contratti, per compagnia e anno (fonte IVASS). Lo usa il confronto con AI: più basso è meglio; se manca, il criterio è neutro. Ogni modifica finisce nel registro.",
+    "company": "Compagnia",
+    "latest": "Ultimo valore",
+    "none": "Nessun valore",
+    "year": "Anno",
+    "value": "Reclami ogni 10.000 contratti",
+    "source": "Fonte",
+    "save": "Salva",
+    "saved": "Valore salvato.",
+    "entry": "{value} nel {year} ({source})",
+    "error": "Operazione non riuscita ({code})."
   }
 }
