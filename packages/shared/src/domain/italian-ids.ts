@@ -29,3 +29,31 @@ export function buildVatNumber(serial: number, officeCode: number): string {
   const body = `${String(serial).padStart(7, "0")}${String(officeCode).padStart(3, "0")}`;
   return `${body}${vatNumberCheckDigit(body)}`;
 }
+
+/** ISO 13616 check: the IBAN moved and read as a number, modulo 97, is 1. */
+function ibanMod97(rearranged: string): number {
+  const digits = rearranged
+    .toUpperCase()
+    .split("")
+    .map((c) => (/[A-Z]/.test(c) ? String(c.charCodeAt(0) - 55) : c))
+    .join("");
+  let rest = 0;
+  for (const d of digits) rest = (rest * 10 + Number(d)) % 97;
+  return rest;
+}
+
+export function isValidIban(value: string): boolean {
+  const iban = value.replace(/\s/g, "").toUpperCase();
+  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(iban)) return false;
+  return ibanMod97(iban.slice(4) + iban.slice(0, 4)) === 1;
+}
+
+/**
+ * A synthetic Italian IBAN (rule 11): CIN «X», bank and branch codes of
+ * nobody's, the account from a serial; the ISO check digits are right.
+ */
+export function buildSyntheticIban(serial: number): string {
+  const bban = `X0000099999${String(serial).padStart(12, "0")}`;
+  const check = 98 - ibanMod97(`${bban}IT00`);
+  return `IT${String(check).padStart(2, "0")}${bban}`;
+}

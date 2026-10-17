@@ -32,6 +32,8 @@ const configSchema = z
     /** Local health check (127.0.0.1 only): 200 while the worker runs. 0 switches it off. */
     WORKER_HEALTH_PORT: z.coerce.number().int().min(0).max(65535).default(4100),
     OUTBOX_DISPATCH_INTERVAL_MS: z.coerce.number().int().min(0).default(2000),
+    /** How often the scheduled jobs (the Monday remittances) are checked. 0 switches them off. */
+    SCHEDULES_INTERVAL_MS: z.coerce.number().int().min(0).default(300_000),
     S3_ENDPOINT: z.url().optional(),
     S3_PORT: z.coerce.number().int().min(1).max(65535).default(8333),
     S3_REGION: z.string().min(1).default("eu-south-1"),

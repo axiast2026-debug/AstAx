@@ -1,11 +1,17 @@
 import type { FieldCipher } from "@astax/adapters/crypto";
 import {
   AgencyFilterCriteriaSchema,
+  buildSyntheticIban,
   buildVatNumber,
   type AgencyFilterCriteria,
 } from "@astax/shared/domain";
 import type { DbTransaction } from "../client.js";
-import type { Locale, MembershipRole, OrganizationType, UserKind } from "../generated/prisma/client.js";
+import type {
+  Locale,
+  MembershipRole,
+  OrganizationType,
+  UserKind,
+} from "../generated/prisma/client.js";
 import { deterministicUuid } from "./deterministic-id.js";
 
 /**
@@ -78,7 +84,18 @@ const RECEPTION_HOURS = {
   sun: [],
 };
 
-const AGENCY_NAMES = ["Uno", "Due", "Tre", "Quattro", "Cinque", "Sei", "Sette", "Otto", "Nove", "Dieci"];
+const AGENCY_NAMES = [
+  "Uno",
+  "Due",
+  "Tre",
+  "Quattro",
+  "Cinque",
+  "Sei",
+  "Sette",
+  "Otto",
+  "Nove",
+  "Dieci",
+];
 const OWNER_NAMES: [string, string][] = [
   ["Anna", "Moretti"],
   ["Bruno", "Costa"],
@@ -145,7 +162,14 @@ function user(
 function buildDataset() {
   phoneCounter = 0;
   const organizations: SyntheticOrganization[] = [
-    { key: "astax", type: "ASTAX", legalName: "AstAx (dati di prova)", ruiNumber: null, ruiSection: null, serial: 1 },
+    {
+      key: "astax",
+      type: "ASTAX",
+      legalName: "AstAx (dati di prova)",
+      ruiNumber: null,
+      ruiSection: null,
+      serial: 1,
+    },
     {
       key: "broker-demo",
       type: "BROKER",
@@ -181,7 +205,12 @@ function buildDataset() {
     { user: "bo-supervisor", organization: "astax", role: "BO_SUPERVISOR" },
     { user: "admin", organization: "astax", role: "ADMIN" },
     { user: "broker-owner", organization: "broker-demo", role: "OWNER" },
-    { user: "broker-operator", organization: "broker-demo", role: "OPERATOR", ruiNumberE: "E000000001" },
+    {
+      user: "broker-operator",
+      organization: "broker-demo",
+      role: "OPERATOR",
+      ruiNumberE: "E000000001",
+    },
   ];
 
   AGENCY_NAMES.forEach((name, i) => {
@@ -210,8 +239,18 @@ function buildDataset() {
 
   // Marco Rossi: operator in Agenzia Uno and Agenzia Tre (scenarios, OFF-02).
   memberships.push(
-    { user: "marco-rossi", organization: "agenzia-uno", role: "OPERATOR", ruiNumberE: "E000000099" },
-    { user: "marco-rossi", organization: "agenzia-tre", role: "OPERATOR", ruiNumberE: "E000000099" },
+    {
+      user: "marco-rossi",
+      organization: "agenzia-uno",
+      role: "OPERATOR",
+      ruiNumberE: "E000000099",
+    },
+    {
+      user: "marco-rossi",
+      organization: "agenzia-tre",
+      role: "OPERATOR",
+      ruiNumberE: "E000000099",
+    },
   );
   // Sofia Marchi: Marco's colleague in Agenzia Tre (S10).
   users.push(user("sofia-marchi", "PROFESSIONAL", "Sofia", "Marchi", "agenzia-tre.test"));
@@ -229,7 +268,9 @@ function buildDataset() {
     ["Elena", "Sala"],
     ["Luca", "Ferri"],
   ] as const) {
-    users.push(user(`private-${slug(first)}-${slug(last)}`, "PRIVATE", first, last, "example.test"));
+    users.push(
+      user(`private-${slug(first)}-${slug(last)}`, "PRIVATE", first, last, "example.test"),
+    );
   }
 
   return { organizations, users, memberships };
@@ -241,8 +282,7 @@ export const syntheticId = (
   seed: string,
   kind: "org" | "user" | "membership" | "company",
   key: string,
-) =>
-  deterministicUuid(seed, `${kind}:${key}`);
+) => deterministicUuid(seed, `${kind}:${key}`);
 
 export interface SyntheticCounts {
   organizations: number;
@@ -272,6 +312,26 @@ export async function seedSynthetic(
         status: "ACTIVE",
       },
       update: {},
+    });
+  }
+
+  // Phase 6: address (invoices, CONT-03) and IBAN (remittances, CONT-02),
+  // invented; filled once, later changes are left alone.
+  for (const org of SYNTHETIC.organizations) {
+    const id = syntheticId(seed, "org", org.key);
+    const current = await tx.organization.findUniqueOrThrow({ where: { id } });
+    if (current.address && current.ibanEnc) continue;
+    await tx.organization.update({
+      where: { id },
+      data: {
+        address: current.address ?? {
+          street: `Via degli Esempi ${org.serial}`,
+          postalCode: "00184",
+          municipalityIstat: "058091",
+          province: "RM",
+        },
+        ibanEnc: current.ibanEnc ?? cipher.encrypt(buildSyntheticIban(org.serial)),
+      },
     });
   }
 

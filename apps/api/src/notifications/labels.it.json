@@ -70,7 +70,9 @@
     "exempt": "Imponibile esente",
     "stampDuty": "Imposta di bollo",
     "total": "Totale",
-    "privateLine": "Compenso di intermediazione, richiesta"
+    "privateLine": "Compenso di intermediazione, richiesta",
+    "agencyLine": "Fee AstAx sulle polizze emesse, rimessa del",
+    "brokerLine": "Fee AstAx sulle polizze acquistate, mese"
   },
   "receipt": {
     "title": "Ricevuta di pagamento",
@@ -113,5 +115,8 @@
   "penaltyOutcome": {
     "UPHELD": "penale confermata",
     "CANCELLED": "penale annullata"
+  },
+  "remittance": {
+    "transferText": "Rimessa AstAx premi RCA del"
   }
 }

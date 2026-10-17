@@ -589,18 +589,15 @@ events:
   remittance.executed:
     recipients: [agency_owner]
     channels: [in_app, email]
-    variables: [periodo, numero_polizze, premi_lordi, fee_totali, penali, importo_netto, iban_finale, data, link]
+    # Rule 8: no amounts here; they are in the statement behind the link.
+    variables: [periodo, numero_polizze, data, link]
     it:
       title: "Rimessa eseguita"
-      body: "{{importo_netto}} per {{numero_polizze}} polizze, bonifico del {{data}}."
-      emailSubject: "Rimessa eseguita: {{importo_netto}}"
+      body: "Rimessa del {{periodo}} per {{numero_polizze}} polizze, bonifico del {{data}}."
+      emailSubject: "Rimessa eseguita"
       emailBody: |
-        Abbiamo eseguito la rimessa del periodo {{periodo}} ({{numero_polizze}} polizze):
-        premi lordi {{premi_lordi}}
-        fee AstAx {{fee_totali}}
-        penali {{penali}}
-        netto {{importo_netto}}, bonifico del {{data}} sull'IBAN che termina con {{iban_finale}}.
-        Dettaglio ed estratto conto: {{link}}
+        Abbiamo eseguito la rimessa del {{periodo}} ({{numero_polizze}} polizze), con bonifico del {{data}}.
+        Importi, trattenute e fattura sono nell'estratto conto: {{link}}
 
   penalty.applied:
     recipients: [agency_owner]

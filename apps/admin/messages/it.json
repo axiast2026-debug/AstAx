@@ -464,5 +464,56 @@
     "revoke": "Revoca",
     "reason": "Motivo",
     "decide": "Decidi"
+  },
+  "remittances": {
+    "title": "Rimesse alle agenzie",
+    "prepare": "Prepara le rimesse della settimana",
+    "empty": "Nessuna rimessa. Si preparano in automatico il lunedì.",
+    "runDate": "Rimesse del {date}",
+    "generateFile": "Genera il file dei bonifici (SEPA)",
+    "policies": "{count, plural, one {# polizza} other {# polizze}}",
+    "breakdown": "Premi {gross} − fee {fees} − trattenute {held}",
+    "carried": "da trattenere la prossima volta {amount}",
+    "executedAt": "Eseguita il {at}",
+    "review": "Controllata: emetti la fattura",
+    "downloadFile": "Scarica il file per la banca",
+    "execute": "Segna come eseguita",
+    "status": {
+      "DRAFT": "Da controllare",
+      "READY": "Controllata",
+      "FILE_GENERATED": "File generato",
+      "EXECUTED": "Eseguita"
+    }
+  },
+  "invoicing": {
+    "title": "Fatturazione",
+    "error": "Operazione non riuscita ({code}).",
+    "done": "Dati salvati: la fattura è stata inviata allo SDI.",
+    "showAll": "Mostra tutte le fatture",
+    "showToComplete": "Mostra solo quelle da completare",
+    "empty": "Nessuna fattura.",
+    "toComplete": "Da completare",
+    "issuedOn": "Emessa il {date}",
+    "stampDuty": "bollo {amount}",
+    "dueOn": "scadenza {date}",
+    "pdf": "Copia PDF",
+    "fiscalCode": "Codice fiscale",
+    "vatNumber": "Partita IVA",
+    "street": "Indirizzo",
+    "postalCode": "CAP",
+    "municipality": "Codice ISTAT del comune",
+    "province": "Provincia (sigla)",
+    "complete": "Completa e invia allo SDI",
+    "recipientType": {
+      "PRIVATE": "Privato",
+      "AGENCY": "Agenzia",
+      "BROKER": "Broker"
+    },
+    "sdiStatus": {
+      "TO_SEND": "Da inviare",
+      "SENT": "Inviata allo SDI",
+      "DELIVERED": "Consegnata",
+      "REJECTED": "Scartata dallo SDI"
+    }
   }
 }

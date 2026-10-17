@@ -11,6 +11,8 @@ export async function documentFile(path: string): Promise<Response> {
     new RegExp(`^/requests/${id}/offers/${id}/quote$`),
     // Phase 6: the payment receipt for the agency that issues.
     new RegExp(`^/agency/issuance/${id}/documents/receipt$`),
+    // The courtesy copies of AstAx's invoices, to their recipient.
+    new RegExp(`^/invoices/${id}/pdf$`),
   ];
   if (!allowed.some((pattern) => pattern.test(path))) {
     return new Response(null, { status: 404 });

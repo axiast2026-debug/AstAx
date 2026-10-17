@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { buildVatNumber, isValidVatNumber, vatNumberCheckDigit } from "./italian-ids.js";
+import {
+  buildSyntheticIban,
+  buildVatNumber,
+  isValidIban,
+  isValidVatNumber,
+  vatNumberCheckDigit,
+} from "./italian-ids.js";
 
 describe("Italian VAT number", () => {
   it("computes the check digit", () => {
@@ -24,5 +30,15 @@ describe("Italian VAT number", () => {
     for (let serial = 1; serial <= 50; serial += 1) {
       expect(isValidVatNumber(buildVatNumber(9_000_000 + serial, 15))).toBe(true);
     }
+  });
+});
+
+describe("IBAN", () => {
+  it("a synthetic IBAN passes the ISO 13616 check; a changed digit does not", () => {
+    const iban = buildSyntheticIban(42);
+    expect(iban).toMatch(/^IT\d{2}X0000099999000000000042$/);
+    expect(isValidIban(iban)).toBe(true);
+    expect(isValidIban(iban.replace(/42$/, "43"))).toBe(false);
+    expect(isValidIban("IT60 X054 2811 1010 0000 0123 456")).toBe(true);
   });
 });

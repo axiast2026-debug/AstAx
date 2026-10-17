@@ -464,5 +464,56 @@
     "revoke": "Revoko",
     "reason": "Arsyeja",
     "decide": "Vendos"
+  },
+  "remittances": {
+    "title": "Remitancat për agjencitë",
+    "prepare": "Përgatit remitancat e javës",
+    "empty": "Asnjë remitancë. Përgatiten automatikisht të hënën.",
+    "runDate": "Remitancat e {date}",
+    "generateFile": "Krijo skedarin e transfertave (SEPA)",
+    "policies": "{count, plural, one {# policë} other {# polica}}",
+    "breakdown": "Prime {gross} − tarifa {fees} − mbajtje {held}",
+    "carried": "për t'u mbajtur herën tjetër {amount}",
+    "executedAt": "Kryer më {at}",
+    "review": "E kontrolluar: lësho faturën",
+    "downloadFile": "Shkarko skedarin për bankën",
+    "execute": "Shëno si të kryer",
+    "status": {
+      "DRAFT": "Për t'u kontrolluar",
+      "READY": "E kontrolluar",
+      "FILE_GENERATED": "Skedari u krijua",
+      "EXECUTED": "E kryer"
+    }
+  },
+  "invoicing": {
+    "title": "Faturimi",
+    "error": "Veprimi nuk u krye ({code}).",
+    "done": "Të dhënat u ruajtën: fatura u dërgua në SDI.",
+    "showAll": "Shfaq të gjitha faturat",
+    "showToComplete": "Shfaq vetëm ato për t'u plotësuar",
+    "empty": "Asnjë faturë.",
+    "toComplete": "Për t'u plotësuar",
+    "issuedOn": "Lëshuar më {date}",
+    "stampDuty": "pulla {amount}",
+    "dueOn": "afati {date}",
+    "pdf": "Kopje PDF",
+    "fiscalCode": "Kodi fiskal",
+    "vatNumber": "Numri i TVSH-së",
+    "street": "Adresa",
+    "postalCode": "Kodi postar",
+    "municipality": "Kodi ISTAT i komunës",
+    "province": "Provinca (shkurtim)",
+    "complete": "Plotëso dhe dërgo në SDI",
+    "recipientType": {
+      "PRIVATE": "Privat",
+      "AGENCY": "Agjenci",
+      "BROKER": "Broker"
+    },
+    "sdiStatus": {
+      "TO_SEND": "Për t'u dërguar",
+      "SENT": "Dërguar në SDI",
+      "DELIVERED": "E dorëzuar",
+      "REJECTED": "Refuzuar nga SDI"
+    }
   }
 }

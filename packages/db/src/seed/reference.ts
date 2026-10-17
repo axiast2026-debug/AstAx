@@ -53,8 +53,11 @@ function readSeedFile(repoRoot: string, name: string): unknown {
 export function readMunicipalities(
   repoRoot: string,
 ): { istatCode: string; cadastralCode: string; province: string; name: string }[] {
-  const [header, ...rows] = parseSemicolonCsv(readFileSync(join(repoRoot, "seed", "comuni.csv"), "utf8"));
-  if (header?.join(";") !== "istat;cadastral;province;name") throw new Error("Unexpected seed/comuni.csv header");
+  const [header, ...rows] = parseSemicolonCsv(
+    readFileSync(join(repoRoot, "seed", "comuni.csv"), "utf8"),
+  );
+  if (header?.join(";") !== "istat;cadastral;province;name")
+    throw new Error("Unexpected seed/comuni.csv header");
   return rows.map(([istatCode = "", cadastralCode = "", province = "", name = ""]) => ({
     istatCode,
     cadastralCode,
@@ -80,7 +83,10 @@ export interface ReferenceCounts {
 export async function seedReference(tx: DbTransaction, repoRoot: string): Promise<ReferenceCounts> {
   const settings = parseSeedSettings(readSeedFile(repoRoot, "parametri.json"));
   for (const setting of settings) {
-    const exists = await tx.setting.findFirst({ where: { key: setting.key }, select: { id: true } });
+    const exists = await tx.setting.findFirst({
+      where: { key: setting.key },
+      select: { id: true },
+    });
     if (exists) continue;
     await tx.setting.create({
       data: {
@@ -101,7 +107,14 @@ export async function seedReference(tx: DbTransaction, repoRoot: string): Promis
       const active = entry.phase === undefined || entry.phase <= 1;
       await tx.listValue.upsert({
         where: { listKey_code: { listKey, code: entry.code } },
-        create: { listKey, code: entry.code, labelIt: entry.it, labelSq: entry.sq, active, sortOrder },
+        create: {
+          listKey,
+          code: entry.code,
+          labelIt: entry.it,
+          labelSq: entry.sq,
+          active,
+          sortOrder,
+        },
         update: {},
       });
       listValues += 1;
@@ -111,7 +124,8 @@ export async function seedReference(tx: DbTransaction, repoRoot: string): Promis
   // Excluded cases (ASTA-10): the list entries also carry blockingInWizard.
   const exclusionCases = lists.exclusionCase ?? [];
   for (const entry of exclusionCases) {
-    if (entry.blockingInWizard === undefined) throw new Error(`exclusionCase ${entry.code}: blockingInWizard missing`);
+    if (entry.blockingInWizard === undefined)
+      throw new Error(`exclusionCase ${entry.code}: blockingInWizard missing`);
     await tx.exclusionRule.upsert({
       where: { code: entry.code },
       create: {
@@ -127,7 +141,11 @@ export async function seedReference(tx: DbTransaction, repoRoot: string): Promis
 
   const packages = packagesFileSchema.parse(readSeedFile(repoRoot, "pacchetti.json")).packages;
   for (const pkg of packages) {
-    await tx.coveragePackage.upsert({ where: { code: pkg.code }, create: { code: pkg.code, name: pkg.name }, update: {} });
+    await tx.coveragePackage.upsert({
+      where: { code: pkg.code },
+      create: { code: pkg.code, name: pkg.name },
+      update: {},
+    });
     await tx.coveragePackageVersion.upsert({
       where: { packageCode_version: { packageCode: pkg.code, version: pkg.version } },
       create: {
@@ -159,7 +177,13 @@ export async function seedReference(tx: DbTransaction, repoRoot: string): Promis
   for (const doc of LEGAL_PLACEHOLDERS) {
     const document = await tx.legalDocument.upsert({
       where: { key: doc.key },
-      create: { key: doc.key, title: doc.title, audiences: doc.audiences, moment: doc.moment, channel: doc.channel },
+      create: {
+        key: doc.key,
+        title: doc.title,
+        audiences: doc.audiences,
+        moment: doc.moment,
+        channel: doc.channel,
+      },
       update: {},
     });
     await tx.legalDocumentVersion.upsert({

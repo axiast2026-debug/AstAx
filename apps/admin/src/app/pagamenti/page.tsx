@@ -1,11 +1,13 @@
 import { formatDateTime, formatEuroCents } from "@astax/shared/format";
 import { Badge, Button, Card } from "@astax/ui";
+import { can } from "@astax/shared/permissions";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
 import { approveRefund, rejectRefund } from "./actions";
+import { RemittancesSection } from "./remittances-section";
 
 interface RefundRow {
   id: string;
@@ -20,8 +22,8 @@ interface RefundRow {
 
 /**
  * «Pagamenti» (spec 06), refunds: PAG-05, the supervisor approves each one;
- * the provider gives the money back on the same payment. The remittances
- * come in the next step of phase 6.
+ * the provider gives the money back on the same payment; then the weekly
+ * remittances to the agencies (CONT-01, CONT-02).
  */
 export default async function PaymentsPage({
   searchParams,
@@ -32,7 +34,8 @@ export default async function PaymentsPage({
   const t = await getTranslations("payments");
   const query = await searchParams;
   const { status, body } = await api<RefundRow[]>("/back-office/refunds");
-  if (status === 403) notFound();
+  const refunds = status === 200 ? body : null;
+  if (status !== 200 && !can(viewer.actor, "accounting.view")) notFound();
 
   return (
     <AppShell viewer={viewer}>
@@ -46,14 +49,15 @@ export default async function PaymentsPage({
           {t("done")}
         </p>
       ) : null}
-      <h2 className="mt-6 text-lg font-semibold">{t("refunds")}</h2>
-      {body.length === 0 ? (
+      <RemittancesSection canExecute={can(viewer.actor, "remittance.execute")} />
+      {refunds ? <h2 className="mt-8 text-lg font-semibold">{t("refunds")}</h2> : null}
+      {!refunds ? null : refunds.length === 0 ? (
         <Card className="mt-3">
           <p className="text-sm">{t("noRefunds")}</p>
         </Card>
       ) : (
         <ul className="mt-3 space-y-3">
-          {body.map((refund) => (
+          {refunds.map((refund) => (
             <li key={refund.id}>
               <Card>
                 <section aria-label={refund.code}>

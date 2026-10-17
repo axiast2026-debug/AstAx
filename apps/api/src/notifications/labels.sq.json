@@ -19,7 +19,9 @@
     "exempt": "Shuma e përjashtuar",
     "stampDuty": "Taksa e pullës",
     "total": "Totali",
-    "privateLine": "Komision ndërmjetësimi, kërkesa"
+    "privateLine": "Komision ndërmjetësimi, kërkesa",
+    "agencyLine": "Tarifa AstAx për policat e lëshuara, remitanca e",
+    "brokerLine": "Tarifa AstAx për policat e blera, muaji"
   },
   "receipt": {
     "title": "Mandat pagese",
@@ -62,5 +64,8 @@
   "penaltyOutcome": {
     "UPHELD": "gjoba u konfirmua",
     "CANCELLED": "gjoba u anulua"
+  },
+  "remittance": {
+    "transferText": "Remitanca AstAx e primeve RCA e"
   }
 }

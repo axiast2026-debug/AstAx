@@ -13,7 +13,13 @@ export interface LegalPlaceholder {
 
 /** The documents of docs/specifiche/09, §7. Titles are data shown to users, in Italian. */
 export const LEGAL_PLACEHOLDERS: readonly LegalPlaceholder[] = [
-  { key: "terms-private", title: "Condizioni d'uso per i privati", audiences: ["PRIVATE"], moment: "REGISTRATION", channel: "PRIVATE" },
+  {
+    key: "terms-private",
+    title: "Condizioni d'uso per i privati",
+    audiences: ["PRIVATE"],
+    moment: "REGISTRATION",
+    channel: "PRIVATE",
+  },
   {
     key: "privacy-sharing-consent",
     title: "Informativa privacy e consenso alla condivisione con le agenzie",
@@ -21,7 +27,13 @@ export const LEGAL_PLACEHOLDERS: readonly LegalPlaceholder[] = [
     moment: "BEFORE_REQUEST",
     channel: null,
   },
-  { key: "engagement-letter", title: "Lettera di incarico ad AstAx", audiences: ["PRIVATE"], moment: "ACCEPTANCE", channel: "PRIVATE" },
+  {
+    key: "engagement-letter",
+    title: "Lettera di incarico ad AstAx",
+    audiences: ["PRIVATE"],
+    moment: "ACCEPTANCE",
+    channel: "PRIVATE",
+  },
   {
     key: "precontractual-information",
     title: "Informativa precontrattuale (MUP)",
@@ -29,7 +41,13 @@ export const LEGAL_PLACEHOLDERS: readonly LegalPlaceholder[] = [
     moment: "ACCEPTANCE",
     channel: null,
   },
-  { key: "fea-terms", title: "Condizioni del servizio di firma FEA", audiences: ["PRIVATE"], moment: "FIRST_SIGNATURE", channel: null },
+  {
+    key: "fea-terms",
+    title: "Condizioni del servizio di firma FEA",
+    audiences: ["PRIVATE"],
+    moment: "FIRST_SIGNATURE",
+    channel: null,
+  },
   {
     key: "terms-professional",
     title: "Condizioni d'uso per i professionisti, con penali e non aggiramento",
@@ -37,10 +55,34 @@ export const LEGAL_PLACEHOLDERS: readonly LegalPlaceholder[] = [
     moment: "ONBOARDING",
     channel: null,
   },
-  { key: "agency-agreement", title: "Accordo di collaborazione con le agenzie", audiences: ["AGENCY"], moment: "ONBOARDING", channel: null },
-  { key: "broker-agreement", title: "Accordo di collaborazione con i broker", audiences: ["BROKER"], moment: "ONBOARDING", channel: "BROKER" },
-  { key: "data-processing-agreement", title: "Accordo sul trattamento dei dati", audiences: ["AGENCY", "BROKER"], moment: "ONBOARDING", channel: null },
-  { key: "cookie-policy", title: "Cookie policy", audiences: ["ALL"], moment: "FIRST_ACCESS", channel: null },
+  {
+    key: "agency-agreement",
+    title: "Accordo di collaborazione con le agenzie",
+    audiences: ["AGENCY"],
+    moment: "ONBOARDING",
+    channel: null,
+  },
+  {
+    key: "broker-agreement",
+    title: "Accordo di collaborazione con i broker",
+    audiences: ["BROKER"],
+    moment: "ONBOARDING",
+    channel: "BROKER",
+  },
+  {
+    key: "data-processing-agreement",
+    title: "Accordo sul trattamento dei dati",
+    audiences: ["AGENCY", "BROKER"],
+    moment: "ONBOARDING",
+    channel: null,
+  },
+  {
+    key: "cookie-policy",
+    title: "Cookie policy",
+    audiences: ["ALL"],
+    moment: "FIRST_ACCESS",
+    channel: null,
+  },
 ];
 
 export function placeholderContent(title: string): string {

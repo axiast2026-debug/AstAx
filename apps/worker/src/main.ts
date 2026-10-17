@@ -20,6 +20,7 @@ import { createActivities, type RealtimeEvent } from "./activities/index.js";
 import { loadWorkerConfig, type WorkerConfig } from "./config.js";
 import { WorkerNotifier } from "./notifier.js";
 import { outboxHandler } from "./outbox.js";
+import { startSchedules } from "./schedules.js";
 
 /** The channel the API listens to for the changes it forwards to the browsers (ADR 0008). */
 export const REALTIME_CHANNEL = "astax:realtime";
@@ -121,7 +122,10 @@ const outboxTimer =
           });
       }, config.OUTBOX_DISPATCH_INTERVAL_MS);
 
+const stopSchedules = startSchedules(db, clock, logger, config.SCHEDULES_INTERVAL_MS);
+
 const stop = () => {
+  stopSchedules();
   clearInterval(outboxTimer);
   clearInterval(devClockTimer);
   health?.close();

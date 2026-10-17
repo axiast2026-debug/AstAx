@@ -27,10 +27,15 @@ const cipher = new LocalFieldCipher(required("FIELD_ENCRYPTION_KEY"), required("
 const seed = process.env.SYNTHETIC_SEED ?? DEFAULT_SYNTHETIC_SEED;
 
 try {
-  const result = await withContext(db, SYSTEM_CONTEXT, async (tx) => ({
-    reference: await seedReference(tx, findRepoRoot(import.meta.dirname)),
-    synthetic: await seedSynthetic(tx, cipher, seed),
-  }), { timeoutMs: 120_000 });
+  const result = await withContext(
+    db,
+    SYSTEM_CONTEXT,
+    async (tx) => ({
+      reference: await seedReference(tx, findRepoRoot(import.meta.dirname)),
+      synthetic: await seedSynthetic(tx, cipher, seed),
+    }),
+    { timeoutMs: 120_000 },
+  );
   console.log("Seed loaded:", JSON.stringify(result));
 } finally {
   await db.$disconnect();

@@ -1556,6 +1556,8 @@ model Remittance {
 
 enum RemittanceLineKind {
   POLICY
+  /// Proposal C of phase 6: the stamp duty of the agency's invoice, held back.
+  STAMP_DUTY
   BROKER_SHARE
   CARRIED_OVER
   RECOVERY

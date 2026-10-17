@@ -1251,6 +1251,42 @@
       "CONTESTED": "Contestata",
       "UPHELD": "Confermata",
       "CANCELLED": "Annullata"
+    },
+    "remittancesTitle": "Rimesse settimanali",
+    "noRemittances": "Nessuna rimessa ancora.",
+    "remittanceOf": "Rimessa del {date}",
+    "policiesCount": "{count, plural, one {# polizza} other {# polizze}}",
+    "gross": "Premi incassati",
+    "fees": "Fee AstAx",
+    "stampDuty": "Bollo sulla fattura",
+    "penalties": "Penali",
+    "recoveries": "Recuperi di premi rimborsati",
+    "brokerShares": "Quote broker",
+    "carried": "Restano da trattenere {amount} nella prossima rimessa.",
+    "executedAt": "Bonifico eseguito il {at}",
+    "remittanceStatus": {
+      "DRAFT": "In preparazione",
+      "READY": "Controllata",
+      "FILE_GENERATED": "In pagamento",
+      "EXECUTED": "Eseguita"
+    },
+    "statementTitle": "Estratto conto: polizze emesse",
+    "noPolicies": "Nessuna polizza emessa.",
+    "request": "Richiesta",
+    "policyNumber": "Polizza",
+    "issuedOn": "Emessa il",
+    "premium": "Premio",
+    "fee": "Fee",
+    "remittance": "Rimessa",
+    "nextRemittance": "Nella prossima rimessa",
+    "invoicesTitle": "Fatture di AstAx",
+    "noInvoices": "Nessuna fattura.",
+    "download": "Scarica la copia",
+    "sdiStatus": {
+      "TO_SEND": "Da inviare allo SDI",
+      "SENT": "Inviata allo SDI",
+      "DELIVERED": "Consegnata",
+      "REJECTED": "Scartata dallo SDI"
     }
   }
 }

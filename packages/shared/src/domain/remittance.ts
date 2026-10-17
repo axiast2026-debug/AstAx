@@ -9,7 +9,7 @@ import { romeInstant, weekdayOf, type WeekdayKey } from "./working-calendar.js";
  * (PAG-04) and the penalties applied. A remittance is never negative: what
  * does not fit passes to the next one.
  */
-export type DeductionKind = "BROKER_SHARE" | "CARRIED_OVER" | "RECOVERY" | "PENALTY";
+export type DeductionKind = "STAMP_DUTY" | "BROKER_SHARE" | "CARRIED_OVER" | "RECOVERY" | "PENALTY";
 
 export interface RemittancePolicy {
   policyId: string;
@@ -36,8 +36,17 @@ export interface RemittanceResult {
   carriedCents: number;
 }
 
-/** The order of the hold-backs: the broker's money first, then the oldest debts. */
-const ORDER: DeductionKind[] = ["BROKER_SHARE", "CARRIED_OVER", "RECOVERY", "PENALTY"];
+/**
+ * The order of the hold-backs: the stamp duty of the agency's invoice and the
+ * broker's money first, then the oldest debts.
+ */
+const ORDER: DeductionKind[] = [
+  "STAMP_DUTY",
+  "BROKER_SHARE",
+  "CARRIED_OVER",
+  "RECOVERY",
+  "PENALTY",
+];
 
 function assertCents(value: number, what: string): void {
   if (!Number.isInteger(value) || value < 0) {
@@ -58,6 +67,7 @@ export function computeRemittance(
   const feesCents = policies.reduce((sum, p) => sum + p.agencyFeeCents, 0);
   let available = Math.max(0, grossCents - feesCents);
   const held: Record<DeductionKind, number> = {
+    STAMP_DUTY: 0,
     BROKER_SHARE: 0,
     CARRIED_OVER: 0,
     RECOVERY: 0,
