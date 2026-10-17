@@ -85,6 +85,20 @@ export class AcceptanceController {
     );
   }
 
+  @Get("offers/:offerId/quote")
+  @RequirePermission("offers.viewPresented")
+  async quote(
+    @CurrentAuth() auth: AuthContext,
+    @Param("id") id: string,
+    @Param("offerId") offerId: string,
+    @Res() response: Response,
+  ) {
+    sendFile(
+      response,
+      await this.acceptance.quoteFile(auth, parseInput(uuid, id), parseInput(uuid, offerId)),
+    );
+  }
+
   @Get("acceptance/documents/:documentId")
   @RequirePermission("offers.viewPresented")
   async document(

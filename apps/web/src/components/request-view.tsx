@@ -6,6 +6,7 @@ import { realtimeTicket } from "@/app/actions";
 import { askReconfirmation, cancelRequest } from "@/app/request-actions";
 import { Countdown } from "@/components/countdown";
 import { LiveRefresh } from "@/components/live-refresh";
+import { OffersPanel } from "@/components/offers-panel";
 import { api } from "@/lib/auth";
 import { ErrorSummary } from "@/components/form";
 import { holderName } from "@/components/wizard/drivers-step";
@@ -54,6 +55,8 @@ const AUCTION_STATUSES = [
   "DESERTED",
   "EXPIRED",
   "IN_RECONFIRMATION",
+  "ACCEPTED",
+  "IN_ISSUANCE",
 ];
 
 /**
@@ -67,9 +70,12 @@ async function AuctionPanel({ requestId, base }: { requestId: string; base: stri
   const a = status.auction;
   if (!a) return null;
   const open = a.status === "OPEN";
-  const offers = open
-    ? []
-    : (await api<{ offers: PresentedOffer[] }>(`/requests/${requestId}/offers`)).body.offers;
+  // Phase 5: the private requester chooses in the offers panel (PRES-02…08).
+  const presented = !open && base === "/preventivi";
+  const offers =
+    open || presented
+      ? []
+      : (await api<{ offers: PresentedOffer[] }>(`/requests/${requestId}/offers`)).body.offers;
   return (
     <Card>
       <CardTitle>
@@ -95,7 +101,7 @@ async function AuctionPanel({ requestId, base }: { requestId: string; base: stri
             </>
           ) : null}
         </dl>
-      ) : offers.length === 0 ? (
+      ) : presented ? null : offers.length === 0 ? (
         <p className="mt-2 text-sm">{t("noOffers")}</p>
       ) : (
         <>
@@ -233,6 +239,10 @@ export async function RequestView({
 
       {AUCTION_STATUSES.includes(detail.status) ? (
         <AuctionPanel requestId={detail.id} base={base} />
+      ) : null}
+      {base === "/preventivi" &&
+      ["OFFERS_AVAILABLE", "ACCEPTED", "IN_ISSUANCE"].includes(detail.status) ? (
+        <OffersPanel requestId={detail.id} />
       ) : null}
       {AUCTION_STATUSES.includes(detail.status) ||
       (detail.status === "IN_VERIFICATION" && approved) ? (

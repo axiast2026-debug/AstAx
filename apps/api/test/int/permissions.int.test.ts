@@ -285,6 +285,11 @@ const ENDPOINTS: Endpoint[] = [
   },
   { action: "offer.readOwnDuringAuction", method: "GET", path: () => "/agency/offers" },
   // Fase 5: the acceptance
+  {
+    action: "offers.viewPresented",
+    method: "GET",
+    path: () => `/requests/${randomUUID()}/offers/${randomUUID()}/quote`,
+  },
   { action: "issuance.manage", method: "GET", path: () => "/agency/to-issue" },
   {
     action: "offers.viewPresented",
@@ -531,6 +536,7 @@ describe("SIC-01 every API route is in the table", () => {
               .replace(/[0-9a-f-]{36}/g, "{id}")
               .replace("/documents/{id}/file", "/documents/{documentId}/file")
               .replace(/\/acceptance\/documents\/\{id\}$/, "/acceptance/documents/{documentId}")
+              .replace(/\/offers\/\{id\}\/quote$/, "/offers/{offerId}/quote")
               .replace("/agencies/{id}/", "/agencies/{organizationId}/")
               .replace(
                 "/agency/requests/{id}/documents/{id}",

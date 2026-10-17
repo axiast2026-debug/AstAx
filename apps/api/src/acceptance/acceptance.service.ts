@@ -169,7 +169,8 @@ export class AcceptanceService {
       tx.offer.findMany({
         where: {
           auctionId: last.id,
-          status: { in: ["AWAITING_CUSTOMER", "EXPIRED"] },
+          // After the payment the chosen one is WINNING and the others NOT_CHOSEN (PAG-02).
+          status: { in: ["AWAITING_CUSTOMER", "EXPIRED", "WINNING", "NOT_CHOSEN"] },
           ...(onlyIds ? { id: { in: onlyIds } } : {}),
         },
       }),
@@ -730,6 +731,34 @@ export class AcceptanceService {
       const org = await tx.organization.findUniqueOrThrow({ where: { id: offer.organizationId } });
       return { name: org.legalName, pec: org.pec };
     });
+  }
+
+  /**
+   * PRES-04: the PDF quote of an offer shown to the requester (the database
+   * hides the quotes from them: a system step, only for the rows shown).
+   */
+  async quoteFile(auth: AuthContext, requestId: string, offerId: string) {
+    const document = await withContext(this.db, auth.db, async (tx) => {
+      const request = await this.requestOf(tx, auth, requestId);
+      const { rows } = await this.rows(tx, request, null);
+      const row = rows.find((r) => r.id === offerId);
+      if (!row?.pdfDocumentId) throw new ProblemError("NOT_FOUND");
+      const doc = await asSystem(tx, () =>
+        tx.document.findUniqueOrThrow({ where: { id: row.pdfDocumentId as string } }),
+      );
+      await this.audit.inTransaction(tx, actorOf(auth), {
+        action: "DOCUMENT_VIEWED",
+        targetType: "Document",
+        targetId: doc.id,
+        after: { offerId },
+      });
+      return doc;
+    });
+    return {
+      body: await this.storage.get(document.storageKey),
+      mime: document.mime,
+      fileName: document.fileName,
+    };
   }
 
   /** A document of the acceptance for its requester (VIS: their own files only). */
