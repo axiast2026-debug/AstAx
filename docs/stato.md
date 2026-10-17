@@ -10,7 +10,7 @@ Claude Code aggiorna questo file alla fine di ogni sessione di lavoro e alla chi
 | 2. Richiesta e verifica | In verifica | | Criteri con prova; verifica indipendente in due giri, problemi corretti; CI verde. Demo provata da Dan il 2026-10-16: «tante cose non tornano», da riprendere in seguito; non chiusa |
 | 3. Motore d'asta | In verifica | | Criteri con prova; verifica indipendente in tre giri, problemi corretti; manca la demo con Dan |
 | 4. Offerte | In verifica | | Tutti i passi fatti; verifica indipendente (primo giro) con i problemi corretti; manca la demo con Dan |
-| 5. Accettazione | Da iniziare | | |
+| 5. Accettazione | In corso | | Tutti i passi del piano fatti (proposte A-I); in corso le prove finali e la verifica indipendente; poi la demo con Dan |
 | 6. Dopo l'acquisto | Da iniziare | | |
 | 7. Pannelli e notifiche | Da iniziare | | |
 | 8. Fornitori reali e sicurezza | Da iniziare | | |
@@ -18,6 +18,26 @@ Claude Code aggiorna questo file alla fine di ogni sessione di lavoro e alla chi
 Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in attesa della revisione di Dan), Chiusa.
 
 ## Ultima sessione
+
+**2026-10-17 — fase 5, accettazione** (piano approvato da Dan il 2026-10-17 con le proposte A-I; Dan ha chiesto di andare avanti con le fasi e fare domande e demo alla fine).
+
+- Fatto (commit su `main`, pubblicati su GitHub):
+  - dominio: fee (FEE-01…03, con i casi di S09 e i 200,00 € esatti), ultimo momento utile (GAR-04), termine di emissione (EMI-01), risparmio e giorni di garanzia, punteggio del confronto AI e controllo del testo del modello;
+  - dati: suggerimenti AI, link del cliente del broker, accettazioni, buste di firma, pagamenti, eventi dei fornitori (una sola volta ciascuno), indice reclami delle compagnie;
+  - fornitori finti (regola 9): firma (codice 123456 in sviluppo), pagamenti (carta che finisce con 0002 rifiutata, bonifico istantaneo confermato dopo 5 secondi), spiegazione AI; webhook firmati e controllati anche nei finti;
+  - privato: pannello delle offerte (migliore per compagnia, «Più conveniente», risparmio, giorni di garanzia rimasti, coperture, PDF, righe in grigio con il motivo quando non si può più accettare); «Confronta con AI» con la conferma del fee che passa da 30,00 € a 35,00 € e il riquadro «Suggerimento generato con AI»; accettazione in quattro passaggi (riepilogo con premio e fee separati, documenti, firma, pagamento) e, dopo il pagamento, l'agenzia che emette e il termine di emissione;
+  - broker: «Invia al cliente» di una o più offerte; il cliente apre il link, conferma con un codice, legge, firma e paga il solo premio; niente confronto AI; il broker vede se il cliente ha aperto, firmato e pagato. Il link vale fino alla fine dell'ultima garanzia delle offerte inviate e si chiude quando il broker ne manda uno nuovo;
+  - alla firma la classifica è pubblicata (CLA-02) con gli avvisi alle agenzie; al pagamento «In emissione», offerta «Vincente», le altre «Non scelta», contatti all'agenzia vincitrice, termine di emissione e promemoria nel workflow; un pagamento rifiutato riporta a «Offerte disponibili» e si può riprovare senza rifirmare;
+  - agenzia: pagina «Da emettere» con i contatti del cliente (solo dopo il pagamento) e il termine;
+  - back office: pagina «Indice reclami» (amministratore), ogni modifica nel registro con prima e dopo.
+- Problemi trovati e corretti strada facendo:
+  - i webhook veri (via HTTP) erano tutti rifiutati come non firmati: con Express 5 il filtro `/^\/webhooks\//` non scattava e il corpo arrivava già trasformato; i fornitori finti chiamavano il gestore direttamente e lo nascondevano. Ora c'è la prova di un webhook firmato mandato due volte via HTTP e gestito una volta sola;
+  - dopo il pagamento la pagina dell'accettazione diceva «Non hai ancora scelto un'offerta» (l'offerta scelta diventa «Vincente» e non era più tra quelle mostrate);
+  - tornando dalla pagina di firma il cliente del broker perdeva la conferma del codice (cookie legato al percorso del link);
+  - due pulsanti che rimandavano alla stessa pagina non la aggiornavano.
+- Prova: E2E `S01-privato-con-ai.spec.ts`, `S02-broker-acquisto-dopo-10-giorni.spec.ts`, `fase5-pagamento-rifiutato.spec.ts`; integrazione `apps/api/test/int/acceptance.int.test.ts`, `customer-links.int.test.ts`; dominio `packages/shared/src/domain/acceptance.test.ts`, `ai-comparison.test.ts`; adattatori `packages/adapters/src/signature/providers.test.ts`.
+- Ambiente di sviluppo: i test di integrazione e `pnpm check` rigenerano file che l'API avviata con `pnpm dev` osserva: l'API si riavvia e, se nel frattempo girano i test end-to-end, quelli falliscono per «fetch failed». Gli end-to-end vanno lanciati a macchina ferma.
+- Prossimo passo: verifica indipendente della fase 5, poi la fase 6; le demo delle fasi 2-5 e le domande 13-16 con Dan quando le fasi sono finite, come ha chiesto.
 
 **2026-10-16 — fase 3, tutti i passi del piano** (piano approvato da Dan il 2026-10-16, con le proposte A-G; la fase 2 resta aperta con i problemi della demo da raccogliere con Dan).
 
@@ -89,6 +109,30 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 - Prove del giro completo: `pnpm check` verde (36 compiti); E2E 17 su 18 al primo giro: `fase4-agenzia.spec.ts` dipendeva dalla rotazione della scelta automatica e ora fa invitare Agenzia Uno a mano; poi 3 giri su 4 verdi, il quarto fermo su un clic senza un errore riproducibile: da tenere d'occhio in CI.
 - Ambiente di sviluppo: durante `pnpm check` (che ricompila i pacchetti) l'API e il worker avviati da `pnpm dev` a volte si fermano al riavvio automatico e restano fermi; si riavviano con `pnpm dev`.
 - Debito: se il back office esclude l'ultima offerta rimasta, la richiesta passa a «Scaduta» solo al successivo controllo delle garanzie, non subito (domanda 16).
+
+## Criteri della fase 5
+
+| Criterio | Stato | Prova |
+| --- | --- | --- |
+| S01 fino al pagamento confermato: presentazione, confronto AI, scelta libera, firma, classifica pubblicata, 555,00 €, contatti ad Agenzia Uno, termine alle 16:30 | Fatto | E2E `S01-privato-con-ai.spec.ts` (dalle schermate, con le offerte inviate dalle agenzie); `acceptance.int.test.ts` (con gli orari esatti di S01: Uno 3ª su 5, termine alle 16:30 in `acceptance.test.ts`, «EMI-01 S01…») |
+| Test del fee con S09 e i 200,00 € esatti | Fatto | `packages/shared/src/domain/acceptance.test.ts` («FEE-02 S09…», «FEE-02 S09 exactly 200,00 €…», «FEE-03 S09…») |
+| Confronto AI: 403 a broker e link; suggerimento salvato con pesi, dati, punteggi, modello, versione del prompt e testo; testo di riserva se il controllo fallisce | Fatto | `acceptance.int.test.ts` («PRES-06 the AI comparison is for privates only», «PRES-06 PRES-08 FEE-01…», «PRES-08 a model text that fails the check…»); il link non ha alcun indirizzo per il confronto (`customer-links.int.test.ts`, «FEE-03 with the code…» senza fee con AI) |
+| Pagamento rifiutato: torna a «Offerte disponibili» e si riprova; webhook duplicato senza effetti doppi | Fatto | E2E `fase5-pagamento-rifiutato.spec.ts`; `acceptance.int.test.ts` («PAG-03…», «PAG-02 the same signed webhook twice…») |
+| Link del broker con codice, scadenza con la garanzia; S02 fino al pagamento | Fatto | E2E `S02-broker-acquisto-dopo-10-giorni.spec.ts`; `customer-links.int.test.ts` (prova falsa rifiutata, solo le offerte inviate, scadenza alle 23:59 dell'ultima garanzia, nessun codice dopo) |
+| Documenti firmati ed evidenze salvati; MUP con le parti e i compensi giusti; segnaposto legali fuori dalla produzione | Fatto | `acceptance.int.test.ts` («PRES-05 LEG-05…» legge il PDF: AstAx, Agenzia Uno, Compagnia Alfa, 520,00 €, 35,00 €, «[DA VALIDARE — LEGALE]»; «LEG-05 CLA-02…»: due documenti firmati e la prova della firma salvati) |
+| GAR-04: dopo l'ultimo momento utile l'API rifiuta l'accettazione | Fatto | `acceptance.int.test.ts` («GAR-04 past the last useful moment…»); `acceptance.test.ts` (giovedì 19/11 alle 15:00) |
+| Contatti all'agenzia vincitrice solo dopo la conferma del pagamento (prima e dopo) | Fatto | `acceptance.int.test.ts` («PAG-03…» prima, «PAG-02 EMI-01 S01…» dopo), `customer-links.int.test.ts` |
+
+## Demo per Dan (fase 5)
+
+Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Searches\astax`, `pnpm infra:up`, `pnpm install`, `pnpm db:migrate` (tabelle nuove della fase 5), `pnpm db:seed`, poi `pnpm --filter @astax/ui build` e `pnpm dev`. Password e codici come nelle demo precedenti; il codice della firma di prova è sempre 123456.
+
+1. **Le offerte di Giulia (dal telefono).** Giulia invia una richiesta, il back office la approva; in «Aste» premi «Invia 3 offerte di prova» e «Fai scattare il prossimo passo» fino a «Chiusa». Giulia apre il preventivo: una riga per compagnia, «Più conveniente», il risparmio sul premio attuale, i giorni di garanzia rimasti, le coperture, il PDF; nessun nome di agenzia.
+2. **Confronto con AI.** Premi «Confronta con AI»: la pagina dice che il compenso passa da 30,00 € a 35,00 €; conferma. Compare il riquadro «Suggerimento generato con AI».
+3. **Scelta, firma, pagamento.** Scegli un'offerta qualsiasi (anche non la più bassa): riepilogo con premio e compenso separati, documenti (informativa precontrattuale, lettera di incarico, set informativo), «Firma i documenti» → codice 123456 → «Paga» → carta `4242 4242 4242 4242`. Giulia vede «Pagato», l'agenzia che emette e il termine. Per vedere il rifiuto, usa prima una carta che finisce con 0002: il pagamento non va e si può riprovare.
+4. **L'agenzia (dal computer).** Entra come titolare dell'agenzia vincitrice: in «Da emettere» c'è la richiesta con email e telefono del cliente e il termine di emissione.
+5. **Il broker.** Paolo crea una richiesta per un cliente con la sua email; dopo la chiusura, nel dettaglio spunta un'offerta e preme «Invia al cliente». Il cliente apre il link dalla mail (in Mailpit, http://localhost:8025), chiede il codice, lo inserisce, sceglie, firma e paga il solo premio (nessun compenso). Paolo vede «Il cliente ha pagato».
+6. **Indice reclami.** Come amministratore (`paola.ricci@astax.test`) nel back office apri «Indice reclami» e inserisci un valore inventato per una compagnia: la modifica è nel «Registro delle attività».
 
 ## Criteri della fase 4
 
@@ -373,6 +417,13 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 | Comuni soppressi non presenti in `seed/comuni.csv` (solo i comuni attuali) | Il codice fiscale di chi è nato in un comune poi soppresso non trova il comune: la procedura chiede di scrivere all'assistenza, il controllo automatico non confronta il luogo | Fase 8, con l'elenco ISTAT dei comuni soppressi |
 | Etichetta della formula esperta in `seed/elenchi.json` con «26 anni» scritto nel testo | La schermata mostra anche l'età minima presa dal parametro, ma l'etichetta dell'elenco va aggiornata a mano se cambia | Fase 7, con l'amministrazione degli elenchi |
 | `S3_REGION` e `S3_BUCKET` nuovi in `.env.example` | `pnpm env:init` non riscrive un `.env` esistente: l'API usa valori predefiniti se mancano | — |
+| Avviso `payment.confirmed` al cliente del broker solo nella pagina del link: la notifica va all'utente del broker | Il cliente del broker non ha un account; l'email con il link andrebbe ricostruita senza il token in chiaro | Fase 7, con le notifiche |
+| Rimborso di un pagamento incassato per un'accettazione non più valida (pagamento arrivato dopo la fine della garanzia) | Solo registrato; il rimborso con il fornitore è del dopo-acquisto | Fase 6 |
+| Pagina «Risultati» delle agenzie con la classifica | La classifica è calcolata e pubblicata alla firma; la pagina è della fase 6 | Fase 6 |
+| Pulsante «Conferma subito il bonifico» degli strumenti di sviluppo (proposta I) solo nell'API (`POST /fake-providers/payments/:ref/confirm`) | Il bonifico di prova si conferma comunque da solo dopo 5 secondi | Fase 7 |
+| L'API accetta un secondo «Confronta con AI» sulla stessa richiesta (nuovo suggerimento salvato, fee invariato) | La schermata nasconde il pulsante dopo il primo uso | Da decidere con Dan se bloccarlo |
+| Nessun valore di prova nell'indice reclami | Il confronto lo considera neutro finché manca; i valori si inseriscono dalla pagina | Con i dati veri, da Dan |
+| Un test di integrazione dell'accettazione è fallito una volta dentro `pnpm check` e mai più (decine di giri, anche completi) | Non riprodotto; senza l'errore completo non c'è una causa | Se si ripresenta, con il log completo |
 | `pnpm db:reset` mai provato da Claude | Prisma chiede il consenso esplicito di Dan quando lo lancia un agente AI | Alla prima occasione, con il consenso di Dan |
 
 ## Decisioni (ADR)

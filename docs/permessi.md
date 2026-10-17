@@ -115,7 +115,7 @@ Abilitazioni aggiuntive di un'appartenenza, decise dal titolare:
 
 | Azione | Chi |
 | --- | --- |
-| Parametri d'asta, economia, penali, pesi del confronto AI | `ADMIN` |
+| Parametri d'asta, economia, penali, pesi del confronto AI, indice reclami delle compagnie | `ADMIN` |
 | Pacchetti, casi esclusi, elenchi di valori, festività | `ADMIN` |
 | Documenti legali e versioni | `ADMIN` |
 | Modelli delle notifiche e messaggi a gruppi | `ADMIN` |

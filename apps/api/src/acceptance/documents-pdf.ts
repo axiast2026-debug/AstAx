@@ -15,8 +15,23 @@ export interface AcceptancePdfInput {
   rows: [string, string][];
 }
 
-/** Latin-1 only: the standard PDF fonts cannot draw other characters. */
-const latin1 = (text: string) => text.replace(/[^\n -ÿ]/g, "?");
+/**
+ * The standard PDF fonts draw the WinAnsi characters only («€», «—» and the
+ * accented letters included): any other one becomes «?».
+ */
+function drawable(font: PDFFont, text: string): string {
+  return [...text]
+    .map((c) => {
+      if (c === "\n") return c;
+      try {
+        font.encodeText(c);
+        return c;
+      } catch {
+        return "?";
+      }
+    })
+    .join("");
+}
 
 const MARGIN = 50;
 const WIDTH = 595;
@@ -26,7 +41,8 @@ function wrap(text: string, font: PDFFont, size: number, max: number): string[] 
   const out: string[] = [];
   for (const paragraph of text.split("\n")) {
     let line = "";
-    for (const word of paragraph.split(/\s+/).filter(Boolean)) {
+    // Ordinary spaces only: the no-break space keeps an amount with its «€».
+    for (const word of paragraph.split(/[ \t]+/).filter(Boolean)) {
       const next = line ? `${line} ${word}` : word;
       if (font.widthOfTextAtSize(next, size) > max && line) {
         out.push(line);
@@ -47,7 +63,7 @@ export async function acceptancePdf(input: AcceptancePdfInput): Promise<Uint8Arr
   let page: PDFPage = pdf.addPage([WIDTH, HEIGHT]);
   let y = HEIGHT - MARGIN;
   const write = (text: string, font: PDFFont, size: number, gap = 4) => {
-    for (const line of wrap(latin1(text), font, size, WIDTH - 2 * MARGIN)) {
+    for (const line of wrap(drawable(font, text), font, size, WIDTH - 2 * MARGIN)) {
       if (y < MARGIN + size) {
         page = pdf.addPage([WIDTH, HEIGHT]);
         y = HEIGHT - MARGIN;
@@ -62,7 +78,7 @@ export async function acceptancePdf(input: AcceptancePdfInput): Promise<Uint8Arr
   y -= 10;
   write(input.dataTitle, bold, 12, 6);
   for (const [label, value] of input.rows) write(`${label}: ${value}`, regular, 10);
-  pdf.setTitle(latin1(input.title));
+  pdf.setTitle(input.title);
   pdf.setCreator("AstAx");
   pdf.setProducer("AstAx");
   return pdf.save();

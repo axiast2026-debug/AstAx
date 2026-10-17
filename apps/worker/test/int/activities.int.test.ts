@@ -894,7 +894,8 @@ describe("OFF-09 check of the PDF quotes after the closing (decision 16)", () =>
       }),
     );
     expect(notes.length).toBeGreaterThan(0);
-    expect(JSON.stringify(notes)).not.toMatch(/470|480|€/);
+    // Only what is written to the people: random ids may contain the same digits.
+    expect(JSON.stringify(notes.map((n) => [n.title, n.body]))).not.toMatch(/470|480|€/);
   });
 });
 

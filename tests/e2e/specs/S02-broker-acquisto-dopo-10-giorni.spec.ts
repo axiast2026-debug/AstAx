@@ -61,7 +61,7 @@ test.describe.serial("S02 — broker: il cliente compra dal link", () => {
 
     // Rule 8: the email names company and product, never the price.
     const mail = await latestMail(email, /la tua offerta RC auto/, sentAt);
-    expect(mail.text).not.toContain("610");
+    expect(mail.text).not.toMatch(/610,00|€/);
     const link = /http:\/\/localhost:3000\/offerta\/[A-Za-z0-9_-]+/.exec(mail.text)?.[0] ?? "";
     const anna = await browser.newPage();
     await anna.goto(link);

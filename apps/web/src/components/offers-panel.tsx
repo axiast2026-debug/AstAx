@@ -64,7 +64,8 @@ export async function OffersPanel({ requestId }: { requestId: string }) {
   if (p.offers.length === 0) return null;
   const chosenId = current.acceptance?.offerId ?? null;
   const paid = current.acceptance?.status === "PAID";
-  const cheapestId = p.offers.find((o) => !o.block)?.id;
+  // PRES-03: the cheapest still guaranteed, even when GAR-04 no longer lets it be accepted.
+  const cheapestId = p.offers.find((o) => o.block !== "EXPIRED")?.id;
   const recommendedId = p.suggestion?.recommendedOfferId;
   const fee = p.offers[0]?.feeCents ?? 0;
   const anyOpen = p.offers.some((o) => !o.block);

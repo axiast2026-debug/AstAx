@@ -141,7 +141,7 @@ describe("fase 5: the broker's customer on the link (decision 26)", () => {
     const mail = lastMail(EMAIL);
     expect(mail?.subject).toContain("la tua offerta RC auto");
     expect(mail?.text).toContain("Compagnia Alfa");
-    expect(mail?.text).not.toMatch(/480|€/);
+    expect(mail?.text).not.toMatch(/480,00|€/);
     token = /\/offerta\/([A-Za-z0-9_-]+)/.exec(mail?.text ?? "")?.[1] ?? "";
     expect(token.length).toBeGreaterThan(40);
   });

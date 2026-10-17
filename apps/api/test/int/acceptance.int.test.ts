@@ -1,6 +1,15 @@
 import { FakeAiExplainer, type AiExplainerPort } from "@astax/adapters/ai-explainer";
 import type { FakePaymentsProvider } from "@astax/adapters/payments";
 import { SYSTEM_CONTEXT, withContext } from "@astax/db";
+import {
+  decodePDFRawStream,
+  PDFArray,
+  PDFDocument,
+  PDFName,
+  PDFRawStream,
+  PDFRef,
+  type PDFObject,
+} from "pdf-lib";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closedRound } from "./auction-helpers.js";
 import { acceptAllLegal, membershipId, orgId, startHarness, type Harness } from "./fixtures.js";
@@ -27,6 +36,27 @@ const explainer: AiExplainerPort = {
         }
       : new FakeAiExplainer().explain(input),
 };
+
+/** The decoded drawing of every page: the standard fonts write WinAnsi bytes as hex. */
+async function pdfText(body: ArrayBuffer): Promise<string> {
+  const pdf = await PDFDocument.load(new Uint8Array(body));
+  const resolve = (o: PDFObject | undefined) => (o instanceof PDFRef ? pdf.context.lookup(o) : o);
+  const out: string[] = [];
+  for (const page of pdf.getPages()) {
+    const contents = resolve(page.node.get(PDFName.of("Contents")));
+    const streams = contents instanceof PDFArray ? contents.asArray().map(resolve) : [contents];
+    for (const stream of streams) {
+      if (stream instanceof PDFRawStream) {
+        out.push(Buffer.from(decodePDFRawStream(stream).decode()).toString("latin1"));
+      }
+    }
+  }
+  return out.join("\n");
+}
+const hex = (text: string) => Buffer.from(text, "latin1").toString("hex").toUpperCase();
+/** WinAnsi: «€» is 0x80, «—» is 0x97, the no-break space 0xA0. */
+const EURO = "A080";
+const EM_DASH = "97";
 
 const system = <T>(work: Parameters<typeof withContext<T>>[2]) =>
   withContext(h.db, SYSTEM_CONTEXT, work);
@@ -250,6 +280,20 @@ describe("fase 5: the private customer's acceptance (S01)", () => {
     const mup = a.documents.find((d) => d.kind === "PRECONTRACTUAL_INFO");
     const file = await r.call(customer, `/requests/${requestId}/acceptance/documents/${mup?.id}`);
     expect(file.status).toBe(200);
+    // LEG-05: AstAx proposing, the issuing agency, company, compensation, payment;
+    // rule 10: the legal text is still the placeholder.
+    const text = await pdfText(await file.arrayBuffer());
+    const [astax, uno] = await system((tx) =>
+      Promise.all([
+        tx.organization.findFirstOrThrow({ where: { type: "ASTAX" } }),
+        tx.organization.findUniqueOrThrow({ where: { id: orgId("agenzia-uno") } }),
+      ]),
+    );
+    for (const part of [astax.legalName, uno.legalName, "Compagnia Alfa", "520,00", "35,00"]) {
+      expect(text, part).toContain(hex(part));
+    }
+    expect(text).toContain(`${hex("35,00")}${EURO}`);
+    expect(text).toContain(`${hex("[DA VALIDARE ")}${EM_DASH}${hex(" LEGALE]")}`);
     signingRef = refOf(a.signingUrl);
   });
 
@@ -283,6 +327,27 @@ describe("fase 5: the private customer's acceptance (S01)", () => {
     );
     expect(a.acceptance.status).toBe("SIGNED");
     expect(a.acceptance.documents.filter((d) => d.signed).length).toBe(2);
+    // The signed files and the evidence are kept, with their content.
+    const envelope = await system((tx) =>
+      tx.signatureEnvelope.findFirstOrThrow({
+        where: { acceptance: { quoteRequestId: requestId }, status: "SIGNED" },
+      }),
+    );
+    const kept = await system((tx) =>
+      tx.document.findMany({
+        where: {
+          id: {
+            in: [...(envelope.signedDocumentIds as string[]), envelope.evidenceDocumentId ?? ""],
+          },
+        },
+      }),
+    );
+    expect(kept.map((d) => d.kind).sort()).toEqual([
+      "SIGNATURE_EVIDENCE",
+      "SIGNED_DOCUMENT",
+      "SIGNED_DOCUMENT",
+    ]);
+    for (const d of kept) expect((await h.storage.get(d.storageKey)).length).toBeGreaterThan(0);
   });
 
   it("PAG-03 a refused card brings the request back to «Offerte disponibili»; the customer retries", async () => {
