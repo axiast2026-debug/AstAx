@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "@astax/config": "workspace:*",
+    "@temporalio/proto": "1.24.0",
     "@temporalio/testing": "1.24.0",
     "@types/node": "24.19.2",
     "eslint": "10.12.0",

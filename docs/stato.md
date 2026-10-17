@@ -94,7 +94,7 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 
 | Criterio | Stato | Prova |
 | --- | --- | --- |
-| Scenari S03, S06 (end-to-end) e S10 | Fatto (S03 in parte) | E2E `S03-riconferma.spec.ts`, `S06-parita.spec.ts`, `S10-sub-agente-due-agenzie.spec.ts`. S03: le risposte delle agenzie sono offerte di prova, non conferma/aggiornamento/rinuncia dalle schermate; le regole di S03 (24 ore lavorative, garanzia minima, solo le agenzie dell'ultimo giro, busta chiusa) sono provate in `apps/worker/test/int/activities.int.test.ts` e `apps/api/test/int/reconfirmation.int.test.ts` |
+| Scenari S03, S06 (end-to-end) e S10 | Fatto | E2E `S03-riconferma.spec.ts`, `S06-parita.spec.ts`, `S10-sub-agente-due-agenzie.spec.ts`. S03 con le risposte dalle schermate delle agenzie: Uno conferma lo stesso premio, Tre lo aggiorna con un PDF nuovo, Cinque rinuncia; il cliente vede solo Alfa e Gamma. Le scadenze esatte di S03 (24 ore lavorative, garanzia minima, solo le agenzie dell'ultimo giro, busta chiusa) sono provate in `apps/worker/test/int/activities.int.test.ts` e `apps/api/test/int/reconfirmation.int.test.ts` |
 | Il modulo rifiuta compagnia senza mandato, garanzia sotto il minimo, PDF mancante, note con telefono, email o link; coperture sotto il pacchetto: avviso all'invio ed esclusione alla chiusura | Fatto | `auctions.int.test.ts` («OFF-04 OFF-05 VIS-11…»), `agency.int.test.ts` («OFF-04 the operator sends…», avviso), `activities.int.test.ts` («OFF-06…») |
 | Copia per l'agenzia solo a chi ne ha diritto, gli altri 403, ogni lettura registrata | Fatto | `agency.int.test.ts` («BC-04 the agency's copy…»), `auctions.int.test.ts` («S07 BC-01…») |
 | Due prese in carico nello stesso istante: una sola riesce | Fatto | `agency.int.test.ts` («OFF-03 two users…») |
@@ -129,9 +129,7 @@ Dopo le correzioni: `pnpm check` verde (36 compiti, dopo un primo giro interrott
 
 Rinviati, come debito o domanda:
 
-- nessun test di «replay» dei workflow con una storia della fase 3 (le modifiche sono protette con `patched` e con percorsi nuovi solo dopo l'ultimo passo registrato);
 - domanda 16 per Dan: cosa fare quando il back office esclude l'ultima offerta rimasta;
-- S03 end-to-end con risposte delle agenzie dalle schermate (oggi offerte di prova).
 
 Secondo giro, 2026-10-17: dei 17 problemi 7 risolti, 8 in parte, 2 rinviati (replay e domanda 16), più un problema nuovo. Corretti:
 
@@ -147,6 +145,12 @@ Secondo giro, 2026-10-17: dei 17 problemi 7 risolti, 8 in parte, 2 rinviati (rep
 Dopo il secondo giro: `pnpm check` verde (36 compiti; due giri interrotti da un crash di Windows all'avvio dei test del database, che da soli passano 63 su 63) e E2E 18 su 18.
 
 Restano: il test «ogni endpoint» controlla le risposte GET e non quelle delle azioni; la lettura del registro per la colonna del «Team» non è a sua volta registrata.
+
+Dopo i due giri, 2026-10-17:
+
+- S03 end-to-end con le risposte vere delle agenzie dalle schermate (conferma, aggiornamento con PDF nuovo, rinuncia), senza prezzi visibili a nessuno durante il giro;
+- prova di «replay»: `apps/worker/test/replay.test.ts` rilegge con il codice attuale 11 storie di workflow registrate con il codice della fase 3 (aste deserte concluse e richieste ancora nelle garanzie), esportate da `apps/worker/scripts/export-histories.ts` senza il nome del computer; con un workflow modificato apposta il test fallisce, quindi la prova funziona. Nuova dipendenza di sviluppo `@temporalio/proto` 1.24.0 (già presente come parte di Temporal), per leggere le storie;
+- il test fragile di `fase4-agenzia.spec.ts` non si è più ripresentato nei giri completi successivi.
 
 ## Demo per Dan (fase 4)
 
