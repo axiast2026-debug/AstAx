@@ -1,4 +1,4 @@
-import { degrees, PDFDocument, PDFName, rgb, StandardFonts } from "pdf-lib";
+import { degrees, PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
 /**
  * VIS-10: every document of a customer that an agency user views or
@@ -15,7 +15,7 @@ export async function watermarked(
   let pdf: PDFDocument;
   if (mime === "application/pdf") {
     try {
-      pdf = await PDFDocument.load(body, { ignoreEncryption: true });
+      pdf = await redrawn(await PDFDocument.load(body, { ignoreEncryption: true }));
     } catch {
       pdf = await placeholder(unreadable);
     }
@@ -52,23 +52,27 @@ export async function watermarked(
     }
     page.drawText(text, { x: 20, y: 12, size: 8, font, color: rgb(0.4, 0.4, 0.4) });
   }
-  stripMetadata(pdf);
+  pdf.setCreator("AstAx");
+  pdf.setProducer("AstAx");
   pdf.setKeywords(["AstAx", text]);
-  return pdf.save();
+  // Without object streams the document information stays readable as text.
+  return pdf.save({ useObjectStreams: false });
 }
 
 /**
- * VIS-01: the customer's file may carry names or addresses in its metadata
- * (title, author, the XMP stream): none of it reaches the agency.
+ * VIS-01: a new document with only what the pages show. The customer's file
+ * may carry names or addresses in its metadata (information, XMP), form
+ * fields, annotations or attached files: none of it reaches the agency.
  */
-function stripMetadata(pdf: PDFDocument): void {
-  pdf.setTitle("");
-  pdf.setAuthor("");
-  pdf.setSubject("");
-  pdf.setCreator("AstAx");
-  pdf.setProducer("AstAx");
-  pdf.catalog.delete(PDFName.of("Metadata"));
-  for (const page of pdf.getPages()) page.node.delete(PDFName.of("Metadata"));
+async function redrawn(source: PDFDocument): Promise<PDFDocument> {
+  const pdf = await PDFDocument.create();
+  for (const page of source.getPages()) {
+    const { width, height } = page.getSize();
+    const target = pdf.addPage([width, height]);
+    // A blank page has nothing to draw.
+    if (page.node.Contents()) target.drawPage(await pdf.embedPage(page));
+  }
+  return pdf;
 }
 
 async function placeholder(text: string): Promise<PDFDocument> {

@@ -1,10 +1,12 @@
 import {
   decodePDFRawStream,
   PDFArray,
+  type PDFDict,
   PDFDocument,
   PDFName,
   PDFRawStream,
   PDFRef,
+  PDFString,
   type PDFObject,
 } from "pdf-lib";
 import { describe, expect, it } from "vitest";
@@ -29,6 +31,9 @@ function pageContents(pdf: PDFDocument): string {
   return out.join("\n");
 }
 
+/** The document information dictionary (pdf-lib keeps its getter private). */
+const infoOf = (pdf: PDFDocument) => (pdf as unknown as { getInfoDict(): PDFDict }).getInfoDict();
+
 /** drawText writes the standard fonts' text as a hex string. */
 const hex = (text: string) => Buffer.from(text, "latin1").toString("hex").toUpperCase();
 
@@ -52,6 +57,9 @@ describe("VIS-10 VIS-01 the documents an agency receives", () => {
     source.setAuthor("giulia.neri@example.test");
     source.setSubject("+39 333 1234567");
     source.setCreator("Scanner di Giulia");
+    // A key of its own in the document information, and a form field.
+    infoOf(source).set(PDFName.of("Company"), PDFString.of("Studio di Giulia Neri"));
+    source.getForm().createTextField("telefono").setText("+39 333 1234567");
     const xmp = source.context.flateStream("<x:xmpmeta>giulia.neri@example.test</x:xmpmeta>", {
       Type: "Metadata",
       Subtype: "XML",
@@ -64,10 +72,13 @@ describe("VIS-10 VIS-01 the documents an agency receives", () => {
     expect(out.getSubject() ?? "").toBe("");
     expect(out.getCreator()).toBe("AstAx");
     expect(out.catalog.get(PDFName.of("Metadata"))).toBeUndefined();
+    expect(out.catalog.get(PDFName.of("AcroForm"))).toBeUndefined();
+    expect(infoOf(out).get(PDFName.of("Company"))).toBeUndefined();
     // Nothing of it anywhere in the file, uncompressed or in its objects.
     const all = Buffer.from(bytes).toString("latin1");
     expect(all).not.toContain("giulia.neri");
     expect(all).not.toContain("Giulia Neri");
+    expect(all).not.toContain("333 1234567");
   });
 
   it("VIS-10 a photo arrives as a PDF with the stamp", async () => {

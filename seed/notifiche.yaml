@@ -228,14 +228,15 @@ events:
   offer.excluded_after_review:
     recipients: [participating_agency_users]
     channels: [in_app, email]
-    variables: [codice, motivo, link]
+    # Regola 8 di CLAUDE.md: il motivo, testo libero, si legge in «Le mie offerte».
+    variables: [codice, link]
     it:
       title: "Offerta esclusa: {{codice}}"
-      body: "Il back office ha escluso la vostra offerta: {{motivo}}."
+      body: "Il back office ha escluso la vostra offerta dopo il controllo del preventivo PDF. Il motivo è in «Le mie offerte»."
       emailSubject: "Offerta esclusa: {{codice}}"
       emailBody: |
         Dopo il controllo del preventivo PDF, il back office ha escluso la vostra offerta per la richiesta {{codice}}.
-        Motivo: {{motivo}}
+        Il motivo è nella pagina «Le mie offerte».
         Per chiarimenti scrivete all'assistenza dalla pagina della richiesta: {{link}}
 
   # ---------------------------------------------------------------- Garanzia e riconferma

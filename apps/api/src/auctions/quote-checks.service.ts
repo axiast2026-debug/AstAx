@@ -138,7 +138,6 @@ export class QuoteChecksService {
         );
         const variables = {
           codice: request.code,
-          motivo: input.reason,
           link: `${this.config.WEB_URL}/le-mie-offerte`,
         };
         await this.notifications.inApp(

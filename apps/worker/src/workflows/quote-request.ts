@@ -37,6 +37,13 @@ export const reconfirmationRequestedSignal = defineSignal(SIGNALS.reconfirmation
 export { workflowIdOf } from "@astax/shared/workflows";
 
 /**
+ * How long a workflow waits for the signal of a reconfirmation already asked
+ * before checking the request again: a technical interval of the outbox
+ * delivery, not a business time (rule 7).
+ */
+const PENDING_SIGNAL_WAIT = "1 hour";
+
+/**
  * The steps of the auction never give up: a database or KMS down at the
  * closing time only delays the closing, retried until it succeeds (the API
  * refuses offers after the scheduled time anyway, BC-05).
@@ -262,7 +269,7 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
         if (!s.expired || !s.autoCancelAt) return "EXPIRED_CLOSED";
         if (s.pending) {
           // Asked, its signal on the way from the outbox: wait for it, never cancel.
-          await condition(() => fire || reconfirm, "1 hour");
+          await condition(() => fire || reconfirm, PENDING_SIGNAL_WAIT);
           fire = false;
           continue;
         }

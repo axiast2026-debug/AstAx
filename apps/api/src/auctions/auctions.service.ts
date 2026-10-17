@@ -3,7 +3,7 @@ import type { Clock } from "@astax/adapters/clock";
 import {
   addRequestEvent,
   asSystem,
-  reconfirmationAsked,
+  reconfirmationPending,
   recordDomainEvent,
   settingsAt,
   auctionSettings,
@@ -91,9 +91,7 @@ export class AuctionsService {
       now,
     );
     // Asked and not yet opened by the worker: a second click changes nothing.
-    const pending =
-      request.status === "EXPIRED" &&
-      (await reconfirmationAsked(tx, request.id, request.reconfirmationsUsed));
+    const pending = request.status === "EXPIRED" && (await reconfirmationPending(tx, request, max));
     return {
       used: request.reconfirmationsUsed,
       max,

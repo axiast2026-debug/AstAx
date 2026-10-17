@@ -159,6 +159,7 @@ describe("fase 4: reconfirmation (GAR-06, GAR-07)", () => {
           annualGrossPremiumCents: 48000,
           companyId: company,
           productId,
+          coverage: COVERAGE,
           guaranteeUntil: new Date("2026-12-01"),
           pdfDocumentId: document.id,
         },
@@ -204,6 +205,27 @@ describe("fase 4: reconfirmation (GAR-06, GAR-07)", () => {
     const confirmed = await send(48000);
     expect(confirmed.status).toBe(201);
     const { id: answerId } = (await confirmed.json()) as { id: string };
+    // OFF-07: changing the premium later, still without a new PDF, is refused too.
+    const changed = await fetch(`${h.baseUrl}/offers/${answerId}`, {
+      method: "PUT",
+      headers: {
+        authorization: `Bearer ${uno.token}`,
+        "x-astax-context": uno.context ?? "",
+        "x-offer": Buffer.from(
+          JSON.stringify({
+            annualGrossPremiumCents: 46000,
+            companyId: company,
+            productId,
+            coverage: COVERAGE,
+            guaranteeUntil: "2026-12-20",
+            notes: null,
+            binding: true,
+          }),
+        ).toString("base64url"),
+      },
+    });
+    const refusedChange = await r.json<{ errors: { path: string; issue: string }[] }>(changed, 400);
+    expect(refusedChange.errors).toContainEqual({ path: "pdf", issue: "PDF_REQUIRED" });
     // BC-06: the answers of the round stay sealed for everybody else until its closing.
     const verifier: Who = {
       token: await h.tokenFor("bo-verifier"),

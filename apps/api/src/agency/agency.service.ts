@@ -12,8 +12,8 @@ import {
   type Invitation,
   type QuoteRequest,
 } from "@astax/db";
-import { isGuaranteed, type QuoteData } from "@astax/shared/domain";
-import { dbDateToCalendarDate, formatDateTime } from "@astax/shared/format";
+import { addCalendarDays, isGuaranteed, romeInstant, type QuoteData } from "@astax/shared/domain";
+import { dbDateToCalendarDate, formatDateTime, romeCalendarDate } from "@astax/shared/format";
 import { can } from "@astax/shared/permissions";
 import { Inject, Injectable } from "@nestjs/common";
 import { actorOf, AuditService } from "../audit/audit.service.js";
@@ -153,7 +153,8 @@ export class AgencyService {
   /** «Richieste in arrivo» (spec 04): in target, ordered by closing, with the columns of the spec. */
   async incoming(auth: AuthContext, filters: IncomingFilters) {
     const m = auth.membership;
-    if (!m || m.organizationType !== "AGENCY") return [];
+    // Rule 4: a member of another kind of organization is refused and logged.
+    if (!m || m.organizationType !== "AGENCY") return this.denied(auth, "AgencyArea", "requests");
     return withContext(this.db, auth.db, async (tx) => {
       const all = await tx.invitation.findMany({
         where: { organizationId: m.organizationId },
@@ -434,6 +435,9 @@ export class AgencyService {
 
   /** Dashboard (spec 04): counters now; the indicators that need phases 5-6 stay null. */
   async dashboard(auth: AuthContext) {
+    if (auth.membership?.organizationType !== "AGENCY") {
+      return this.denied(auth, "AgencyArea", "dashboard");
+    }
     const rows = await this.incoming(auth, {});
     const now = this.clock.now().getTime();
     const m = this.agency(auth);
@@ -449,7 +453,11 @@ export class AgencyService {
         ["agency.dashboard.statsDays", "agency.dashboard.closingSoonMinutes"],
         new Date(now),
       );
-      const since = new Date(now - settings["agency.dashboard.statsDays"] * 86_400_000);
+      // Calendar days in Rome (rule 6): from the start of the first of them.
+      const since = romeInstant(
+        addCalendarDays(romeCalendarDate(new Date(now)), -settings["agency.dashboard.statsDays"]),
+        "00:00",
+      );
       const soon = settings["agency.dashboard.closingSoonMinutes"] * 60_000;
       const closedInvitations = await tx.invitation.count({
         where: {
@@ -620,11 +628,13 @@ export class AgencyService {
         where: { auctionId, organizationId: m.organizationId, releasedAt: null },
         data: { releasedAt: now, releasedByUserId: auth.userId },
       });
-      try {
+      // A claim for a colleague: a system step, after the claim.override check above.
+      // The savepoint sits inside the system step, so that a refused row is rolled
+      // back before the step restores its flag and the original error is kept.
+      const taken = await asSystem(tx, async () => {
         await tx.$executeRaw`SAVEPOINT claim_assign`;
-        // A claim for a colleague: a system step, after the claim.override check above.
-        await asSystem(tx, () =>
-          tx.claim.create({
+        try {
+          await tx.claim.create({
             data: {
               auctionId,
               organizationId: m.organizationId,
@@ -632,19 +642,18 @@ export class AgencyService {
               userId: member.userId,
               claimedAt: now,
             },
-          }),
-        );
-        await tx.$executeRaw`RELEASE SAVEPOINT claim_assign`;
-      } catch (error) {
-        await tx.$executeRaw`ROLLBACK TO SAVEPOINT claim_assign`;
-        // A claim made at the same instant elsewhere (the checks above passed): the
-        // unique index refuses it, and the restore of asSystem then reports the
-        // aborted statement (25P02). Anything else is a fault.
-        const aborted =
-          (error as { meta?: { driverAdapterError?: { cause?: { originalCode?: string } } } }).meta
-            ?.driverAdapterError?.cause?.originalCode === "25P02";
-        if (!isUniqueViolation(error) && !aborted) throw error;
-        // OFF-02: that person already works on this auction for another agency.
+          });
+          await tx.$executeRaw`RELEASE SAVEPOINT claim_assign`;
+          return false;
+        } catch (error) {
+          await tx.$executeRaw`ROLLBACK TO SAVEPOINT claim_assign`;
+          // Only the unique index of a person's claim (a claim made at the same
+          // instant elsewhere, after the checks above) means OFF-02.
+          if (!isUniqueViolation(error)) throw error;
+          return true;
+        }
+      });
+      if (taken) {
         throw new ProblemError("CONFLICT", "The person already works on this auction", [
           { path: "claim", issue: "ONE_PERSON_ONE_AGENCY" },
         ]);

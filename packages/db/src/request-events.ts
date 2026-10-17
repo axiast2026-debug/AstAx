@@ -63,6 +63,22 @@ export async function addRequestEvent(
  * The request carries the count it was made at, not a time, so that the API
  * and the worker agree whatever their clocks (development clock included).
  */
+/**
+ * GAR-06: a reconfirmation asked and not opened yet, which the worker will
+ * still open: within reconfirmation.maxPerRequest in force now. Past it (the
+ * parameter lowered in between) the request is no longer waiting for one.
+ */
+export async function reconfirmationPending(
+  tx: DbTransaction,
+  request: { id: string; reconfirmationsUsed: number },
+  max: number,
+): Promise<boolean> {
+  return (
+    request.reconfirmationsUsed < max &&
+    (await reconfirmationAsked(tx, request.id, request.reconfirmationsUsed))
+  );
+}
+
 export async function reconfirmationAsked(
   tx: DbTransaction,
   quoteRequestId: string,

@@ -133,6 +133,21 @@ Rinviati, come debito o domanda:
 - domanda 16 per Dan: cosa fare quando il back office esclude l'ultima offerta rimasta;
 - S03 end-to-end con risposte delle agenzie dalle schermate (oggi offerte di prova).
 
+Secondo giro, 2026-10-17: dei 17 problemi 7 risolti, 8 in parte, 2 rinviati (replay e domanda 16), più un problema nuovo. Corretti:
+
+- nuovo: una richiesta «Scaduta» con una riconferma chiesta ma non più ammessa (parametro abbassato nel frattempo) restava in attesa per sempre: ora la richiesta in sospeso conta solo entro `reconfirmation.maxPerRequest`;
+- l'affidamento a un collega riconosceva ancora come «lavora per un'altra agenzia» qualunque errore: ora il salvataggio intermedio sta dentro il passo di sistema e solo l'indice unico vale come conflitto (test nel pacchetto del database);
+- il PDF per l'agenzia ora è un documento nuovo con solo le pagine disegnate: niente metadati, campi di modulo, annotazioni o allegati del file del cliente; il test lo verifica anche sui byte;
+- una conferma senza PDF nuovo deve avere anche le stesse coperture e note; anche la modifica successiva senza PDF è rifiutata (test);
+- l'avviso di esclusione non contiene più il motivo scritto dal back office (regola 8): il motivo si legge in «Le mie offerte»;
+- i giorni del cruscotto contano giorni di calendario di Roma; l'attesa del segnale di riconferma è una costante tecnica con il suo commento;
+- rifiuti registrati anche per il cruscotto e l'elenco dell'area agenzia;
+- nel «Team» la colonna si chiama «Ultima attività in questa organizzazione», perché è quello che mostra.
+
+Dopo il secondo giro: `pnpm check` verde (36 compiti; due giri interrotti da un crash di Windows all'avvio dei test del database, che da soli passano 63 su 63) e E2E 18 su 18.
+
+Restano: il test «ogni endpoint» controlla le risposte GET e non quelle delle azioni; la lettura del registro per la colonna del «Team» non è a sua volta registrata.
+
 ## Demo per Dan (fase 4)
 
 Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Searches\astax`, `pnpm infra:up`, `pnpm install`, `pnpm db:migrate` (due tabelle nuove), `pnpm db:seed` (Sofia Marchi e le altre utenze), poi `pnpm --filter @astax/ui build` e `pnpm dev`. Password dei professionisti e codici come nelle demo precedenti. Servono tre finestre del browser (o una normale, una in incognito e un altro browser): Agenzia Uno, Marco Rossi e Giulia (privata). Il back office (`arta.hoxha@astax.test`) in una quarta.

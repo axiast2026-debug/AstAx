@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { SYSTEM_CONTEXT, withContext, type DbClient } from "../src/index.js";
+import { isUniqueViolation, SYSTEM_CONTEXT, withContext, type DbClient } from "../src/index.js";
 import { appDb, asMember, asPrivate, createWorld, type World } from "./fixtures.js";
 
 // Phase 3, docs/busta-chiusa.md: the database is the second line of the sealed
@@ -151,6 +151,33 @@ describe("phase 3: auctions and sealed offers, row level security", () => {
         tx.offer.createMany({ data: [sealedOffer(w.agenziaUno, w.marcoRossi, marcoUno)] }),
       ),
     ).rejects.toThrow();
+  });
+
+  it("OFF-03 one active claim per person in the auction, recognized as a unique violation", async () => {
+    const marcoUno = await membershipOf(w.marcoRossi, w.agenziaUno);
+    const marcoTre = await membershipOf(w.marcoRossi, w.agenziaTre);
+    const claim = (organizationId: string, membershipId: string) => ({
+      auctionId,
+      organizationId,
+      membershipId,
+      userId: w.marcoRossi,
+      claimedAt: new Date("2026-11-16T09:00:00.000Z"),
+    });
+    const error = await withContext(db, SYSTEM_CONTEXT, async (tx) => {
+      await tx.claim.create({ data: claim(w.agenziaUno, marcoUno) });
+      await tx.$executeRaw`SAVEPOINT second`;
+      try {
+        await tx.claim.create({ data: claim(w.agenziaTre, marcoTre) });
+        return null;
+      } catch (e) {
+        await tx.$executeRaw`ROLLBACK TO SAVEPOINT second`;
+        await tx.claim.deleteMany({ where: { auctionId, userId: w.marcoRossi } });
+        return e;
+      }
+    });
+    expect(error).not.toBeNull();
+    expect(isUniqueViolation(error)).toBe(true);
+    expect(isUniqueViolation(new Error("other"))).toBe(false);
   });
 
   it("BC-05 once the auction is closing, an agency can neither submit nor change", async () => {

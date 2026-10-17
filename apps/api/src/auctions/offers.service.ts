@@ -38,6 +38,18 @@ import { RealtimeHub } from "../realtime/realtime-hub.js";
 /** OFF-04: the content plus the explicit confirmation that the offer is binding. */
 export const OfferInputSchema = OfferPayloadSchema.extend({ binding: z.literal(true) });
 
+/** JSON with the keys in order, to compare two coverages whatever their key order. */
+function stableJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value)
+      .sort()
+      .map((k) => `${JSON.stringify(k)}:${stableJson((value as Record<string, unknown>)[k])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value ?? null);
+}
+
 export interface PdfInput {
   body: Uint8Array;
   contentType: string;
@@ -577,12 +589,15 @@ export class OffersService {
       },
       orderBy: { auction: { round: "desc" } },
     });
+    // The kept PDF must still describe the offer: only the guarantee date may change.
     const same =
       previous !== null &&
       previous.pdfDocumentId !== null &&
       previous.annualGrossPremiumCents === payload.annualGrossPremiumCents &&
       previous.companyId === payload.companyId &&
-      previous.productId === payload.productId;
+      previous.productId === payload.productId &&
+      (previous.notes ?? null) === (payload.notes ?? null) &&
+      stableJson(previous.coverage) === stableJson(payload.coverage);
     if (!same) {
       throw new ProblemError("VALIDATION_FAILED", undefined, [
         { path: "pdf", issue: "PDF_REQUIRED" },

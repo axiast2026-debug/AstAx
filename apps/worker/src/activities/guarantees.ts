@@ -1,6 +1,6 @@
 import {
   addRequestEvent,
-  reconfirmationAsked,
+  reconfirmationPending,
   settingsAt,
   SYSTEM_CONTEXT,
   withContext,
@@ -222,6 +222,15 @@ export function guaranteeActivities(
     return result;
   }
 
+  async function maxReconfirmations(tx: DbTransaction): Promise<number> {
+    const { "reconfirmation.maxPerRequest": max } = await settingsAt(
+      tx,
+      ["reconfirmation.maxPerRequest"],
+      clock.now(),
+    );
+    return max;
+  }
+
   /** When a request «Scaduta» without actions closes by itself (GAR-06, proposal D). */
   async function autoCancelAtOf(tx: DbTransaction, requestId: string, now: Date) {
     const since = await tx.quoteRequestEvent.findFirst({
@@ -244,7 +253,7 @@ export function guaranteeActivities(
       const request = await tx.quoteRequest.findUniqueOrThrow({ where: { id: input.requestId } });
       if (request.status !== "EXPIRED") return { expired: false, autoCancelAt: null };
       const { at } = await autoCancelAtOf(tx, request.id, clock.now());
-      const pending = await reconfirmationAsked(tx, request.id, request.reconfirmationsUsed);
+      const pending = await reconfirmationPending(tx, request, await maxReconfirmations(tx));
       return { expired: true, autoCancelAt: at.toISOString(), ...(pending ? { pending } : {}) };
     });
   }
@@ -258,7 +267,7 @@ export function guaranteeActivities(
       const { at, days } = await autoCancelAtOf(tx, request.id, now);
       if (now < at) return { cancelled: false };
       // GAR-06: a reconfirmation asked just before the end is an action: no cancellation.
-      if (await reconfirmationAsked(tx, request.id, request.reconfirmationsUsed)) {
+      if (await reconfirmationPending(tx, request, await maxReconfirmations(tx))) {
         return { cancelled: false };
       }
       transitionRequest("EXPIRED", "CANCELLED");
