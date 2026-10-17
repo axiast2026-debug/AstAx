@@ -57,13 +57,17 @@ export async function submittedRequest(
   return { code: await requestCode(page), url: page.url().split("?")[0] ?? "" };
 }
 
-export async function backOffice(page: Page): Promise<void> {
+export async function backOffice(
+  page: Page,
+  as: "verifier" | "supervisor" = "verifier",
+): Promise<void> {
   const { users, password } = e2eState();
+  const email = users[as];
   await page.goto(ADMIN);
   await page.getByRole("link", { name: "Accedi" }).click();
-  const secret = savedSecret(users.verifier);
-  if (secret) await loginProfessionalAgain(page, users.verifier, password, secret);
-  else saveSecret(users.verifier, await loginProfessional(page, users.verifier, password));
+  const secret = savedSecret(email);
+  if (secret) await loginProfessionalAgain(page, email, password, secret);
+  else saveSecret(email, await loginProfessional(page, email, password));
   await acceptLegalIfAsked(page);
   await expect(page).toHaveURL(`${ADMIN}/`);
 }

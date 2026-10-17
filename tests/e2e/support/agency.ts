@@ -91,3 +91,29 @@ export async function moveClock(operator: Page, minutes: number | "reset"): Prom
   }
   await expect(operator.getByText("Richiesta inviata")).toBeVisible();
 }
+
+/** EMI-02: the three documents of the issuance, then «Segna come emessa» with the number. */
+export async function issuePolicy(page: Page, code: string, policyNumber: string): Promise<void> {
+  await page.goto(`${WEB}/da-emettere`);
+  await page.locator("tr", { hasText: code }).getByRole("link").first().click();
+  for (const [kind, kindCode] of [
+    ["Polizza", "ISSUED_POLICY"],
+    ["Quietanza", "POLICY_RECEIPT"],
+    ["Certificato di assicurazione", "INSURANCE_CERTIFICATE"],
+  ] as const) {
+    const field = page.getByLabel(`File PDF: ${kind}`);
+    await field.setInputFiles({
+      name: `${kind}.pdf`,
+      mimeType: "application/pdf",
+      buffer: Buffer.from(`%PDF-1.4 e2e\n${kind}\n`),
+    });
+    await page.locator("form", { has: field }).getByRole("button", { name: "Carica" }).click();
+    await expect(page).toHaveURL(new RegExp(`caricato=${kindCode}`));
+    await expect(
+      page.locator("li", { hasText: kind }).getByText("caricato", { exact: true }),
+    ).toBeVisible();
+  }
+  await page.getByLabel("Numero di polizza").fill(policyNumber);
+  await page.getByRole("button", { name: "Segna come emessa" }).click();
+  await expect(page.getByRole("heading", { name: "Polizza emessa" })).toBeVisible();
+}

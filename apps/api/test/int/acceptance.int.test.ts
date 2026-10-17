@@ -649,6 +649,12 @@ describe("fase 6: the issuance of S01 (EMI-01, EMI-02, CONT-03)", () => {
     for (const kind of ["ISSUED_POLICY", "POLICY_RECEIPT", "INSURANCE_CERTIFICATE"]) {
       expect((await upload(kind, pdf(kind))).status).toBe(201);
     }
+    // The page «Da emettere» shows them as uploaded.
+    const after = await r.json<{ uploaded: { documentId: string | null }[] }>(
+      await r.call(await uno(), `/agency/issuance/${requestId}`),
+      200,
+    );
+    expect(after.uploaded.every((u) => u.documentId !== null)).toBe(true);
   });
 
   it("EMI-02 CONT-03 S01 «Segna come emessa»: policy, «Emessa», the customer told, the fee invoice P", async () => {

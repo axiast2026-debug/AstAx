@@ -10,15 +10,23 @@ import {
   submittedRequest,
   WEB,
 } from "../support/auction.js";
-import { inviteByHand, openIncoming, professional, sendOffer } from "../support/agency.js";
+import {
+  inviteByHand,
+  issuePolicy,
+  openIncoming,
+  professional,
+  sendOffer,
+} from "../support/agency.js";
 
 /**
  * S01 up to the payment (fase 5): the best offer per company without agency
  * names, the AI comparison with the fee going from 30 to 35 €, the free choice
  * of Alfa (not the cheapest), the signature and the card payment of
  * 520 + 35 = 555 €; then Agenzia Uno finds the request in «Da emettere» with
- * the customer's contacts (VIS-02). The ranking is in the integration tests:
- * the agencies' «Risultati» page is phase 6.
+ * the customer's contacts (VIS-02). Phase 6: Agenzia Uno issues (EMI-02), the
+ * customer finds the policy and the fee invoice in «Polizze», and «Risultati»
+ * shows Uno third of three (CLA-02, CLA-03), without agencies nor companies.
+ * The remittance of the next Monday is in the integration tests.
  */
 test.describe.serial("S01 — privato con confronto AI", () => {
   test.describe.configure({ timeout: 480_000 });
@@ -99,5 +107,21 @@ test.describe.serial("S01 — privato con confronto AI", () => {
     await expect(row).toBeVisible();
     await expect(row).toContainText(email);
     await expect(row).toContainText("520,00");
+
+    // EMI-02: issued with the three documents; the customer is told.
+    const policyNumber = `ALFA-${code.slice(-6)}`;
+    await issuePolicy(uno, code, policyNumber);
+    await customer.goto(`${WEB}/polizze`);
+    const policy = customer.locator("li", { hasText: policyNumber });
+    await expect(policy).toBeVisible();
+    await expect(policy.getByRole("link", { name: "Fattura del compenso" })).toBeVisible();
+    await expect(policy.getByRole("link", { name: "Polizza", exact: true })).toBeVisible();
+
+    // CLA-02 CLA-03: published at the signature; Uno is third of three, 3,0 % from the first.
+    await uno.goto(`${WEB}/risultati`);
+    const ranking = uno.locator("li", { hasText: code });
+    await expect(ranking).toContainText("3ª su 3");
+    await expect(ranking).toContainText("Prima 505,00");
+    expect(await ranking.innerText()).not.toMatch(/Agenzia|Compagnia/);
   });
 });

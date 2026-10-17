@@ -54,14 +54,36 @@ export async function withContext<T>(
  * transaction: a notification for another user, a consent proven by a code.
  * Kept for the few places that have checked the right to do it; the context
  * goes back to the caller's even if `work` fails.
+ *
+ * Calls on the same transaction may overlap (several inside one
+ * `Promise.all`): the setting is taken by the first and given back by the
+ * last, so one that ends early never puts the caller's context back under
+ * another still reading.
  */
+const systemDepth = new WeakMap<object, { depth: number; previous: string }>();
+
 export async function asSystem<T>(tx: DbTransaction, work: () => Promise<T>): Promise<T> {
-  const [previous] = await tx.$queryRaw<{ value: string }[]>`
-    SELECT coalesce(current_setting('app.is_system', true), 'false') AS value`;
-  await tx.$executeRaw`SELECT set_config('app.is_system', 'true', true)`;
+  let state = systemDepth.get(tx);
+  if (!state) {
+    state = { depth: 0, previous: "false" };
+    systemDepth.set(tx, state);
+  }
+  state.depth += 1;
   try {
+    if (state.depth === 1) {
+      const [previous] = await tx.$queryRaw<{ value: string }[]>`
+        SELECT coalesce(current_setting('app.is_system', true), 'false') AS value`;
+      state.previous = previous?.value ?? "false";
+      await tx.$executeRaw`SELECT set_config('app.is_system', 'true', true)`;
+    } else {
+      // A call that overlaps the first: the setting may still be on its way.
+      await tx.$executeRaw`SELECT set_config('app.is_system', 'true', true)`;
+    }
     return await work();
   } finally {
-    await tx.$executeRaw`SELECT set_config('app.is_system', ${previous?.value ?? "false"}, true)`;
+    state.depth -= 1;
+    if (state.depth === 0) {
+      await tx.$executeRaw`SELECT set_config('app.is_system', ${state.previous}, true)`;
+    }
   }
 }

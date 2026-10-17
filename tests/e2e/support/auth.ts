@@ -14,6 +14,7 @@ export interface E2eState {
     cinque: string;
     admin: string;
     verifier: string;
+    supervisor: string;
     broker: string;
   };
 }

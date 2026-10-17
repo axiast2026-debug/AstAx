@@ -68,6 +68,15 @@ const E2E_USERS = [
     memberships: [{ org: "astax", role: "BO_VERIFIER" as const }],
   },
   {
+    // Phase 6: the supervisor approves the refunds (PAG-05).
+    key: "supervisor",
+    email: "e2e.supervisore@astax.test",
+    firstName: "Supervisore",
+    lastName: "E2E",
+    kind: "STAFF" as const,
+    memberships: [{ org: "astax", role: "BO_SUPERVISOR" as const }],
+  },
+  {
     key: "broker",
     email: "e2e.paolo@broker-demo.test",
     firstName: "Paolo",
@@ -164,6 +173,7 @@ export default async function globalSetup(): Promise<void> {
       cinque: emailOf("cinque"),
       admin: emailOf("admin"),
       verifier: emailOf("verifier"),
+      supervisor: emailOf("supervisor"),
       broker: emailOf("broker"),
     },
   };
