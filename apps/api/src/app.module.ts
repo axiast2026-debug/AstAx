@@ -23,6 +23,13 @@ import { CustomersService } from "./requests/customers.service.js";
 import { ReferenceService } from "./requests/reference.service.js";
 import { RequestsController } from "./requests/requests.controller.js";
 import { RequestsService } from "./requests/requests.service.js";
+import {
+  AcceptanceController,
+  FakeProvidersController,
+  WebhooksController,
+} from "./acceptance/acceptance.controller.js";
+import { AcceptanceEventsService } from "./acceptance/acceptance-events.service.js";
+import { AcceptanceService } from "./acceptance/acceptance.service.js";
 import { AgencyController } from "./agency/agency.controller.js";
 import { QuoteChecksController } from "./auctions/auctions.controller.js";
 import { QuoteChecksService } from "./auctions/quote-checks.service.js";
@@ -64,6 +71,9 @@ export class AppModule {
         NotificationsController,
         AuctionsController,
         AgencyController,
+        AcceptanceController,
+        WebhooksController,
+        FakeProvidersController,
         QuoteChecksController,
         RealtimeController,
         DevToolsController,
@@ -87,6 +97,8 @@ export class AppModule {
         AuctionsService,
         AgencyService,
         AgencySettingsService,
+        AcceptanceService,
+        AcceptanceEventsService,
         QuoteChecksService,
         RealtimeHub,
         RealtimeGateway,

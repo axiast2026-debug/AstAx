@@ -284,6 +284,40 @@ const ENDPOINTS: Endpoint[] = [
     body: { membershipId: randomUUID() },
   },
   { action: "offer.readOwnDuringAuction", method: "GET", path: () => "/agency/offers" },
+  // Fase 5: the acceptance
+  {
+    action: "offers.viewPresented",
+    method: "GET",
+    path: () => `/requests/${randomUUID()}/presentation`,
+  },
+  {
+    action: "aiComparison.use",
+    method: "POST",
+    path: () => `/requests/${randomUUID()}/ai-comparison`,
+    body: {},
+  },
+  {
+    action: "offers.viewPresented",
+    method: "GET",
+    path: () => `/requests/${randomUUID()}/acceptance`,
+  },
+  {
+    action: "offer.accept",
+    method: "POST",
+    path: () => `/requests/${randomUUID()}/acceptance`,
+    body: {},
+  },
+  {
+    action: "offer.accept",
+    method: "POST",
+    path: () => `/requests/${randomUUID()}/acceptance/payment`,
+    body: {},
+  },
+  {
+    action: "offers.viewPresented",
+    method: "GET",
+    path: () => `/requests/${randomUUID()}/acceptance/documents/${randomUUID()}`,
+  },
   // Fase 4: OFF-09 decisions on the PDF quotes
   { action: "offer.excludeAfterPdfCheck", method: "GET", path: () => "/back-office/quote-checks" },
   {
@@ -418,6 +452,13 @@ const ENDPOINTS: Endpoint[] = [
  * from the link (the secret token is the proof). Tested in requests.int.test.ts.
  */
 const PUBLIC_ROUTES = [
+  "POST /webhooks/signature",
+  "POST /webhooks/payments",
+  "GET /fake-providers/signature/{ref}",
+  "POST /fake-providers/signature/{ref}/sign",
+  "GET /fake-providers/payments/{ref}",
+  "POST /fake-providers/payments/{ref}/pay",
+  "POST /fake-providers/payments/{ref}/confirm",
   "GET /consent-links/{token}",
   "POST /consent-links/{token}/code",
   "POST /consent-links/{token}/confirm",
@@ -488,6 +529,7 @@ describe("SIC-01 every API route is in the table", () => {
               .replace(/\?.*$/, "")
               .replace(/[0-9a-f-]{36}/g, "{id}")
               .replace("/documents/{id}/file", "/documents/{documentId}/file")
+              .replace(/\/acceptance\/documents\/\{id\}$/, "/acceptance/documents/{documentId}")
               .replace("/agencies/{id}/", "/agencies/{organizationId}/")
               .replace(
                 "/agency/requests/{id}/documents/{id}",

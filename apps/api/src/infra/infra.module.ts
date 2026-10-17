@@ -11,6 +11,10 @@ import {
 } from "@astax/adapters/storage";
 import { FakePlateLookup, type PlateLookupPort } from "@astax/adapters/vehicle-data";
 import { KMS_KEYS, LocalKms } from "@astax/adapters/kms";
+import { FakeAiExplainer, type AiExplainerPort } from "@astax/adapters/ai-explainer";
+import { FakePaymentsProvider, type PaymentsPort } from "@astax/adapters/payments";
+import { FakeSignatureProvider, type SignaturePort } from "@astax/adapters/signature";
+import { createHmac } from "node:crypto";
 import { createDbClient, kmsEventRecorder, type DbClient } from "@astax/db";
 import { createLogger, errorForLog, type Logger } from "@astax/shared/logging";
 import {
@@ -39,6 +43,9 @@ import {
   SMS_SENDER,
   TOKEN_VERIFIER,
   WORKFLOW_SIGNALS,
+  SIGNATURE,
+  PAYMENTS,
+  AI_EXPLAINER,
 } from "./tokens.js";
 
 export interface InfraOverrides {
@@ -53,6 +60,20 @@ export interface InfraOverrides {
   plateLookup?: PlateLookupPort;
   documentReader?: DocumentReaderPort;
   workflowSignals?: WorkflowSignals;
+  signature?: SignaturePort;
+  payments?: PaymentsPort;
+  aiExplainer?: AiExplainerPort;
+}
+
+/**
+ * The key that signs the fake providers' webhooks (rule 9: fakes only until
+ * phase 8). Derived from a secret already in the environment, so that no new
+ * variable is needed in development.
+ */
+function fakeWebhookSecret(config: ApiConfig): string {
+  return createHmac("sha256", config.FIELD_ENCRYPTION_KEY)
+    .update("fake-provider-webhooks")
+    .digest("hex");
 }
 
 /**
@@ -103,6 +124,8 @@ export class InfraModule {
       new MailpitEmailSender(config.MAILPIT_URL, { email: config.EMAIL_FROM, name: "AstAx" });
     // Vehicle data and document reading: only the fakes until phase 8 (rule 9).
     const plateLookup = overrides.plateLookup ?? new FakePlateLookup(clock);
+    // One store for the documents and for the fake providers' envelopes and checkouts.
+    const objectStorage = overrides.objectStorage ?? objectStorageFor(config);
     return {
       module: InfraModule,
       providers: [
@@ -143,7 +166,7 @@ export class InfraModule {
         },
         { provide: EMAIL_SENDER, useValue: emailSender },
         { provide: SMS_SENDER, useValue: overrides.smsSender ?? new MailpitSmsSender(emailSender) },
-        { provide: OBJECT_STORAGE, useValue: overrides.objectStorage ?? objectStorageFor(config) },
+        { provide: OBJECT_STORAGE, useValue: objectStorage },
         { provide: PLATE_LOOKUP, useValue: plateLookup },
         {
           provide: DOCUMENT_READER,
@@ -164,6 +187,29 @@ export class InfraModule {
               }),
             ),
         },
+        {
+          provide: SIGNATURE,
+          useValue:
+            overrides.signature ??
+            new FakeSignatureProvider(
+              objectStorage,
+              clock,
+              fakeWebhookSecret(config),
+              (ref) => `${config.WEB_URL}/firma-di-prova/${ref}`,
+            ),
+        },
+        {
+          provide: PAYMENTS,
+          useValue:
+            overrides.payments ??
+            new FakePaymentsProvider(
+              objectStorage,
+              clock,
+              fakeWebhookSecret(config),
+              (ref) => `${config.WEB_URL}/pagamento-di-prova/${ref}`,
+            ),
+        },
+        { provide: AI_EXPLAINER, useValue: overrides.aiExplainer ?? new FakeAiExplainer() },
         {
           provide: WORKFLOW_SIGNALS,
           useValue:
@@ -190,6 +236,9 @@ export class InfraModule {
         DOCUMENT_READER,
         KMS,
         WORKFLOW_SIGNALS,
+        SIGNATURE,
+        PAYMENTS,
+        AI_EXPLAINER,
       ],
     };
   }

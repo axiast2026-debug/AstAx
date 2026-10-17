@@ -317,30 +317,30 @@ events:
     recipients: [broker_client]
     channels: [email, sms]
     mandatory: true
-    variables: [nome, broker, veicolo, descrizione_offerta, premio, garanzia, link, scadenza_link]
+    # Regola 8 di CLAUDE.md: nessun prezzo nelle notifiche (domanda aperta 15, proposta G della fase 5).
+    variables: [nome, broker, veicolo, descrizione_offerta, garanzia, link, scadenza_link]
     it:
       sms: "{{broker}} ti ha inviato l'offerta RC auto per {{veicolo}}: {{link}}"
       emailSubject: "{{broker}}: la tua offerta RC auto per {{veicolo}}"
       emailBody: |
         Buongiorno {{nome}},
         {{broker}} ti propone {{descrizione_offerta}} per {{veicolo}}.
-        Premio annuo: {{premio}}. Prezzo garantito fino al {{garanzia}}.
+        Il prezzo è garantito fino al {{garanzia}}: lo trovi nel link.
         Da questo link leggi i documenti, firmi con un codice e paghi: {{link}}
         Il link vale fino al {{scadenza_link}}.
 
   payment.confirmed:
     recipients: [payer]
     channels: [in_app, email]
-    variables: [nome, veicolo, totale, premio, riga_fee, agenzia, termine_emissione, link]
+    # Regola 8 di CLAUDE.md: nessun prezzo nelle notifiche (domanda aperta 15, proposta G della fase 5).
+    variables: [nome, veicolo, agenzia, termine_emissione, link]
     it:
       title: "Pagamento ricevuto"
-      body: "Abbiamo ricevuto {{totale}}. La polizza sarà emessa entro {{termine_emissione}}."
+      body: "Abbiamo ricevuto il pagamento. La polizza sarà emessa entro {{termine_emissione}}."
       emailSubject: "Pagamento ricevuto per {{veicolo}}"
       emailBody: |
         Ciao {{nome}},
-        abbiamo ricevuto il pagamento di {{totale}}:
-        premio {{premio}}
-        {{riga_fee}}
+        abbiamo ricevuto il pagamento per {{veicolo}}; il riepilogo con gli importi è nella pagina della richiesta.
         L'agenzia {{agenzia}} emetterà la polizza entro {{termine_emissione}}. Ti avvisiamo appena i documenti sono pronti.
         Riepilogo: {{link}}
 
@@ -361,13 +361,14 @@ events:
     recipients: [winning_agency_users]
     channels: [in_app, push, email]
     forcePush: true
-    variables: [codice, veicolo, premio, compagnia, termine_emissione, decorrenza, link]
+    # Regola 8 di CLAUDE.md: nessun prezzo nelle notifiche (domanda aperta 15, proposta G della fase 5).
+    variables: [codice, veicolo, compagnia, termine_emissione, decorrenza, link]
     it:
       title: "Avete vinto: {{codice}}"
       body: "Pagamento confermato. Emettete entro {{termine_emissione}}."
       emailSubject: "Polizza da emettere entro {{termine_emissione}}: {{codice}}"
       emailBody: |
-        Il cliente ha accettato e pagato la vostra offerta di {{premio}} ({{compagnia}}) per {{veicolo}}.
+        Il cliente ha accettato e pagato la vostra offerta ({{compagnia}}) per {{veicolo}}.
         Termine di emissione: {{termine_emissione}}, comunque prima della decorrenza del {{decorrenza}}.
         Nell'area «Da emettere» trovate i dati completi, i contatti del cliente, i documenti firmati e la ricevuta di pagamento: {{link}}
 
@@ -385,25 +386,24 @@ events:
   ranking.available:
     recipients: [participating_agency_users]
     channels: [in_app, email]
-    variables: [codice, esito, premio_primo, premio_secondo, premio_proprio, posizione, totale_offerte, scarto, link]
+    # Regola 8 di CLAUDE.md: nessun prezzo nelle notifiche (domanda aperta 15, proposta G della fase 5).
+    variables: [codice, posizione, totale_offerte, link]
     it:
       title: "Classifica disponibile: {{codice}}"
       body: "La vostra offerta è {{posizione}}ª su {{totale_offerte}}."
       emailSubject: "Classifica della richiesta {{codice}}"
       emailBody: |
-        {{esito}} per la richiesta {{codice}}.
-        Prima offerta: {{premio_primo}}
-        Seconda offerta: {{premio_secondo}}
-        La vostra: {{premio_proprio}}, {{posizione}}ª su {{totale_offerte}}, {{scarto}} dalla prima.
-        Le offerte degli altri sono anonime. Dettagli e statistiche: {{link}}
+        La classifica della richiesta {{codice}} è disponibile: la vostra offerta è {{posizione}}ª su {{totale_offerte}}.
+        Le offerte degli altri sono anonime. I premi e lo scarto dalla prima sono nella pagina dei risultati: {{link}}
 
   ranking.available.excluded:
     recipients: [participating_agency_users]
     channels: [in_app]
-    variables: [codice, motivo, link]
+    # Regola 8: il motivo, testo libero, si legge nell'app.
+    variables: [codice, link]
     it:
       title: "Classifica disponibile: {{codice}}"
-      body: "La vostra offerta era esclusa: {{motivo}}."
+      body: "La vostra offerta era esclusa: il motivo è in «Le mie offerte»."
 
   # ---------------------------------------------------------------- Emissione
 

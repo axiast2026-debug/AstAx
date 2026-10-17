@@ -33,5 +33,30 @@
       "FISCAL_CODE_CARD": "codice-fiscale.pdf",
       "OTHER": "documento.pdf"
     }
+  },
+  "aiComparison": {
+    "fallback": "Secondo i criteri del confronto, l'offerta con il miglior equilibrio tra prezzo, coperture e affidabilità è {company} ({product}) a {premium}."
+  },
+  "acceptanceDocuments": {
+    "mupTitle": "Informativa precontrattuale (MUP)",
+    "letterTitle": "Lettera di incarico ad AstAx",
+    "version": "Versione",
+    "missingText": "[DA VALIDARE — LEGALE]",
+    "dataTitle": "Dati dell'operazione",
+    "proposer": "Intermediario proponente",
+    "issuer": "Intermediario emittente",
+    "company": "Compagnia",
+    "product": "Prodotto",
+    "premium": "Premio annuo lordo",
+    "fee": "Compenso di AstAx (esente IVA)",
+    "noFee": "Nessuno per il cliente",
+    "payment": "Modalità di pagamento",
+    "paymentText": "Carta o bonifico istantaneo ad AstAx; il premio va sul conto separato",
+    "request": "Richiesta",
+    "kinds": {
+      "PRODUCT_DIP": "DIP del prodotto",
+      "PRODUCT_DIP_ADDITIONAL": "DIP aggiuntivo",
+      "PRODUCT_CONDITIONS": "Condizioni di assicurazione"
+    }
   }
 }

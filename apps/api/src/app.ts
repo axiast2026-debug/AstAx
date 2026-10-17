@@ -5,7 +5,7 @@ import type { INestApplication } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule, type OpenAPIObject } from "@nestjs/swagger";
-import { raw } from "express";
+import { raw, text } from "express";
 import { AppModule } from "./app.module.js";
 import type { ApiConfig } from "./config/config.js";
 import { requestLogger } from "./http/request-logger.js";
@@ -49,6 +49,8 @@ export async function createApp(
   );
   // The information set of a product of the agency library (decision 17).
   app.use(/^\/agency\/products\/[^/]+\/documents$/, raw({ type: () => true, limit: "60mb" }));
+  // The providers sign the exact bytes of their webhooks: kept as text to check them.
+  app.use(/^\/webhooks\//, text({ type: () => true, limit: "1mb" }));
   app.enableShutdownHooks();
 
   const document = buildOpenApi(app);

@@ -71,3 +71,91 @@ export async function openTestAuction(
   });
   return auction;
 }
+
+/**
+ * A closed round with its valid offers, as the worker leaves it (phase 5):
+ * plain values, statuses «In attesa del cliente», the ranking, the request
+ * «Offerte disponibili».
+ */
+export async function closedRound(
+  h: Harness,
+  requestId: string,
+  offers: { agency: string; company: string; cents: number; until: string; at: string }[],
+) {
+  const auctionId = await openTestAuction(
+    h,
+    requestId,
+    offers.map((o) => o.agency),
+  );
+  const ids = await withContext(h.db, SYSTEM_CONTEXT, async (tx) => {
+    const created: string[] = [];
+    for (const o of offers) {
+      const organizationId = orgId(o.agency);
+      const product = await tx.insuranceProduct.findFirstOrThrow({
+        where: { organizationId, company: { name: o.company } },
+      });
+      const owner = await tx.membership.findFirstOrThrow({
+        where: { organizationId, role: "OWNER" },
+      });
+      const offer = await tx.offer.create({
+        data: {
+          auctionId,
+          organizationId,
+          membershipId: owner.id,
+          userId: owner.userId,
+          submittedAt: new Date(o.at),
+          lastChangedAt: new Date(o.at),
+          sealedPayload: "sealed",
+          ownerCopy: "copy",
+          status: "AWAITING_CUSTOMER",
+          annualGrossPremiumCents: o.cents,
+          companyId: product.companyId,
+          productId: product.id,
+          coverage: {
+            rca: { limitType: "SINGLE_LIMIT", singleLimitEur: 10_000_000 },
+            recourseWaiver: { included: false },
+            roadsideAssistance: { included: false },
+            legalProtection: { included: false },
+            driverAccident: { included: false },
+            theftFire: { included: false },
+            naturalEventsVandalism: { included: false },
+            glass: { included: false },
+          },
+          guaranteeUntil: new Date(o.until),
+        },
+      });
+      created.push(offer.id);
+    }
+    const sorted = offers
+      .map((o, i) => ({ ...o, id: created[i] as string }))
+      .sort(
+        (a, b) => a.cents - b.cents || b.until.localeCompare(a.until) || a.at.localeCompare(b.at),
+      );
+    for (const [i, o] of sorted.entries()) {
+      await tx.offer.update({ where: { id: o.id }, data: { rank: i + 1 } });
+    }
+    await tx.ranking.create({
+      data: {
+        quoteRequestId: requestId,
+        auctionId,
+        entries: sorted.map((o, i) => ({
+          offerId: o.id,
+          organizationId: orgId(o.agency),
+          rank: i + 1,
+          annualGrossPremiumCents: o.cents,
+        })),
+        validCount: sorted.length,
+      },
+    });
+    await tx.auction.update({
+      where: { id: auctionId },
+      data: { status: "CLOSED", closedAt: h.clock.now() },
+    });
+    await tx.quoteRequest.update({
+      where: { id: requestId },
+      data: { status: "OFFERS_AVAILABLE" },
+    });
+    return created;
+  });
+  return { auctionId, offerIds: ids };
+}

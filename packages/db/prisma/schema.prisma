@@ -690,6 +690,11 @@ enum DocumentKind {
   PRODUCT_DIP
   PRODUCT_DIP_ADDITIONAL
   PRODUCT_CONDITIONS
+  /// Phase 5 (LEG-05): what the customer reads and signs at the acceptance.
+  PRECONTRACTUAL_INFO
+  ENGAGEMENT_LETTER
+  SIGNED_DOCUMENT
+  SIGNATURE_EVIDENCE
   OTHER
 }
 
@@ -1262,6 +1267,8 @@ model SignatureEnvelope {
   ownerOrganizationId String?         @db.Uuid
   provider            String
   providerRef         String          @unique
+  /// Where the signer signs, as the provider gave it.
+  signingUrl          String
   status              SignatureStatus @default(PENDING)
   /// The document ids given to read and sign.
   documentIds         Json
@@ -1295,6 +1302,8 @@ model Payment {
   ownerOrganizationId String?        @db.Uuid
   provider            String
   providerRef         String?        @unique
+  /// The provider's payment page.
+  redirectUrl         String?
   method              PaymentMethod?
   premiumCents        Int
   feeCents            Int
