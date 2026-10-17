@@ -7,6 +7,7 @@ import type {
   AuctionActivities,
   CloseResult,
   GuaranteeSchedule,
+  IssuanceSteps,
   OpenResult,
   RoundTimes,
 } from "../src/activities/types.js";
@@ -56,6 +57,8 @@ interface Script {
   expired?: { expired: boolean; autoCancelAt: string | null }[];
   /** PAG-02: the issuance schedule once paid. */
   issuance?: { deadlineAt: string | null; reminderAt: string | null };
+  /** Phase 6: the issuance steps as the activity reads them, in order. */
+  steps?: IssuanceSteps[];
 }
 
 /** Fake activities that record the calls, with the time of the workflow environment. */
@@ -64,6 +67,7 @@ function fakes(script: Script) {
   const closings = [...script.closings];
   const guarantees = [...(script.guarantees ?? [])];
   const expired = [...(script.expired ?? [])];
+  const steps = [...(script.steps ?? [])];
   let close = 0;
   let round = 0;
   // The time of the test server (skipped forward), not of this process.
@@ -158,6 +162,13 @@ function fakes(script: Script) {
     },
     async sendIssuanceReminder(input) {
       record("sendIssuanceReminder", input);
+    },
+    async issuanceSteps(input) {
+      record("issuanceSteps", input);
+      return steps.shift() ?? { inIssuance: false, issued: true, nextStepAt: null };
+    },
+    async runIssuanceStep(input) {
+      record("runIssuanceStep", input);
     },
     async reviewQuotes(input) {
       record("reviewQuotes", input);
@@ -392,22 +403,24 @@ describe("QuoteRequestWorkflow (ADR 0008)", () => {
             issuance: true,
           },
         ],
-        issuance: {
-          deadlineAt: new Date(now + 6 * HOUR).toISOString(),
-          reminderAt: new Date(now + 5 * HOUR).toISOString(),
-        },
+        // EMI-01 EMI-03 EMI-04: reminder, deadline, start of cover; then issued.
+        steps: [
+          { inIssuance: true, issued: false, nextStepAt: new Date(now + 5 * HOUR).toISOString() },
+          { inIssuance: true, issued: false, nextStepAt: new Date(now + 6 * HOUR).toISOString() },
+          { inIssuance: true, issued: false, nextStepAt: new Date(now + 20 * HOUR).toISOString() },
+          { inIssuance: false, issued: true, nextStepAt: null },
+        ],
       },
       async (handle) => {
         await handle.signal(paymentConfirmedSignal);
       },
     );
-    expect(r.names().slice(-3)).toEqual([
-      "guaranteeSchedule",
-      "issuanceSchedule",
-      "sendIssuanceReminder",
-    ]);
+    const steps = r.calls.filter((c) => c.name === "runIssuanceStep").map((c) => c.at - now);
+    expect(steps.length).toBe(3);
+    expect(Math.round((steps[2] ?? 0) / HOUR)).toBeGreaterThanOrEqual(20);
     expect(r.names()).not.toContain("expireRequest");
-    expect(r.result).toBe("IN_ISSUANCE");
+    expect(r.names()).not.toContain("sendIssuanceReminder");
+    expect(r.result).toBe("ISSUED");
   });
 
   it("GAR-06 a request whose workflow ended at «Scaduta» gets a new run from the reconfirmation signal", async () => {

@@ -11,13 +11,23 @@ Claude Code aggiorna questo file alla fine di ogni sessione di lavoro e alla chi
 | 3. Motore d'asta | In verifica | | Criteri con prova; verifica indipendente in tre giri, problemi corretti; manca la demo con Dan |
 | 4. Offerte | In verifica | | Tutti i passi fatti; verifica indipendente (primo giro) con i problemi corretti; manca la demo con Dan |
 | 5. Accettazione | In corso | | Tutti i passi del piano fatti (proposte A-I); in corso le prove finali e la verifica indipendente; poi la demo con Dan |
-| 6. Dopo l'acquisto | Da iniziare | | |
+| 6. Dopo l'acquisto | In corso | | Piano approvato da Dan il 2026-10-17 (proposte A-F); passi 0-4 fatti |
 | 7. Pannelli e notifiche | Da iniziare | | |
 | 8. Fornitori reali e sicurezza | Da iniziare | | |
 
 Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in attesa della revisione di Dan), Chiusa.
 
 ## Ultima sessione
+
+**2026-10-17 — fase 6, passi 0-4** (piano approvato da Dan il 2026-10-17 con le proposte A-F).
+
+- Passo 0: corretti i 12 punti della verifica della fase 5 (dettaglio nella sezione «Verifica indipendente (fase 5)»).
+- Passo 1, regole di calcolo (): rimessa settimanale (premio − fee agenzia − quota broker − residui − recuperi − penali, mai negativa, il resto alla settimana dopo) e il suo limite del venerdì alle 23:59; totali delle fatture con il bollo sopra soglia, numeri per serie e anno, note di credito; seconda offerta di un'altra agenzia e differenza con il fee ricalcolato; sospensione dopo 3 mancate emissioni in 6 mesi; date di fine polizza, rinnovo e questionario; la classifica vista dall'agenzia (CLA-03).
+- Passo 2, tabelle (migrazione ): polizze, casi di emissione, proposte di seconda offerta, penali, sospensioni, rimesse con le righe, fatture e note di credito con il contatore senza buchi, rimborsi, recessi, quote del broker, questionari, segnalazioni; regole di accesso del database con le prove.
+- Passo 3, file e fornitori: file dei bonifici SEPA e fattura elettronica FatturaPA, controllati contro gli schemi ufficiali salvati nel progetto (ADR 0009, nuova libreria ); SDI finto; rimborso nel fornitore di pagamenti finto.
+- Passo 4, emissione: pagina «Da emettere» con il dettaglio (contatti, documenti firmati, ricevuta di pagamento), caricamento di polizza, quietanza e certificato in PDF, «Segna come emessa» (polizza, richiesta «Emessa», avvisi, fattura P al privato, documenti nell'area del cliente; per il cliente del broker un link nuovo con codice), «Segnala un problema» al back office; pagina «Polizze» per privato, broker e agenzia. Nel worker: promemoria, termine superato con la penale di 25 € proposta (EMI-03), mancata emissione alla decorrenza con un caso al back office (EMI-04).
+- Proposta D (fattura al privato): se il contraente coincide con chi ha l'account la fattura è intestata a lui; altrimenti al titolare dell'account, ma il suo profilo non ha codice fiscale né indirizzo: la fattura resta «da completare» e non parte verso lo SDI finché il back office non completa i dati (schermata nel passo 7).
+- Prossimo passo: passo 5 (termini e mancata emissione, S05: decisione del back office, seconda offerta, differenza, rimborso).
 
 **2026-10-17 — fase 5, accettazione** (piano approvato da Dan il 2026-10-17 con le proposte A-I; Dan ha chiesto di andare avanti con le fasi e fare domande e demo alla fine).
 

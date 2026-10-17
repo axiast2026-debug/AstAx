@@ -89,6 +89,8 @@ export function auctionActivities(
   | "reviewQuotes"
   | "issuanceSchedule"
   | "sendIssuanceReminder"
+  | "issuanceSteps"
+  | "runIssuanceStep"
 > {
   const { db, kms, clock, cipher, notifier, urls } = deps;
 

@@ -58,5 +58,37 @@
       "PRODUCT_DIP_ADDITIONAL": "DIP aggiuntivo",
       "PRODUCT_CONDITIONS": "Condizioni di assicurazione"
     }
+  },
+  "invoice": {
+    "title": "Fattura",
+    "creditNoteTitle": "Nota di credito",
+    "courtesy": "Copia di cortesia: la fattura valida è quella elettronica inviata allo SDI",
+    "dataTitle": "Dati della fattura",
+    "number": "Numero",
+    "date": "Data",
+    "recipient": "Destinatario",
+    "exempt": "Imponibile esente",
+    "stampDuty": "Imposta di bollo",
+    "total": "Totale",
+    "privateLine": "Compenso di intermediazione, richiesta"
+  },
+  "receipt": {
+    "title": "Ricevuta di pagamento",
+    "text": "Pagamento ricevuto da AstAx per conto dell'agenzia emittente. Il premio è sul conto separato di AstAx.",
+    "dataTitle": "Pagamento",
+    "request": "Richiesta",
+    "company": "Compagnia",
+    "premium": "Premio",
+    "method": "Metodo",
+    "paidAt": "Pagato il",
+    "methods": {
+      "CARD": "Carta",
+      "INSTANT_TRANSFER": "Bonifico istantaneo"
+    }
+  },
+  "issuanceProblem": {
+    "DATA_MISMATCH": "Dati che non corrispondono",
+    "CANNOT_ISSUE": "Impossibile emettere",
+    "MISSED_DEADLINE": "Nessuna emissione prima della decorrenza"
   }
 }

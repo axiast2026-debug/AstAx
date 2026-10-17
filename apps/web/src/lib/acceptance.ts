@@ -49,6 +49,7 @@ export interface CurrentAcceptance {
 
 export interface ToIssueRow {
   auctionId: string;
+  requestId: string;
   code: string;
   holder: string;
   vehicle: string;
@@ -58,4 +59,40 @@ export interface ToIssueRow {
   issuanceDeadlineAt: string | null;
   email: string | null;
   phone: string | null;
+}
+
+export interface IssuanceDetail {
+  requestId: string;
+  code: string;
+  status: string;
+  holder: string;
+  vehicle: string;
+  startDate: string | null;
+  company: string;
+  product: string;
+  premiumCents: number;
+  paidAt: string | null;
+  issuanceDeadlineAt: string | null;
+  email: string | null;
+  phone: string | null;
+  signedDocuments: { id: string }[];
+  uploaded: { kind: string; documentId: string | null; uploadedAt: string | null }[];
+  policy: { number: string; issuedAt: string } | null;
+}
+
+export interface PolicyRow {
+  id: string;
+  requestId?: string;
+  code: string;
+  policyNumber: string;
+  holder: string;
+  plate: string;
+  company: string;
+  agency?: { name: string; pec: string | null };
+  startDate: string;
+  endDate: string;
+  premiumCents: number;
+  status: string;
+  autoRenewal?: boolean;
+  documents?: { id: string; kind: string }[];
 }

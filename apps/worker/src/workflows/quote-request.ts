@@ -35,6 +35,8 @@ export const auctionCancelledSignal = defineSignal<[BackOfficeAction]>(SIGNALS.a
 export const reconfirmationRequestedSignal = defineSignal(SIGNALS.reconfirmationRequested);
 /** PAG-02: from the outbox, once the payment is confirmed. */
 export const paymentConfirmedSignal = defineSignal(SIGNALS.paymentConfirmed);
+/** EMI-02, EMI-04: from the outbox, when the issuance changes. */
+export const issuanceChangedSignal = defineSignal(SIGNALS.issuanceChanged);
 
 export { workflowIdOf } from "@astax/shared/workflows";
 
@@ -78,6 +80,7 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
   let fire = false;
   let reconfirm = false;
   let paid = false;
+  let issuanceChanged = false;
   const queue: BackOfficeRequest[] = [];
 
   setHandler(approvedSignal, () => {
@@ -100,6 +103,9 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
   });
   setHandler(paymentConfirmedSignal, () => {
     paid = true;
+  });
+  setHandler(issuanceChangedSignal, () => {
+    issuanceChanged = true;
   });
 
   /**
@@ -201,9 +207,13 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
     }
   }
 
-  await condition(() => approved || reconfirm || paid);
-  // A new run for a request already «Scaduta» (reconfirmation) or already paid.
-  const result = approved ? await auctionRounds() : paid ? await issuance() : "EXPIRED";
+  await condition(() => approved || reconfirm || paid || issuanceChanged);
+  // A new run for a request already «Scaduta» (reconfirmation), already paid, or in issuance.
+  const result = approved
+    ? await auctionRounds()
+    : paid || issuanceChanged
+      ? await issuance()
+      : "EXPIRED";
   if (result !== "EXPIRED") return result;
   return afterExpiry();
 
@@ -275,6 +285,7 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
    * (missed issuance, EMI-04) belongs to phase 6.
    */
   async function issuance(): Promise<string> {
+    if (patched("issuance-steps")) return issuanceSteps();
     const s = await acts.issuanceSchedule({ requestId });
     if (s.reminderAt) {
       const ms = Date.parse(s.reminderAt) - Date.now();
@@ -283,6 +294,32 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
       await acts.sendIssuanceReminder({ requestId });
     }
     return "IN_ISSUANCE";
+  }
+
+  /**
+   * Phase 6 (EMI-01, EMI-03, EMI-04): the reminder before the deadline, the
+   * delay at the deadline (penalty proposed), the missed issuance at the start
+   * of cover (a case for the back office). The schedule is read again at
+   * each step and whenever the issuance changes (issued, second offer,
+   * refund); the steps are the activity's, each done once.
+   */
+  async function issuanceSteps(): Promise<string> {
+    for (;;) {
+      issuanceChanged = false;
+      const s = await acts.issuanceSteps({ requestId });
+      if (!s.inIssuance) return s.issued ? "ISSUED" : "CLOSED";
+      if (s.nextStepAt) {
+        const ms = Date.parse(s.nextStepAt) - Date.now();
+        if (ms > 0) await condition(() => fire || issuanceChanged, ms);
+      } else {
+        // Every step done: the case is with the back office, until the issuance changes.
+        await condition(() => fire || issuanceChanged);
+      }
+      if (issuanceChanged) continue;
+      const forced = fire;
+      fire = false;
+      if (s.nextStepAt) await acts.runIssuanceStep({ requestId, force: forced });
+    }
   }
 
   /**

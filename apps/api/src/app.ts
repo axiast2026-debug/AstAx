@@ -49,6 +49,11 @@ export async function createApp(
   );
   // The information set of a product of the agency library (decision 17).
   app.use(/^\/agency\/products\/[^/]+\/documents$/, raw({ type: () => true, limit: "60mb" }));
+  // EMI-02: policy, receipt and certificate, uploaded by the agency as the body.
+  app.use(
+    /^\/agency\/issuance\/[^/]+\/documents\/[A-Z_]+$/,
+    raw({ type: () => true, limit: "60mb" }),
+  );
   // The providers sign the exact bytes of their webhooks: kept as text to check them.
   // A path, not a regular expression: Express 5 never matched /^\/webhooks\//.
   app.use("/webhooks", text({ type: () => true, limit: "1mb" }));

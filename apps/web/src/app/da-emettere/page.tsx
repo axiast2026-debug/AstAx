@@ -1,6 +1,7 @@
 import { formatDate, formatDateTime, formatEuroCents } from "@astax/shared/format";
 import { Card } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import type { ToIssueRow } from "@/lib/acceptance";
@@ -50,7 +51,11 @@ export default async function ToIssuePage() {
             <tbody className="divide-y divide-warm-200">
               {rows.map((r) => (
                 <tr key={r.auctionId}>
-                  <td className="px-3 py-2 font-medium">{r.code}</td>
+                  <td className="px-3 py-2 font-medium">
+                    <Link href={`/da-emettere/${r.requestId}`} className="underline">
+                      {r.code}
+                    </Link>
+                  </td>
                   <td className="px-3 py-2">{r.holder}</td>
                   <td className="px-3 py-2">{r.vehicle}</td>
                   <td className="px-3 py-2">{r.startDate ? formatDate(r.startDate) : ""}</td>

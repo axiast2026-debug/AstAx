@@ -309,6 +309,32 @@ const ENDPOINTS: Endpoint[] = [
     path: () => `/requests/${randomUUID()}/offers/${randomUUID()}/quote`,
   },
   { action: "issuance.manage", method: "GET", path: () => "/agency/to-issue" },
+  { action: "issuance.manage", method: "GET", path: () => `/agency/issuance/${randomUUID()}` },
+  {
+    action: "issuance.manage",
+    method: "POST",
+    path: () => `/agency/issuance/${randomUUID()}/documents/ISSUED_POLICY`,
+    body: {},
+  },
+  {
+    action: "issuance.manage",
+    method: "GET",
+    path: () => `/agency/issuance/${randomUUID()}/documents/${randomUUID()}`,
+  },
+  {
+    action: "issuance.manage",
+    method: "POST",
+    path: () => `/agency/issuance/${randomUUID()}/issue`,
+    body: {},
+  },
+  {
+    action: "issuance.manage",
+    method: "POST",
+    path: () => `/agency/issuance/${randomUUID()}/problem`,
+    body: {},
+  },
+  { action: "issuance.manage", method: "GET", path: () => "/agency/policies" },
+  { action: "request.viewOwn", method: "GET", path: () => "/policies" },
   {
     action: "offers.viewPresented",
     method: "GET",
@@ -572,6 +598,15 @@ describe("SIC-01 every API route is in the table", () => {
                 /\/agency\/products\/\{id\}\/documents\/\{id\}$/,
                 "/agency/products/{id}/documents/{documentId}",
               )
+              .replace(
+                "/agency/issuance/{id}/documents/{id}",
+                "/agency/issuance/{requestId}/documents/{documentId}",
+              )
+              .replace(
+                "/agency/issuance/{id}/documents/ISSUED_POLICY",
+                "/agency/issuance/{requestId}/documents/{kind}",
+              )
+              .replace("/agency/issuance/{id}", "/agency/issuance/{requestId}")
               .replace("/draft/vehicle", "/draft/{section}")
               .replace("/checklist/DOCUMENTS", "/checklist/{code}")
               .replace("/documents/none/", "/documents/{key}/")

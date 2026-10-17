@@ -15,6 +15,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closedRound } from "./auction-helpers.js";
 import { acceptAllLegal, membershipId, orgId, startHarness, type Harness } from "./fixtures.js";
 import { PAYMENTS, SIGNATURE } from "../../src/infra/tokens.js";
+import { InvoicingService } from "../../src/invoicing/invoicing.service.js";
 import { requestHelpers, type Who } from "./request-helpers.js";
 
 // Phase 5: the private customer's acceptance, with the offers of S01.
@@ -559,5 +560,154 @@ describe("fase 5: the private customer's acceptance (S01)", () => {
       context: membershipId("bo-verifier", "astax"),
     };
     expect((await r.call(verifier, "/admin/complaints-index")).status).toBe(403);
+  });
+});
+
+describe("fase 6: the issuance of S01 (EMI-01, EMI-02, CONT-03)", () => {
+  // The clock moved to the payment at 12:30: fresh access tokens for the customer.
+  beforeAll(async () => {
+    customer = {
+      token: await h.token({
+        sub: "kc-private-acceptance-test",
+        azp: "astax-web-private",
+        roles: ["astax-private"],
+        email: EMAIL,
+        givenName: "Giulia",
+        familyName: "Prova",
+      }),
+    };
+  });
+
+  const uno = async () => ({
+    token: await h.tokenFor("agenzia-uno-owner"),
+    context: membershipId("agenzia-uno-owner", "agenzia-uno"),
+  });
+  const pdf = (title: string) => Buffer.from(`%PDF-1.4 e2e\n${title}\n`);
+  const upload = async (kind: string, body: Buffer) =>
+    fetch(`${h.baseUrl}/agency/issuance/${requestId}/documents/${kind}`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${(await uno()).token}`,
+        "x-astax-context": (await uno()).context,
+        "content-type": "application/pdf",
+      },
+      body,
+    });
+
+  it("EMI-02 VIS-02 Agenzia Uno sees the request with the contacts; another agency does not", async () => {
+    const detail = await r.json<{
+      email: string;
+      status: string;
+      uploaded: { documentId: string | null }[];
+    }>(await r.call(await uno(), `/agency/issuance/${requestId}`), 200);
+    expect(detail).toMatchObject({ email: EMAIL, status: "IN_ISSUANCE" });
+    expect(detail.uploaded.every((u) => u.documentId === null)).toBe(true);
+    await acceptAllLegal(h, "agenzia-due-owner");
+    const due = await r.call(
+      {
+        token: await h.tokenFor("agenzia-due-owner"),
+        context: membershipId("agenzia-due-owner", "agenzia-due"),
+      },
+      `/agency/issuance/${requestId}`,
+    );
+    expect(due.status).toBe(404);
+    const receipt = await r.call(await uno(), `/agency/issuance/${requestId}/documents/receipt`);
+    expect(receipt.status).toBe(200);
+    expect((await receipt.arrayBuffer()).byteLength).toBeGreaterThan(100);
+  });
+
+  it("EMI-02 policy, receipt and certificate first; only PDFs", async () => {
+    const early = await r.json<{ errors: { path: string; issue: string }[] }>(
+      await r.call(await uno(), `/agency/issuance/${requestId}/issue`, {
+        body: { policyNumber: "ALFA-2026-0001" },
+      }),
+      400,
+    );
+    expect(early.errors.map((e) => e.issue)).toEqual([
+      "DOCUMENT_MISSING",
+      "DOCUMENT_MISSING",
+      "DOCUMENT_MISSING",
+    ]);
+    expect((await upload("ISSUED_POLICY", Buffer.from("not a pdf"))).status).toBe(400);
+    for (const kind of ["ISSUED_POLICY", "POLICY_RECEIPT", "INSURANCE_CERTIFICATE"]) {
+      expect((await upload(kind, pdf(kind))).status).toBe(201);
+    }
+  });
+
+  it("EMI-02 CONT-03 S01 «Segna come emessa»: policy, «Emessa», the customer told, the fee invoice P", async () => {
+    await r.json(
+      await r.call(await uno(), `/agency/issuance/${requestId}/issue`, {
+        body: { policyNumber: "ALFA-2026-0001" },
+      }),
+      200,
+    );
+    const [request, policy, offer, invoice, outbox, note] = await system((tx) =>
+      Promise.all([
+        tx.quoteRequest.findUniqueOrThrow({ where: { id: requestId } }),
+        tx.policy.findUniqueOrThrow({ where: { quoteRequestId: requestId } }),
+        tx.offer.findUniqueOrThrow({ where: { id: offers[0] } }),
+        tx.invoice.findFirstOrThrow({ where: { quoteRequestId: requestId, series: "P" } }),
+        tx.outboxEvent.findMany({ where: { type: "PolicyIssued" } }),
+        tx.notification.findFirst({ where: { eventKey: "policy.issued" } }),
+      ]),
+    );
+    expect(request.status).toBe("ISSUED");
+    expect(offer.status).toBe("ISSUED");
+    expect(policy).toMatchObject({ policyNumber: "ALFA-2026-0001", premiumCents: 52000 });
+    expect(policy.endDate.toISOString().slice(0, 10)).toBe("2027-11-19");
+    // CONT-03 S01: 35,00 € exempt, no stamp duty under 77,47 €.
+    expect(invoice).toMatchObject({
+      exemptCents: 3500,
+      stampDutyCents: 0,
+      totalCents: 3500,
+      vatNature: "N4",
+      recipientType: "PRIVATE",
+    });
+    expect(invoice.code).toMatch(/^P-2026-\d{6}$/);
+    // Proposal D: the holder (Giulia Neri) is not the account holder (Giulia Prova):
+    // the invoice waits for the back office to complete the fiscal data.
+    expect(invoice.sdiStatus).toBe("TO_SEND");
+    expect(invoice.pdfDocumentId).not.toBeNull();
+    expect(
+      outbox.some((o) => (o.payload as { aggregateId?: string }).aggregateId === requestId),
+    ).toBe(true);
+    expect(note).not.toBeNull();
+    // Spec 03 «Polizze»: the policy with its documents and the invoice.
+    const policies = await r.json<{ policyNumber: string; documents: { kind: string }[] }[]>(
+      await r.call(customer, "/policies"),
+      200,
+    );
+    const mine = policies.find((p) => p.policyNumber === "ALFA-2026-0001");
+    expect(mine?.documents.map((d) => d.kind).sort()).toEqual([
+      "INSURANCE_CERTIFICATE",
+      "INVOICE_PDF",
+      "ISSUED_POLICY",
+      "POLICY_RECEIPT",
+    ]);
+    const again = await r.call(await uno(), `/agency/issuance/${requestId}/issue`, {
+      body: { policyNumber: "ALFA-2026-0001" },
+    });
+    expect(again.status).toBe(409);
+  });
+
+  it("CONT-03 the numbers have no gaps, even with invoices issued at the same moment", async () => {
+    const invoicing = h.app.get(InvoicingService);
+    const issued = await Promise.all(
+      Array.from({ length: 12 }, (_, i) =>
+        system((tx) =>
+          invoicing.issue(tx, {
+            series: "A",
+            recipientType: "AGENCY",
+            ownerUserId: null,
+            ownerOrganizationId: orgId("agenzia-uno"),
+            recipient: { name: "Agenzia Uno" },
+            lines: [{ description: `Fee ${i}`, quantity: 1, unitCents: 1500 }],
+          }),
+        ),
+      ),
+    );
+    const numbers = issued.map((x) => x.number).sort((a, b) => a - b);
+    const first = numbers[0] ?? 0;
+    expect(numbers).toEqual(Array.from({ length: 12 }, (_, i) => first + i));
   });
 });

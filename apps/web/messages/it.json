@@ -266,7 +266,15 @@
     "AUTO_CANCELLED": "Chiusa da sola dopo la scadenza",
     "ACCEPTANCE_SIGNED": "Documenti firmati",
     "PAYMENT_CONFIRMED": "Pagamento confermato",
-    "ISSUANCE_REMINDER_SENT": "Promemoria di emissione all'agenzia"
+    "ISSUANCE_REMINDER_SENT": "Promemoria di emissione all'agenzia",
+    "ISSUANCE_DEADLINE_PASSED": "Termine di emissione superato",
+    "ISSUANCE_PROBLEM_OPENED": "Caso di emissione aperto",
+    "ISSUANCE_PROBLEM_DECIDED": "Caso di emissione deciso",
+    "SECOND_OFFER_PROPOSED": "Proposta la seconda offerta",
+    "SECOND_OFFER_DECIDED": "Seconda offerta decisa",
+    "POLICY_ISSUED": "Polizza emessa",
+    "REFUNDED": "Rimborso eseguito",
+    "WITHDRAWN": "Recesso"
   },
   "requestView": {
     "title": "Richiesta {code}",
@@ -378,7 +386,10 @@
     "DOCUMENTS_NOT_READ": "Conferma di aver letto i documenti prima di firmare.",
     "NO_OFFER_SELECTED": "Scegli almeno un'offerta da inviare.",
     "PAYMENT_IN_PROGRESS": "C'è un pagamento in arrivo: aspetta la conferma prima di cambiare offerta.",
-    "PAYMENT_CLOSED": "Questo pagamento non è più aperto: torna all'offerta e riprova."
+    "PAYMENT_CLOSED": "Questo pagamento non è più aperto: torna all'offerta e riprova.",
+    "DOCUMENT_MISSING": "Carica polizza, quietanza e certificato prima di segnare la polizza come emessa.",
+    "NOT_IN_ISSUANCE": "Questa polizza non è più da emettere.",
+    "CASE_OPEN": "C'è già un caso aperto per questa richiesta: lo sta seguendo il back office."
   },
   "wizard": {
     "choose": "Scegli",
@@ -427,7 +438,11 @@
       "PRECONTRACTUAL_INFO": "Informativa precontrattuale",
       "ENGAGEMENT_LETTER": "Lettera di incarico",
       "SIGNED_DOCUMENT": "Documento firmato",
-      "SIGNATURE_EVIDENCE": "Prova della firma"
+      "SIGNATURE_EVIDENCE": "Prova della firma",
+      "ISSUED_POLICY": "Polizza",
+      "POLICY_RECEIPT": "Quietanza",
+      "INSURANCE_CERTIFICATE": "Certificato di assicurazione",
+      "INVOICE_PDF": "Fattura del compenso"
     },
     "integration": {
       "title": "Il back office ti chiede un'integrazione",
@@ -1096,7 +1111,8 @@
     "premium": "Premio",
     "paidAt": "Pagata il",
     "deadline": "Emettere entro",
-    "contacts": "Contatti"
+    "contacts": "Contatti",
+    "open": "Apri"
   },
   "customerOffer": {
     "brand": "AstAx",
@@ -1132,5 +1148,65 @@
     "SIGNED": "ha firmato e deve pagare",
     "PAID": "ha pagato",
     "VOIDED": "ha annullato la scelta"
+  },
+  "issuance": {
+    "title": "Da emettere: {code}",
+    "back": "Torna a «Da emettere»",
+    "dataTitle": "Dati per l'emissione",
+    "holder": "Contraente",
+    "vehicle": "Veicolo",
+    "company": "Compagnia e prodotto",
+    "premium": "Premio",
+    "start": "Decorrenza",
+    "email": "Email del cliente",
+    "phone": "Telefono del cliente",
+    "deadline": "Emettere entro",
+    "passed": "Termine superato",
+    "customerDocuments": "Documenti del cliente",
+    "signedDocument": "Documento firmato {n}",
+    "receipt": "Ricevuta di pagamento",
+    "uploadTitle": "Polizza, quietanza e certificato",
+    "uploaded": "caricato",
+    "missing": "da caricare",
+    "open": "Apri",
+    "file": "File PDF: {kind}",
+    "upload": "Carica",
+    "replace": "Sostituisci",
+    "policyNumber": "Numero di polizza",
+    "markIssued": "Segna come emessa",
+    "uploadFirst": "Prima carica i tre documenti.",
+    "issuedTitle": "Polizza emessa",
+    "issuedText": "Polizza n. {number}, emessa il {at}. Il cliente ha ricevuto l'avviso e trova i documenti nella sua area.",
+    "problemTitle": "Segnala un problema",
+    "problemIntro": "Se i dati non corrispondono o non potete emettere, il back office apre il caso e decide come procedere. Non scrivere contatti nella descrizione.",
+    "problemType": "Tipo di problema",
+    "types": {
+      "DATA_MISMATCH": "I dati non corrispondono",
+      "CANNOT_ISSUE": "Impossibile emettere"
+    },
+    "description": "Descrizione",
+    "report": "Invia la segnalazione",
+    "done": {
+      "issued": "Polizza segnata come emessa.",
+      "reported": "Segnalazione inviata al back office."
+    }
+  },
+  "policies": {
+    "title": "Le polizze",
+    "agencyTitle": "Polizze emesse",
+    "empty": "Nessuna polizza.",
+    "number": "polizza n. {number}",
+    "holder": "Contraente",
+    "plate": "Targa",
+    "period": "Copertura",
+    "premium": "Premio",
+    "agency": "Agenzia",
+    "status": {
+      "ACTIVE": "Attiva",
+      "EXPIRING": "In scadenza",
+      "EXPIRED": "Scaduta",
+      "WITHDRAWN": "Receduta",
+      "CANCELLED": "Annullata"
+    }
   }
 }

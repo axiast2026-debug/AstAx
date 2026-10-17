@@ -134,7 +134,7 @@ describe("CONT-03 CONT-04 invoices", () => {
     expect(
       invoiceTotals([{ description: "Fee", quantity: 1, unitCents: 9000 }], {
         ...INVOICING,
-        stampDutyChargedTo: "ISSUER",
+        stampDutyChargedTo: "ASTAX",
       }),
     ).toMatchObject({ stampDutyCents: 200, totalCents: 9000 });
   });

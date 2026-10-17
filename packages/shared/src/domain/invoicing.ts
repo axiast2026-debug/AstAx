@@ -7,7 +7,7 @@
  * accountant. The gap-free numbering is the database's (one counter row per
  * series and year, locked while the number is taken).
  */
-export type InvoiceSeries = "P" | "A" | "B";
+export type InvoiceSeries = "P" | "A" | "B" | "N";
 
 export interface InvoiceLine {
   description: string;
@@ -20,8 +20,8 @@ export interface InvoicingSettings {
   legalReference: string;
   stampDutyThresholdCents: number;
   stampDutyCents: number;
-  /** Who pays the stamp duty: RECIPIENT adds it to the invoice, ISSUER keeps it. */
-  stampDutyChargedTo: "RECIPIENT" | "ISSUER";
+  /** Who pays the stamp duty: RECIPIENT adds it to the invoice, ASTAX bears it. */
+  stampDutyChargedTo: "RECIPIENT" | "ASTAX";
 }
 
 export interface InvoiceTotals {

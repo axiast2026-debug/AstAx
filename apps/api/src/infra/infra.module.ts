@@ -12,6 +12,7 @@ import {
 import { FakePlateLookup, type PlateLookupPort } from "@astax/adapters/vehicle-data";
 import { KMS_KEYS, LocalKms } from "@astax/adapters/kms";
 import { FakeAiExplainer, type AiExplainerPort } from "@astax/adapters/ai-explainer";
+import { FakeEInvoicing, type EInvoicingPort } from "@astax/adapters/e-invoicing";
 import { FakePaymentsProvider, type PaymentsPort } from "@astax/adapters/payments";
 import { FakeSignatureProvider, type SignaturePort } from "@astax/adapters/signature";
 import { createHmac } from "node:crypto";
@@ -46,6 +47,7 @@ import {
   SIGNATURE,
   PAYMENTS,
   AI_EXPLAINER,
+  E_INVOICING,
 } from "./tokens.js";
 
 export interface InfraOverrides {
@@ -63,6 +65,7 @@ export interface InfraOverrides {
   signature?: SignaturePort;
   payments?: PaymentsPort;
   aiExplainer?: AiExplainerPort;
+  eInvoicing?: EInvoicingPort;
 }
 
 /**
@@ -210,6 +213,8 @@ export class InfraModule {
             ),
         },
         { provide: AI_EXPLAINER, useValue: overrides.aiExplainer ?? new FakeAiExplainer() },
+        // CONT-03: the fake SDI until phase 8 (rule 9).
+        { provide: E_INVOICING, useValue: overrides.eInvoicing ?? new FakeEInvoicing(clock) },
         {
           provide: WORKFLOW_SIGNALS,
           useValue:
@@ -239,6 +244,7 @@ export class InfraModule {
         SIGNATURE,
         PAYMENTS,
         AI_EXPLAINER,
+        E_INVOICING,
       ],
     };
   }

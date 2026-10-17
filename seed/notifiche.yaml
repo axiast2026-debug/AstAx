@@ -463,6 +463,25 @@ events:
         {{agenzia}} nuk e lëshoi policën e kërkesës {{codice}} brenda {{termine_emissione}}. U propozua gjoba për vonesë.
         Data e fillimit: {{decorrenza}}. Nëse polica nuk lëshohet në kohë, hap rastin e moslëshimit: {{link}}
 
+  issuance.missed.bo:
+    recipients: [bo_verifiers, bo_supervisors]
+    channels: [in_app, email]
+    variables: [codice, agenzia, decorrenza, link]
+    it:
+      title: "Mancata emissione: {{codice}}"
+      body: "{{agenzia}} non ha emesso prima della decorrenza ({{decorrenza}}). Decidi di chi è la colpa."
+      emailSubject: "Mancata emissione: {{codice}}"
+      emailBody: |
+        {{agenzia}} non ha emesso la polizza della richiesta {{codice}} prima della decorrenza ({{decorrenza}}).
+        Apri il caso e decidi di chi è la colpa: {{link}}
+    sq:
+      title: "Moslëshim: {{codice}}"
+      body: "{{agenzia}} nuk e lëshoi policën para datës së fillimit ({{decorrenza}}). Vendos kush e ka fajin."
+      emailSubject: "Moslëshim: {{codice}}"
+      emailBody: |
+        {{agenzia}} nuk e lëshoi policën e kërkesës {{codice}} para datës së fillimit ({{decorrenza}}).
+        Hap rastin dhe vendos kush e ka fajin: {{link}}
+
   issuance.problem_reported.bo:
     recipients: [bo_verifiers, bo_supervisors]
     channels: [in_app, email]

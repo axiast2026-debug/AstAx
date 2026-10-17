@@ -48,6 +48,13 @@ export interface GuaranteeSchedule {
 }
 
 /** EMI-01: the issuance deadline and the reminder before it. */
+/** Phase 6: where the issuance is, and when its next step is due. */
+export interface IssuanceSteps {
+  inIssuance: boolean;
+  issued: boolean;
+  nextStepAt: string | null;
+}
+
 export interface IssuanceSchedule {
   deadlineAt: string | null;
   reminderAt: string | null;
@@ -104,4 +111,6 @@ export interface AuctionActivities {
   autoCancelExpired(input: { requestId: string }): Promise<{ cancelled: boolean }>;
   issuanceSchedule(input: { requestId: string }): Promise<IssuanceSchedule>;
   sendIssuanceReminder(input: { requestId: string }): Promise<void>;
+  issuanceSteps(input: { requestId: string }): Promise<IssuanceSteps>;
+  runIssuanceStep(input: { requestId: string; force: boolean }): Promise<void>;
 }

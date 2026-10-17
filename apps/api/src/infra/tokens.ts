@@ -16,3 +16,4 @@ export const WORKFLOW_SIGNALS = Symbol("WORKFLOW_SIGNALS");
 export const SIGNATURE = Symbol("SIGNATURE");
 export const PAYMENTS = Symbol("PAYMENTS");
 export const AI_EXPLAINER = Symbol("AI_EXPLAINER");
+export const E_INVOICING = Symbol("E_INVOICING");

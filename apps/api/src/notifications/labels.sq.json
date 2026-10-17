@@ -1,4 +1,43 @@
 {
-  "channel": { "PRIVATE": "privat", "BROKER": "broker" },
-  "outcome": { "GREEN": "jeshile", "YELLOW": "e verdhë", "RED": "e kuqe" }
+  "channel": {
+    "PRIVATE": "privat",
+    "BROKER": "broker"
+  },
+  "outcome": {
+    "GREEN": "jeshile",
+    "YELLOW": "e verdhë",
+    "RED": "e kuqe"
+  },
+  "invoice": {
+    "title": "Faturë",
+    "creditNoteTitle": "Notë krediti",
+    "courtesy": "Kopje informative: fatura e vlefshme është ajo elektronike e dërguar në SDI",
+    "dataTitle": "Të dhënat e faturës",
+    "number": "Numri",
+    "date": "Data",
+    "recipient": "Marrësi",
+    "exempt": "Shuma e përjashtuar",
+    "stampDuty": "Taksa e pullës",
+    "total": "Totali",
+    "privateLine": "Komision ndërmjetësimi, kërkesa"
+  },
+  "receipt": {
+    "title": "Mandat pagese",
+    "text": "Pagesa u mor nga AstAx në emër të agjencisë lëshuese. Primi është në llogarinë e veçantë të AstAx.",
+    "dataTitle": "Pagesa",
+    "request": "Kërkesa",
+    "company": "Kompania",
+    "premium": "Primi",
+    "method": "Mënyra",
+    "paidAt": "Paguar më",
+    "methods": {
+      "CARD": "Kartë",
+      "INSTANT_TRANSFER": "Transfertë e menjëhershme"
+    }
+  },
+  "issuanceProblem": {
+    "DATA_MISMATCH": "Të dhëna që nuk përputhen",
+    "CANNOT_ISSUE": "E pamundur të lëshohet",
+    "MISSED_DEADLINE": "Asnjë lëshim para datës së fillimit"
+  }
 }

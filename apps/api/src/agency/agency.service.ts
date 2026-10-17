@@ -607,6 +607,7 @@ export class AgencyService {
         const holder = quoteData.policyHolder;
         rows.push({
           auctionId: offer.auctionId,
+          requestId: data.request.id,
           code: data.request.code,
           holder:
             holder.kind === "COMPANY"

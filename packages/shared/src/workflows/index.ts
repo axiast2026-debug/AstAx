@@ -15,6 +15,8 @@ export const SIGNALS = {
   reconfirmationRequested: "reconfirmationRequested",
   /** PAG-02: the payment is confirmed (from the outbox): the issuance phase starts. */
   paymentConfirmed: "paymentConfirmed",
+  /** EMI-02, EMI-04: the issuance changed (issued, second offer, cancelled): read it again. */
+  issuanceChanged: "issuanceChanged",
 } as const;
 
 export const workflowIdOf = (requestId: string) => `quote-request-${requestId}`;
