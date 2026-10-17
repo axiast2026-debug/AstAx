@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { api } from "@/lib/auth";
+import { tokenOfLink } from "@/lib/customer-link";
 import { publicApi } from "@/lib/public-api";
 
 /**
@@ -104,6 +105,19 @@ const ref = (formData: FormData) => {
   return value;
 };
 
+/**
+ * Where the fake provider's page sends the customer back. The link's return
+ * address carries its id only: the token is in this browser's cookie (a real
+ * provider redirects the browser to `/offerta/ritorno/{id}`, which does the same).
+ */
+async function backFromProvider(returnUrl: string): Promise<string> {
+  const path = new URL(returnUrl).pathname;
+  const link = /^\/offerta\/ritorno\/([0-9a-f-]{36})$/.exec(path);
+  if (!link) return path;
+  const token = await tokenOfLink(link[1] ?? "");
+  return token ? `/offerta/${token}` : "/";
+}
+
 /** Proposal A: the fake signing page; the code is 123456 in development. */
 export async function fakeSign(formData: FormData): Promise<void> {
   const r = ref(formData);
@@ -112,7 +126,7 @@ export async function fakeSign(formData: FormData): Promise<void> {
     { method: "POST", body: JSON.stringify({ code: String(formData.get("code") ?? "") }) },
   );
   if (status !== 200) redirect(`/firma-di-prova/${r}?errore=${encodeURIComponent(codesOf(body))}`);
-  redirect(new URL(body.returnUrl).pathname);
+  redirect(await backFromProvider(body.returnUrl));
 }
 
 /** Proposal B: the fake payment page (a card ending with 0002 is refused). */
@@ -132,5 +146,5 @@ export async function fakePay(formData: FormData): Promise<void> {
   );
   if (status !== 200)
     redirect(`/pagamento-di-prova/${r}?errore=${encodeURIComponent(codesOf(body))}`);
-  redirect(`${new URL(body.returnUrl).pathname}?esito=${body.status.toLowerCase()}`);
+  redirect(`${await backFromProvider(body.returnUrl)}?esito=${body.status.toLowerCase()}`);
 }
