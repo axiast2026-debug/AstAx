@@ -15,6 +15,7 @@ import {
   auctionCancelledSignal,
   auctionExtendedSignal,
   fireNextTimerSignal,
+  paymentConfirmedSignal,
   reconfirmationRequestedSignal,
   invitationsAddedSignal,
   quoteRequestWorkflow,
@@ -53,6 +54,8 @@ interface Script {
   closeFirst?: boolean;
   /** GAR-06: what the request looks like once «Scaduta» (default: closes after 30 days). */
   expired?: { expired: boolean; autoCancelAt: string | null }[];
+  /** PAG-02: the issuance schedule once paid. */
+  issuance?: { deadlineAt: string | null; reminderAt: string | null };
 }
 
 /** Fake activities that record the calls, with the time of the workflow environment. */
@@ -148,6 +151,13 @@ function fakes(script: Script) {
           autoCancelAt: new Date(now() + 30 * 24 * HOUR).toISOString(),
         }
       );
+    },
+    async issuanceSchedule(input) {
+      record("issuanceSchedule", input);
+      return script.issuance ?? { deadlineAt: null, reminderAt: null };
+    },
+    async sendIssuanceReminder(input) {
+      record("sendIssuanceReminder", input);
     },
     async reviewQuotes(input) {
       record("reviewQuotes", input);
@@ -364,6 +374,40 @@ describe("QuoteRequestWorkflow (ADR 0008)", () => {
     });
     expect(r.names().slice(-2)).toEqual(["closeRound", "markDeserted"]);
     expect(r.result).toBe("DESERTED");
+  });
+
+  it("PAG-02 EMI-01 a payment during the guarantees starts the issuance phase, with the reminder before the deadline", async () => {
+    const now = await env.currentTimeMs();
+    const r = await run(
+      {
+        closings: [2],
+        guarantees: [
+          ...expiring(now),
+          {
+            active: false,
+            reminderAt: null,
+            reminderOfferId: null,
+            bestExpiresAt: null,
+            allExpiredAt: null,
+            issuance: true,
+          },
+        ],
+        issuance: {
+          deadlineAt: new Date(now + 6 * HOUR).toISOString(),
+          reminderAt: new Date(now + 5 * HOUR).toISOString(),
+        },
+      },
+      async (handle) => {
+        await handle.signal(paymentConfirmedSignal);
+      },
+    );
+    expect(r.names().slice(-3)).toEqual([
+      "guaranteeSchedule",
+      "issuanceSchedule",
+      "sendIssuanceReminder",
+    ]);
+    expect(r.names()).not.toContain("expireRequest");
+    expect(r.result).toBe("IN_ISSUANCE");
   });
 
   it("GAR-06 a request whose workflow ended at «Scaduta» gets a new run from the reconfirmation signal", async () => {

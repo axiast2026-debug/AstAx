@@ -33,6 +33,8 @@ export const invitationsAddedSignal = defineSignal<
 export const auctionCancelledSignal = defineSignal<[BackOfficeAction]>(SIGNALS.auctionCancelled);
 /** GAR-06: the requester asks for a reconfirmation (the API checks the rules first). */
 export const reconfirmationRequestedSignal = defineSignal(SIGNALS.reconfirmationRequested);
+/** PAG-02: from the outbox, once the payment is confirmed. */
+export const paymentConfirmedSignal = defineSignal(SIGNALS.paymentConfirmed);
 
 export { workflowIdOf } from "@astax/shared/workflows";
 
@@ -75,6 +77,7 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
   let approved = false;
   let fire = false;
   let reconfirm = false;
+  let paid = false;
   const queue: BackOfficeRequest[] = [];
 
   setHandler(approvedSignal, () => {
@@ -95,18 +98,25 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
   setHandler(reconfirmationRequestedSignal, () => {
     reconfirm = true;
   });
+  setHandler(paymentConfirmedSignal, () => {
+    paid = true;
+  });
 
   /**
    * Waits until `at` (an absolute instant). True when the time has come or the
    * development tool fired the timer; false when a back office request arrived.
    */
-  async function waitUntil(at: string): Promise<boolean> {
+  async function waitUntil(at: string, wakeOnPayment = false): Promise<boolean> {
     const ms = Date.parse(at) - Date.now();
-    if (ms > 0) await condition(() => fire || queue.length > 0, ms);
+    if (ms > 0) {
+      await condition(() => fire || (wakeOnPayment && paid) || queue.length > 0, ms);
+    }
     if (fire) {
       fire = false;
       return true;
     }
+    // PAG-02: woken by the payment, not by the time: no step runs, the schedule is read again.
+    if (wakeOnPayment && paid && Date.now() < Date.parse(at)) return false;
     return queue.length === 0;
   }
 
@@ -191,9 +201,9 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
     }
   }
 
-  await condition(() => approved || reconfirm);
-  // A new run for a request already «Scaduta»: straight to the reconfirmation.
-  const result = approved ? await auctionRounds() : "EXPIRED";
+  await condition(() => approved || reconfirm || paid);
+  // A new run for a request already «Scaduta» (reconfirmation) or already paid.
+  const result = approved ? await auctionRounds() : paid ? await issuance() : "EXPIRED";
   if (result !== "EXPIRED") return result;
   return afterExpiry();
 
@@ -239,6 +249,7 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
     for (;;) {
       queue.length = 0;
       const s = await acts.guaranteeSchedule({ requestId });
+      if (s.issuance) return issuance();
       if (!s.active || !s.allExpiredAt) return "OFFERS_CLOSED";
       const candidates = [
         ...(s.reminderAt && s.reminderOfferId
@@ -248,7 +259,7 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
         { at: s.allExpiredAt, step: "expire" as const },
       ].sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
       const next = candidates[0] as (typeof candidates)[number];
-      if (!(await waitUntil(next.at))) continue;
+      if (!(await waitUntil(next.at, true))) continue;
       if (next.step === "remind" && s.reminderOfferId) {
         await acts.sendGuaranteeReminder({ requestId, offerId: s.reminderOfferId });
       } else if (next.step === "expire") {
@@ -256,6 +267,22 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
         if (expired) return "EXPIRED";
       }
     }
+  }
+
+  /**
+   * PAG-02, EMI-01: paid, the agency issues by the deadline; the reminder
+   * before it (issuance.reminderMinutesBefore). What happens at the deadline
+   * (missed issuance, EMI-04) belongs to phase 6.
+   */
+  async function issuance(): Promise<string> {
+    const s = await acts.issuanceSchedule({ requestId });
+    if (s.reminderAt) {
+      const ms = Date.parse(s.reminderAt) - Date.now();
+      if (ms > 0) await condition(() => fire, ms);
+      fire = false;
+      await acts.sendIssuanceReminder({ requestId });
+    }
+    return "IN_ISSUANCE";
   }
 
   /**

@@ -43,6 +43,14 @@ export interface GuaranteeSchedule {
   bestExpiresAt: string | null;
   /** GAR-06: when the last guarantee ends; null when none is left. */
   allExpiredAt: string | null;
+  /** PAG-02: the request is paid and in issuance (absent in the histories before phase 5). */
+  issuance?: boolean;
+}
+
+/** EMI-01: the issuance deadline and the reminder before it. */
+export interface IssuanceSchedule {
+  deadlineAt: string | null;
+  reminderAt: string | null;
 }
 
 /** GAR-06: a request «Scaduta» waits for a reconfirmation or closes by itself. */
@@ -94,4 +102,6 @@ export interface AuctionActivities {
   /** OFF-09: counts only (BC-07): never a premium nor a company. */
   reviewQuotes(input: { auctionId: string }): Promise<{ checked: number; flagged: number }>;
   autoCancelExpired(input: { requestId: string }): Promise<{ cancelled: boolean }>;
+  issuanceSchedule(input: { requestId: string }): Promise<IssuanceSchedule>;
+  sendIssuanceReminder(input: { requestId: string }): Promise<void>;
 }

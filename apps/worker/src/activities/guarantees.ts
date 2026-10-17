@@ -76,7 +76,18 @@ export function guaranteeActivities(
   async function guaranteeSchedule(input: { requestId: string }): Promise<GuaranteeSchedule> {
     return withContext(db, SYSTEM_CONTEXT, async (tx) => {
       const request = await tx.quoteRequest.findUniqueOrThrow({ where: { id: input.requestId } });
-      if (request.status !== "OFFERS_AVAILABLE") {
+      if (request.status === "IN_ISSUANCE") {
+        return {
+          active: false,
+          reminderAt: null,
+          reminderOfferId: null,
+          bestExpiresAt: null,
+          allExpiredAt: null,
+          issuance: true,
+        };
+      }
+      // ACCEPTED: signed, waiting for the payment; the guarantees still run (GAR-04).
+      if (request.status !== "OFFERS_AVAILABLE" && request.status !== "ACCEPTED") {
         return {
           active: false,
           reminderAt: null,
@@ -180,9 +191,19 @@ export function guaranteeActivities(
     const result = await withContext(db, SYSTEM_CONTEXT, async (tx) => {
       const now = clock.now();
       const request = await tx.quoteRequest.findUniqueOrThrow({ where: { id: input.requestId } });
-      if (request.status !== "OFFERS_AVAILABLE") return { expired: request.status === "EXPIRED" };
+      if (request.status !== "OFFERS_AVAILABLE" && request.status !== "ACCEPTED") {
+        return { expired: request.status === "EXPIRED" };
+      }
       const { offers } = await waitingOffers(tx, request.id);
       if (offers.some((o) => isGuaranteed(o.guaranteeUntil, now))) return { expired: false };
+      if (request.status === "ACCEPTED") {
+        // Signed and not paid while every guarantee ended: the acceptance lapses (PAG-03).
+        await tx.acceptance.updateMany({
+          where: { quoteRequestId: request.id, status: { in: ["PENDING_SIGNATURE", "SIGNED"] } },
+          data: { status: "VOIDED", voidedAt: now, voidReason: "GUARANTEE_EXPIRED" },
+        });
+        transitionRequest("ACCEPTED", "OFFERS_AVAILABLE");
+      }
       await tx.offer.updateMany({
         where: { id: { in: offers.map((o) => o.id) }, status: "AWAITING_CUSTOMER" },
         data: { status: "EXPIRED" },

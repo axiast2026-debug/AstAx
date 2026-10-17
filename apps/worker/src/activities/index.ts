@@ -2,6 +2,7 @@ import { errorForLog, type Logger } from "@astax/shared/logging";
 import { ApplicationFailure, Context } from "@temporalio/activity";
 import { auctionActivities } from "./auctions.js";
 import { guaranteeActivities } from "./guarantees.js";
+import { issuanceActivities } from "./issuance.js";
 import { quoteCheckActivities } from "./quote-checks.js";
 import type { ActivityDeps } from "./support.js";
 import type { AuctionActivities } from "./types.js";
@@ -58,6 +59,7 @@ export function createActivities(deps: ActivityDeps): AuctionActivities {
     ...auctionActivities(deps),
     ...guaranteeActivities(deps),
     ...quoteCheckActivities(deps),
+    ...issuanceActivities(deps),
   };
   return Object.fromEntries(
     Object.entries(all).map(([name, fn]) => [

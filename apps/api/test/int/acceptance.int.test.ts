@@ -15,6 +15,13 @@ const EMAIL = "privato.accettazione@example.test";
 const system = <T>(work: Parameters<typeof withContext<T>>[2]) =>
   withContext(h.db, SYSTEM_CONTEXT, work);
 const refOf = (url: string) => url.split("/").at(-1) ?? "";
+const toIssue = async () =>
+  (await (
+    await h.call("/agency/to-issue", {
+      token: await h.tokenFor("agenzia-uno-owner"),
+      context: membershipId("agenzia-uno-owner", "agenzia-uno"),
+    })
+  ).json()) as { code: string; email: string | null }[];
 
 interface Row {
   id: string;
@@ -30,6 +37,7 @@ beforeAll(async () => {
   h = await startHarness();
   r = requestHelpers(h);
   await acceptAllLegal(h, "bo-verifier");
+  await acceptAllLegal(h, "agenzia-uno-owner");
   customer = {
     token: await h.token({
       sub: "kc-private-acceptance-test",
@@ -258,9 +266,10 @@ describe("fase 5: the private customer's acceptance (S01)", () => {
       tx.quoteRequest.findUniqueOrThrow({ where: { id: requestId } }),
     );
     expect(request.status).toBe("OFFERS_AVAILABLE");
-    // The contacts are not given before the payment (VIS-02).
+    // VIS-02: the contacts are not given before the payment.
     const won = await system((tx) => tx.offer.findUniqueOrThrow({ where: { id: offers[0] } }));
     expect(won.status).toBe("AWAITING_CUSTOMER");
+    expect(JSON.stringify(await toIssue())).not.toContain(EMAIL);
   });
 
   it("PAG-02 EMI-01 S01 paid 555,00 € by card: «In emissione», Uno «Vincente», the others «Non scelta», the deadline, the workflow told", async () => {
@@ -294,6 +303,9 @@ describe("fase 5: the private customer's acceptance (S01)", () => {
     expect(captured).toMatchObject({ premiumCents: 52000, feeCents: 3500, method: "CARD" });
     expect(outbox).toBeGreaterThan(0);
     expect(acceptance.issuanceDeadlineAt).not.toBeNull();
+    // VIS-02: now Agenzia Uno has the customer's contacts, in «Da emettere».
+    const list = await toIssue();
+    expect(list.find((x) => x.email === EMAIL)).toBeTruthy();
   });
 
   it("a duplicated webhook changes nothing; an unsigned one is refused", async () => {

@@ -285,6 +285,7 @@ const ENDPOINTS: Endpoint[] = [
   },
   { action: "offer.readOwnDuringAuction", method: "GET", path: () => "/agency/offers" },
   // Fase 5: the acceptance
+  { action: "issuance.manage", method: "GET", path: () => "/agency/to-issue" },
   {
     action: "offers.viewPresented",
     method: "GET",

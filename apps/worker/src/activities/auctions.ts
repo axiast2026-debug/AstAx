@@ -87,6 +87,8 @@ export function auctionActivities(
   | "expiredSchedule"
   | "autoCancelExpired"
   | "reviewQuotes"
+  | "issuanceSchedule"
+  | "sendIssuanceReminder"
 > {
   const { db, kms, clock, cipher, notifier, urls } = deps;
 

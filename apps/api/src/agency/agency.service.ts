@@ -569,6 +569,70 @@ export class AgencyService {
     return out;
   }
 
+  /**
+   * «Da emettere» (spec 04, PAG-02, VIS-02): the requests the agency won and
+   * the customer paid, with the customer's contacts, which reach the agency
+   * only now. Every reading is logged (rule 4).
+   */
+  async toIssue(auth: AuthContext) {
+    const m = this.agency(auth);
+    return withContext(this.db, auth.db, async (tx) => {
+      const won = await tx.offer.findMany({
+        where: { organizationId: m.organizationId, status: "WINNING" },
+        include: { auction: true },
+      });
+      const rows = [];
+      for (const offer of won) {
+        const data = await asSystem(tx, async () => {
+          const request = await tx.quoteRequest.findUniqueOrThrow({
+            where: { id: offer.auction.quoteRequestId },
+            include: { customer: true },
+          });
+          if (request.status !== "IN_ISSUANCE") return null;
+          const acceptance = await tx.acceptance.findFirst({
+            where: { quoteRequestId: request.id, offerId: offer.id, status: "PAID" },
+          });
+          if (!acceptance) return null;
+          const requester = await tx.user.findUniqueOrThrow({
+            where: { id: request.requesterUserId },
+          });
+          const contacts =
+            request.channel === "BROKER" && request.customer
+              ? { emailEnc: request.customer.emailEnc, phoneEnc: request.customer.phoneEnc }
+              : { emailEnc: requester.emailEnc, phoneEnc: requester.phoneEnc };
+          return { request, acceptance, contacts };
+        });
+        if (!data) continue;
+        const quoteData = await this.quoteDataOf(tx, data.request);
+        const holder = quoteData.policyHolder;
+        rows.push({
+          auctionId: offer.auctionId,
+          code: data.request.code,
+          holder:
+            holder.kind === "COMPANY"
+              ? holder.companyName
+              : `${holder.givenName} ${holder.surname}`,
+          vehicle: `${quoteData.vehicle.make} ${quoteData.vehicle.model} ${quoteData.vehicle.plate}`,
+          startDate: data.request.startDate ? dbDateToCalendarDate(data.request.startDate) : null,
+          premiumCents: data.acceptance.premiumCents,
+          paidAt: data.acceptance.paidAt?.toISOString() ?? null,
+          issuanceDeadlineAt: data.acceptance.issuanceDeadlineAt?.toISOString() ?? null,
+          // VIS-02: the contacts, only after the payment.
+          email: data.contacts.emailEnc ? this.cipher.decrypt(data.contacts.emailEnc) : null,
+          phone: data.contacts.phoneEnc ? this.cipher.decrypt(data.contacts.phoneEnc) : null,
+        });
+        await this.audit.inTransaction(tx, actorOf(auth), {
+          action: "CUSTOMER_CONTACTS_VIEWED",
+          targetType: "QuoteRequest",
+          targetId: data.request.id,
+        });
+      }
+      return rows.sort((a, b) =>
+        (a.issuanceDeadlineAt ?? "").localeCompare(b.issuanceDeadlineAt ?? ""),
+      );
+    });
+  }
+
   /** OFF-03: the owner or a supervisor gives a request claimed by a colleague to another member. */
   async assignClaim(auth: AuthContext, auctionId: string, membershipId: string) {
     const m = this.agency(auth);

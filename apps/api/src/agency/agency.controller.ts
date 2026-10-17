@@ -102,6 +102,12 @@ export class AgencyController {
     );
   }
 
+  @Get("to-issue")
+  @RequirePermission("issuance.manage")
+  toIssue(@CurrentAuth() auth: AuthContext) {
+    return this.agency.toIssue(auth);
+  }
+
   @Get("offers")
   @RequirePermission("offer.readOwnDuringAuction")
   offers(@CurrentAuth() auth: AuthContext) {

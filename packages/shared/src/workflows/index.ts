@@ -13,6 +13,8 @@ export const SIGNALS = {
   auctionCancelled: "auctionCancelled",
   /** GAR-06: the requester asks the agencies to reconfirm (from the outbox). */
   reconfirmationRequested: "reconfirmationRequested",
+  /** PAG-02: the payment is confirmed (from the outbox): the issuance phase starts. */
+  paymentConfirmed: "paymentConfirmed",
 } as const;
 
 export const workflowIdOf = (requestId: string) => `quote-request-${requestId}`;

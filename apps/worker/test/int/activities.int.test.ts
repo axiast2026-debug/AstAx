@@ -897,3 +897,125 @@ describe("OFF-09 check of the PDF quotes after the closing (decision 16)", () =>
     expect(JSON.stringify(notes)).not.toMatch(/470|480|€/);
   });
 });
+
+describe("phase 5: issuance deadline and an unpaid acceptance (EMI-01, PAG-03)", () => {
+  it("EMI-01 the agency and the back office are reminded once, 60 minutes before the deadline", async () => {
+    h.clock.set(MONDAY_9);
+    const created = await approvedRequest(h);
+    const request = await read((tx) =>
+      tx.quoteRequest.findUniqueOrThrow({ where: { id: created.id } }),
+    );
+    const opened = await h.activities.openRound({ requestId: request.id, kind: "MAIN", round: 1 });
+    if (!opened.opened) throw new Error("not opened");
+    const offer = await sealedOffer(
+      h,
+      opened.auctionId,
+      "agenzia-uno",
+      {
+        company: "Compagnia Alfa",
+        annualGrossPremiumCents: 52000,
+        coverage: FULL_BASE_COVERAGE,
+        guaranteeUntil: "2026-12-05",
+        notes: null,
+      },
+      new Date(Date.parse(MONDAY_9) + 60_000),
+    );
+    await read(async (tx) => {
+      await tx.quoteRequest.update({ where: { id: request.id }, data: { status: "IN_ISSUANCE" } });
+      await tx.acceptance.create({
+        data: {
+          quoteRequestId: request.id,
+          offerId: offer.id,
+          ownerUserId: request.ownerUserId,
+          ownerOrganizationId: request.ownerOrganizationId,
+          acceptedByUserId: request.requesterUserId,
+          premiumCents: 52000,
+          feeCents: 3000,
+          feeRule: "PRIVATE",
+          aiUsed: false,
+          status: "PAID",
+          paidAt: new Date("2026-11-16T11:30:00.000Z"),
+          issuanceDeadlineAt: new Date("2026-11-16T15:30:00.000Z"),
+        },
+      });
+    });
+    expect(await h.activities.issuanceSchedule({ requestId: request.id })).toEqual({
+      deadlineAt: "2026-11-16T15:30:00.000Z",
+      reminderAt: "2026-11-16T14:30:00.000Z",
+    });
+    await h.activities.sendIssuanceReminder({ requestId: request.id });
+    await h.activities.sendIssuanceReminder({ requestId: request.id });
+    const sent = await read((tx) =>
+      tx.notification.findMany({
+        where: {
+          eventKey: { in: ["issuance.deadline_near", "issuance.deadline_near.bo"] },
+          payload: { path: ["quoteRequestId"], equals: request.id },
+        },
+      }),
+    );
+    expect(new Set(sent.map((n) => n.eventKey))).toEqual(
+      new Set(["issuance.deadline_near", "issuance.deadline_near.bo"]),
+    );
+    const agencyNotes = sent.filter((n) => n.eventKey === "issuance.deadline_near");
+    const perUser = new Set(agencyNotes.map((n) => n.userId));
+    expect(perUser.size).toBe(agencyNotes.length);
+    expect(JSON.stringify(sent)).not.toContain("€");
+  });
+
+  it("PAG-03 signed but unpaid when every guarantee ends: the acceptance lapses and the request is «Scaduta»", async () => {
+    h.clock.set(MONDAY_9);
+    const created = await approvedRequest(h);
+    const request = await read((tx) =>
+      tx.quoteRequest.findUniqueOrThrow({ where: { id: created.id } }),
+    );
+    const opened = await h.activities.openRound({ requestId: request.id, kind: "MAIN", round: 1 });
+    if (!opened.opened) throw new Error("not opened");
+    await sealedOffer(
+      h,
+      opened.auctionId,
+      "agenzia-uno",
+      {
+        company: "Compagnia Alfa",
+        annualGrossPremiumCents: 52000,
+        coverage: FULL_BASE_COVERAGE,
+        guaranteeUntil: "2026-12-05",
+        notes: null,
+      },
+      new Date(Date.parse(MONDAY_9) + 60_000),
+    );
+    h.clock.set(opened.scheduledCloseAt);
+    await h.activities.closeRound({ auctionId: opened.auctionId });
+    const offer = await read((tx) =>
+      tx.offer.findFirstOrThrow({ where: { auctionId: opened.auctionId } }),
+    );
+    await read(async (tx) => {
+      await tx.quoteRequest.update({ where: { id: request.id }, data: { status: "ACCEPTED" } });
+      await tx.acceptance.create({
+        data: {
+          quoteRequestId: request.id,
+          offerId: offer.id,
+          ownerUserId: request.ownerUserId,
+          ownerOrganizationId: request.ownerOrganizationId,
+          acceptedByUserId: request.requesterUserId,
+          premiumCents: 52000,
+          feeCents: 3000,
+          feeRule: "PRIVATE",
+          aiUsed: false,
+          status: "SIGNED",
+        },
+      });
+    });
+    const schedule = await h.activities.guaranteeSchedule({ requestId: request.id });
+    expect(schedule.active).toBe(true);
+    h.clock.set("2026-12-06T00:00:00.000Z");
+    expect(await h.activities.expireRequest({ requestId: request.id })).toEqual({ expired: true });
+    const [after, acceptance] = await read((tx) =>
+      Promise.all([
+        tx.quoteRequest.findUniqueOrThrow({ where: { id: request.id } }),
+        tx.acceptance.findFirstOrThrow({ where: { quoteRequestId: request.id } }),
+      ]),
+    );
+    expect(after.status).toBe("EXPIRED");
+    expect(acceptance).toMatchObject({ status: "VOIDED", voidReason: "GUARANTEE_EXPIRED" });
+  });
+});

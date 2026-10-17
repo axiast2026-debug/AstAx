@@ -4,6 +4,7 @@ import type { Logger } from "@astax/shared/logging";
 import {
   approvedSignal,
   quoteRequestWorkflow,
+  paymentConfirmedSignal,
   reconfirmationRequestedSignal,
   workflowIdOf,
 } from "./workflows/quote-request.js";
@@ -25,6 +26,17 @@ export function outboxHandler(client: Client, taskQueue: string, logger: Logger)
         taskQueue,
         args: [{ requestId }],
         signal: approvedSignal,
+        signalArgs: [],
+      });
+    }
+    if (message.type === "PaymentConfirmed") {
+      const requestId = message.payload.aggregateId;
+      if (typeof requestId !== "string") throw new Error("PaymentConfirmed without aggregateId");
+      await client.workflow.signalWithStart(quoteRequestWorkflow, {
+        workflowId: workflowIdOf(requestId),
+        taskQueue,
+        args: [{ requestId }],
+        signal: paymentConfirmedSignal,
         signalArgs: [],
       });
     }
