@@ -4,9 +4,20 @@ import type { PaymentsPort } from "@astax/adapters/payments";
 import type { SignaturePort } from "@astax/adapters/signature";
 import type { Logger } from "@astax/shared/logging";
 import { errorForLog } from "@astax/shared/logging";
-import { Body, Controller, Get, Headers, HttpCode, Inject, Param, Post, Res } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  Inject,
+  Param,
+  Post,
+  Req,
+  Res,
+} from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
-import type { Response } from "express";
+import type { Request, Response } from "express";
 import { z } from "zod";
 import type { AuthContext } from "../auth/auth-context.js";
 import { CurrentAuth, RequirePermission } from "../auth/decorators.js";
@@ -18,6 +29,7 @@ import { CONFIG, LOGGER, PAYMENTS, SIGNATURE } from "../infra/tokens.js";
 import { sendFile } from "../requests/requests.controller.js";
 import { AcceptanceEventsService } from "./acceptance-events.service.js";
 import { AcceptanceService } from "./acceptance.service.js";
+import { CustomerLinksService } from "./customer-links.service.js";
 
 const uuid = z.uuid();
 /** A path of the web app the provider sends the customer back to: never another site. */
@@ -27,6 +39,20 @@ const returnPath = z
   .max(200);
 const acceptSchema = z.strictObject({ offerId: uuid, returnPath });
 const paySchema = z.strictObject({ returnPath });
+const sendLinkSchema = z.strictObject({ offerIds: z.array(uuid).min(1).max(20) });
+const PROOF_HEADER = "x-astax-link-proof";
+
+function clientOf(request: Request) {
+  return {
+    ip: request.ip ?? null,
+    userAgent: request.headers["user-agent"]?.slice(0, 300) ?? null,
+  };
+}
+
+function proofOf(request: Request): string | undefined {
+  const value = request.headers[PROOF_HEADER];
+  return typeof value === "string" && value.length <= 100 ? value : undefined;
+}
 
 /** Phase 5: the requester's acceptance (processes 3 and 4). */
 @ApiTags("acceptance")
@@ -35,6 +61,7 @@ const paySchema = z.strictObject({ returnPath });
 export class AcceptanceController {
   constructor(
     @Inject(AcceptanceService) private readonly acceptance: AcceptanceService,
+    @Inject(CustomerLinksService) private readonly links: CustomerLinksService,
     @Inject(CONFIG) private readonly config: ApiConfig,
   ) {}
 
@@ -85,6 +112,20 @@ export class AcceptanceController {
     );
   }
 
+  /** «Invia al cliente» (decision 26): the broker sends one or more offers. */
+  @Post("customer-link")
+  @HttpCode(200)
+  @RequirePermission("customerLink.send")
+  sendLink(@CurrentAuth() auth: AuthContext, @Param("id") id: string, @Body() body: unknown) {
+    return this.links.send(auth, parseInput(uuid, id), parseInput(sendLinkSchema, body).offerIds);
+  }
+
+  @Get("customer-link")
+  @RequirePermission("customerLink.send")
+  link(@CurrentAuth() auth: AuthContext, @Param("id") id: string) {
+    return this.links.ofRequest(auth, parseInput(uuid, id));
+  }
+
   @Get("offers/:offerId/quote")
   @RequirePermission("offers.viewPresented")
   async quote(
@@ -110,6 +151,102 @@ export class AcceptanceController {
     sendFile(
       response,
       await this.acceptance.documentFile(auth, parseInput(uuid, id), parseInput(uuid, documentId)),
+    );
+  }
+}
+
+/**
+ * The broker's customer on the link (decision 26): no account; the token in
+ * the path and, after the code, the proof in a header (BROKER_CLIENT_LINK).
+ */
+@ApiTags("customer-links")
+@Controller("customer-links/:token")
+export class CustomerLinksController {
+  constructor(
+    @Inject(CustomerLinksService) private readonly links: CustomerLinksService,
+    @Inject(CONFIG) private readonly config: ApiConfig,
+  ) {}
+
+  private returnUrl(token: string) {
+    return `${this.config.WEB_URL}/offerta/${token}`;
+  }
+
+  @Get()
+  @Public()
+  summary(@Param("token") token: string, @Req() request: Request) {
+    return this.links.summary(token, proofOf(request));
+  }
+
+  @Post("code")
+  @HttpCode(204)
+  @Public()
+  async code(@Param("token") token: string): Promise<void> {
+    await this.links.sendCode(token);
+  }
+
+  @Post("confirm")
+  @HttpCode(200)
+  @Public()
+  confirm(@Param("token") token: string, @Body() body: unknown, @Req() request: Request) {
+    return this.links.confirmCode(token, parseInput(codeSchema, body).code, clientOf(request));
+  }
+
+  @Post("acceptance")
+  @HttpCode(200)
+  @Public()
+  accept(@Param("token") token: string, @Body() body: unknown, @Req() request: Request) {
+    const input = parseInput(z.strictObject({ offerId: uuid }), body);
+    return this.links.accept(
+      token,
+      proofOf(request),
+      input.offerId,
+      this.returnUrl(token),
+      clientOf(request),
+    );
+  }
+
+  @Post("acceptance/payment")
+  @HttpCode(200)
+  @Public()
+  pay(@Param("token") token: string, @Req() request: Request) {
+    return this.links.pay(token, proofOf(request), this.returnUrl(token), clientOf(request));
+  }
+
+  @Get("acceptance/documents/:documentId")
+  @Public()
+  async document(
+    @Param("token") token: string,
+    @Param("documentId") documentId: string,
+    @Req() request: Request,
+    @Res() response: Response,
+  ) {
+    sendFile(
+      response,
+      await this.links.file(
+        token,
+        proofOf(request),
+        { documentId: parseInput(uuid, documentId) },
+        clientOf(request),
+      ),
+    );
+  }
+
+  @Get("offers/:offerId/quote")
+  @Public()
+  async quote(
+    @Param("token") token: string,
+    @Param("offerId") offerId: string,
+    @Req() request: Request,
+    @Res() response: Response,
+  ) {
+    sendFile(
+      response,
+      await this.links.file(
+        token,
+        proofOf(request),
+        { offerId: parseInput(uuid, offerId) },
+        clientOf(request),
+      ),
     );
   }
 }

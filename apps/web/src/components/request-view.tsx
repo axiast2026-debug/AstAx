@@ -6,6 +6,7 @@ import { realtimeTicket } from "@/app/actions";
 import { askReconfirmation, cancelRequest } from "@/app/request-actions";
 import { Countdown } from "@/components/countdown";
 import { LiveRefresh } from "@/components/live-refresh";
+import { BrokerOffersPanel } from "@/components/broker-offers-panel";
 import { OffersPanel } from "@/components/offers-panel";
 import { api } from "@/lib/auth";
 import { ErrorSummary } from "@/components/form";
@@ -64,14 +65,21 @@ const AUCTION_STATUSES = [
  * countdown and the number of offers (the broker also the invited agencies),
  * no price; after it, the best offer per company, no agency name.
  */
-async function AuctionPanel({ requestId, base }: { requestId: string; base: string }) {
+async function AuctionPanel({
+  requestId,
+  base,
+  presented,
+}: {
+  requestId: string;
+  base: string;
+  /** Phase 5: the offers are in the offers panel, where the requester chooses (PRES-02…08). */
+  presented: boolean;
+}) {
   const t = await getTranslations("auctionView");
   const { body: status } = await api<AuctionStatus>(`/requests/${requestId}/auction`);
   const a = status.auction;
   if (!a) return null;
   const open = a.status === "OPEN";
-  // Phase 5: the private requester chooses in the offers panel (PRES-02…08).
-  const presented = !open && base === "/preventivi";
   const offers =
     open || presented
       ? []
@@ -184,6 +192,7 @@ export async function RequestView({
         ) ?? (detail.integration?.documents.includes("DRIVING_LICENCE") ? "conducenti" : "veicolo"))
       : (steps[0] ?? "veicolo");
   const approved = detail.lastDecision?.decision === "APPROVED";
+  const presented = ["OFFERS_AVAILABLE", "ACCEPTED", "IN_ISSUANCE"].includes(detail.status);
 
   return (
     <div className="space-y-6">
@@ -238,12 +247,10 @@ export async function RequestView({
       ) : null}
 
       {AUCTION_STATUSES.includes(detail.status) ? (
-        <AuctionPanel requestId={detail.id} base={base} />
+        <AuctionPanel requestId={detail.id} base={base} presented={presented} />
       ) : null}
-      {base === "/preventivi" &&
-      ["OFFERS_AVAILABLE", "ACCEPTED", "IN_ISSUANCE"].includes(detail.status) ? (
-        <OffersPanel requestId={detail.id} />
-      ) : null}
+      {presented && base === "/preventivi" ? <OffersPanel requestId={detail.id} /> : null}
+      {presented && base === "/richieste" ? <BrokerOffersPanel requestId={detail.id} /> : null}
       {AUCTION_STATUSES.includes(detail.status) ||
       (detail.status === "IN_VERIFICATION" && approved) ? (
         <LiveRefresh ticket={realtimeTicket} follow={{ requestId: detail.id }} />

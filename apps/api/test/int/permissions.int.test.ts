@@ -168,6 +168,17 @@ const ENDPOINTS: Endpoint[] = [
     body: {},
   },
   {
+    action: "customerLink.send",
+    method: "POST",
+    path: () => `/requests/${randomUUID()}/customer-link`,
+    body: { offerIds: [randomUUID()] },
+  },
+  {
+    action: "customerLink.send",
+    method: "GET",
+    path: () => `/requests/${randomUUID()}/customer-link`,
+  },
+  {
     action: "brokerCustomer.manage",
     method: "POST",
     path: () => `/requests/${randomUUID()}/consent/uploaded`,
@@ -468,6 +479,13 @@ const PUBLIC_ROUTES = [
   "GET /consent-links/{token}",
   "POST /consent-links/{token}/code",
   "POST /consent-links/{token}/confirm",
+  "GET /customer-links/{token}",
+  "POST /customer-links/{token}/code",
+  "POST /customer-links/{token}/confirm",
+  "POST /customer-links/{token}/acceptance",
+  "POST /customer-links/{token}/acceptance/payment",
+  "GET /customer-links/{token}/acceptance/documents/{documentId}",
+  "GET /customer-links/{token}/offers/{offerId}/quote",
 ];
 
 /** One synthetic user per role, with the membership the seed gives them. */

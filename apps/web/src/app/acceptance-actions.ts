@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { api } from "@/lib/auth";
 import { publicApi } from "@/lib/public-api";
@@ -75,6 +76,24 @@ export async function payAcceptance(formData: FormData): Promise<void> {
     redirect(`${acceptancePage(requestId)}?errore=${encodeURIComponent(codesOf(body))}`);
   }
   redirect(body.redirectUrl);
+}
+
+/** «Invia al cliente» (decision 26): the broker sends the chosen offers. */
+export async function sendToCustomer(formData: FormData): Promise<void> {
+  const requestId = idOf(formData, "requestId");
+  const offerIds = formData
+    .getAll("offerId")
+    .map(String)
+    .filter((id) => uuid.test(id));
+  const page = `/richieste/${requestId}`;
+  if (offerIds.length === 0) redirect(`${page}?errore=NO_OFFER_SELECTED#offerte`);
+  const { status, body } = await api(`/requests/${requestId}/customer-link`, {
+    method: "POST",
+    body: JSON.stringify({ offerIds }),
+  });
+  if (status !== 200) redirect(`${page}?errore=${encodeURIComponent(codesOf(body))}#offerte`);
+  revalidatePath(page);
+  redirect(`${page}?link=inviato#offerte`);
 }
 
 // ---------------------------------------------------------------- the fake providers' pages

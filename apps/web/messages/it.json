@@ -374,7 +374,8 @@
     "TOO_LATE_TO_ACCEPT": "È troppo tardi per accettare questa offerta: l'agenzia non farebbe in tempo a emettere prima della decorrenza.",
     "ALREADY_PAID": "Il pagamento è già stato fatto.",
     "NOT_SIGNED": "Prima del pagamento servono le firme sui documenti.",
-    "DOCUMENTS_NOT_READ": "Conferma di aver letto i documenti prima di firmare."
+    "DOCUMENTS_NOT_READ": "Conferma di aver letto i documenti prima di firmare.",
+    "NO_OFFER_SELECTED": "Scegli almeno un'offerta da inviare."
   },
   "wizard": {
     "choose": "Scegli",
@@ -1052,7 +1053,8 @@
     "pec": "PEC",
     "deadline": "Emissione entro il {at}",
     "voided": "Questa scelta non è più valida: torna alle offerte.",
-    "notStarted": "Non hai ancora scelto un'offerta."
+    "notStarted": "Non hai ancora scelto un'offerta.",
+    "payTextPremium": "Paghi il solo premio, con carta o bonifico istantaneo: nessun compenso a tuo carico."
   },
   "fakeSignature": {
     "title": "Firma di prova",
@@ -1088,5 +1090,40 @@
     "paidAt": "Pagata il",
     "deadline": "Emettere entro",
     "contacts": "Contatti"
+  },
+  "customerOffer": {
+    "brand": "AstAx",
+    "title": "{broker} ti ha inviato l'offerta per {vehicle}",
+    "intro": "Per vedere l'offerta ti mandiamo un codice ai contatti che hai dato al tuo broker. Il link vale fino al {at}.",
+    "sendCode": "Mandami il codice",
+    "sendAgain": "Mandami un nuovo codice",
+    "codeSent": "Ti abbiamo mandato un codice di 6 cifre.",
+    "code": "Codice ricevuto",
+    "confirm": "Vedi l'offerta",
+    "expiredTitle": "Link non più valido",
+    "expiredText": "Il link è scaduto o il tuo broker ne ha mandato uno nuovo: chiedi a {broker}.",
+    "offersTitle": "L'offerta",
+    "offersIntro": "Prezzi con imposte e contributo SSN. Paghi il solo premio.",
+    "choose": "Scegli questa offerta",
+    "chosen": "Scelta",
+    "quote": "Preventivo in PDF",
+    "guarantee": "Garantito fino al {date}"
+  },
+  "brokerOffers": {
+    "title": "Invia al cliente",
+    "intro": "Scegli le offerte da mandare al cliente: riceve un link, conferma con un codice, firma e paga il solo premio. Il link vale fino alla fine della garanzia.",
+    "send": "Invia al cliente",
+    "sent": "Link inviato: vale fino al {at}.",
+    "opened": "Il cliente ha aperto il link.",
+    "expired": "Il link è scaduto.",
+    "inLink": "nel link",
+    "status": "Il cliente {status}.",
+    "noneSelected": "Scegli almeno un'offerta."
+  },
+  "acceptanceStatus": {
+    "PENDING_SIGNATURE": "deve firmare",
+    "SIGNED": "ha firmato e deve pagare",
+    "PAID": "ha pagato",
+    "VOIDED": "ha annullato la scelta"
   }
 }

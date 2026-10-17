@@ -140,7 +140,7 @@ export class ConsentService {
 
   // -------------------------------------------------------------- codes
 
-  private async newChallenge(
+  async newChallenge(
     tx: DbTransaction,
     purpose: OtpPurpose,
     subjectId: string,
@@ -199,7 +199,7 @@ export class ConsentService {
   }
 
   /** True when the code is right; counts wrong attempts and consumes the code. */
-  private async verifyChallenge(
+  async verifyChallenge(
     tx: DbTransaction,
     purpose: OtpPurpose,
     subjectId: string,
@@ -222,7 +222,7 @@ export class ConsentService {
     return challenge;
   }
 
-  private async sendCode(
+  async sendCode(
     contacts: { email: string | null; phone: string | null },
     purpose: OtpPurpose,
     code: string,
@@ -240,7 +240,7 @@ export class ConsentService {
       await this.notifications.sendSms(contacts.phone, "auth.otp", variables, ids);
   }
 
-  private async contactsOf(tx: DbTransaction, customerId: string) {
+  async contactsOf(tx: DbTransaction, customerId: string) {
     const customer = await tx.customer.findUniqueOrThrow({ where: { id: customerId } });
     return {
       email: customer.emailEnc ? this.cipher.decrypt(customer.emailEnc) : null,

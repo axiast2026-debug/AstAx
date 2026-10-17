@@ -124,7 +124,13 @@ export interface Harness {
   tokenFor(key: UserKey): Promise<string>;
   call(
     path: string,
-    options?: { token?: string; context?: string; method?: string; body?: unknown },
+    options?: {
+      token?: string;
+      context?: string;
+      method?: string;
+      body?: unknown;
+      headers?: Record<string, string>;
+    },
   ): Promise<Response>;
   close(): Promise<void>;
 }
@@ -208,6 +214,7 @@ export async function startHarness(
         ...(options.context ? { "x-astax-context": options.context } : {}),
         ...(options.body === undefined ? {} : { "content-type": "application/json" }),
         "user-agent": "vitest-int",
+        ...options.headers,
       },
       ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
     });

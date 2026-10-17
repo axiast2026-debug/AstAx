@@ -25,11 +25,13 @@ import { RequestsController } from "./requests/requests.controller.js";
 import { RequestsService } from "./requests/requests.service.js";
 import {
   AcceptanceController,
+  CustomerLinksController,
   FakeProvidersController,
   WebhooksController,
 } from "./acceptance/acceptance.controller.js";
 import { AcceptanceEventsService } from "./acceptance/acceptance-events.service.js";
 import { AcceptanceService } from "./acceptance/acceptance.service.js";
+import { CustomerLinksService } from "./acceptance/customer-links.service.js";
 import { AgencyController } from "./agency/agency.controller.js";
 import { QuoteChecksController } from "./auctions/auctions.controller.js";
 import { QuoteChecksService } from "./auctions/quote-checks.service.js";
@@ -73,6 +75,7 @@ export class AppModule {
         AgencyController,
         AcceptanceController,
         WebhooksController,
+        CustomerLinksController,
         FakeProvidersController,
         QuoteChecksController,
         RealtimeController,
@@ -99,6 +102,7 @@ export class AppModule {
         AgencySettingsService,
         AcceptanceService,
         AcceptanceEventsService,
+        CustomerLinksService,
         QuoteChecksService,
         RealtimeHub,
         RealtimeGateway,
