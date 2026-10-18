@@ -13,7 +13,7 @@ Claude Code aggiorna questo file alla fine di ogni sessione di lavoro e alla chi
 | 5. Accettazione | In corso | | Tutti i passi del piano fatti (proposte A-I); in corso le prove finali e la verifica indipendente; poi la demo con Dan |
 | 6. Dopo l'acquisto | In verifica | | Tutti i passi fatti; due giri di verifica indipendente con le correzioni; E2E S01, S02, S05, S08, S09 verdi; manca la demo con Dan (e i punti aperti in «Verifica indipendente (fase 6, secondo giro)») |
 | 7. Pannelli e notifiche | In verifica | | Piano approvato da Dan il 2026-10-18 (proposte A-L); tutti i passi fatti; verifica indipendente con le correzioni; manca la demo con Dan |
-| 8. Fornitori reali e sicurezza | Da iniziare | | |
+| 8. Fornitori reali e sicurezza | In corso | | Piano approvato da Dan il 2026-10-18 (proposte A-H): parte A in locale, senza account; parte B con gli accessi di Dan |
 
 Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in attesa della revisione di Dan), Chiusa.
 
@@ -183,6 +183,12 @@ A parametri che valgono da ora in poi; B Web Push finto fino alla fase 8; C rico
 | Riconciliazione: abbinamenti e coda | `reconciliation.int`, `reconciliation.test` |
 | Conservazione: una richiesta non conclusa di 12 mesi fa si cancella, ed è registrata | `retention.int` (anche: 11 mesi resta, pagata resta) |
 | Le esportazioni del registro attività sono registrate | `admin-reports.int` |
+
+## Proposte approvate per la fase 8 (Dan, 2026-10-18)
+
+Parte A, subito e in locale, senza account né spese: sicurezza nell'app (limiti di tentativi, intestazioni, eventi di Keycloak, biglietti del tempo reale in Redis); controlli automatici in CI (Semgrep, librerie, segreti, accessibilità, blocco LEG-03 e strumenti di sviluppo); coda delle email, invio automatico allo SDI, avvisi mancanti; Web Push vero e PWA; adattatori veri con test di contratto; sorveglianza; infrastruttura Terraform scritta ma non creata; prova di carico k6 in piccolo; documenti (ASVS, mappa dei dati, fornitori, incidenti, ripristino, `docs/go-live.md`); strumento di misura della lettura AI. Parte B, con gli accessi di Dan nell'ordine del file della fase: AWS (con stima dei costi prima di creare), domini, sandbox, documenti anonimi, test di sicurezza esterno, collaudo.
+
+A nessuna risorsa cloud e nessuna spesa senza il «crea» di Dan; B Temporal Cloud in UE; C SMS con AWS (alternativa Skebby); D Sentry UE e Grafana Cloud UE; E soglia della lettura AI al 95% dei campi corretti sopra soglia; F i limiti di tentativi nei parametri; G prova di carico vera in collaudo, qui solo in piccolo; H WhatsApp spento, solo la porta.
 
 ## Verifica indipendente (fase 7)
 
