@@ -32,6 +32,8 @@ test.describe("fase 1: accessi", () => {
       "Preventivi",
       "Polizze",
       "Documenti",
+      // Phase 7: the formal complaint from the own area (spec 03).
+      "Reclami",
       "Profilo",
     ]);
 
@@ -118,7 +120,8 @@ test.describe("fase 1: accessi", () => {
     const { users, password } = e2eState();
     await page.goto(ADMIN);
     await page.getByRole("link", { name: "Accedi" }).click();
-    await loginProfessional(page, users.admin, password);
+    // Saved: the phase 7 spec logs in again as the administrator.
+    saveSecret(users.admin, await loginProfessional(page, users.admin, password));
     await acceptLegalIfAsked(page);
 
     await expect(page).toHaveURL(`${ADMIN}/`);

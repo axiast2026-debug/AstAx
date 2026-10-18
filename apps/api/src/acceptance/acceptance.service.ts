@@ -49,6 +49,13 @@ import labels from "../notifications/labels.it.json" with { type: "json" };
 import { requesterScope } from "../requests/request-support.js";
 import { acceptancePdf } from "./documents-pdf.js";
 
+/**
+ * The acceptance, the signature and the payment write the documents, the PDF,
+ * the envelope, the ranking and the notifications under the lock of the
+ * request: more than the default 5 seconds on a loaded machine.
+ */
+export const ACCEPTANCE_TX = { timeoutMs: 60_000 };
+
 const FEE_KEYS = [
   "fees.private.amountCents",
   "fees.private.aiSupplementCents",
@@ -643,20 +650,25 @@ export class AcceptanceService {
 
   async acceptAsPrivate(auth: AuthContext, requestId: string, offerId: string, returnUrl: string) {
     if (auth.kind !== "PRIVATE") throw new ProblemError("FORBIDDEN");
-    return withContext(this.db, auth.db, async (tx) => {
-      const request = await this.requestOf(tx, auth, requestId);
-      const user = await tx.user.findUniqueOrThrow({ where: { id: auth.userId } });
-      const id = await this.accept(
-        tx,
-        request,
-        { kind: "PRIVATE", userId: auth.userId, customerLinkId: null, offerIds: null },
-        offerId,
-        { firstName: user.firstName, lastName: user.lastName },
-        returnUrl,
-        actorOf(auth),
-      );
-      return this.view(tx, id);
-    });
+    return withContext(
+      this.db,
+      auth.db,
+      async (tx) => {
+        const request = await this.requestOf(tx, auth, requestId);
+        const user = await tx.user.findUniqueOrThrow({ where: { id: auth.userId } });
+        const id = await this.accept(
+          tx,
+          request,
+          { kind: "PRIVATE", userId: auth.userId, customerLinkId: null, offerIds: null },
+          offerId,
+          { firstName: user.firstName, lastName: user.lastName },
+          returnUrl,
+          actorOf(auth),
+        );
+        return this.view(tx, id);
+      },
+      ACCEPTANCE_TX,
+    );
   }
 
   async setStatus(tx: DbTransaction, request: QuoteRequest, to: RequestStatus) {

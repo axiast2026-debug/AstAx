@@ -12,12 +12,23 @@ Claude Code aggiorna questo file alla fine di ogni sessione di lavoro e alla chi
 | 4. Offerte | In verifica | | Tutti i passi fatti; verifica indipendente (primo giro) con i problemi corretti; manca la demo con Dan |
 | 5. Accettazione | In corso | | Tutti i passi del piano fatti (proposte A-I); in corso le prove finali e la verifica indipendente; poi la demo con Dan |
 | 6. Dopo l'acquisto | In verifica | | Tutti i passi fatti; due giri di verifica indipendente con le correzioni; E2E S01, S02, S05, S08, S09 verdi; manca la demo con Dan (e i punti aperti in «Verifica indipendente (fase 6, secondo giro)») |
-| 7. Pannelli e notifiche | In corso | | Piano approvato da Dan il 2026-10-18 (proposte A-L); passi 1-8 fatti, in corso il 9 (reclami) |
+| 7. Pannelli e notifiche | In verifica | | Piano approvato da Dan il 2026-10-18 (proposte A-L); tutti i passi fatti; verifica indipendente con le correzioni; manca la demo con Dan |
 | 8. Fornitori reali e sicurezza | Da iniziare | | |
 
 Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in attesa della revisione di Dan), Chiusa.
 
 ## Ultima sessione
+
+**2026-10-18 — fase 7, passi 9-13, verifica e correzioni** (stesso piano; demo e domande alla fine di tutte le fasi).
+
+- Passo 9, reclami: protocollo «R-anno-numero», risposta entro `complaints.responseDays` giorni di calendario (fine del giorno, ora di Roma); il privato lo presenta dalla sua area (nuova voce «Reclami»), il back office registra quelli arrivati per email, PEC, posta o telefono (nuovo permesso `complaint.register`); ricevuta al reclamante e avviso ai supervisori; il worker avvisa `complaints.reminderDaysBefore` giorni prima della scadenza, una volta; risposta con l'esito (al privato nell'area con l'indicazione dell'IVASS, agli altri per email); esportazione CSV per IVASS, registrata.
+- Passo 10, riconciliazione (proposta C): estratto del conto separato in CSV della banca o camt.053; abbinamento automatico per codice della richiesta e importo, solo se un pagamento soltanto corrisponde; coda delle righe senza abbinamento (abbina a mano, ignora, rimetti in coda, sempre con una nota); quadratura giornaliera. Nuovo permesso `payment.reconcile` (contabilità e supervisore).
+- Passo 11, caricamento in blocco del broker (proposta H, libreria `fflate`): CSV, o ZIP con il CSV e i documenti; tutto il file si controlla prima e se c'è un errore non si salva niente; per ogni riga il cliente (nuovo o già presente) e una bozza con i documenti. Limite di righe: nuovo parametro `requests.bulkMaxRows` (200). Conservazione (LEG-06, proposta G): ogni giorno il worker, o l'amministratore da «Sicurezza e dati», cancella documenti e dati personali delle richieste non concluse e ferme da `retention.incompleteRequestsMonths` mesi; restano codice, date, offerte e registro; mai una richiesta con polizza, accettazione firmata o pagata, pagamento o fattura.
+- Passo 12: cruscotto dell'amministratore (volumi, passaggi, qualità, agenzie, economia, rischio, con filtri per periodo, canale e provincia); «Integrazioni» (adattatore di ogni fornitore, ultimo segnale, problemi); «Report ed esportazioni» (richieste, contabilità in centesimi, registro attività), ogni esportazione registrata. L'approvazione automatica delle richieste verdi c'era già dalla fase 2.
+- Passo 13: prova end-to-end `fase7-pannelli.spec.ts` (l'amministratore cambia durata predefinita e fee del privato; una nuova agenzia entra dal sito e il supervisore la approva; il back office in albanese registra e risponde a un reclamo); S05 ora decide la mancata emissione in albanese. Serie completa in locale: 27 prove; al primo giro 19 verdi e 6 rosse, poi corrette e rilanciate tutte e 6 (12 prove, tutte verdi): il menu del privato ha la voce «Reclami»; la prova della fase 1 salva il codice dell'amministratore per quella della fase 7; accettazione, firma e pagamento hanno un tempo massimo di 60 secondi invece di 5 (su un PC carico scadevano) e la firma legge i file prima di bloccare la richiesta.
+- CI: era rossa dal primo commit della fase 7 (ordine dei file di test diverso su GitHub, prove che leggevano dati di altri file): corrette le prove (vedi il commit `33217f1`), `check` di nuovo verde in CI.
+- Correzioni emerse dalle prove: l'approvazione di un ingresso riusa un account Keycloak professionale già esistente e rifiuta un indirizzo di un privato o di AstAx; il worker esegue le sue pianificazioni subito all'avvio (non dopo 5 minuti); una richiesta nuova prende la data di creazione dall'orologio dell'applicazione (regola 6).
+- Domande nuove per Dan: 19 («primo invito») e 20 (termini nuovi) in `domande-aperte.md`.
 
 **2026-10-18 — fase 7, passi 1-8** (piano approvato da Dan il 2026-10-18 con le proposte A-L; demo e domande alla fine di tutte le fasi).
 
@@ -154,6 +165,38 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 - Prove del giro completo: `pnpm check` verde (36 compiti); E2E 17 su 18 al primo giro: `fase4-agenzia.spec.ts` dipendeva dalla rotazione della scelta automatica e ora fa invitare Agenzia Uno a mano; poi 3 giri su 4 verdi, il quarto fermo su un clic senza un errore riproducibile: da tenere d'occhio in CI.
 - Ambiente di sviluppo: durante `pnpm check` (che ricompila i pacchetti) l'API e il worker avviati da `pnpm dev` a volte si fermano al riavvio automatico e restano fermi; si riavviano con `pnpm dev`.
 - Debito: se il back office esclude l'ultima offerta rimasta, la richiesta passa a «Scaduta» solo al successivo controllo delle garanzie, non subito (domanda 16).
+
+## Proposte approvate per la fase 7 (Dan, 2026-10-18)
+
+A parametri che valgono da ora in poi; B Web Push finto fino alla fase 8; C riconciliazione con CSV di prova e camt.053, abbinamento per importo e codice della richiesta; D verifica RUI e OTP dell'IBAN con i fornitori finti, contratti segnaposto; E assistenza con un registro interno dei ticket, senza strumenti esterni; F esportazioni CSV semplici, da confermare con legale e commercialista; G conservazione: si cancellano documenti e dati personali, restano codice, date e registro; H libreria `fflate` per gli ZIP; I cruscotto con tabelle e barre semplici; J WhatsApp in fase 8; K testi albanesi scritti da Claude, da far rileggere a Dan; L demo alla fine.
+
+## Criteri della fase 7
+
+| Criterio | Prova |
+| --- | --- |
+| Ogni chiave dei parametri si modifica dal pannello, con validazione, motivo e storico | `settings.int.test.ts` (tutte le chiavi), `groups` test, E2E `fase7-pannelli` |
+| Le aste aperte tengono i parametri dell'apertura, le nuove usano i nuovi | `settings.int.test.ts` «a change from the panel and the auctions», worker `activities.int` |
+| Modelli delle notifiche: modifica, anteprima, prova; albanese; preferenze e push obbligatorie; niente doppioni | `communications.int`, `preferences.int`, `notification-dispatch.int` |
+| Matrice dei permessi di back office e amministratore a tabella | `can.test.ts`, `permissions.int.test.ts` |
+| Un'agenzia si registra, il back office la approva, l'agenzia riceve il primo invito | `onboarding.int`, E2E `fase7-pannelli` (invito all'account; domanda 19) |
+| Reclami: protocollo, scadenza, avviso a 5 giorni, esportazione | `complaints.int`, worker `schedules.int` |
+| Riconciliazione: abbinamenti e coda | `reconciliation.int`, `reconciliation.test` |
+| Conservazione: una richiesta non conclusa di 12 mesi fa si cancella, ed è registrata | `retention.int` (anche: 11 mesi resta, pagata resta) |
+| Le esportazioni del registro attività sono registrate | `admin-reports.int` |
+
+## Verifica indipendente (fase 7)
+
+Il revisore (agente verificatore) ha trovato 14 punti. Corretti nel commit `a68835b`: la conservazione poteva cancellare richieste annullate con firma e pagamento; ricerche di clienti e utenti con nome, codice fiscale o email nell'indirizzo della pagina; mancava il test «modifica dal pannello e istantanea delle aste»; la seconda presentazione dopo un'integrazione non avvisava il back office (doppione); approvazione dell'ingresso non sicura se Keycloak cade; date delle esportazioni e scadenze di reclami e richieste sui dati in UTC invece che in giorni di Roma; CSV aperti a formule; importi contabili con decimali; permesso del caricamento in blocco; limite di righe nel codice; `fflate` non annotata nell'ADR 0001; debiti con scadenza «fase 7» senza nuova data. Restano: l'iscrizione al Web Push dal browser (fase 8, con le chiavi vere) e il significato di «primo invito» (domanda 19).
+
+## Demo per Dan (fase 7)
+
+Prima: `pnpm infra:up`, `pnpm dev` (come per le fasi precedenti). Utenze: amministratore Paola Ricci, supervisore del back office Ilaria Volpe, verificatrice Arta Hoxha (in albanese).
+
+1. **Amministratore, parametri.** http://localhost:3001 → «Regole d'asta» → «Durata predefinita dell'asta»: nuovo valore 5, motivo, «Salva»; «Storico» mostra la versione. «Economia» → «Fee del privato» 31,00 → poi rimetterlo a 30,00.
+2. **Comunicazioni.** «Comunicazioni» → un evento → cambia un testo, anteprima in italiano e albanese → «Inviami una prova» (l'email arriva in Mailpit, http://127.0.0.1:8025).
+3. **Ingresso di un'agenzia.** Sul sito http://localhost:3000 → «Non sei ancora su AstAx? Chiedi di entrare» → RUI `A000000101`, «Agenzia Undici», compagnie Alfa e Gamma; il codice SMS è in Mailpit; si carica un PDF qualsiasi come polizza; si accettano i contratti. Nel pannello, con il supervisore: «Ingressi» → controllo RUI → «Approva».
+4. **Back office in albanese.** Con Arta, «Shqip» in alto: «Ankesat» (reclami) → registra un reclamo arrivato per PEC → rispondi. «Pagamenti» → «Riconciliazione»: si carica un CSV di prova (prima riga `data;valuta;importo;divisa;controparte;causale;riferimento`, una riga con il codice di una richiesta pagata e il suo importo) e la riga si abbina da sola.
+5. **Altro da guardare.** Cruscotto (pagina iniziale), «Clienti», «Assistenza», «Agenzie e broker», «Elenchi e festività», «Contratti e documenti legali», «Integrazioni», «Report».
 
 ## Verifica indipendente (fase 6, secondo giro)
 
@@ -495,7 +538,7 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 | L'elenco RUI è finto; l'adattatore vero (dati aperti IVASS) manca | Regola 9 | Fase 8 |
 | I requisiti di un pacchetto si modificano come testo JSON (controllato) | Una scheda con i campi è più comoda per l'amministratore | Dopo la demo, se Dan la chiede |
 | I ticket di assistenza si aprono a mano dal back office; le email in arrivo non creano ticket da sole | Proposta E: registro interno, nessuno strumento esterno | Fase 8, con l'email vera |
-| Email del worker inviate dopo il salvataggio, senza outbox: se il processo cade in mezzo, l'email si perde (la notifica in app resta) | Un outbox delle email porterebbe gli indirizzi in una tabella in più | Fase 7, con le notifiche |
+| Email del worker inviate dopo il salvataggio, senza outbox: se il processo cade in mezzo, l'email si perde (la notifica in app resta) | Un outbox delle email porterebbe gli indirizzi in una tabella in più | Fase 8, con l'invio vero delle email (SES) |
 | Dalla «Deserta» il back office non può ancora aprire una nuova asta (S04) | La riapertura automatica con filtri allargati c'è (ASTA-08); la fase 7 mostra le deserte in «Eccezioni». Una nuova asta a mano con filtri scelti dal back office aspetta una decisione di Dan su quali filtri allargare | Dopo la demo |
 | Prezzi e targa tolti dalle notifiche della fase 3 in attesa della domanda 15 | Regola 8 contro i testi di `seed/notifiche.yaml` | Con la risposta di Dan |
 | Biglietti del tempo reale tenuti nella memoria del processo API | Con una sola istanza dell'API basta; con più istanze un biglietto chiesto a una non vale sull'altra | Fase 8, in Redis |
@@ -512,32 +555,31 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 | `RuiRecord.linkedNumber` da trasformare in elenco | Un sub-agente può lavorare per più agenzie (dubbio 10) | Fasi 3-4 |
 | Keycloak segnala «già autenticato come un altro utente» su un computer condiviso senza «Esci» | Sessione Keycloak rimasta nel browser; non fatto in fase 2 | Con `prompt=login` nelle app, fase 7 |
 | Client dell'API generato da OpenAPI per i frontend | La descrizione OpenAPI non contiene ancora gli schemi dei corpi (gli input sono validati con Zod): un client generato oggi avrebbe solo i percorsi. I tipi delle risposte sono scritti a mano in `apps/web/src/lib/requests.ts` e `apps/admin/src/lib/verification.ts` | Fase 4, pubblicando gli schemi Zod in OpenAPI |
-| TanStack Query, React Hook Form, PWA con Serwist e Web Push | I moduli della fase 2 usano le azioni del server di Next.js, che funzionano anche senza JavaScript; il controllo dei campi lo fa l'API | Fase 7 (PWA e push); da rivalutare se servono moduli più interattivi |
-| Nessun controllo automatico di accessibilità nei test end-to-end | Etichette, tastiera e telefono provati a mano nel browser | Fase 7, con `@axe-core/playwright` |
+| TanStack Query, React Hook Form, PWA con Serwist e Web Push | I moduli della fase 2 usano le azioni del server di Next.js, che funzionano anche senza JavaScript; il controllo dei campi lo fa l'API | Fase 8: l'iscrizione al push dal browser (service worker e chiavi VAPID vere); in fase 7 c'è il mittente finto e le iscrizioni si registrano via API (proposta B) |
+| Nessun controllo automatico di accessibilità nei test end-to-end | Etichette, tastiera e telefono provati a mano nel browser | Fase 8, con la sicurezza |
 | Procedura del privato a passi con più domande per schermata, non «una domanda per schermata» | Sei passi, ognuno salva una parte completa della bozza | Da rivedere con Dan dopo la demo |
-| Correzione del back office su un gruppo di campi (veicolo, classe CU, compagnia, scadenza) | Gli altri dati si correggono chiedendo un'integrazione | Fase 7, con una scheda di correzione completa |
+| Correzione del back office su un gruppo di campi (veicolo, classe CU, compagnia, scadenza) | Gli altri dati si correggono chiedendo un'integrazione | Dopo la demo, se Dan la chiede |
 | Motivi di esclusione solo dall'elenco dei casi esclusi | Nessun «altro» con testo libero | Da decidere con Dan |
 | Procedura con al massimo due conducenti | Bastano per i casi del pilota | Quando serve |
 | Archivio documenti del privato: una chiamata all'API per ogni richiesta | Pochi preventivi per persona | Quando cresce, con un endpoint unico |
-| Caricamento in blocco da CSV per i broker | Non era nel piano della fase 2 | Fase 7 |
-| Dashboard del broker con i contatori | Non era nel piano della fase 2 | Fase 7 |
+| Dashboard del broker con i contatori | Non era nel piano della fase 2 | Dopo la demo, se Dan la chiede |
 | Approvazione automatica (`verification.autoApproveGreen`, spenta nel pilota) in una transazione separata dopo l'invio, nell'API | Serve il ruolo di sistema; se fallisce la richiesta va al back office con la notifica. L'apertura dell'asta parte comunque dall'evento `RequestApproved`, consegnato dal worker | Quando si accende nel pilota |
 | Ricerche (codice fiscale, targa) tenute in chiaro sul server (Redis) per 15 minuti accanto alla sessione, legate al contesto attivo e cancellate con «Esci» | Non devono finire nell'indirizzo della pagina (regola 8) | Fase 8, cifrandole con la chiave dei campi |
 | Guscio delle schermate duplicato tra `apps/web` e `apps/admin` | Piccole differenze (contesto, lingua) | Quando cresce, in `packages/ui` |
 | Tentativi di accesso con token non validi solo nel log (non nel registro), senza limite di frequenza; nessun limite di frequenza sulla pagina pubblica del consenso | Non riempire il registro a catena (dubbio 6); i codici hanno comunque un massimo di tentativi | Fase 8, con il limite di frequenza |
 | Eccezione alla regola pnpm sull'età minima dei pacchetti per Next.js 16.4.1 e React 19.3.1 | Correggono vulnerabilità critiche | Da togliere appena superano l'età minima |
-| Testi in albanese del back office da far rileggere a un madrelingua | Tradotti da Claude (anche quelli nuovi della verifica) | Fase 7 |
+| Testi in albanese del back office da far rileggere a un madrelingua | Tradotti da Claude (anche quelli nuovi della verifica) | Prima del lancio: rilettura di Dan o di un madrelingua (proposta K), compresi i testi nuovi della fase 7 |
 | Blocco dei tentativi di accesso in Keycloak (10 errori, attesa massima 15 minuti) scritto nel file del realm | Valori tecnici di sicurezza, non di business; da decidere se diventano parametri | Fase 8 |
 | Codici via email: al massimo 3 per tentativo di accesso (numero fisso nell'estensione); nessun limite per indirizzo o per rete | Il limite vero di frequenza serve con i fornitori reali | Fase 8 |
 | Accessi registrati dalle app web (`POST /me/logins`), non da un evento di Keycloak | Un accesso fatto fuori dalle nostre app non lascerebbe traccia; oggi le uniche app sono le nostre | Fase 8, con gli eventi di Keycloak verso il registro |
 | IP vero del browser solo dietro il nostro proxy (`WEB_TRUSTED_PROXY`); in locale si registra l'indirizzo dell'app web | L'intestazione X-Forwarded-For può essere falsificata dal browser | Fase 8, con il proxy in cloud |
 | Comuni soppressi non presenti in `seed/comuni.csv` (solo i comuni attuali) | Il codice fiscale di chi è nato in un comune poi soppresso non trova il comune: la procedura chiede di scrivere all'assistenza, il controllo automatico non confronta il luogo | Fase 8, con l'elenco ISTAT dei comuni soppressi |
-| Etichetta della formula esperta in `seed/elenchi.json` con «26 anni» scritto nel testo | La schermata mostra anche l'età minima presa dal parametro, ma l'etichetta dell'elenco va aggiornata a mano se cambia | Fase 7, con l'amministrazione degli elenchi |
+| Etichetta della formula esperta in `seed/elenchi.json` con «26 anni» scritto nel testo | La schermata mostra anche l'età minima presa dal parametro, ma l'etichetta dell'elenco va aggiornata a mano se cambia | Fatto in parte (fase 7): l'etichetta ora si cambia dal pannello «Elenchi e festività», senza toccare il codice |
 | `S3_REGION` e `S3_BUCKET` nuovi in `.env.example` | `pnpm env:init` non riscrive un `.env` esistente: l'API usa valori predefiniti se mancano | — |
-| Avviso `payment.confirmed` al cliente del broker solo nella pagina del link: la notifica va all'utente del broker | Il cliente del broker non ha un account; l'email con il link andrebbe ricostruita senza il token in chiaro | Fase 7, con le notifiche |
+| Avviso `payment.confirmed` al cliente del broker solo nella pagina del link: la notifica va all'utente del broker | Il cliente del broker non ha un account; l'email con il link andrebbe ricostruita senza il token in chiaro | Fase 8, con l'invio vero delle email |
 | Rimborso di un pagamento incassato per un'accettazione non più valida (pagamento arrivato dopo la fine della garanzia) | Solo registrato; il rimborso con il fornitore è del dopo-acquisto | Fase 6 |
 | Pagina «Risultati» delle agenzie con la classifica | La classifica è calcolata e pubblicata alla firma; la pagina è della fase 6 | Fase 6 |
-| Pulsante «Conferma subito il bonifico» degli strumenti di sviluppo (proposta I) solo nell'API (`POST /fake-providers/payments/:ref/confirm`, con `DEV_TOOLS=true`) | Il bonifico di prova si conferma comunque da solo dopo 5 secondi | Fase 7 |
+| Pulsante «Conferma subito il bonifico» degli strumenti di sviluppo (proposta I) solo nell'API (`POST /fake-providers/payments/:ref/confirm`, con `DEV_TOOLS=true`) | Il bonifico di prova si conferma comunque da solo dopo 5 secondi | Fase 8 |
 | Un incasso arrivato per un'accettazione non più valida (checkout già chiuso presso un fornitore vero) è solo registrato | Con il finto non può succedere; il rimborso automatico è nel passo 11 della fase 6 | Fase 6 |
 | Il link di consenso del broker (fase 2) mette la targa nell'email | Il link dell'offerta non la mette più; quello del consenso è della fase 2 | Con la risposta alla domanda 15 |
 | L'API accetta un secondo «Confronta con AI» sulla stessa richiesta (nuovo suggerimento salvato, fee invariato) | La schermata nasconde il pulsante dopo il primo uso | Da decidere con Dan se bloccarlo |

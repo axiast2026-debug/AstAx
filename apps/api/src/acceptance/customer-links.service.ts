@@ -21,7 +21,7 @@ import { ProblemError } from "../http/problem.js";
 import { CLOCK, CONFIG, DB, LOGGER, OBJECT_STORAGE } from "../infra/tokens.js";
 import { NotificationService } from "../notifications/notification.service.js";
 import { ConsentService, type ClientInfo } from "../requests/consent.service.js";
-import { AcceptanceService } from "./acceptance.service.js";
+import { AcceptanceService, ACCEPTANCE_TX } from "./acceptance.service.js";
 
 const TOKEN = /^[A-Za-z0-9_-]{40,60}$/;
 
@@ -385,27 +385,32 @@ export class CustomerLinksService {
 
   /** PRES-05 on the link: only the offers the broker sent; the customer signs. */
   async accept(token: string, proof: string | undefined, offerId: string, client: ClientInfo) {
-    return withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
-      const { link, request, active } = await this.verified(tx, token, proof, client);
-      if (!active) throw new ProblemError("CONFLICT");
-      const customer = await tx.customer.findUniqueOrThrow({
-        where: { id: request.customerId ?? "" },
-        include: { person: true },
-      });
-      const id = await this.acceptance.accept(
-        tx,
-        request,
-        { kind: "LINK", userId: null, customerLinkId: link.id, offerIds: this.offerIdsOf(link) },
-        offerId,
-        {
-          firstName: customer.person.givenName ?? customer.person.companyName ?? "",
-          lastName: customer.person.surname ?? "",
-        },
-        this.returnUrl(link.id),
-        this.linkActor(client),
-      );
-      return this.acceptance.view(tx, id);
-    });
+    return withContext(
+      this.db,
+      SYSTEM_CONTEXT,
+      async (tx) => {
+        const { link, request, active } = await this.verified(tx, token, proof, client);
+        if (!active) throw new ProblemError("CONFLICT");
+        const customer = await tx.customer.findUniqueOrThrow({
+          where: { id: request.customerId ?? "" },
+          include: { person: true },
+        });
+        const id = await this.acceptance.accept(
+          tx,
+          request,
+          { kind: "LINK", userId: null, customerLinkId: link.id, offerIds: this.offerIdsOf(link) },
+          offerId,
+          {
+            firstName: customer.person.givenName ?? customer.person.companyName ?? "",
+            lastName: customer.person.surname ?? "",
+          },
+          this.returnUrl(link.id),
+          this.linkActor(client),
+        );
+        return this.acceptance.view(tx, id);
+      },
+      ACCEPTANCE_TX,
+    );
   }
 
   async pay(token: string, proof: string | undefined, client: ClientInfo) {

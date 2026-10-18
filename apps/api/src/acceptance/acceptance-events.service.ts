@@ -42,7 +42,7 @@ import { NotificationService, type Outbound } from "../notifications/notificatio
 import type { TemplateVariables } from "@astax/shared/notifications";
 import { Postbox } from "../notifications/postbox.js";
 import { RefundsService } from "../refunds/refunds.service.js";
-import { AcceptanceService } from "./acceptance.service.js";
+import { ACCEPTANCE_TX, AcceptanceService } from "./acceptance.service.js";
 
 const SYSTEM_ACTOR = {
   userId: null,
@@ -157,101 +157,126 @@ export class AcceptanceEventsService {
     }
     const emails: Email[] = [];
     const postbox = new Postbox(this.notifications, this.cipher, this.config.WEB_URL);
-    await withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
-      if (!(await this.firstTime(tx, this.signature.provider, event.eventId, event.status))) return;
-      const envelope = await tx.signatureEnvelope.findUnique({
-        where: { providerRef: event.providerRef },
-        include: { acceptance: true },
-      });
-      if (!envelope || envelope.status !== "PENDING") return;
-      // The same lock as the acceptance and the payment: one change at a time.
-      await tx.$queryRaw`SELECT 1 FROM "QuoteRequest" WHERE "id" = ${envelope.acceptance.quoteRequestId}::uuid FOR UPDATE`;
-      const now = this.clock.now();
-      if (event.status !== "SIGNED") {
-        await tx.signatureEnvelope.update({
-          where: { id: envelope.id },
-          data: { status: event.status },
-        });
-        // Refused or expired: the acceptance lapses, the customer chooses again
-        // and gets a new envelope (decision 22).
-        if (envelope.acceptance.status === "PENDING_SIGNATURE") {
-          await tx.acceptance.update({
-            where: { id: envelope.acceptance.id },
-            data: { status: "VOIDED", voidedAt: now, voidReason: `SIGNATURE_${event.status}` },
-          });
-        }
-        return;
-      }
-      const a = envelope.acceptance;
-      if (a.status !== "PENDING_SIGNATURE") return;
-      const request = await tx.quoteRequest.findUniqueOrThrow({ where: { id: a.quoteRequestId } });
-      const kept = async (key: string, kind: "SIGNED_DOCUMENT" | "SIGNATURE_EVIDENCE") => {
+    // The signed files are read before the transaction: no storage call holds
+    // the lock on the request (a slow storage made the transaction expire).
+    const files = new Map<string, { sha256: string; size: number }>();
+    if (event.status === "SIGNED") {
+      const keys = [
+        ...event.signedFileKeys,
+        ...(event.evidenceFileKey ? [event.evidenceFileKey] : []),
+      ];
+      for (const key of keys) {
         const body = await this.storage.get(key);
-        const document = await tx.document.create({
-          data: {
-            kind,
-            ownerUserId: request.ownerUserId,
-            ownerOrganizationId: request.ownerOrganizationId,
-            quoteRequestId: request.id,
-            storageKey: key,
-            sha256: createHash("sha256").update(body).digest("hex"),
-            mime: "application/pdf",
-            size: body.length,
-            fileName: `${kind.toLowerCase()}.pdf`,
-            uploadedByUserId: request.requesterUserId,
-          },
+        files.set(key, {
+          sha256: createHash("sha256").update(body).digest("hex"),
+          size: body.length,
         });
-        return document.id;
-      };
-      const signedIds: string[] = [];
-      for (const key of event.signedFileKeys) signedIds.push(await kept(key, "SIGNED_DOCUMENT"));
-      const evidenceId = event.evidenceFileKey
-        ? await kept(event.evidenceFileKey, "SIGNATURE_EVIDENCE")
-        : null;
-      await tx.signatureEnvelope.update({
-        where: { id: envelope.id },
-        data: { status: "SIGNED", signedDocumentIds: signedIds, evidenceDocumentId: evidenceId },
-      });
-      await tx.acceptance.update({
-        where: { id: a.id },
-        data: { status: "SIGNED", signedAt: now },
-      });
-      await this.acceptance.setStatus(tx, request, "ACCEPTED");
-      await addRequestEvent(tx, request, {
-        type: "ACCEPTANCE_SIGNED",
-        actorKind: a.customerLinkId ? "CUSTOMER" : "REQUESTER",
-        actorUserId: a.acceptedByUserId,
-        at: now,
-      });
-      await this.audit.inTransaction(tx, SYSTEM_ACTOR, {
-        action: "ACCEPTANCE_SIGNED",
-        targetType: "QuoteRequest",
-        targetId: request.id,
-        after: { acceptanceId: a.id, signedDocuments: signedIds.length },
-      });
-      await this.publishRanking(tx, emails, request, now);
-      // EMI-04: a second offer that costs the same or less is settled at the signature;
-      // what was paid in excess comes back with a refund to approve (PAG-05).
-      if (a.creditPremiumCents > 0 || a.creditFeeCents > 0) {
-        const premiumDue = a.premiumCents - a.creditPremiumCents;
-        const feeDue = a.feeCents - a.creditFeeCents;
-        if (premiumDue <= 0 && feeDue <= 0) {
-          const signed = await tx.acceptance.findUniqueOrThrow({ where: { id: a.id } });
-          const current = await tx.quoteRequest.findUniqueOrThrow({ where: { id: request.id } });
-          await this.confirmPaid(tx, emails, current, signed, null, now);
-          if (premiumDue < 0 || feeDue < 0) {
-            await this.refunds.request(tx, postbox, {
-              quoteRequestId: request.id,
-              reason: "SECOND_OFFER_DIFFERENCE",
-              premiumCents: -premiumDue,
-              feeCents: -feeDue,
-              requestedByUserId: null,
-              requestedByLabel: labels.refundRequester.system,
+      }
+    }
+    await withContext(
+      this.db,
+      SYSTEM_CONTEXT,
+      async (tx) => {
+        if (!(await this.firstTime(tx, this.signature.provider, event.eventId, event.status)))
+          return;
+        const envelope = await tx.signatureEnvelope.findUnique({
+          where: { providerRef: event.providerRef },
+          include: { acceptance: true },
+        });
+        if (!envelope || envelope.status !== "PENDING") return;
+        // The same lock as the acceptance and the payment: one change at a time.
+        await tx.$queryRaw`SELECT 1 FROM "QuoteRequest" WHERE "id" = ${envelope.acceptance.quoteRequestId}::uuid FOR UPDATE`;
+        const now = this.clock.now();
+        if (event.status !== "SIGNED") {
+          await tx.signatureEnvelope.update({
+            where: { id: envelope.id },
+            data: { status: event.status },
+          });
+          // Refused or expired: the acceptance lapses, the customer chooses again
+          // and gets a new envelope (decision 22).
+          if (envelope.acceptance.status === "PENDING_SIGNATURE") {
+            await tx.acceptance.update({
+              where: { id: envelope.acceptance.id },
+              data: { status: "VOIDED", voidedAt: now, voidReason: `SIGNATURE_${event.status}` },
             });
           }
+          return;
         }
-      }
-    });
+        const a = envelope.acceptance;
+        if (a.status !== "PENDING_SIGNATURE") return;
+        const request = await tx.quoteRequest.findUniqueOrThrow({
+          where: { id: a.quoteRequestId },
+        });
+        const kept = async (key: string, kind: "SIGNED_DOCUMENT" | "SIGNATURE_EVIDENCE") => {
+          const file = files.get(key);
+          if (!file) throw new Error("Signed file not read");
+          const document = await tx.document.create({
+            data: {
+              kind,
+              ownerUserId: request.ownerUserId,
+              ownerOrganizationId: request.ownerOrganizationId,
+              quoteRequestId: request.id,
+              storageKey: key,
+              sha256: file.sha256,
+              mime: "application/pdf",
+              size: file.size,
+              fileName: `${kind.toLowerCase()}.pdf`,
+              uploadedByUserId: request.requesterUserId,
+            },
+          });
+          return document.id;
+        };
+        const signedIds: string[] = [];
+        for (const key of event.signedFileKeys) signedIds.push(await kept(key, "SIGNED_DOCUMENT"));
+        const evidenceId = event.evidenceFileKey
+          ? await kept(event.evidenceFileKey, "SIGNATURE_EVIDENCE")
+          : null;
+        await tx.signatureEnvelope.update({
+          where: { id: envelope.id },
+          data: { status: "SIGNED", signedDocumentIds: signedIds, evidenceDocumentId: evidenceId },
+        });
+        await tx.acceptance.update({
+          where: { id: a.id },
+          data: { status: "SIGNED", signedAt: now },
+        });
+        await this.acceptance.setStatus(tx, request, "ACCEPTED");
+        await addRequestEvent(tx, request, {
+          type: "ACCEPTANCE_SIGNED",
+          actorKind: a.customerLinkId ? "CUSTOMER" : "REQUESTER",
+          actorUserId: a.acceptedByUserId,
+          at: now,
+        });
+        await this.audit.inTransaction(tx, SYSTEM_ACTOR, {
+          action: "ACCEPTANCE_SIGNED",
+          targetType: "QuoteRequest",
+          targetId: request.id,
+          after: { acceptanceId: a.id, signedDocuments: signedIds.length },
+        });
+        await this.publishRanking(tx, emails, request, now);
+        // EMI-04: a second offer that costs the same or less is settled at the signature;
+        // what was paid in excess comes back with a refund to approve (PAG-05).
+        if (a.creditPremiumCents > 0 || a.creditFeeCents > 0) {
+          const premiumDue = a.premiumCents - a.creditPremiumCents;
+          const feeDue = a.feeCents - a.creditFeeCents;
+          if (premiumDue <= 0 && feeDue <= 0) {
+            const signed = await tx.acceptance.findUniqueOrThrow({ where: { id: a.id } });
+            const current = await tx.quoteRequest.findUniqueOrThrow({ where: { id: request.id } });
+            await this.confirmPaid(tx, emails, current, signed, null, now);
+            if (premiumDue < 0 || feeDue < 0) {
+              await this.refunds.request(tx, postbox, {
+                quoteRequestId: request.id,
+                reason: "SECOND_OFFER_DIFFERENCE",
+                premiumCents: -premiumDue,
+                feeCents: -feeDue,
+                requestedByUserId: null,
+                requestedByLabel: labels.refundRequester.system,
+              });
+            }
+          }
+        }
+      },
+      ACCEPTANCE_TX,
+    );
     await this.sendAll(emails);
     await postbox.flush();
   }
@@ -313,79 +338,85 @@ export class AcceptanceEventsService {
       throw error;
     }
     const emails: Email[] = [];
-    await withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
-      if (!(await this.firstTime(tx, this.payments.provider, event.eventId, event.status))) return;
-      const payment = await tx.payment.findUnique({
-        where: { providerRef: event.providerRef },
-        include: { acceptance: true },
-      });
-      if (!payment || ["CAPTURED", "FAILED", "REFUNDED"].includes(payment.status)) return;
-      const now = this.clock.now();
-      await tx.$queryRaw`SELECT 1 FROM "QuoteRequest" WHERE "id" = ${payment.acceptance.quoteRequestId}::uuid FOR UPDATE`;
-      const request = await tx.quoteRequest.findUniqueOrThrow({
-        where: { id: payment.acceptance.quoteRequestId },
-      });
-      if (event.status === "PENDING") {
-        await tx.payment.update({
-          where: { id: payment.id },
-          data: { status: "AUTHORIZED", method: event.method },
+    await withContext(
+      this.db,
+      SYSTEM_CONTEXT,
+      async (tx) => {
+        if (!(await this.firstTime(tx, this.payments.provider, event.eventId, event.status)))
+          return;
+        const payment = await tx.payment.findUnique({
+          where: { providerRef: event.providerRef },
+          include: { acceptance: true },
         });
-        return;
-      }
-      if (event.status === "FAILED") {
-        await tx.payment.update({
-          where: { id: payment.id },
-          data: { status: "FAILED", method: event.method, failedAt: now },
+        if (!payment || ["CAPTURED", "FAILED", "REFUNDED"].includes(payment.status)) return;
+        const now = this.clock.now();
+        await tx.$queryRaw`SELECT 1 FROM "QuoteRequest" WHERE "id" = ${payment.acceptance.quoteRequestId}::uuid FOR UPDATE`;
+        const request = await tx.quoteRequest.findUniqueOrThrow({
+          where: { id: payment.acceptance.quoteRequestId },
         });
-        if (request.status === "ACCEPTED")
-          await this.acceptance.setStatus(tx, request, "OFFERS_AVAILABLE");
-        await this.audit.inTransaction(tx, SYSTEM_ACTOR, {
-          action: "PAYMENT_FAILED",
-          targetType: "QuoteRequest",
-          targetId: request.id,
-          after: { paymentId: payment.id },
-        });
-        const offer = await tx.offer.findUniqueOrThrow({
-          where: { id: payment.acceptance.offerId },
-        });
-        await this.tell(
-          tx,
-          emails,
-          await this.payers(tx, request),
-          "payment.failed",
-          {
-            nome: await this.payerName(tx, request),
-            veicolo: await this.vehicle(tx, request),
-            garanzia: offer.guaranteeUntil
-              ? formatDate(dbDateToCalendarDate(offer.guaranteeUntil))
-              : "",
-            link: this.requesterLink(request),
-          },
-          this.requesterLink(request),
-          { quoteRequestId: request.id },
-        );
-        return;
-      }
-      // CAPTURED (PAG-02).
-      const a = payment.acceptance;
-      if (a.status !== "SIGNED" || request.status !== "ACCEPTED" || !request.startDate) {
-        // Paid for an acceptance no longer valid: AstAx refunds it (phase 6); an alarm now.
-        this.logger.error(
-          { paymentId: payment.id, requestId: request.id },
-          "payment captured for an acceptance no longer valid",
-        );
+        if (event.status === "PENDING") {
+          await tx.payment.update({
+            where: { id: payment.id },
+            data: { status: "AUTHORIZED", method: event.method },
+          });
+          return;
+        }
+        if (event.status === "FAILED") {
+          await tx.payment.update({
+            where: { id: payment.id },
+            data: { status: "FAILED", method: event.method, failedAt: now },
+          });
+          if (request.status === "ACCEPTED")
+            await this.acceptance.setStatus(tx, request, "OFFERS_AVAILABLE");
+          await this.audit.inTransaction(tx, SYSTEM_ACTOR, {
+            action: "PAYMENT_FAILED",
+            targetType: "QuoteRequest",
+            targetId: request.id,
+            after: { paymentId: payment.id },
+          });
+          const offer = await tx.offer.findUniqueOrThrow({
+            where: { id: payment.acceptance.offerId },
+          });
+          await this.tell(
+            tx,
+            emails,
+            await this.payers(tx, request),
+            "payment.failed",
+            {
+              nome: await this.payerName(tx, request),
+              veicolo: await this.vehicle(tx, request),
+              garanzia: offer.guaranteeUntil
+                ? formatDate(dbDateToCalendarDate(offer.guaranteeUntil))
+                : "",
+              link: this.requesterLink(request),
+            },
+            this.requesterLink(request),
+            { quoteRequestId: request.id },
+          );
+          return;
+        }
+        // CAPTURED (PAG-02).
+        const a = payment.acceptance;
+        if (a.status !== "SIGNED" || request.status !== "ACCEPTED" || !request.startDate) {
+          // Paid for an acceptance no longer valid: AstAx refunds it (phase 6); an alarm now.
+          this.logger.error(
+            { paymentId: payment.id, requestId: request.id },
+            "payment captured for an acceptance no longer valid",
+          );
+          await tx.payment.update({
+            where: { id: payment.id },
+            data: { status: "CAPTURED", capturedAt: now, method: event.method },
+          });
+          return;
+        }
         await tx.payment.update({
           where: { id: payment.id },
           data: { status: "CAPTURED", capturedAt: now, method: event.method },
         });
-        return;
-      }
-      await tx.payment.update({
-        where: { id: payment.id },
-        data: { status: "CAPTURED", capturedAt: now, method: event.method },
-      });
-      await this.confirmPaid(tx, emails, request, a, payment.id, now);
-    });
+        await this.confirmPaid(tx, emails, request, a, payment.id, now);
+      },
+      ACCEPTANCE_TX,
+    );
     await this.sendAll(emails);
   }
 
