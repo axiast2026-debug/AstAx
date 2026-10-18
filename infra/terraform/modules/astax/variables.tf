@@ -38,6 +38,12 @@ variable "db_multi_az" {
   default = false
 }
 
+variable "redis_replicated" {
+  description = "Two Redis nodes with failover; one node in the starting version (question 24)"
+  type        = bool
+  default     = false
+}
+
 variable "redis_node_type" {
   type    = string
   default = "cache.t4g.small"

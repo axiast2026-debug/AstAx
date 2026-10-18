@@ -67,9 +67,9 @@ resource "aws_elasticache_replication_group" "main" {
   engine                     = "redis"
   engine_version             = "7.1"
   node_type                  = var.redis_node_type
-  num_cache_clusters         = local.production ? 2 : 1
-  automatic_failover_enabled = local.production
-  multi_az_enabled           = local.production
+  num_cache_clusters         = var.redis_replicated ? 2 : 1
+  automatic_failover_enabled = var.redis_replicated
+  multi_az_enabled           = var.redis_replicated
   subnet_group_name          = aws_elasticache_subnet_group.main.name
   security_group_ids         = [aws_security_group.data.id]
   at_rest_encryption_enabled = true

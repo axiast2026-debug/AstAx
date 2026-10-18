@@ -27,6 +27,7 @@ module "astax" {
   nat_gateways             = 1
   db_instance_class        = "db.t4g.medium"
   db_multi_az              = false
+  desired_count            = 1
   image_tag                = var.image_tag
   alarm_email              = var.alarm_email
   github_environment       = "collaudo"

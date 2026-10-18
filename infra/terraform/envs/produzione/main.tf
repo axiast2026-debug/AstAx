@@ -20,13 +20,20 @@ provider "aws" {
 }
 
 module "astax" {
-  source                   = "../../modules/astax"
-  environment              = "produzione"
-  domain                   = var.domain
-  certificate_arn          = var.certificate_arn
-  nat_gateways             = 3
-  db_instance_class        = "db.m7g.large"
-  db_multi_az              = true
+  source          = "../../modules/astax"
+  environment     = "produzione"
+  domain          = var.domain
+  certificate_arn = var.certificate_arn
+  # Starting version (question 24, Dan 2026-10-18): one copy of each service
+  # (the worker two), one NAT, the database in one zone, one Redis node.
+  # Deletion protection and backups stay. The robust version, later:
+  # nat_gateways = 3, db_instance_class = "db.m7g.large", db_multi_az = true,
+  # redis_replicated = true, desired_count = 2.
+  nat_gateways             = 1
+  db_instance_class        = "db.t4g.medium"
+  db_multi_az              = false
+  redis_replicated         = false
+  desired_count            = 1
   image_tag                = var.image_tag
   alarm_email              = var.alarm_email
   github_environment       = "produzione"

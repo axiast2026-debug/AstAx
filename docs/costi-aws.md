@@ -18,7 +18,25 @@
 
 Si può spendere meno: spegnere i container di notte e nel fine settimana (circa −40% su Fargate), o tenere il collaudo acceso solo nelle settimane di prova.
 
-## Produzione (`infra/terraform/envs/produzione`)
+## Produzione, versione di partenza (`infra/terraform/envs/produzione`, scelta di Dan del 2026-10-18)
+
+Come il collaudo, ma con la protezione dalla cancellazione e i backup della produzione. Se una zona di AWS si ferma, il servizio si ferma finché non riparte (o si ripristina dai backup): è il rischio accettato per partire spendendo meno.
+
+| Voce | Cosa | Al mese (circa) |
+| --- | --- | --- |
+| Container (Fargate, ARM) | 1 copia di ogni servizio, il worker 2 | 100 – 130 $ |
+| NAT | 1 | 40 – 50 $ |
+| Bilanciatore | 1 HTTPS | 30 – 50 $ |
+| PostgreSQL (RDS) | db.t4g.medium, una zona, 50 GB | 70 – 90 $ |
+| Redis | 1 nodo | 25 – 35 $ |
+| WAF, KMS, segreti, CloudWatch, CloudTrail, S3, backup | | 60 – 120 $ |
+| Temporal Cloud | piano base | ~100 $ |
+| Sentry, Grafana Cloud | piani piccoli | 0 – 50 $ |
+| **Totale produzione di partenza, fisso** | | **~450 – 650 $** |
+
+Si passa alla versione robusta (sotto) cambiando i valori scritti nel commento di `envs/produzione/main.tf`, senza rifare nulla.
+
+## Produzione, versione robusta (più avanti)
 
 | Voce | Cosa | Al mese (circa) |
 | --- | --- | --- |
@@ -30,7 +48,7 @@ Si può spendere meno: spegnere i container di notte e nel fine settimana (circa
 | WAF, KMS, segreti, CloudWatch, CloudTrail, S3, backup | | 80 – 150 $ |
 | Temporal Cloud | | 100 – 200 $ |
 | Sentry, Grafana Cloud | | 30 – 80 $ |
-| **Totale produzione, fisso** | | **~950 – 1.400 $** |
+| **Totale produzione robusta, fisso** | | **~950 – 1.400 $** |
 
 ## A consumo (entrambi gli ambienti)
 
@@ -43,5 +61,5 @@ Si può spendere meno: spegnere i container di notte e nel fine settimana (circa
 
 ## Cosa serve sapere da Dan
 
-- Se il collaudo deve restare acceso sempre o solo nei periodi di prova.
+- Se il collaudo deve restare acceso sempre o solo nei periodi di prova (domanda 21).
 - Il modello di Claude da usare (più capace e costoso, o più veloce ed economico): la misura sugli 80 documenti aiuta a scegliere.

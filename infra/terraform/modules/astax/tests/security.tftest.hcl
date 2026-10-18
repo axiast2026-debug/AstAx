@@ -215,12 +215,39 @@ run "produzione_is_multi_az_and_protected" {
     environment        = "produzione"
     db_multi_az        = true
     nat_gateways       = 3
+    redis_replicated   = true
     github_environment = "produzione"
   }
 
   assert {
     condition     = aws_db_instance.main.multi_az && aws_db_instance.main.deletion_protection
     error_message = "Production database: Multi-AZ and deletion protection."
+  }
+  assert {
+    condition     = aws_elasticache_replication_group.main.automatic_failover_enabled
+    error_message = "Robust version: Redis with failover."
+  }
+  assert {
+    condition     = aws_lb.main.enable_deletion_protection
+    error_message = "Production load balancer: deletion protection."
+  }
+}
+
+# Question 24: the starting version (one zone, one NAT, one copy) keeps the
+# protections and the backups of production.
+run "produzione_starting_version_stays_protected" {
+  command = apply
+  variables {
+    environment        = "produzione"
+    db_multi_az        = false
+    nat_gateways       = 1
+    desired_count      = 1
+    github_environment = "produzione"
+  }
+
+  assert {
+    condition     = aws_db_instance.main.deletion_protection && aws_db_instance.main.backup_retention_period > 0
+    error_message = "Production database, also in the starting version: deletion protection and backups."
   }
   assert {
     condition     = aws_lb.main.enable_deletion_protection
