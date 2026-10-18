@@ -29,3 +29,30 @@ describe("notification texts from seed/notifiche.yaml", () => {
     expect(() => render("Ciao {{nome}}", {})).toThrow(MissingTemplateVariableError);
   });
 });
+
+describe("phase 7 the template engine", () => {
+  it("formats amounts, dates and labels in the recipient's language", () => {
+    const vars = {
+      importo: { cents: 50_500 },
+      quando: { dateTime: "2026-10-14T08:30:00.000Z" },
+      giorno: { date: "2026-12-01" },
+    };
+    const plain = (text: string) => text.replace(/\u00a0/g, " ");
+    expect(plain(render("{{importo}} · {{quando}} · {{giorno}}", vars, { locale: "it" }))).toBe(
+      "505,00 € · mercoledì 14 ottobre alle 10:30 · 1 dicembre 2026",
+    );
+    const sq = render("{{importo}} · {{quando}}", vars, { locale: "sq" });
+    expect(sq).toContain("505,00");
+    expect(sq).toContain("tetor");
+    expect(sq).toContain("ora 10:30");
+  });
+
+  it("an empty variable leaves no double space, no space before punctuation, no empty line", () => {
+    expect(render("Ciao {{nome}} {{cognome}}, ecco.", { nome: "Anna", cognome: "" })).toBe(
+      "Ciao Anna, ecco.",
+    );
+    expect(render("Riga uno\n{{extra}}\nRiga due", { extra: "" })).toBe("Riga uno\nRiga due");
+    // An empty line written on purpose stays.
+    expect(render("Uno\n\nDue", {})).toBe("Uno\n\nDue");
+  });
+});

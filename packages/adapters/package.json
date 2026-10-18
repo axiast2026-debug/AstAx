@@ -59,6 +59,10 @@
     "./xml": {
       "types": "./dist/xml/index.d.ts",
       "default": "./dist/xml/index.js"
+    },
+    "./web-push": {
+      "types": "./dist/web-push/index.d.ts",
+      "default": "./dist/web-push/index.js"
     }
   },
   "scripts": {

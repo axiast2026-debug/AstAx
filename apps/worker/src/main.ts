@@ -4,6 +4,7 @@ import { DEV_CLOCK_OFFSET_KEY, OffsetClock, SystemClock } from "@astax/adapters/
 import { LocalFieldCipher } from "@astax/adapters/crypto";
 import { FakeDocumentReader } from "@astax/adapters/document-reader";
 import { MailpitEmailSender } from "@astax/adapters/email";
+import { MailpitWebPush } from "@astax/adapters/web-push";
 import { KMS_KEYS, LocalKms } from "@astax/adapters/kms";
 import {
   InMemoryObjectStorage,
@@ -80,7 +81,12 @@ const activities = createActivities({
   storage,
   // Rule 9: the fake reader until phase 8; it reads the stored quote itself.
   reader: new FakeDocumentReader(clock, undefined, undefined, (key) => storage.get(key)),
-  notifier: new WorkerNotifier(email, logger),
+  notifier: new WorkerNotifier(email, logger, {
+    db,
+    clock,
+    cipher: fieldCipher,
+    push: new MailpitWebPush(email),
+  }),
   logger,
   urls: { web: config.WEB_URL, admin: config.ADMIN_URL },
   publish,

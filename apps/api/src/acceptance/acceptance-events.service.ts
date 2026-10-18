@@ -38,7 +38,8 @@ import {
   SIGNATURE,
 } from "../infra/tokens.js";
 import labels from "../notifications/labels.it.json" with { type: "json" };
-import { NotificationService } from "../notifications/notification.service.js";
+import { NotificationService, type Outbound } from "../notifications/notification.service.js";
+import type { TemplateVariables } from "@astax/shared/notifications";
 import { Postbox } from "../notifications/postbox.js";
 import { RefundsService } from "../refunds/refunds.service.js";
 import { AcceptanceService } from "./acceptance.service.js";
@@ -51,12 +52,8 @@ const SYSTEM_ACTOR = {
   userAgent: null,
 };
 
-export interface Email {
-  to: string;
-  eventKey: string;
-  variables: Record<string, string>;
-  ids: Record<string, string>;
-}
+/** What the use case sends after its commit (NotificationService.deliver). */
+export type Email = Outbound;
 
 /**
  * The outcomes the providers report by webhook, each handled once
@@ -95,39 +92,38 @@ export class AcceptanceEventsService {
   }
 
   async sendAll(emails: Email[]) {
-    for (const e of emails) {
-      await this.notifications
-        .sendEmail(e.to, e.eventKey, e.variables, e.ids)
-        .catch(() => undefined);
-    }
+    await this.notifications.send(emails.splice(0));
   }
 
   private requesterLink(request: QuoteRequest) {
     return `${this.config.WEB_URL}${request.channel === "PRIVATE" ? "/preventivi" : "/richieste"}/${request.id}`;
   }
 
-  /** In-app rows now, emails after the commit (rule 8: identifiers in the logs). */
+  /** In-app rows now, the rest after the commit (rule 8: identifiers in the logs). */
   private async tell(
     tx: DbTransaction,
     emails: Email[],
-    users: { id: string; locale: "it" | "sq"; emailEnc: string | null }[],
+    users: { id: string; locale: "it" | "sq"; emailEnc: string | null; phoneEnc?: string | null }[],
     eventKey: string,
-    variables: Record<string, string>,
+    variables: TemplateVariables,
     link: string,
     payload: Record<string, string>,
   ) {
-    await this.notifications.inApp(
-      tx,
-      users.map((u) => ({ userId: u.id, locale: u.locale })),
-      eventKey,
-      () => variables,
-      new URL(link, this.config.WEB_URL).pathname,
-      payload,
+    emails.push(
+      ...(await this.notifications.deliver(
+        tx,
+        users.map((u) => ({
+          userId: u.id,
+          locale: u.locale,
+          email: u.emailEnc ? this.cipher.decrypt(u.emailEnc) : null,
+          phone: u.phoneEnc ? this.cipher.decrypt(u.phoneEnc) : null,
+        })),
+        eventKey,
+        () => variables,
+        new URL(link, this.config.WEB_URL).pathname,
+        payload,
+      )),
     );
-    for (const u of users) {
-      if (u.emailEnc)
-        emails.push({ to: this.cipher.decrypt(u.emailEnc), eventKey, variables, ids: payload });
-    }
   }
 
   private agencyUsers(tx: DbTransaction, organizationId: string, authorUserId: string | null) {

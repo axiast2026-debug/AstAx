@@ -17,3 +17,5 @@ export const SIGNATURE = Symbol("SIGNATURE");
 export const PAYMENTS = Symbol("PAYMENTS");
 export const AI_EXPLAINER = Symbol("AI_EXPLAINER");
 export const E_INVOICING = Symbol("E_INVOICING");
+export const WEB_PUSH = Symbol("WEB_PUSH");
+export const NOTIFICATION_TEMPLATES = Symbol("NOTIFICATION_TEMPLATES");

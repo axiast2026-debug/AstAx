@@ -554,17 +554,22 @@ export class VerificationService {
       link: `${this.config.WEB_URL}${link}`,
       ...variables,
     };
-    await this.notifications.inApp(
+    // The channels follow the template and the requester's choices; sent after the commit.
+    return this.notifications.deliver(
       tx,
-      [{ userId: user.id, locale: user.locale }],
+      [
+        {
+          userId: user.id,
+          locale: user.locale,
+          email: user.emailEnc ? this.cipher.decrypt(user.emailEnc) : null,
+          phone: null,
+        },
+      ],
       eventKey,
       () => all,
       link,
-      {
-        requestId: request.id,
-      },
+      { requestId: request.id },
     );
-    return { email: user.emailEnc ? this.cipher.decrypt(user.emailEnc) : null, variables: all };
   }
 
   async requestIntegration(auth: AuthContext, id: string, input: IntegrationInput) {
@@ -625,14 +630,7 @@ export class VerificationService {
         messaggio_back_office: input.message ?? "",
       });
     });
-    if (sent.email) {
-      await this.notifications.sendEmail(
-        sent.email,
-        "request.integration_requested",
-        sent.variables,
-        { requestId: id },
-      );
-    }
+    await this.notifications.send(sent);
     this.logger.info({ requestId: id }, "integration requested");
     return { decision: "INTEGRATION_REQUESTED" as const };
   }
@@ -672,10 +670,7 @@ export class VerificationService {
         messaggio_back_office: input.message ?? "",
       });
     });
-    if (sent.email)
-      await this.notifications.sendEmail(sent.email, "request.excluded", sent.variables, {
-        requestId: id,
-      });
+    await this.notifications.send(sent);
     return { decision: "EXCLUDED" as const };
   }
 }

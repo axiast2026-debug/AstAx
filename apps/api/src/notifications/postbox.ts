@@ -1,23 +1,27 @@
 import type { FieldCipher } from "@astax/adapters/crypto";
 import { asSystem, type DbTransaction, type MembershipRole } from "@astax/db";
-import type { NotificationService } from "./notification.service.js";
+import type { TemplateVariables } from "@astax/shared/notifications";
+import type { NotificationService, Outbound } from "./notification.service.js";
 
 export interface PostboxUser {
   id: string;
   locale: "it" | "sq";
   emailEnc: string | null;
+  phoneEnc?: string | null;
 }
 
 /**
- * The notifications of one use case: the in-app rows in its transaction, the
- * emails kept and sent after the commit, so a rolled back change sends
- * nothing. Payloads and logs carry identifiers only (rule 8).
+ * The notifications of one use case: the in-app rows in its transaction; email,
+ * SMS and push kept and sent after the commit, so a rolled back change sends
+ * nothing. The channels follow the template and each user's choices
+ * (NotificationService.deliver). Payloads and logs carry identifiers only (rule 8).
  */
 export class Postbox {
+  readonly #outbound: Outbound[] = [];
   readonly #emails: {
     to: string;
     eventKey: string;
-    variables: Record<string, string>;
+    variables: TemplateVariables;
     ids: Record<string, string>;
   }[] = [];
 
@@ -31,43 +35,35 @@ export class Postbox {
     tx: DbTransaction,
     users: readonly PostboxUser[],
     eventKey: string,
-    variables: Record<string, string>,
+    variables: TemplateVariables,
     link: string,
     payload: Record<string, string>,
     options: { email?: boolean } = {},
   ): Promise<void> {
-    await this.notifications.inApp(
+    const out = await this.notifications.deliver(
       tx,
-      users.map((u) => ({ userId: u.id, locale: u.locale })),
+      users.map((u) => ({
+        userId: u.id,
+        locale: u.locale,
+        email: u.emailEnc ? this.cipher.decrypt(u.emailEnc) : null,
+        phone: u.phoneEnc ? this.cipher.decrypt(u.phoneEnc) : null,
+      })),
       eventKey,
       () => variables,
       new URL(link, this.webUrl).pathname,
       payload,
+      options.email === false ? ["IN_APP", "PUSH"] : undefined,
     );
-    if (options.email === false) return;
-    for (const u of users) {
-      if (u.emailEnc) {
-        this.#emails.push({
-          to: this.cipher.decrypt(u.emailEnc),
-          eventKey,
-          variables,
-          ids: payload,
-        });
-      }
-    }
+    this.#outbound.push(...out);
   }
 
   /** An email to an address with no account (the broker's customer). */
-  email(
-    to: string,
-    eventKey: string,
-    variables: Record<string, string>,
-    ids: Record<string, string>,
-  ) {
+  email(to: string, eventKey: string, variables: TemplateVariables, ids: Record<string, string>) {
     this.#emails.push({ to, eventKey, variables, ids });
   }
 
   async flush(): Promise<void> {
+    await this.notifications.send(this.#outbound.splice(0));
     for (const e of this.#emails.splice(0)) {
       await this.notifications
         .sendEmail(e.to, e.eventKey, e.variables, e.ids)

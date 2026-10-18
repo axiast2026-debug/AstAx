@@ -42,3 +42,19 @@ export {
 } from "./invoices.js";
 export { publishLastRanking, type PublishedRanking } from "./rankings.js";
 export { createRenewalDraft, nextRequestCode } from "./renewals.js";
+export {
+  asRenderable,
+  loadStoredTemplates,
+  seedNotificationTemplates,
+  TemplateStore,
+  templatesFromFile,
+  type StoredTemplate,
+  type TemplateTexts,
+} from "./notification-templates.js";
+export {
+  dedupeKeyOf,
+  DUPLICATE_WINDOW_MS,
+  planDispatch,
+  type DispatchPlan,
+  type DispatchUser,
+} from "./notification-dispatch.js";

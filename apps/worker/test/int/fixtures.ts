@@ -61,7 +61,7 @@ export function harness(start: string): Harness {
     cipher,
     storage,
     reader: new FakeDocumentReader(clock, undefined, undefined, (key) => storage.get(key)),
-    notifier: new WorkerNotifier(email, logger),
+    notifier: new WorkerNotifier(email, logger, { clock, cipher }),
     logger,
     urls: { web: "http://web.test", admin: "http://admin.test" },
     publish: async (event) => {

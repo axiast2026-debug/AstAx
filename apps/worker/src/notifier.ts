@@ -1,5 +1,17 @@
+import type { Clock } from "@astax/adapters/clock";
+import type { FieldCipher } from "@astax/adapters/crypto";
 import type { EmailSender } from "@astax/adapters/email";
-import { asSystem, type DbTransaction } from "@astax/db";
+import type { PushMessage, PushSubscriptionData, WebPushPort } from "@astax/adapters/web-push";
+import {
+  asRenderable,
+  asSystem,
+  planDispatch,
+  TemplateStore,
+  templatesFromFile,
+  type DbClient,
+  type DbTransaction,
+  type StoredTemplate,
+} from "@astax/db";
 import { errorForLog, type Logger } from "@astax/shared/logging";
 import {
   label,
@@ -8,7 +20,9 @@ import {
   type NotificationLabels,
   renderEmail,
   renderInApp,
+  renderPush,
   type NotificationTemplates,
+  type TemplateVariables,
 } from "@astax/shared/notifications";
 
 export interface Recipient {
@@ -18,30 +32,64 @@ export interface Recipient {
   email: string | null;
 }
 
-interface PendingEmail {
+/** An email to send after the commit (also to an address with no account). */
+interface PendingMail {
+  kind?: "email";
   to: string;
   eventKey: string;
-  variables: Record<string, string>;
+  variables: TemplateVariables;
   locale: "it" | "sq";
   ids: Record<string, string>;
 }
 
+interface PendingPush {
+  kind: "push";
+  subscription: PushSubscriptionData;
+  message: PushMessage;
+  eventKey: string;
+  ids: Record<string, string>;
+}
+
+type PendingEmail = PendingMail | PendingPush;
+
 /**
- * Notifications of seed/notifiche.yaml sent by the worker. In-app rows join the
- * activity's transaction; emails wait in `pending` and go out after the commit,
- * so that a rolled back activity sends nothing. A failed email is logged with
- * identifiers only and does not undo the activity.
+ * Notifications sent by the worker (docs/notifiche.md). The texts in force
+ * come from NotificationTemplate (phase 7; the file before the seed and in
+ * tests); who gets which channel is decided by planDispatch (choices,
+ * mandatory, forcePush, no duplicates). In-app rows join the activity's
+ * transaction; emails and pushes wait in `pending` and go out after the
+ * commit, so that a rolled back activity sends nothing. A failed send is
+ * logged with identifiers only and does not undo the activity.
  */
 export class WorkerNotifier {
-  readonly #templates: NotificationTemplates;
+  readonly #file: NotificationTemplates;
   readonly #labels: NotificationLabels = loadNotificationLabels();
+  readonly #store: TemplateStore | null;
 
   constructor(
     private readonly email: EmailSender,
     private readonly logger: Logger,
-    templates?: NotificationTemplates,
+    private readonly options: {
+      templates?: NotificationTemplates;
+      db?: DbClient;
+      clock?: Clock;
+      cipher?: FieldCipher;
+      push?: WebPushPort;
+    } = {},
   ) {
-    this.#templates = templates ?? loadNotificationTemplates();
+    this.#file = options.templates ?? loadNotificationTemplates();
+    this.#store =
+      options.db && options.clock
+        ? new TemplateStore(
+            options.db,
+            () => options.clock?.now().getTime() ?? 0,
+            () => this.#file,
+          )
+        : null;
+  }
+
+  private async stored(): Promise<Map<string, StoredTemplate>> {
+    return this.#store ? this.#store.get() : templatesFromFile(this.#file);
   }
 
   /** A label of seed/notifiche.yaml in the recipient's language (no text in the code). */
@@ -50,15 +98,15 @@ export class WorkerNotifier {
   }
 
   hasEmail(eventKey: string): boolean {
-    return Boolean(this.#templates[eventKey]?.it.emailSubject);
+    return Boolean(this.#file[eventKey]?.it.emailSubject);
   }
 
-  /** Rendered texts, for the tests on what agencies receive. */
-  render(eventKey: string, locale: "it" | "sq", variables: Record<string, string>) {
+  /** Rendered texts of the file, for the tests on what agencies receive. */
+  render(eventKey: string, locale: "it" | "sq", variables: TemplateVariables) {
     return {
-      inApp: renderInApp(this.#templates, eventKey, locale, variables),
+      inApp: renderInApp(this.#file, eventKey, locale, variables, this.#labels),
       email: this.hasEmail(eventKey)
-        ? renderEmail(this.#templates, eventKey, locale, variables)
+        ? renderEmail(this.#file, eventKey, locale, variables, this.#labels)
         : null,
     };
   }
@@ -68,30 +116,65 @@ export class WorkerNotifier {
     pending: PendingEmail[],
     recipients: readonly Recipient[],
     eventKey: string,
-    variables: (locale: "it" | "sq") => Record<string, string>,
+    variables: (locale: "it" | "sq") => TemplateVariables,
     link: string | null,
     ids: Record<string, string>,
   ): Promise<void> {
     if (recipients.length === 0) return;
-    await asSystem(tx, () =>
-      tx.notification.createMany({
-        data: recipients.map((r) => ({
+    const stored = await this.stored();
+    const template = stored.get(eventKey);
+    if (!template) throw new Error(`No template for ${eventKey}`);
+    const texts = asRenderable(stored);
+    const now = this.options.clock?.now() ?? new Date(0);
+    const plan = await asSystem(tx, () =>
+      planDispatch(
+        tx,
+        template,
+        recipients.map((r) => ({
           userId: r.userId,
-          eventKey,
-          ...renderInApp(this.#templates, eventKey, r.locale, variables(r.locale)),
-          link,
-          payload: ids,
-        })),
-      }),
-    );
-    if (!this.hasEmail(eventKey)) return;
-    for (const r of recipients) {
-      if (r.email) {
-        pending.push({
-          to: r.email,
-          eventKey,
-          variables: variables(r.locale),
           locale: r.locale,
+          email: r.email,
+          phone: null,
+        })),
+        ids,
+        { now },
+      ),
+    );
+    if (plan.inApp.length > 0) {
+      await asSystem(tx, () =>
+        tx.notification.createMany({
+          data: plan.inApp.map((r) => ({
+            userId: r.userId,
+            eventKey,
+            ...renderInApp(texts, eventKey, r.locale, variables(r.locale), this.#labels),
+            link,
+            payload: ids,
+          })),
+        }),
+      );
+    }
+    for (const r of plan.email) {
+      pending.push({
+        to: r.email ?? "",
+        eventKey,
+        variables: variables(r.locale),
+        locale: r.locale,
+        ids,
+      });
+    }
+    const cipher = this.options.cipher;
+    if (!cipher) return;
+    for (const { user, subscriptions } of plan.push) {
+      const message = {
+        ...renderPush(texts, eventKey, user.locale, variables(user.locale), this.#labels),
+        url: link ?? "/notifiche",
+      };
+      for (const enc of subscriptions) {
+        pending.push({
+          kind: "push",
+          subscription: JSON.parse(cipher.decrypt(enc)) as PushSubscriptionData,
+          message,
+          eventKey,
           ids,
         });
       }
@@ -99,16 +182,21 @@ export class WorkerNotifier {
   }
 
   async flush(pending: readonly PendingEmail[]): Promise<void> {
+    const texts = asRenderable(await this.stored());
     for (const p of pending) {
       try {
-        await this.email.send({
-          to: p.to,
-          ...renderEmail(this.#templates, p.eventKey, p.locale, p.variables),
-        });
+        if (p.kind === "push") {
+          await this.options.push?.send(p.subscription, p.message);
+        } else {
+          await this.email.send({
+            to: p.to,
+            ...renderEmail(texts, p.eventKey, p.locale, p.variables, this.#labels),
+          });
+        }
       } catch (error) {
         this.logger.error(
           { eventKey: p.eventKey, ...p.ids, err: errorForLog(error) },
-          "email not sent",
+          "notification not sent",
         );
       }
     }

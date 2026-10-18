@@ -140,35 +140,25 @@ export class QuoteChecksService {
           codice: request.code,
           link: `${this.config.WEB_URL}/le-mie-offerte`,
         };
-        await this.notifications.inApp(
+        const outbound = await this.notifications.deliver(
           tx,
-          members.map((m) => ({ userId: m.user.id, locale: m.user.locale })),
+          members.map((m) => ({
+            userId: m.user.id,
+            locale: m.user.locale,
+            email: m.user.emailEnc ? this.cipher.decrypt(m.user.emailEnc) : null,
+            phone: null,
+          })),
           "offer.excluded_after_review",
           () => variables,
           "/le-mie-offerte",
           { offerId: offer.id },
         );
-        return {
-          decision: input.decision,
-          emails: members.flatMap((m) =>
-            m.user.emailEnc ? [this.cipher.decrypt(m.user.emailEnc)] : [],
-          ),
-          variables,
-          offerId: offer.id,
-        };
+        return { decision: input.decision, outbound };
       }
-      return { decision: input.decision, emails: [], variables: null, offerId: offer.id };
+      return { decision: input.decision, outbound: [] };
     }).then(async (outcome) => {
-      // Emails after the commit, identifiers only in the logs (rule 8).
-      if (outcome.variables) {
-        for (const to of outcome.emails) {
-          await this.notifications
-            .sendEmail(to, "offer.excluded_after_review", outcome.variables, {
-              offerId: outcome.offerId,
-            })
-            .catch(() => undefined);
-        }
-      }
+      // After the commit, identifiers only in the logs (rule 8).
+      await this.notifications.send(outcome.outbound);
       return { decision: outcome.decision };
     });
   }

@@ -54,3 +54,25 @@ export function calendarDateToDbDate(date: string): Date {
 export function dbDateToCalendarDate(value: Date): string {
   return value.toISOString().slice(0, 10);
 }
+
+/**
+ * Dates in the notifications (docs/notifiche.md): «martedì 14 ottobre alle
+ * 10:30», «e martë, 14 tetor, ora 10:30», in Rome.
+ */
+export function formatNotificationDateTime(
+  value: Date | string,
+  locale: DisplayLocale = "it",
+): string {
+  const day = new Intl.DateTimeFormat(LOCALE_TAG[locale], {
+    timeZone: DISPLAY_TIME_ZONE,
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(new Date(value));
+  const time = new Intl.DateTimeFormat(LOCALE_TAG[locale], {
+    timeZone: DISPLAY_TIME_ZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+  return locale === "sq" ? `${day}, ora ${time}` : `${day} alle ${time}`;
+}

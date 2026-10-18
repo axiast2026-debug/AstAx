@@ -1,8 +1,10 @@
+import { loadNotificationTemplates } from "@astax/shared/notifications";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseSeedSettings } from "@astax/shared/settings";
 import { z } from "zod";
 import type { DbTransaction } from "../client.js";
+import { seedNotificationTemplates } from "../notification-templates.js";
 import { parseSemicolonCsv } from "./csv.js";
 import { LEGAL_PLACEHOLDERS, placeholderContent } from "./legal-placeholders.js";
 
@@ -68,6 +70,7 @@ export function readMunicipalities(
 
 export interface ReferenceCounts {
   settings: number;
+  notificationTemplates: number;
   listValues: number;
   holidays: number;
   legalDocuments: number;
@@ -199,8 +202,15 @@ export async function seedReference(tx: DbTransaction, repoRoot: string): Promis
     });
   }
 
+  // Phase 7: the texts of the notifications, editable from then on by the administrator.
+  const notificationTemplates = await seedNotificationTemplates(
+    tx,
+    loadNotificationTemplates(repoRoot),
+  );
+
   return {
     settings: settings.length,
+    notificationTemplates,
     listValues,
     holidays: holidays.length,
     legalDocuments: LEGAL_PLACEHOLDERS.length,

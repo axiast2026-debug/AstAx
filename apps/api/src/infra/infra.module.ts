@@ -4,6 +4,8 @@ import { MailpitEmailSender, type EmailSender } from "@astax/adapters/email";
 import { KeycloakAdmin } from "@astax/adapters/identity";
 import { FakeDocumentReader, type DocumentReaderPort } from "@astax/adapters/document-reader";
 import { MailpitSmsSender, type SmsPort } from "@astax/adapters/sms";
+import { MailpitWebPush, type WebPushPort } from "@astax/adapters/web-push";
+import { loadNotificationTemplates } from "@astax/shared/notifications";
 import {
   InMemoryObjectStorage,
   S3ObjectStorage,
@@ -16,7 +18,7 @@ import { FakeEInvoicing, type EInvoicingPort } from "@astax/adapters/e-invoicing
 import { FakePaymentsProvider, type PaymentsPort } from "@astax/adapters/payments";
 import { FakeSignatureProvider, type SignaturePort } from "@astax/adapters/signature";
 import { createHmac } from "node:crypto";
-import { createDbClient, kmsEventRecorder, type DbClient } from "@astax/db";
+import { createDbClient, kmsEventRecorder, TemplateStore, type DbClient } from "@astax/db";
 import { createLogger, errorForLog, type Logger } from "@astax/shared/logging";
 import {
   Global,
@@ -42,6 +44,8 @@ import {
   PLATE_LOOKUP,
   KMS,
   SMS_SENDER,
+  WEB_PUSH,
+  NOTIFICATION_TEMPLATES,
   TOKEN_VERIFIER,
   WORKFLOW_SIGNALS,
   SIGNATURE,
@@ -58,6 +62,7 @@ export interface InfraOverrides {
   identityAdmin?: IdentityAdmin;
   emailSender?: EmailSender;
   smsSender?: SmsPort;
+  webPush?: WebPushPort;
   objectStorage?: ObjectStoragePort;
   plateLookup?: PlateLookupPort;
   documentReader?: DocumentReaderPort;
@@ -169,6 +174,19 @@ export class InfraModule {
         },
         { provide: EMAIL_SENDER, useValue: emailSender },
         { provide: SMS_SENDER, useValue: overrides.smsSender ?? new MailpitSmsSender(emailSender) },
+        // Proposal B of phase 7: the fake push until phase 8, delivered to Mailpit.
+        { provide: WEB_PUSH, useValue: overrides.webPush ?? new MailpitWebPush(emailSender) },
+        {
+          // The texts in force (NotificationTemplate), read again every 30 seconds.
+          provide: NOTIFICATION_TEMPLATES,
+          inject: [DB],
+          useFactory: (db: DbClient) =>
+            new TemplateStore(
+              db,
+              () => clock.now().getTime(),
+              () => loadNotificationTemplates(),
+            ),
+        },
         { provide: OBJECT_STORAGE, useValue: objectStorage },
         { provide: PLATE_LOOKUP, useValue: plateLookup },
         {
@@ -236,6 +254,8 @@ export class InfraModule {
         IDENTITY_ADMIN,
         EMAIL_SENDER,
         SMS_SENDER,
+        WEB_PUSH,
+        NOTIFICATION_TEMPLATES,
         OBJECT_STORAGE,
         PLATE_LOOKUP,
         DOCUMENT_READER,

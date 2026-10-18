@@ -1785,3 +1785,72 @@ model Flag {
 
   @@index([status])
 }
+
+// ---------------------------------------------------------------------------
+// Notifications (phase 7)
+// ---------------------------------------------------------------------------
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+  PUSH
+}
+
+/// The texts of an event (it, sq) with versions; the latest is in force. The
+/// seed loads seed/notifiche.yaml as version 1; the administrator edits it.
+model NotificationTemplate {
+  id              String                @id @default(uuid(7)) @db.Uuid
+  eventKey        String
+  version         Int
+  recipients      String[]              @default([])
+  channels        NotificationChannel[]
+  mandatory       Boolean               @default(false)
+  forcePush       Boolean               @default(false)
+  variables       String[]              @default([])
+  /// { it: { title, body, emailSubject, emailBody, sms }, sq?: {…} }
+  content         Json
+  reason          String?
+  changedByUserId String?               @db.Uuid
+  createdAt       DateTime              @default(now()) @db.Timestamptz(3)
+
+  @@unique([eventKey, version])
+}
+
+/// A user's choice for an event and a channel; no row means the default (on).
+model NotificationPreference {
+  id        String              @id @default(uuid(7)) @db.Uuid
+  userId    String              @db.Uuid
+  eventKey  String
+  channel   NotificationChannel
+  enabled   Boolean
+  updatedAt DateTime            @default(now()) @db.Timestamptz(3)
+
+  @@unique([userId, eventKey, channel])
+}
+
+/// A browser's Web Push subscription, encrypted (it is a personal address).
+model PushSubscription {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  userId          String    @db.Uuid
+  endpointHash    String    @unique
+  subscriptionEnc String
+  createdAt       DateTime  @default(now()) @db.Timestamptz(3)
+  revokedAt       DateTime? @db.Timestamptz(3)
+
+  @@index([userId])
+}
+
+/// What was sent: the same event to the same recipient and channel within a short window is a duplicate.
+model NotificationDispatch {
+  id        String              @id @default(uuid(7)) @db.Uuid
+  eventKey  String
+  dedupeKey String
+  userId    String?             @db.Uuid
+  /// The hash of the address, for a recipient without an account.
+  address   String?
+  channel   NotificationChannel
+  createdAt DateTime            @default(now()) @db.Timestamptz(3)
+
+  @@index([eventKey, dedupeKey, channel, userId, createdAt], map: "NotificationDispatch_lookup_idx")
+}
