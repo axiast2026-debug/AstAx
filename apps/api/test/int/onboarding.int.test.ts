@@ -176,6 +176,24 @@ describe("phase 7 entry of a new agency", () => {
       "Compagnia Gamma": "RUI",
       "Compagnia Delta": "MANUAL",
     });
+    // Question 19, answer B: invited to the auctions at once, with the widest filters.
+    const [filter, capacity] = await system((tx) =>
+      Promise.all([
+        tx.agencyFilter.findUniqueOrThrow({ where: { organizationId: approved.organizationId } }),
+        tx.agencyCapacity.findUniqueOrThrow({ where: { organizationId: approved.organizationId } }),
+      ]),
+    );
+    expect(filter.criteria).toMatchObject({
+      provinces: null,
+      cuClassMin: 1,
+      cuClassMax: 18,
+      maxStartDateDays: 60,
+      maxGuaranteeDays: 30,
+    });
+    expect([...(filter.criteria as { companies: string[] }).companies].sort()).toEqual(
+      mandates.map((m) => m.companyId).sort(),
+    );
+    expect(capacity.receptionHours).toMatchObject({ mon: [["09:00", "19:00"]] });
     // The first invitation: the Keycloak account and the welcome email.
     expect(h.identity.calls.some((c) => c.method === "createUser")).toBe(true);
     expect(h.email.sent.some((m) => m.to === OWNER_EMAIL && m.subject.includes("attiva"))).toBe(

@@ -15,6 +15,7 @@ import {
   type OnboardingApplication,
   type RuiCheck,
 } from "@astax/db";
+import { AgencyFilterCriteriaSchema, type WeeklyHours } from "@astax/shared/domain";
 import { Inject, Injectable } from "@nestjs/common";
 import type { ApiConfig } from "../config/config.js";
 import { actorOf, AuditService, type AuditActor } from "../audit/audit.service.js";
@@ -603,6 +604,43 @@ export class OnboardingService {
    * confirmed there), and the owner's invitation; the contracts accepted in
    * the entry count for the owner at the first access (LEG-01).
    */
+  /**
+   * Question 19, answer B: an approved agency is invited to the auctions at
+   * once. It starts with the widest filters (every vehicle, province, class,
+   * age and package, its mandated companies) and receives in the working
+   * hours; the owner narrows them later from the agency's settings.
+   */
+  private async startingFilters(
+    tx: DbTransaction,
+    organizationId: string,
+    companies: readonly { id: string }[],
+    values: { workingHours: WeeklyHours; maxStartDateDays: number; maxGuaranteeDays: number },
+  ) {
+    const [vehicleTypes, packages] = await Promise.all([
+      tx.listValue.findMany({ where: { listKey: "vehicleType", active: true } }),
+      tx.coveragePackage.findMany(),
+    ]);
+    const criteria = AgencyFilterCriteriaSchema.parse({
+      vehicleTypes: vehicleTypes.map((v) => v.code),
+      provinces: null,
+      cuClassMin: 1,
+      cuClassMax: 18,
+      maxClaimsLast5y: null,
+      driverAgeMin: 18,
+      driverAgeMax: 120,
+      packages: packages.map((p) => p.code),
+      companies: companies.map((c) => c.id),
+      maxStartDateDays: values.maxStartDateDays,
+      maxGuaranteeDays: values.maxGuaranteeDays,
+    });
+    await asSystem(tx, async () => {
+      await tx.agencyFilter.create({ data: { organizationId, criteria } });
+      await tx.agencyCapacity.create({
+        data: { organizationId, dailyMax: null, receptionHours: values.workingHours },
+      });
+    });
+  }
+
   async approve(auth: AuthContext, id: string, reason: string) {
     const now = this.clock.now();
     // An address with a Keycloak account already: reused if professional; a
@@ -652,9 +690,19 @@ export class OnboardingService {
       const existing = await asSystem(tx, () =>
         tx.user.findUnique({ where: { emailHash: a.ownerEmailHash } }),
       );
-      const { "team.inviteValidityDays": days } = await settingsAt(
+      const {
+        "team.inviteValidityDays": days,
+        "calendar.workingHours": workingHours,
+        "agency.defaultFilter.maxStartDateDays": maxStartDateDays,
+        "agency.defaultFilter.maxGuaranteeDays": maxGuaranteeDays,
+      } = await settingsAt(
         tx,
-        ["team.inviteValidityDays"],
+        [
+          "team.inviteValidityDays",
+          "calendar.workingHours",
+          "agency.defaultFilter.maxStartDateDays",
+          "agency.defaultFilter.maxGuaranteeDays",
+        ],
         now,
       );
       const organization = await asSystem(tx, () =>
@@ -679,6 +727,13 @@ export class OnboardingService {
           },
         }),
       );
+      if (a.type === "AGENCY" && companies.length > 0) {
+        await this.startingFilters(tx, organization.id, companies, {
+          workingHours,
+          maxStartDateDays,
+          maxGuaranteeDays,
+        });
+      }
       for (const c of companies) {
         await asSystem(tx, () =>
           tx.agencyMandate.create({
