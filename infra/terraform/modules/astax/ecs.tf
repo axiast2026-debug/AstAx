@@ -150,6 +150,7 @@ locals {
         WORKER_HEALTH_PORT     = "4100"
         KMS_SEALED_BIDS_KEY_ID = aws_kms_key.sealed_bids.arn
         KMS_WORKER_ROLE_ARN    = aws_iam_role.task["worker"].arn
+        AUDIT_ARCHIVE_BUCKET   = aws_s3_bucket.this["audit"].bucket
       })
       secrets = local.backend_secrets
     }

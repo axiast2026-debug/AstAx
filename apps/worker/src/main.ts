@@ -99,6 +99,8 @@ const sms =
       })
     : new MailpitSmsSender(email);
 const storage = storageFor(config);
+// SIC-04: the archive of the audit log copies, a bucket of its own.
+const auditArchive = storageFor({ ...config, S3_BUCKET: config.AUDIT_ARCHIVE_BUCKET });
 const fieldCipher = new LocalFieldCipher(config.FIELD_ENCRYPTION_KEY, config.BLIND_INDEX_KEY);
 // Phase 8: real Web Push with PUSH_PROVIDER=vapid; a subscription gone is revoked.
 const push = revokingGone(
@@ -198,6 +200,8 @@ const stopSchedules = startSchedules(
     rui: new FakeRuiRegistry(),
     notifier,
     adminUrl: config.ADMIN_URL,
+    archiveAudit: (key, body) =>
+      auditArchive.put({ key, body, contentType: "application/x-ndjson" }),
     // BC-03: the nightly check of the sealed bids' key, from the app's record and from CloudTrail.
     keySources: [
       { name: "app", source: kmsEventSource(db), principals: ["worker"] },

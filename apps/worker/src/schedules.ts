@@ -9,6 +9,7 @@ import {
 import type { KeyEventsSource } from "@astax/adapters/kms";
 import {
   appendAudit,
+  archiveAuditLog,
   checkSealedBidDecryptions,
   complaintsToRemind,
   importRuiRecords,
@@ -285,6 +286,8 @@ export function startSchedules(
       source: KeyEventsSource;
       principals: readonly string[];
     }[];
+    /** SIC-04: writes a copy of the audit log into the archive with Object Lock. */
+    archiveAudit?: (key: string, body: Uint8Array) => Promise<void>;
   },
   intervalMs: number,
 ): () => void {
@@ -318,6 +321,13 @@ export function startSchedules(
           }
         },
       ),
+      // SIC-04: the new audit entries copied into the archive nobody can change.
+      (deps.archiveAudit
+        ? archiveAuditLog(db, deps.archiveAudit, now)
+        : Promise.resolve(null)
+      ).then((result) => {
+        if (result && result.entries > 0) logger.info(result, "audit log archived");
+      }),
       // BC-03: once a day the decryptions of the sealed bids' key.
       (keysDay === romeCalendarDate(now) || !deps.keySources
         ? Promise.resolve(null)

@@ -13,11 +13,24 @@ Claude Code aggiorna questo file alla fine di ogni sessione di lavoro e alla chi
 | 5. Accettazione | In corso | | Tutti i passi del piano fatti (proposte A-I); in corso le prove finali e la verifica indipendente; poi la demo con Dan |
 | 6. Dopo l'acquisto | In verifica | | Tutti i passi fatti; due giri di verifica indipendente con le correzioni; E2E S01, S02, S05, S08, S09 verdi; manca la demo con Dan (e i punti aperti in «Verifica indipendente (fase 6, secondo giro)») |
 | 7. Pannelli e notifiche | In verifica | | Piano approvato da Dan il 2026-10-18 (proposte A-L); tutti i passi fatti; verifica indipendente con le correzioni; manca la demo con Dan |
-| 8. Fornitori reali e sicurezza | In corso | | Piano approvato da Dan il 2026-10-18 (proposte A-H): parte A in locale, senza account; parte B con gli accessi di Dan |
+| 8. Fornitori reali e sicurezza | In corso | | Piano approvato da Dan il 2026-10-18 (proposte A-H). Parte A fatta (in locale, senza account); parte B in attesa degli accessi di Dan (AWS, domini, sandbox, documenti, società del test di sicurezza) |
 
 Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in attesa della revisione di Dan), Chiusa.
 
 ## Ultima sessione
+
+**2026-10-18 — fase 8, parte A** (piano approvato da Dan con le proposte A-H; nessuna risorsa cloud creata, nessuna spesa).
+
+- A1 sicurezza nell'app: limiti di frequenza dai nuovi parametri `security.*` (pagine pubbliche, domande di ingresso, codici OTP per numero o indirizzo, token non validi), in Redis; blocco degli accessi e limite dei codici email per indirizzo in Keycloak dai parametri; CSP con nonce e intestazioni di sicurezza; accessi riusciti fuori dalle nostre app e accessi falliti da Keycloak al registro. **Trovato e corretto**: il tempo reale nel browser non si collegava mai (dalla fase 3) perché Socket.IO rispondeva anche all'indirizzo del biglietto; ora `/realtime/socket`, con prova.
+- A2 controlli in CI: nuovo job «security» (librerie, Semgrep con regole AstAx, Gitleaks su tutta la storia: tutto pulito), accessibilità con axe sulle schermate principali (corretti i colori di due etichette), `pnpm release:check` (blocca la produzione con testi legali non validati, strumenti di sviluppo accesi o fornitori finti). Semgrep ha trovato la lunghezza del tag di AES-GCM non fissata: corretto.
+- A3: coda dei messaggi (`MessageOutbox`): email, SMS e push salvati cifrati con la modifica che li causa e rimandati dal worker se il processo si ferma; fatture allo SDI da sole ogni 5 minuti; avvisi «fattura disponibile» e «pagamento ricevuto» al cliente del broker.
+- A4: Web Push vero (chiavi VAPID) e app installabile, ADR 0011 (senza Serwist, niente pagine in cache sul telefono).
+- A5: adattatori veri con test di contratto: SES, SMS AWS, KMS AWS, Claude su Bedrock (lettura documenti e spiegazione, prompt versionati), Openapi targhe e SDI (con ricevute su `/webhooks/sdi`). Namirial, Fabrick e RUI IVASS nella parte B (documentazione non pubblica o formato da vedere).
+- A6: Sentry e OpenTelemetry senza dati personali, allarmi (`docs/sorveglianza.md`), controllo notturno della chiave delle buste con allarme provato su un'anomalia simulata.
+- A7: infrastruttura AWS in Terraform (non creata) con prove di sicurezza su un AWS simulato (solo il worker decifra le buste: la prova fallisce se si rompe la politica), immagini Docker, rilascio da GitHub con approvazione, Temporal Cloud (ADR 0012), dati di riferimento senza dati sintetici (`pnpm db:seed:reference`), stima dei costi in `docs/costi-aws.md`.
+- A8 prova di carico k6 (`tests/load`): in piccolo ha trovato «Le mie offerte» lenta (p95 6,96 s, una transazione e una voce di registro per ogni offerta in busta): corretta, p95 193 ms.
+- A9-A10: `docs/sicurezza/asvs.md`, `docs/privacy/mappa-dati.md`, `docs/privacy/fornitori.md`, `docs/incidenti.md`, `docs/ripristino.md`, `docs/go-live.md`; strumento di misura della lettura AI (`pnpm --filter @astax/adapters measure:reading`, guida in `docs/collaudo/`). Copie del registro attività nell'archivio con Object Lock (SIC-04), scritte dal worker.
+- Domande nuove per Dan: 21-23 in `domande-aperte.md`.
 
 **2026-10-18 — fase 7, passi 9-13, verifica e correzioni** (stesso piano; demo e domande alla fine di tutte le fasi).
 
@@ -189,6 +202,19 @@ A parametri che valgono da ora in poi; B Web Push finto fino alla fase 8; C rico
 Parte A, subito e in locale, senza account né spese: sicurezza nell'app (limiti di tentativi, intestazioni, eventi di Keycloak, biglietti del tempo reale in Redis); controlli automatici in CI (Semgrep, librerie, segreti, accessibilità, blocco LEG-03 e strumenti di sviluppo); coda delle email, invio automatico allo SDI, avvisi mancanti; Web Push vero e PWA; adattatori veri con test di contratto; sorveglianza; infrastruttura Terraform scritta ma non creata; prova di carico k6 in piccolo; documenti (ASVS, mappa dei dati, fornitori, incidenti, ripristino, `docs/go-live.md`); strumento di misura della lettura AI. Parte B, con gli accessi di Dan nell'ordine del file della fase: AWS (con stima dei costi prima di creare), domini, sandbox, documenti anonimi, test di sicurezza esterno, collaudo.
 
 A nessuna risorsa cloud e nessuna spesa senza il «crea» di Dan; B Temporal Cloud in UE; C SMS con AWS (alternativa Skebby); D Sentry UE e Grafana Cloud UE; E soglia della lettura AI al 95% dei campi corretti sopra soglia; F i limiti di tentativi nei parametri; G prova di carico vera in collaudo, qui solo in piccolo; H WhatsApp spento, solo la porta.
+
+## Fase 8: stato dei criteri
+
+| Criterio | Parte A (fatto) | Parte B (con gli accessi di Dan) |
+| --- | --- | --- |
+| S01-S10 in collaudo con le sandbox vere, rapporto in `docs/collaudo/` | S01-S10 verdi in locale e in CI con i finti | Collaudo |
+| Test di contratto per ogni adattatore vero | Suite in `packages/adapters/src/contracts` (finto, vero simulato; sandbox saltate) | Con le chiavi delle sandbox; Namirial, Fabrick, RUI da scrivere |
+| Il ruolo dell'API non decifra la chiave delle buste; controllo notturno e allarme | Prova Terraform `bc03_only_the_worker_decrypts_the_sealed_bids`; controllo notturno e allarme provati (`schedules.int.test.ts`) | Prova dal vivo in collaudo |
+| Test di sicurezza esterno senza problemi alti o critici; ZAP | `docs/sicurezza/asvs.md`, Semgrep, Gitleaks, audit librerie puliti | Società esterna, ZAP sul collaudo |
+| Carico: chiusura entro 5 s, p95 < 300 ms, nessun errore | Script k6 e misura delle chiusure; prova piccola superata dopo la correzione | Prova vera in collaudo |
+| Ripristino dai backup provato | Backup nel Terraform, procedura in `docs/ripristino.md` | Prova in collaudo |
+| Lettura AI ≥ 95% sopra soglia | Strumento di misura | Gli 80 documenti di Dan e l'accesso a Bedrock |
+| La pipeline di produzione si ferma con testi legali non validati o strumenti di sviluppo | `pnpm release:check` nel rilascio di produzione | — |
 
 ## Verifica indipendente (fase 7)
 
@@ -540,29 +566,24 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 
 | Debito | Perché | Quando chiuderlo |
 | --- | --- | --- |
-| Le pagine pubbliche dell'ingresso (`/onboarding`) non hanno un limite di richieste per indirizzo | I codici SMS hanno già attesa e tentativi massimi | Fase 8, con la sicurezza |
-| L'elenco RUI è finto; l'adattatore vero (dati aperti IVASS) manca | Regola 9 | Fase 8 |
+| L'elenco RUI è finto; l'adattatore vero (dati aperti IVASS) manca | Regola 9 | Fase 8, parte B: il formato delle colonne del file IVASS va visto su un file reale |
 | I requisiti di un pacchetto si modificano come testo JSON (controllato) | Una scheda con i campi è più comoda per l'amministratore | Dopo la demo, se Dan la chiede |
-| I ticket di assistenza si aprono a mano dal back office; le email in arrivo non creano ticket da sole | Proposta E: registro interno, nessuno strumento esterno | Fase 8, con l'email vera |
-| Email del worker inviate dopo il salvataggio, senza outbox: se il processo cade in mezzo, l'email si perde (la notifica in app resta) | Un outbox delle email porterebbe gli indirizzi in una tabella in più | Fase 8, con l'invio vero delle email (SES) |
+| I ticket di assistenza si aprono a mano dal back office; le email in arrivo non creano ticket da sole | Proposta E: registro interno, nessuno strumento esterno | Dopo il lancio, se Dan lo chiede (servirebbe la ricezione delle email con SES) |
 | Dalla «Deserta» il back office non può ancora aprire una nuova asta (S04) | La riapertura automatica con filtri allargati c'è (ASTA-08); la fase 7 mostra le deserte in «Eccezioni». Una nuova asta a mano con filtri scelti dal back office aspetta una decisione di Dan su quali filtri allargare | Dopo la demo |
 | Prezzi e targa tolti dalle notifiche della fase 3 in attesa della domanda 15 | Regola 8 contro i testi di `seed/notifiche.yaml` | Con la risposta di Dan |
-| Biglietti del tempo reale tenuti nella memoria del processo API | Con una sola istanza dell'API basta; con più istanze un biglietto chiesto a una non vale sull'altra | Fase 8, in Redis |
 | Filtri, capacità, orari di ricezione e prodotti delle agenzie impostati solo dai dati di prova | Le schermate delle agenzie sono della fase 4 (proposta D approvata) | Fase 4 |
 | Avviso «Nuova richiesta in target» a tutti i membri attivi dell'agenzia, anche con la distribuzione per filtri personali | La scelta dell'agenzia rispetta i filtri dei membri; i destinatari dell'avviso no | Fase 4, con le schermate dell'agenzia |
-| `KmsEvent` come registro delle chiavi al posto di CloudTrail | Nessun KMS vero in sviluppo (ADR 0005) | Fase 8, con il KMS di AWS e il controllo notturno |
+| `KmsEvent` come registro delle chiavi al posto di CloudTrail | Nessun KMS vero in sviluppo (ADR 0005) | Fatto in parte (fase 8): il controllo notturno legge anche CloudTrail (`CloudTrailKmsEvents`); da provare in collaudo |
 | Il richiedente non può annullare una richiesta con l'asta aperta | Il diagramma degli stati non prevede il passaggio da «Asta aperta» ad «Annullata» | Da decidere con Dan, insieme alla domanda 13 |
 | Colonna `Verification.excludedAgencies` della fase 2 non usata | Le esclusioni dall'anteprima stanno in `InvitationExclusion` | Alla prossima migrazione che tocca la tabella |
 | I test dei workflow scaricano il server di test di Temporal la prima volta | Senza rete quei test falliscono, non passano in silenzio | — |
 | Offerte di prova degli strumenti di sviluppo con il primo prodotto dell'agenzia e coperture del pacchetto Completo | Bastano alle demo | — |
 | TypeScript 6.0 invece di 7.0 | typescript-eslint non supporta ancora la 7 | Quando esce il supporto |
-| Copie del registro in un archivio non modificabile (S3 Object Lock) | Serve l'infrastruttura AWS | Fase 8 |
-| Codice di accesso via SMS; SMS veri | Serve il fornitore SMS; oggi gli SMS finiscono in Mailpit | Fase 8 |
+| Codice di accesso via SMS; SMS veri | Serve il fornitore SMS; oggi gli SMS finiscono in Mailpit | Fatto in parte (fase 8): adattatore `AwsSmsSender`; mancano il mittente registrato e la sandbox (parte B) |
 | `RuiRecord.linkedNumber` da trasformare in elenco | Un sub-agente può lavorare per più agenzie (dubbio 10) | Fasi 3-4 |
 | Keycloak segnala «già autenticato come un altro utente» su un computer condiviso senza «Esci» | Sessione Keycloak rimasta nel browser; non fatto in fase 2 | Con `prompt=login` nelle app, fase 7 |
 | Client dell'API generato da OpenAPI per i frontend | La descrizione OpenAPI non contiene ancora gli schemi dei corpi (gli input sono validati con Zod): un client generato oggi avrebbe solo i percorsi. I tipi delle risposte sono scritti a mano in `apps/web/src/lib/requests.ts` e `apps/admin/src/lib/verification.ts` | Fase 4, pubblicando gli schemi Zod in OpenAPI |
-| TanStack Query, React Hook Form, PWA con Serwist e Web Push | I moduli della fase 2 usano le azioni del server di Next.js, che funzionano anche senza JavaScript; il controllo dei campi lo fa l'API | Fase 8: l'iscrizione al push dal browser (service worker e chiavi VAPID vere); in fase 7 c'è il mittente finto e le iscrizioni si registrano via API (proposta B) |
-| Nessun controllo automatico di accessibilità nei test end-to-end | Etichette, tastiera e telefono provati a mano nel browser | Fase 8, con la sicurezza |
+| TanStack Query, React Hook Form, PWA con Serwist e Web Push | I moduli della fase 2 usano le azioni del server di Next.js, che funzionano anche senza JavaScript; il controllo dei campi lo fa l'API | Web Push e app installabile fatti senza Serwist (ADR 0011); TanStack Query e React Hook Form non servono finché i moduli usano le azioni del server |
 | Procedura del privato a passi con più domande per schermata, non «una domanda per schermata» | Sei passi, ognuno salva una parte completa della bozza | Da rivedere con Dan dopo la demo |
 | Correzione del back office su un gruppo di campi (veicolo, classe CU, compagnia, scadenza) | Gli altri dati si correggono chiedendo un'integrazione | Dopo la demo, se Dan la chiede |
 | Motivi di esclusione solo dall'elenco dei casi esclusi | Nessun «altro» con testo libero | Da decidere con Dan |
@@ -572,20 +593,14 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 | Approvazione automatica (`verification.autoApproveGreen`, spenta nel pilota) in una transazione separata dopo l'invio, nell'API | Serve il ruolo di sistema; se fallisce la richiesta va al back office con la notifica. L'apertura dell'asta parte comunque dall'evento `RequestApproved`, consegnato dal worker | Quando si accende nel pilota |
 | Ricerche (codice fiscale, targa) tenute in chiaro sul server (Redis) per 15 minuti accanto alla sessione, legate al contesto attivo e cancellate con «Esci» | Non devono finire nell'indirizzo della pagina (regola 8) | Fase 8, cifrandole con la chiave dei campi |
 | Guscio delle schermate duplicato tra `apps/web` e `apps/admin` | Piccole differenze (contesto, lingua) | Quando cresce, in `packages/ui` |
-| Tentativi di accesso con token non validi solo nel log (non nel registro), senza limite di frequenza; nessun limite di frequenza sulla pagina pubblica del consenso | Non riempire il registro a catena (dubbio 6); i codici hanno comunque un massimo di tentativi | Fase 8, con il limite di frequenza |
 | Eccezione alla regola pnpm sull'età minima dei pacchetti per Next.js 16.4.1 e React 19.3.1 | Correggono vulnerabilità critiche | Da togliere appena superano l'età minima |
 | Testi in albanese del back office da far rileggere a un madrelingua | Tradotti da Claude (anche quelli nuovi della verifica) | Prima del lancio: rilettura di Dan o di un madrelingua (proposta K), compresi i testi nuovi della fase 7 |
-| Blocco dei tentativi di accesso in Keycloak (10 errori, attesa massima 15 minuti) scritto nel file del realm | Valori tecnici di sicurezza, non di business; da decidere se diventano parametri | Fase 8 |
-| Codici via email: al massimo 3 per tentativo di accesso (numero fisso nell'estensione); nessun limite per indirizzo o per rete | Il limite vero di frequenza serve con i fornitori reali | Fase 8 |
-| Accessi registrati dalle app web (`POST /me/logins`), non da un evento di Keycloak | Un accesso fatto fuori dalle nostre app non lascerebbe traccia; oggi le uniche app sono le nostre | Fase 8, con gli eventi di Keycloak verso il registro |
-| IP vero del browser solo dietro il nostro proxy (`WEB_TRUSTED_PROXY`); in locale si registra l'indirizzo dell'app web | L'intestazione X-Forwarded-For può essere falsificata dal browser | Fase 8, con il proxy in cloud |
+| IP vero del browser solo dietro il nostro proxy (`WEB_TRUSTED_PROXY`); in locale si registra l'indirizzo dell'app web | L'intestazione X-Forwarded-For può essere falsificata dal browser | Fatto in parte (fase 8): `API_TRUST_PROXY` e `WEB_TRUSTED_PROXY` impostati nel Terraform; da provare in collaudo |
 | Comuni soppressi non presenti in `seed/comuni.csv` (solo i comuni attuali) | Il codice fiscale di chi è nato in un comune poi soppresso non trova il comune: la procedura chiede di scrivere all'assistenza, il controllo automatico non confronta il luogo | Fase 8, con l'elenco ISTAT dei comuni soppressi |
 | Etichetta della formula esperta in `seed/elenchi.json` con «26 anni» scritto nel testo | La schermata mostra anche l'età minima presa dal parametro, ma l'etichetta dell'elenco va aggiornata a mano se cambia | Fatto in parte (fase 7): l'etichetta ora si cambia dal pannello «Elenchi e festività», senza toccare il codice |
 | `S3_REGION` e `S3_BUCKET` nuovi in `.env.example` | `pnpm env:init` non riscrive un `.env` esistente: l'API usa valori predefiniti se mancano | — |
-| Avviso `payment.confirmed` al cliente del broker solo nella pagina del link: la notifica va all'utente del broker | Il cliente del broker non ha un account; l'email con il link andrebbe ricostruita senza il token in chiaro | Fase 8, con l'invio vero delle email |
 | Rimborso di un pagamento incassato per un'accettazione non più valida (pagamento arrivato dopo la fine della garanzia) | Solo registrato; il rimborso con il fornitore è del dopo-acquisto | Fase 6 |
 | Pagina «Risultati» delle agenzie con la classifica | La classifica è calcolata e pubblicata alla firma; la pagina è della fase 6 | Fase 6 |
-| Pulsante «Conferma subito il bonifico» degli strumenti di sviluppo (proposta I) solo nell'API (`POST /fake-providers/payments/:ref/confirm`, con `DEV_TOOLS=true`) | Il bonifico di prova si conferma comunque da solo dopo 5 secondi | Fase 8 |
 | Un incasso arrivato per un'accettazione non più valida (checkout già chiuso presso un fornitore vero) è solo registrato | Con il finto non può succedere; il rimborso automatico è nel passo 11 della fase 6 | Fase 6 |
 | Il link di consenso del broker (fase 2) mette la targa nell'email | Il link dell'offerta non la mette più; quello del consenso è della fase 2 | Con la risposta alla domanda 15 |
 | L'API accetta un secondo «Confronta con AI» sulla stessa richiesta (nuovo suggerimento salvato, fee invariato) | La schermata nasconde il pulsante dopo il primo uso | Da decidere con Dan se bloccarlo |
@@ -605,3 +620,5 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 | 0007 | [Dati della richiesta cifrati, bozza a sezioni, proprietà delle righe](adr/0007-dati-della-richiesta-cifrati.md) | 2026-10-15 |
 | 0009 | [File SEPA e fatture elettroniche: formato e controllo](adr/0009-file-sepa-e-fatture-elettroniche.md) | 2026-10-17 |
 | 0010 | [Pianificazioni del lunedì e del primo del mese](adr/0010-pianificazioni-del-worker.md) | 2026-10-17 |
+| 0011 | [Web Push e app installabile senza Serwist](adr/0011-web-push-e-pwa.md) | 2026-10-18 |
+| 0012 | [Temporal Cloud nella regione UE](adr/0012-temporal-cloud.md) | 2026-10-18 |

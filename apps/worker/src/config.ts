@@ -23,6 +23,8 @@ const configSchema = z
     AWS_REGION: z.string().min(1).default("eu-south-1"),
     EMAIL_PROVIDER: z.enum(["fake", "ses"]).default("fake"),
     STORAGE_PROVIDER: z.enum(["fake", "aws"]).default("fake"),
+    /** SIC-04: the bucket of the audit log copies (Object Lock in AWS). */
+    AUDIT_ARCHIVE_BUCKET: z.string().min(3).default("astax-audit"),
     SES_CONFIGURATION_SET: z.string().min(1).optional(),
     SMS_PROVIDER: z.enum(["fake", "aws"]).default("fake"),
     SMS_ORIGINATOR: z.string().min(1).default("AstAx"),

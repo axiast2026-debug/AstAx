@@ -89,3 +89,4 @@ export {
   type KeyAnomaly,
   type KeyAnomalyKind,
 } from "./kms-check.js";
+export { archiveAuditLog } from "./audit-archive.js";
