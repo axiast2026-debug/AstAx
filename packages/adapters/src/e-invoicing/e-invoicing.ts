@@ -21,6 +21,8 @@ export interface EInvoicingPort {
     invoice: FatturaPaInput,
   ): Promise<{ sdiRef: string; status: SdiDeliveryStatus; xml: string }>;
   getStatus(sdiRef: string): Promise<SdiDeliveryStatus>;
+  /** The provider's callback with an SDI receipt (phase 8); checked, then one event. */
+  parseWebhook?(headers: Record<string, string | undefined>, body: string): SdiEvent;
 }
 
 export class InvalidInvoiceXmlError extends Error {

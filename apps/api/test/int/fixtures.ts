@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Writable } from "node:stream";
 import type { AiExplainerPort } from "@astax/adapters/ai-explainer";
+import type { EInvoicingPort } from "@astax/adapters/e-invoicing";
 import { ManualClock } from "@astax/adapters/clock";
 import { InMemoryEmailSender } from "@astax/adapters/email";
 import { InMemoryWebPush } from "@astax/adapters/web-push";
@@ -153,6 +154,7 @@ export async function startHarness(
   options: {
     env?: Record<string, string>;
     aiExplainer?: AiExplainerPort;
+    eInvoicing?: EInvoicingPort;
     /** Phase 8: the real counters of the limits; off elsewhere, as the test clock stands still. */
     rateLimits?: boolean;
   } = {},
@@ -195,6 +197,7 @@ export async function startHarness(
       ? new MemoryRateLimitStore(clock)
       : { hit: async () => 0, peek: async () => 0 },
     ...(options.aiExplainer ? { aiExplainer: options.aiExplainer } : {}),
+    ...(options.eInvoicing ? { eInvoicing: options.eInvoicing } : {}),
     // API_TEST_LOGS=1 shows the (redacted) API logs while debugging a test.
     logger: process.env.API_TEST_LOGS
       ? createLogger({ name: "api-int", level: "debug" })

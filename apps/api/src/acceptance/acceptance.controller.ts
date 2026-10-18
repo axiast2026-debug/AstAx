@@ -24,6 +24,7 @@ import { CurrentAuth, RequirePermission } from "../auth/decorators.js";
 import type { ApiConfig } from "../config/config.js";
 import { ProblemError } from "../http/problem.js";
 import { Public } from "../http/public.decorator.js";
+import { InvoicingService } from "../invoicing/invoicing.service.js";
 import { SkipRateLimit } from "../security/rate-limit.guard.js";
 import { parseInput } from "../http/validation.js";
 import { CONFIG, LOGGER, PAYMENTS, SIGNATURE } from "../infra/tokens.js";
@@ -247,7 +248,18 @@ export class CustomerLinksController {
 @SkipRateLimit()
 @Controller("webhooks")
 export class WebhooksController {
-  constructor(@Inject(AcceptanceEventsService) private readonly events: AcceptanceEventsService) {}
+  constructor(
+    @Inject(AcceptanceEventsService) private readonly events: AcceptanceEventsService,
+    @Inject(InvoicingService) private readonly invoicing: InvoicingService,
+  ) {}
+
+  /** Phase 8: the SDI receipts (delivered, rejected) from the e-invoicing provider. */
+  @Post("sdi")
+  @HttpCode(204)
+  @Public()
+  async sdi(@Headers() headers: Record<string, string>, @Body() body: unknown): Promise<void> {
+    await this.invoicing.applySdiWebhook(headers, typeof body === "string" ? body : "");
+  }
 
   @Post("signature")
   @HttpCode(204)

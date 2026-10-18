@@ -9,6 +9,23 @@ Regole comuni:
 - Ogni porta ha una suite di test di contratto che gira sull'adattatore finto e, in fase 8, sulla sandbox.
 - L'adattatore finto non chiama la rete e riconosce valori speciali per simulare errori.
 
+## Adattatori veri: stato (fase 8)
+
+La scelta tra finto e vero è nella configurazione: `EMAIL_PROVIDER`, `SMS_PROVIDER`, `PUSH_PROVIDER`, `KMS_PROVIDER`, `AI_PROVIDER`, `PLATE_PROVIDER`, `SDI_PROVIDER` (valore `fake` predefinito). I test di contratto sono in `packages/adapters/src/contracts/` e girano sul finto, sul vero con il fornitore simulato e, con le credenziali della sandbox, sul fornitore vero (vedi il README della cartella).
+
+| Porta | Adattatore vero | Stato |
+| --- | --- | --- |
+| Email | `SesEmailSender` (Amazon SES) | Scritto e provato con SES simulato; manca la sandbox |
+| SMS | `AwsSmsSender` (AWS End User Messaging, mittente «AstAx») | Scritto e provato con AWS simulato; manca la sandbox |
+| Push | `VapidWebPush` (Web Push con chiavi VAPID, ADR 0011) | Scritto e provato |
+| KMS | `AwsKms` | Scritto e provato con KMS simulato (contesto e permessi); manca l'account AWS |
+| Lettura documenti, spiegazione AI | `BedrockDocumentReader`, `BedrockAiExplainer` (Claude su Bedrock, profilo UE) | Scritti e provati con modello simulato; prompt in `packages/adapters/prompts/`; manca l'accesso a Bedrock |
+| Dati veicolo | `OpenapiPlateLookup` (IT-car, IT-insurance) | Scritto dalla specifica OpenAPI pubblica; manca il token della sandbox |
+| Fatturazione SDI | `OpenapiEInvoicing` (e ricevute su `POST /webhooks/sdi`) | Scritto dalla specifica OpenAPI pubblica; manca il token della sandbox |
+| Firma FEA | Namirial | Da scrivere nella parte B: la documentazione pubblica non mostra il formato della busta e delle notifiche |
+| Pagamenti | Fabrick | Da scrivere nella parte B: la documentazione è riservata ai clienti |
+| Registro RUI | IVASS (file aperti) | Da scrivere nella parte B: serve un file reale per le colonne esatte |
+
 Le firme qui sotto sono il punto di partenza: Claude Code può raffinarle, mantenendo il significato.
 
 ## Tempo

@@ -87,7 +87,11 @@
     "vitest": "5.0.4"
   },
   "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "3.1151.0",
+    "@aws-sdk/client-kms": "3.1151.0",
+    "@aws-sdk/client-pinpoint-sms-voice-v2": "3.1151.0",
     "@aws-sdk/client-s3": "3.1151.0",
+    "@aws-sdk/client-sesv2": "3.1151.0",
     "@aws-sdk/s3-request-presigner": "3.1151.0",
     "libsodium-wrappers": "0.8.4",
     "pdf-lib": "1.17.1",

@@ -18,7 +18,19 @@ const configSchema = z
     DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
     FIELD_ENCRYPTION_KEY: hexKey,
     BLIND_INDEX_KEY: hexKey,
-    SEALED_BIDS_MASTER_KEY: hexKey,
+    SEALED_BIDS_MASTER_KEY: hexKey.optional(),
+    /** Phase 8 (docs/adattatori.md): the fake (rule 9) or the real provider of each port. */
+    AWS_REGION: z.string().min(1).default("eu-south-1"),
+    EMAIL_PROVIDER: z.enum(["fake", "ses"]).default("fake"),
+    SES_CONFIGURATION_SET: z.string().min(1).optional(),
+    SMS_PROVIDER: z.enum(["fake", "aws"]).default("fake"),
+    SMS_ORIGINATOR: z.string().min(1).default("AstAx"),
+    SMS_CONFIGURATION_SET: z.string().min(1).optional(),
+    KMS_PROVIDER: z.enum(["fake", "aws"]).default("fake"),
+    /** AWS KMS key (ARN or alias) of the sealed bids: only the worker's role may use it. */
+    KMS_SEALED_BIDS_KEY_ID: z.string().min(1).optional(),
+    AI_PROVIDER: z.enum(["fake", "bedrock"]).default("fake"),
+    BEDROCK_MODEL_ID: z.string().min(1).optional(),
     TEMPORAL_ADDRESS: z.string().min(1).optional(),
     TEMPORAL_PORT: z.coerce.number().int().min(1).max(65535).default(7233),
     TEMPORAL_NAMESPACE: z.string().min(1).default("astax"),
@@ -52,6 +64,18 @@ const configSchema = z
     S3_BUCKET: z.string().min(3).default("astax-documents"),
     S3_ACCESS_KEY: z.string().min(1).optional(),
     S3_SECRET_KEY: z.string().min(1).optional(),
+  })
+  .refine(
+    (c) => (c.KMS_PROVIDER === "aws" ? !!c.KMS_SEALED_BIDS_KEY_ID : !!c.SEALED_BIDS_MASTER_KEY),
+    {
+      message:
+        "KMS_PROVIDER=aws needs KMS_SEALED_BIDS_KEY_ID; the fake KMS needs SEALED_BIDS_MASTER_KEY",
+      path: ["KMS_PROVIDER"],
+    },
+  )
+  .refine((c) => c.AI_PROVIDER !== "bedrock" || !!c.BEDROCK_MODEL_ID, {
+    message: "AI_PROVIDER=bedrock needs BEDROCK_MODEL_ID",
+    path: ["AI_PROVIDER"],
   })
   .refine((c) => !(c.NODE_ENV === "production" && c.DEV_TOOLS), {
     message: "DEV_TOOLS must be false in production",

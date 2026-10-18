@@ -2,10 +2,10 @@ import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
 import { DEV_CLOCK_OFFSET_KEY, OffsetClock, SystemClock } from "@astax/adapters/clock";
 import { LocalFieldCipher } from "@astax/adapters/crypto";
-import { FakeDocumentReader } from "@astax/adapters/document-reader";
-import { MailpitEmailSender } from "@astax/adapters/email";
+import { BedrockDocumentReader, FakeDocumentReader } from "@astax/adapters/document-reader";
+import { MailpitEmailSender, SesEmailSender } from "@astax/adapters/email";
 import { MailpitWebPush, revokingGone, VapidWebPush } from "@astax/adapters/web-push";
-import { KMS_KEYS, LocalKms } from "@astax/adapters/kms";
+import { AwsKms, KMS_KEYS, LocalKms } from "@astax/adapters/kms";
 import {
   InMemoryObjectStorage,
   S3ObjectStorage,
@@ -19,7 +19,7 @@ import {
   kmsEventRecorder,
   revokePushSubscription,
 } from "@astax/db";
-import { MailpitSmsSender } from "@astax/adapters/sms";
+import { AwsSmsSender, MailpitSmsSender } from "@astax/adapters/sms";
 import { loadEnv } from "@astax/shared/env";
 import { createLogger, errorForLog } from "@astax/shared/logging";
 import { Client, Connection } from "@temporalio/client";
@@ -73,10 +73,24 @@ const publish = async (event: RealtimeEvent) => {
   await redis.publish(REALTIME_CHANNEL, JSON.stringify(event));
 };
 
-const email = new MailpitEmailSender(config.MAILPIT_URL, {
-  email: config.EMAIL_FROM,
-  name: "AstAx",
-});
+// Phase 8: the provider of each port comes from the configuration (docs/adattatori.md).
+const from = { email: config.EMAIL_FROM, name: "AstAx" };
+const email =
+  config.EMAIL_PROVIDER === "ses"
+    ? new SesEmailSender({
+        region: config.AWS_REGION,
+        from,
+        ...(config.SES_CONFIGURATION_SET ? { configurationSet: config.SES_CONFIGURATION_SET } : {}),
+      })
+    : new MailpitEmailSender(config.MAILPIT_URL, from);
+const sms =
+  config.SMS_PROVIDER === "aws"
+    ? new AwsSmsSender({
+        region: config.AWS_REGION,
+        originator: config.SMS_ORIGINATOR,
+        ...(config.SMS_CONFIGURATION_SET ? { configurationSet: config.SMS_CONFIGURATION_SET } : {}),
+      })
+    : new MailpitSmsSender(email);
 const storage = storageFor(config);
 const fieldCipher = new LocalFieldCipher(config.FIELD_ENCRYPTION_KEY, config.BLIND_INDEX_KEY);
 // Phase 8: real Web Push with PUSH_PROVIDER=vapid; a subscription gone is revoked.
@@ -92,19 +106,30 @@ const push = revokingGone(
 );
 const notifier = new WorkerNotifier(email, logger, { db, clock, cipher: fieldCipher, push });
 /** Phase 8: the senders of MessageOutbox (the fakes until the real providers, rule 9). */
-const senders = { email, sms: new MailpitSmsSender(email), push };
+const senders = { email, sms, push };
+const recordKms = kmsEventRecorder(db, "worker", () => clock.now());
 const activities = createActivities({
   db,
   // ADR 0005: the worker holds only the key of the sealed bids.
-  kms: new LocalKms(
-    { [KMS_KEYS.sealedBids]: config.SEALED_BIDS_MASTER_KEY },
-    kmsEventRecorder(db, "worker", () => clock.now()),
-  ),
+  kms:
+    config.KMS_PROVIDER === "aws"
+      ? new AwsKms({
+          region: config.AWS_REGION,
+          keys: { [KMS_KEYS.sealedBids]: config.KMS_SEALED_BIDS_KEY_ID },
+          onOperation: recordKms,
+        })
+      : new LocalKms({ [KMS_KEYS.sealedBids]: config.SEALED_BIDS_MASTER_KEY }, recordKms),
   clock,
   cipher: fieldCipher,
   storage,
-  // Rule 9: the fake reader until phase 8; it reads the stored quote itself.
-  reader: new FakeDocumentReader(clock, undefined, undefined, (key) => storage.get(key)),
+  // The reader of the quotes (OFF-09): Claude on Bedrock, or the fake that reads the text.
+  reader:
+    config.AI_PROVIDER === "bedrock"
+      ? new BedrockDocumentReader(
+          { region: config.AWS_REGION, modelId: config.BEDROCK_MODEL_ID ?? "" },
+          (key) => storage.get(key),
+        )
+      : new FakeDocumentReader(clock, undefined, undefined, (key) => storage.get(key)),
   notifier,
   logger,
   urls: { web: config.WEB_URL, admin: config.ADMIN_URL },

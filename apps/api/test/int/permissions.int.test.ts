@@ -974,6 +974,7 @@ const ENDPOINTS: Endpoint[] = [
 const PUBLIC_ROUTES = [
   "POST /webhooks/signature",
   "POST /webhooks/payments",
+  "POST /webhooks/sdi",
   "GET /fake-providers/signature/{ref}",
   "POST /fake-providers/signature/{ref}/sign",
   "GET /fake-providers/payments/{ref}",

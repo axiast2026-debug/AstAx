@@ -27,6 +27,7 @@ import {
   type OnApplicationShutdown,
 } from "@nestjs/common";
 import { acceptancePdf } from "../acceptance/documents-pdf.js";
+import { ProblemError } from "../http/problem.js";
 import type { ApiConfig } from "../config/config.js";
 import {
   CLOCK,
@@ -303,6 +304,28 @@ export class InvoicingService implements OnApplicationBootstrap, OnApplicationSh
     );
     for (const { id } of pending) await this.deliver(id);
     return pending.length;
+  }
+
+  /**
+   * Phase 8: an SDI receipt from the provider's callback. Only a step forward
+   * is applied (SENT → DELIVERED or REJECTED); an unknown invoice is ignored.
+   */
+  async applySdiWebhook(headers: Record<string, string | undefined>, body: string): Promise<void> {
+    if (!this.sdi.parseWebhook) throw new ProblemError("NOT_FOUND");
+    let event;
+    try {
+      event = this.sdi.parseWebhook(headers, body);
+    } catch {
+      throw new ProblemError("UNAUTHENTICATED");
+    }
+    if (event.status === "SENT") return;
+    const updated = await withContext(this.db, SYSTEM_CONTEXT, (tx) =>
+      tx.invoice.updateMany({
+        where: { sdiRef: event.sdiRef, sdiStatus: "SENT" },
+        data: { sdiStatus: event.status },
+      }),
+    );
+    if (updated.count > 0) this.logger.info({ status: event.status }, "SDI receipt applied");
   }
 
   /** The SDI state of an invoice still on its way (the fake delivers after a few seconds). */

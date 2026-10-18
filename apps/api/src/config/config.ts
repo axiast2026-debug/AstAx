@@ -20,7 +20,7 @@ const configSchema = z
      * Master key of the fake KMS for the agencies' own copies (BC-04, ADR 0005).
      * The API never reads SEALED_BIDS_MASTER_KEY: only the worker opens bids.
      */
-    OFFER_OWNER_MASTER_KEY: hexKey,
+    OFFER_OWNER_MASTER_KEY: hexKey.optional(),
     KEYCLOAK_URL: z.url(),
     KEYCLOAK_REALM: z.string().min(1).default("astax"),
     KEYCLOAK_API_ADMIN_SECRET: z.string().min(16),
@@ -30,6 +30,30 @@ const configSchema = z
     ADMIN_URL: z.url().default("http://localhost:3001"),
     /** Development email delivery (Mailpit); production uses a real provider (phase 8). */
     MAILPIT_URL: z.url().default("http://127.0.0.1:8025"),
+    /**
+     * Phase 8, docs/adattatori.md: each provider is chosen here, the fake (rule 9)
+     * or the real one. The release gate refuses a fake in production.
+     */
+    AWS_REGION: z.string().min(1).default("eu-south-1"),
+    EMAIL_PROVIDER: z.enum(["fake", "ses"]).default("fake"),
+    SES_CONFIGURATION_SET: z.string().min(1).optional(),
+    SMS_PROVIDER: z.enum(["fake", "aws"]).default("fake"),
+    SMS_ORIGINATOR: z.string().min(1).default("AstAx"),
+    SMS_CONFIGURATION_SET: z.string().min(1).optional(),
+    KMS_PROVIDER: z.enum(["fake", "aws"]).default("fake"),
+    /** AWS KMS key (ARN or alias) of the agencies' own copies; never the sealed bids' key. */
+    KMS_OFFER_OWNER_KEY_ID: z.string().min(1).optional(),
+    AI_PROVIDER: z.enum(["fake", "bedrock"]).default("fake"),
+    PLATE_PROVIDER: z.enum(["fake", "openapi"]).default("fake"),
+    OPENAPI_AUTOMOTIVE_URL: z.url().default("https://test.automotive.openapi.com"),
+    OPENAPI_AUTOMOTIVE_TOKEN: z.string().min(1).optional(),
+    SDI_PROVIDER: z.enum(["fake", "openapi"]).default("fake"),
+    OPENAPI_SDI_URL: z.url().default("https://test.sdi.openapi.it"),
+    OPENAPI_SDI_TOKEN: z.string().min(1).optional(),
+    /** The header value Openapi sends with its callbacks (set in its /api_configurations). */
+    OPENAPI_SDI_WEBHOOK_SECRET: z.string().min(16).optional(),
+    /** EU cross-region inference profile of Claude on Bedrock. */
+    BEDROCK_MODEL_ID: z.string().min(1).optional(),
     /** Phase 8: "vapid" sends real Web Push; "fake" delivers them to Mailpit (rule 9). */
     PUSH_PROVIDER: z.enum(["fake", "vapid"]).default("fake"),
     VAPID_PUBLIC_KEY: z.string().min(40).optional(),
@@ -67,6 +91,30 @@ const configSchema = z
     S3_SECRET_KEY: z.string().min(1).optional(),
   })
   // Development tools never run in production (CLAUDE.md rule 13).
+  .refine(
+    (c) => (c.KMS_PROVIDER === "aws" ? !!c.KMS_OFFER_OWNER_KEY_ID : !!c.OFFER_OWNER_MASTER_KEY),
+    {
+      message:
+        "KMS_PROVIDER=aws needs KMS_OFFER_OWNER_KEY_ID; the fake KMS needs OFFER_OWNER_MASTER_KEY",
+      path: ["KMS_PROVIDER"],
+    },
+  )
+  .refine((c) => c.PLATE_PROVIDER !== "openapi" || !!c.OPENAPI_AUTOMOTIVE_TOKEN, {
+    message: "PLATE_PROVIDER=openapi needs OPENAPI_AUTOMOTIVE_TOKEN",
+    path: ["PLATE_PROVIDER"],
+  })
+  .refine(
+    (c) =>
+      c.SDI_PROVIDER !== "openapi" || (!!c.OPENAPI_SDI_TOKEN && !!c.OPENAPI_SDI_WEBHOOK_SECRET),
+    {
+      message: "SDI_PROVIDER=openapi needs OPENAPI_SDI_TOKEN and OPENAPI_SDI_WEBHOOK_SECRET",
+      path: ["SDI_PROVIDER"],
+    },
+  )
+  .refine((c) => c.AI_PROVIDER !== "bedrock" || !!c.BEDROCK_MODEL_ID, {
+    message: "AI_PROVIDER=bedrock needs BEDROCK_MODEL_ID",
+    path: ["AI_PROVIDER"],
+  })
   .refine((c) => c.PUSH_PROVIDER !== "vapid" || (c.VAPID_PUBLIC_KEY && c.VAPID_PRIVATE_KEY), {
     message: "PUSH_PROVIDER=vapid needs VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY",
     path: ["PUSH_PROVIDER"],
