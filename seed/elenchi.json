@@ -112,6 +112,11 @@
       { "code": "RESIDENCE_MISMATCH", "it": "Residenza non coerente con i documenti", "sq": "Vendbanimi nuk përputhet me dokumentet" },
       { "code": "CERTIFICATE_MISMATCH", "it": "Dati dell'attestato non coerenti", "sq": "Të dhënat e dëshmisë së rrezikut nuk përputhen" },
       { "code": "OTHER", "it": "Altro", "sq": "Tjetër" }
+    ],
+    "supportReply": [
+      { "code": "RECEIVED", "it": "Abbiamo ricevuto la tua richiesta e la stiamo controllando. Ti scriviamo appena abbiamo una risposta.", "sq": "E kemi marrë kërkesën tënde dhe po e kontrollojmë. Do të të shkruajmë sapo të kemi një përgjigje." },
+      { "code": "DOCUMENTS", "it": "Per procedere ci serve un documento: lo puoi caricare dalla tua area, nella pagina della richiesta.", "sq": "Për të vazhduar na duhet një dokument: mund ta ngarkosh nga zona jote, në faqen e kërkesës." },
+      { "code": "SOLVED", "it": "Il problema è risolto. Se hai altre domande, rispondi a questa email.", "sq": "Problemi u zgjidh. Nëse ke pyetje të tjera, përgjigju këtij email-i." }
     ]
   }
 }

@@ -89,6 +89,8 @@
     { "key": "retention.incompleteRequestsMonths", "value": 12, "description": "Conservazione delle richieste non concluse", "rule": "LEG-06" },
     { "key": "retention.contractsYears", "value": 10, "description": "Conservazione di contratti e documenti contabili. Da validare", "rule": "LEG-06" },
     { "key": "complaints.responseDays", "value": 45, "description": "Termine di risposta ai reclami", "rule": "—" },
+    { "key": "support.responseHours", "value": 24, "description": "Termine per la prima risposta a un ticket di assistenza", "rule": "—" },
+    { "key": "privacy.requestResponseDays", "value": 30, "description": "Termine di risposta alle richieste sui dati personali (copia, correzione, cancellazione). Da validare con il legale", "rule": "—" },
     { "key": "complaints.reminderDaysBefore", "value": 5, "description": "Avviso al supervisore prima della scadenza di un reclamo", "rule": "—" },
     { "key": "organizations.profInsuranceReminderDays", "value": 30, "description": "Avviso prima della scadenza della RC professionale", "rule": "—" },
     { "key": "otp.validityMinutes", "value": 10, "description": "Validità dei codici OTP inviati da AstAx", "rule": "SIC-05" },

@@ -65,6 +65,10 @@ import { ResultsController } from "./results/results.controller.js";
 import { PreferencesService } from "./notifications/preferences.service.js";
 import { CommunicationsController } from "./notifications/communications.controller.js";
 import { CatalogAdminController } from "./admin/catalog-admin.controller.js";
+import { SupportController } from "./admin/support.controller.js";
+import { SupportService } from "./admin/support.service.js";
+import { CustomersBackOfficeController } from "./admin/customers-bo.controller.js";
+import { CustomersBackOfficeService } from "./admin/customers-bo.service.js";
 import {
   ExclusionProposalsController,
   OrganizationsBackOfficeController,
@@ -118,6 +122,8 @@ export class AppModule {
         CommunicationsController,
         UsersAdminController,
         CatalogAdminController,
+        SupportController,
+        CustomersBackOfficeController,
         OrganizationsBackOfficeController,
         ExclusionProposalsController,
         OperationsDashboardController,
@@ -176,6 +182,8 @@ export class AppModule {
         CommunicationsService,
         UsersAdminService,
         CatalogAdminService,
+        SupportService,
+        CustomersBackOfficeService,
         OrganizationsBackOfficeService,
         OperationsDashboardService,
         OnboardingService,

@@ -68,7 +68,7 @@ const BACK_OFFICE_MENU: MenuItem[] = [
   item("payments", "/pagamenti", "accounting.view"),
   item("onboardingQueue", "/ingressi", "organization.approveOnboarding"),
   item("organizations", "/organizzazioni", "organization.approveOnboarding"),
-  item("customers", "/clienti", "customer.viewContacts"),
+  item("customers", "/clienti", "accessLog.viewCustomer"),
   item("support", "/assistenza", "support.tickets"),
   item("complaints", "/reclami", "complaint.manage"),
   item("flags", "/segnalazioni", "complaint.manage"),

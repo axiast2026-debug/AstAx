@@ -963,3 +963,22 @@ events:
       emailBody: |
         Sinjalizim i ri për {{tipo_segnalazione}} në kërkesën {{codice}}. Burimi: {{fonte}}.
         Kontrollo regjistrin e aksesit në kërkesë dhe vendos rezultatin: {{link}}
+
+  # Phase 7: the reply of the support to a ticket, by email («Assistenza»).
+  support.reply:
+    recipients: [affected_users]
+    channels: [email]
+    mandatory: true
+    variables: [codice, testo]
+    it:
+      emailSubject: "AstAx assistenza: richiesta {{codice}}"
+      emailBody: |
+        {{testo}}
+
+        Per rispondere, scrivi citando il codice {{codice}}.
+    sq:
+      emailSubject: "AstAx asistenca: kërkesa {{codice}}"
+      emailBody: |
+        {{testo}}
+
+        Për t'u përgjigjur, shkruaj duke përmendur kodin {{codice}}.

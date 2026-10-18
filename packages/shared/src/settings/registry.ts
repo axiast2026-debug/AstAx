@@ -123,6 +123,8 @@ export const settingSchemas = {
   "retention.contractsYears": positiveInt,
   "complaints.responseDays": positiveInt,
   "complaints.reminderDaysBefore": positiveInt,
+  "privacy.requestResponseDays": positiveInt,
+  "support.responseHours": positiveInt,
   "organizations.profInsuranceReminderDays": positiveInt,
   "otp.validityMinutes": positiveInt,
   "otp.maxAttempts": positiveInt,

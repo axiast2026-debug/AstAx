@@ -614,7 +614,9 @@
       "team": "Ekipi",
       "vehicle": "Automjeti",
       "consent": "Pëlqimi",
-      "rca": "RCA"
+      "rca": "RCA",
+      "privacy": "Të dhënat personale",
+      "support": "Asistenca"
     },
     "labels": {
       "calendar_timeZone": "Zona orare e referencës",
@@ -695,7 +697,9 @@
       "vehicle_vintageAgeYears": "Vitet nga të cilat një automjet mund të jetë historik",
       "consent_linkValidityDays": "Vlefshmëria e lidhjes së pëlqimit të brokerit (ditë)",
       "rca_legalMinimums": "Kufijtë minimalë ligjorë të RCA (euro)",
-      "requests_codePrefix": "Parashtesa e kodit të kërkesës"
+      "requests_codePrefix": "Parashtesa e kodit të kërkesës",
+      "privacy_requestResponseDays": "Afati i përgjigjes ndaj kërkesave për të dhënat personale (ditë)",
+      "support_responseHours": "Përgjigja e parë për një tiketë asistence (orë)"
     }
   },
   "communications": {
@@ -968,7 +972,9 @@
       "issuanceProblems": "Probleme lëshimi",
       "remittances": "Transferta për t’u kryer",
       "refunds": "Rimbursime për miratim",
-      "onboarding": "Anëtarësime për t’u vendosur"
+      "onboarding": "Anëtarësime për t’u vendosur",
+      "dataRequests": "Kërkesa për të dhënat personale",
+      "tickets": "Tiketa të hapura"
     },
     "nothingWaiting": "Asgjë në pritje.",
     "longestWait": "Pritja më e gjatë: {wait}.",
@@ -981,7 +987,8 @@
     "automaticShare": "Verifikime automatike",
     "desertedToday": "Ankande pa oferta",
     "minutes": "{count, plural, one {# minutë} other {# minuta}}",
-    "percent": "{value}%"
+    "percent": "{value}%",
+    "nextDue": "Afati i parë: {at}."
   },
   "organizationsList": {
     "title": "Agjencitë dhe brokerët",
@@ -1052,6 +1059,153 @@
       "ORGANIZATION_EXCLUSION_PROPOSED": "përjashtim i propozuar",
       "ORGANIZATION_EXCLUDED": "u përjashtua",
       "ORGANIZATION_EXCLUSION_REJECTED": "përjashtimi nuk u pranua"
+    }
+  },
+  "customersBo": {
+    "title": "Klientët",
+    "intro": "Kërko me emër, kod fiskal (ose numër TVSH) ose targë. Çdo kërkim dhe çdo kartelë e hapur shkon në regjistrin e hyrjeve.",
+    "search": "Emri, kodi fiskal ose targa",
+    "find": "Kërko",
+    "results": "{count, plural, =0 {Asnjë klient} one {# klient} other {# klientë}}",
+    "ofBroker": "klient i {broker}",
+    "private": "privat",
+    "requests": "{count, plural, one {# kërkesë} other {# kërkesa}}",
+    "openRequests": "Kërkesa të hapura për të dhënat personale",
+    "noOpenRequests": "Asnjë kërkesë e hapur.",
+    "kinds": {
+      "ACCESS": "Kopje e të dhënave",
+      "RECTIFICATION": "Korrigjim",
+      "ERASURE": "Fshirje"
+    },
+    "dueAt": "afati {at}",
+    "back": "Kthehu te kërkimi",
+    "error": "Veprimi nuk u krye ({code}).",
+    "done": {
+      "aperta": "Kërkesa u regjistrua me afatin e saj.",
+      "chiusa": "Kërkesa u mbyll."
+    },
+    "data": "Të dhënat",
+    "fiscalCode": "Kodi fiskal ose nr. TVSH",
+    "birthDate": "Data e lindjes",
+    "email": "Email",
+    "phone": "Telefoni",
+    "vehicles": "Automjetet",
+    "export": "Shkarko kopjen e të dhënave (JSON)",
+    "requestsTitle": "Kërkesat",
+    "requestStatus": {
+      "DRAFT": "draft",
+      "IN_VERIFICATION": "në verifikim",
+      "INTEGRATION_REQUESTED": "plotësim i kërkuar",
+      "EXCLUDED": "e përjashtuar",
+      "AUCTION_OPEN": "ankand i hapur",
+      "OFFERS_AVAILABLE": "oferta të disponueshme",
+      "DESERTED": "pa oferta",
+      "ACCEPTED": "e pranuar",
+      "IN_ISSUANCE": "në lëshim",
+      "ISSUED": "e lëshuar",
+      "EXPIRED": "e skaduar",
+      "IN_RECONFIRMATION": "në rikonfirmim",
+      "CANCELLED": "e anuluar"
+    },
+    "policies": "Policat",
+    "consents": "Pëlqimet",
+    "consentTypes": {
+      "DATA_SHARING_AGENCIES": "Ndarja e të dhënave me agjencitë"
+    },
+    "revoked": "revokuar më {at}",
+    "dataRequests": "Kërkesa për të dhënat personale",
+    "noDataRequests": "Asnjë kërkesë.",
+    "dsrStatus": {
+      "OPEN": "e hapur",
+      "DONE": "e kryer",
+      "REJECTED": "e refuzuar"
+    },
+    "closeDone": "E kryer",
+    "closeRejected": "E refuzuar",
+    "outcome": "Rezultati",
+    "close": "Mbyll",
+    "newDataRequest": "Regjistro një kërkesë",
+    "kind": "Lloji",
+    "receivedOn": "Marrë më",
+    "description": "Çfarë kërkon",
+    "register": "Regjistro",
+    "accessLog": "Kush i ka hapur të dhënat",
+    "system": "sistemi",
+    "whoKinds": {
+      "PRIVATE": "klienti",
+      "PROFESSIONAL": "agjenci ose broker",
+      "STAFF": "AstAx"
+    },
+    "accessActions": {
+      "CUSTOMER_VIEWED": "kartela u hap",
+      "CUSTOMER_DATA_EXPORTED": "kopja e të dhënave u shkarkua",
+      "QUOTE_DATA_VIEWED": "të dhënat e ofertës u hapën",
+      "DOCUMENT_VIEWED": "dokumenti u hap",
+      "CUSTOMER_CONTACTS_VIEWED": "kontaktet u panë",
+      "CUSTOMER_LINK_OPENED": "lidhja e brokerit u hap nga klienti"
+    },
+    "tickets": "Tiketat",
+    "noTickets": "Asnjë tiketë.",
+    "newTicket": "Hap një tiketë për këtë klient",
+    "ticketStatus": {
+      "OPEN": "e hapur",
+      "WAITING_CUSTOMER": "në pritje të klientit",
+      "CLOSED": "e mbyllur"
+    }
+  },
+  "support": {
+    "title": "Asistenca",
+    "intro": "Tiketat e ardhura me email, telefon ose chat, nga më urgjentja. Përgjigja e parë jepet brenda afatit të parametrave.",
+    "error": "Veprimi nuk u krye ({code}).",
+    "filter": "Gjendja",
+    "status": {
+      "OPEN": "Të hapura",
+      "WAITING_CUSTOMER": "Në pritje të klientit",
+      "CLOSED": "Të mbyllura",
+      "ALL": "Të gjitha"
+    },
+    "mine": "Vetëm të miat",
+    "everyone": "Të të gjithëve",
+    "empty": "Asnjë tiketë.",
+    "late": "me vonesë",
+    "channels": {
+      "EMAIL": "Email",
+      "PHONE": "Telefon",
+      "CHAT": "Chat"
+    },
+    "dueAt": "përgjigje brenda {at}",
+    "answeredAt": "përgjigja e parë {at}",
+    "newTicket": "Tiketë e re",
+    "subject": "Subjekti",
+    "channel": "Kanali",
+    "language": "Gjuha e përgjigjeve",
+    "languages": {
+      "it": "Italisht",
+      "sq": "Shqip"
+    },
+    "contactEmail": "Email për përgjigjet",
+    "requestCode": "Kodi i kërkesës (nëse ka)",
+    "text": "Çfarë shkroi ose tha",
+    "open": "Hap tiketën",
+    "back": "Kthehu te tiketat",
+    "noEmail": "Pa email: përgjigjet me telefon",
+    "done": "U krye.",
+    "conversation": "Biseda",
+    "kinds": {
+      "INBOUND": "Kërkesa",
+      "REPLY": "Përgjigje e dërguar",
+      "NOTE": "Shënim i brendshëm"
+    },
+    "answer": "Përgjigju",
+    "readyReplies": "Përgjigje të gatshme:",
+    "reply": "Përgjigje me email klientit",
+    "note": "Shënim i brendshëm (klienti nuk e sheh)",
+    "send": "Ruaj",
+    "assignToMe": "Merre përsipër",
+    "setStatus": {
+      "OPEN": "Rihap",
+      "WAITING_CUSTOMER": "Në pritje të klientit",
+      "CLOSED": "Mbyll"
     }
   }
 }

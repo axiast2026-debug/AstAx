@@ -128,6 +128,31 @@ export class OperationsDashboardService {
           return { count, since: first?.submittedAt ?? null };
         });
 
+        await add("tickets", "support.tickets", "/assistenza", async () => {
+          const [count, first] = await Promise.all([
+            tx.supportTicket.count({ where: { status: "OPEN" } }),
+            tx.supportTicket.findFirst({
+              where: { status: "OPEN" },
+              orderBy: { dueAt: "asc" },
+              select: { dueAt: true },
+            }),
+          ]);
+          return { count, since: first?.dueAt ?? null };
+        });
+
+        // The nearest legal term first: the date shown is the due date.
+        await add("dataRequests", "dataSubjectRequest.manage", "/clienti", async () => {
+          const [count, first] = await Promise.all([
+            tx.dataSubjectRequest.count({ where: { status: "OPEN" } }),
+            tx.dataSubjectRequest.findFirst({
+              where: { status: "OPEN" },
+              orderBy: { dueAt: "asc" },
+              select: { dueAt: true },
+            }),
+          ]);
+          return { count, since: first?.dueAt ?? null };
+        });
+
         // Indicators of the day: verifications decided, how long they took, how many alone.
         const decided = may("verification.viewQueue")
           ? await tx.verification.findMany({

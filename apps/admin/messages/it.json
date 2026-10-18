@@ -614,7 +614,9 @@
       "team": "Team",
       "vehicle": "Veicolo",
       "consent": "Consenso",
-      "rca": "RCA"
+      "rca": "RCA",
+      "privacy": "Dati personali",
+      "support": "Assistenza"
     },
     "labels": {
       "calendar_timeZone": "Fuso orario di riferimento",
@@ -695,7 +697,9 @@
       "vehicle_vintageAgeYears": "Anni da cui un veicolo può essere d'epoca",
       "consent_linkValidityDays": "Validità del link di consenso del broker (giorni)",
       "rca_legalMinimums": "Massimali minimi di legge della RCA (euro)",
-      "requests_codePrefix": "Prefisso del codice richiesta"
+      "requests_codePrefix": "Prefisso del codice richiesta",
+      "privacy_requestResponseDays": "Termine di risposta alle richieste sui dati personali (giorni)",
+      "support_responseHours": "Prima risposta a un ticket di assistenza (ore)"
     }
   },
   "communications": {
@@ -968,7 +972,9 @@
       "issuanceProblems": "Problemi di emissione",
       "remittances": "Rimesse da eseguire",
       "refunds": "Rimborsi da approvare",
-      "onboarding": "Ingressi da decidere"
+      "onboarding": "Ingressi da decidere",
+      "dataRequests": "Richieste sui dati personali",
+      "tickets": "Ticket aperti"
     },
     "nothingWaiting": "Niente in attesa.",
     "longestWait": "Attesa più lunga: {wait}.",
@@ -981,7 +987,8 @@
     "automaticShare": "Verifiche automatiche",
     "desertedToday": "Aste deserte",
     "minutes": "{count, plural, one {# minuto} other {# minuti}}",
-    "percent": "{value}%"
+    "percent": "{value}%",
+    "nextDue": "Prima scadenza: {at}."
   },
   "organizationsList": {
     "title": "Agenzie e broker",
@@ -1052,6 +1059,153 @@
       "ORGANIZATION_EXCLUSION_PROPOSED": "esclusione proposta",
       "ORGANIZATION_EXCLUDED": "esclusa",
       "ORGANIZATION_EXCLUSION_REJECTED": "esclusione non accolta"
+    }
+  },
+  "customersBo": {
+    "title": "Clienti",
+    "intro": "Cerca per nome, codice fiscale (o partita IVA) o targa. Ogni ricerca e ogni scheda aperta finiscono nel registro degli accessi.",
+    "search": "Nome, codice fiscale o targa",
+    "find": "Cerca",
+    "results": "{count, plural, =0 {Nessun cliente trovato} one {# cliente} other {# clienti}}",
+    "ofBroker": "cliente di {broker}",
+    "private": "privato",
+    "requests": "{count, plural, one {# richiesta} other {# richieste}}",
+    "openRequests": "Richieste sui dati personali aperte",
+    "noOpenRequests": "Nessuna richiesta aperta.",
+    "kinds": {
+      "ACCESS": "Copia dei dati",
+      "RECTIFICATION": "Correzione",
+      "ERASURE": "Cancellazione"
+    },
+    "dueAt": "scadenza {at}",
+    "back": "Torna alla ricerca",
+    "error": "Operazione non riuscita ({code}).",
+    "done": {
+      "aperta": "Richiesta registrata con la sua scadenza.",
+      "chiusa": "Richiesta chiusa."
+    },
+    "data": "Dati",
+    "fiscalCode": "Codice fiscale o P. IVA",
+    "birthDate": "Data di nascita",
+    "email": "Email",
+    "phone": "Telefono",
+    "vehicles": "Veicoli",
+    "export": "Scarica la copia dei dati (JSON)",
+    "requestsTitle": "Richieste",
+    "requestStatus": {
+      "DRAFT": "bozza",
+      "IN_VERIFICATION": "in verifica",
+      "INTEGRATION_REQUESTED": "integrazione chiesta",
+      "EXCLUDED": "esclusa",
+      "AUCTION_OPEN": "asta aperta",
+      "OFFERS_AVAILABLE": "offerte disponibili",
+      "DESERTED": "deserta",
+      "ACCEPTED": "accettata",
+      "IN_ISSUANCE": "in emissione",
+      "ISSUED": "emessa",
+      "EXPIRED": "scaduta",
+      "IN_RECONFIRMATION": "in riconferma",
+      "CANCELLED": "annullata"
+    },
+    "policies": "Polizze",
+    "consents": "Consensi",
+    "consentTypes": {
+      "DATA_SHARING_AGENCIES": "Condivisione dei dati con le agenzie"
+    },
+    "revoked": "revocato il {at}",
+    "dataRequests": "Richieste sui dati personali",
+    "noDataRequests": "Nessuna richiesta.",
+    "dsrStatus": {
+      "OPEN": "aperta",
+      "DONE": "evasa",
+      "REJECTED": "respinta"
+    },
+    "closeDone": "Evasa",
+    "closeRejected": "Respinta",
+    "outcome": "Esito",
+    "close": "Chiudi",
+    "newDataRequest": "Registra una richiesta",
+    "kind": "Tipo",
+    "receivedOn": "Ricevuta il",
+    "description": "Cosa chiede",
+    "register": "Registra",
+    "accessLog": "Chi ha aperto i dati",
+    "system": "sistema",
+    "whoKinds": {
+      "PRIVATE": "cliente",
+      "PROFESSIONAL": "agenzia o broker",
+      "STAFF": "AstAx"
+    },
+    "accessActions": {
+      "CUSTOMER_VIEWED": "scheda aperta",
+      "CUSTOMER_DATA_EXPORTED": "copia dei dati scaricata",
+      "QUOTE_DATA_VIEWED": "dati del preventivo aperti",
+      "DOCUMENT_VIEWED": "documento aperto",
+      "CUSTOMER_CONTACTS_VIEWED": "contatti visti",
+      "CUSTOMER_LINK_OPENED": "link del broker aperto dal cliente"
+    },
+    "tickets": "Ticket",
+    "noTickets": "Nessun ticket.",
+    "newTicket": "Apri un ticket per questo cliente",
+    "ticketStatus": {
+      "OPEN": "aperto",
+      "WAITING_CUSTOMER": "in attesa del cliente",
+      "CLOSED": "chiuso"
+    }
+  },
+  "support": {
+    "title": "Assistenza",
+    "intro": "I ticket arrivati per email, telefono o chat, dal più urgente. La prima risposta va data entro il termine dei parametri.",
+    "error": "Operazione non riuscita ({code}).",
+    "filter": "Stato",
+    "status": {
+      "OPEN": "Aperti",
+      "WAITING_CUSTOMER": "In attesa del cliente",
+      "CLOSED": "Chiusi",
+      "ALL": "Tutti"
+    },
+    "mine": "Solo i miei",
+    "everyone": "Di tutti",
+    "empty": "Nessun ticket.",
+    "late": "in ritardo",
+    "channels": {
+      "EMAIL": "Email",
+      "PHONE": "Telefono",
+      "CHAT": "Chat"
+    },
+    "dueAt": "risposta entro {at}",
+    "answeredAt": "prima risposta {at}",
+    "newTicket": "Nuovo ticket",
+    "subject": "Oggetto",
+    "channel": "Canale",
+    "language": "Lingua delle risposte",
+    "languages": {
+      "it": "Italiano",
+      "sq": "Albanese"
+    },
+    "contactEmail": "Email per le risposte",
+    "requestCode": "Codice della richiesta (se c'è)",
+    "text": "Cosa ha scritto o detto",
+    "open": "Apri il ticket",
+    "back": "Torna ai ticket",
+    "noEmail": "Nessuna email: si risponde per telefono",
+    "done": "Fatto.",
+    "conversation": "Conversazione",
+    "kinds": {
+      "INBOUND": "Richiesta",
+      "REPLY": "Risposta inviata",
+      "NOTE": "Nota interna"
+    },
+    "answer": "Rispondi",
+    "readyReplies": "Risposte pronte:",
+    "reply": "Risposta via email al cliente",
+    "note": "Nota interna (il cliente non la vede)",
+    "send": "Salva",
+    "assignToMe": "Prendilo in carico",
+    "setStatus": {
+      "OPEN": "Riapri",
+      "WAITING_CUSTOMER": "In attesa del cliente",
+      "CLOSED": "Chiudi"
     }
   }
 }

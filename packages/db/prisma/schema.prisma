@@ -1987,3 +1987,89 @@ model OrganizationNote {
 
   @@index([organizationId])
 }
+
+enum DataSubjectRequestKind {
+  ACCESS
+  RECTIFICATION
+  ERASURE
+}
+
+enum DataSubjectRequestStatus {
+  OPEN
+  DONE
+  REJECTED
+}
+
+/// Spec 06 «Clienti»: a request about personal data (GDPR arts. 15-17),
+/// answered within privacy.requestResponseDays.
+model DataSubjectRequest {
+  id              String                   @id @default(uuid(7)) @db.Uuid
+  customerId      String                   @db.Uuid
+  kind            DataSubjectRequestKind
+  status          DataSubjectRequestStatus @default(OPEN)
+  /// What the person asked, as received (no extra personal data).
+  description     String
+  receivedAt      DateTime                 @db.Timestamptz(3)
+  dueAt           DateTime                 @db.Timestamptz(3)
+  createdByUserId String                   @db.Uuid
+  outcome         String?
+  closedByUserId  String?                  @db.Uuid
+  closedAt        DateTime?                @db.Timestamptz(3)
+
+  @@index([customerId])
+  @@index([status, dueAt])
+}
+
+enum SupportTicketStatus {
+  OPEN
+  WAITING_CUSTOMER
+  CLOSED
+}
+
+enum SupportChannel {
+  EMAIL
+  PHONE
+  CHAT
+}
+
+/// Spec 06 «Assistenza», decision E of phase 7: an internal register of the
+/// tickets, linked to a customer or a request; the first answer is due within
+/// support.responseHours.
+model SupportTicket {
+  id               String              @id @default(uuid(7)) @db.Uuid
+  number           Int                 @unique @default(autoincrement())
+  subject          String
+  channel          SupportChannel
+  status           SupportTicketStatus @default(OPEN)
+  /// Where the replies go (encrypted); none for a phone call.
+  contactEmailEnc  String?
+  locale           Locale              @default(it)
+  customerId       String?             @db.Uuid
+  quoteRequestId   String?             @db.Uuid
+  assignedToUserId String?             @db.Uuid
+  createdByUserId  String              @db.Uuid
+  dueAt            DateTime            @db.Timestamptz(3)
+  firstAnsweredAt  DateTime?           @db.Timestamptz(3)
+  closedAt         DateTime?           @db.Timestamptz(3)
+  createdAt        DateTime            @db.Timestamptz(3)
+  updatedAt        DateTime            @default(now()) @db.Timestamptz(3)
+
+  messages SupportTicketMessage[]
+
+  @@index([status, dueAt])
+  @@index([customerId])
+}
+
+model SupportTicketMessage {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  ticketId     String   @db.Uuid
+  /// INBOUND: what the person wrote; REPLY: sent to the person; NOTE: internal.
+  kind         String
+  text         String
+  authorUserId String   @db.Uuid
+  createdAt    DateTime @db.Timestamptz(3)
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id])
+
+  @@index([ticketId])
+}
