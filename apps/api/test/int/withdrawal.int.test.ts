@@ -114,12 +114,12 @@ afterAll(async () => {
   await h.close();
 });
 
-const setByCustomer = (value: boolean) =>
+const setOnPlatform = (value: boolean) =>
   system(async (tx) => {
-    const count = await tx.setting.count({ where: { key: "withdrawal.byCustomer" } });
+    const count = await tx.setting.count({ where: { key: "withdrawal.onPlatform" } });
     await tx.setting.create({
       data: {
-        key: "withdrawal.byCustomer",
+        key: "withdrawal.onPlatform",
         value,
         version: count + 1,
         validFrom: new Date(h.clock.now().getTime() - 1000),
@@ -128,14 +128,24 @@ const setByCustomer = (value: boolean) =>
     });
   });
 
-describe("question 18: by default the customer withdraws outside the platform", () => {
-  it("PAG-04 withdrawal.byCustomer off: the request is refused and the policy points to the agency", async () => {
+describe("question 18: by default withdrawals happen outside the platform", () => {
+  it("PAG-04 withdrawal.onPlatform off: the request is refused and the policy points to the agency", async () => {
     const { policy } = await issuedPolicy("agenzia-tre");
     const refused = await r.json<{ errors: { issue: string }[] }>(
       await r.call(customer, `/policies/${policy.id}/withdrawal`, { body: {} }),
       409,
     );
     expect(refused.errors[0]?.issue).toBe("NOT_ON_PLATFORM");
+    // Answer 18A: the back office cannot register one either.
+    const byBackOffice = await r.json<{ errors: { issue: string }[] }>(
+      await r.call(
+        await who("bo-support", "astax"),
+        `/back-office/policies/${policy.id}/withdrawal`,
+        { body: {} },
+      ),
+      409,
+    );
+    expect(byBackOffice.errors[0]?.issue).toBe("NOT_ON_PLATFORM");
     const listed = await r.json<
       { id: string; withdrawable: boolean; withdrawalOutside: boolean }[]
     >(await r.call(customer, "/policies"), 200);
@@ -143,11 +153,11 @@ describe("question 18: by default the customer withdraws outside the platform", 
       withdrawable: false,
       withdrawalOutside: true,
     });
-    await setByCustomer(true);
+    await setOnPlatform(true);
   });
 });
 
-describe("S08 the withdrawal within the term (withdrawal.byCustomer on)", () => {
+describe("S08 the withdrawal within the term (withdrawal.onPlatform on)", () => {
   it("S08 PAG-04 PAG-05 the agency prices 497 €, the supervisor approves: refund, «Receduta», «Annullata», recovery in the remittance", async () => {
     const { requestId, policy, payment } = await issuedPolicy("agenzia-tre");
     const asked = await r.json<{ id: string; status: string }>(

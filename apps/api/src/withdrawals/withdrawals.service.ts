@@ -59,8 +59,15 @@ export class WithdrawalsService {
 
   private async open(tx: DbTransaction, auth: AuthContext, policy: Policy) {
     const now = this.clock.now();
+    const { "withdrawal.days": days, "withdrawal.onPlatform": onPlatform } = await settingsAt(
+      tx,
+      ["withdrawal.days", "withdrawal.onPlatform"],
+      now,
+    );
+    // Question 18 (Dan, answer A): after the issuance withdrawal and cancellation
+    // happen outside AstAx, for the customer and for the back office alike.
+    if (!onPlatform) throw this.wrong("NOT_ON_PLATFORM");
     if (!["ACTIVE", "EXPIRING"].includes(policy.status)) throw this.wrong("NOT_ACTIVE");
-    const { "withdrawal.days": days } = await settingsAt(tx, ["withdrawal.days"], now);
     if (romeCalendarDate(now) > addCalendarDays(romeCalendarDate(policy.issuedAt), days)) {
       throw this.wrong("OUT_OF_TERM");
     }
@@ -128,13 +135,6 @@ export class WithdrawalsService {
         where: { id: policyId, quoteRequestId: { in: requests.map((r) => r.id) } },
       });
       if (!policy) return this.denied(auth, "Policy", policyId);
-      // Question 18: after the issuance the customer withdraws outside the platform.
-      const { "withdrawal.byCustomer": byCustomer } = await settingsAt(
-        tx,
-        ["withdrawal.byCustomer"],
-        this.clock.now(),
-      );
-      if (!byCustomer) throw this.wrong("NOT_ON_PLATFORM");
       return this.open(tx, auth, policy);
     });
     await out.postbox.flush();
