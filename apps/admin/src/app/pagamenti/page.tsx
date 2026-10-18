@@ -2,6 +2,7 @@ import { formatDateTime, formatEuroCents } from "@astax/shared/format";
 import { Badge, Button, Card } from "@astax/ui";
 import { can } from "@astax/shared/permissions";
 import { getTranslations } from "next-intl/server";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { api } from "@/lib/auth";
@@ -40,6 +41,9 @@ export default async function PaymentsPage({
   return (
     <AppShell viewer={viewer}>
       <h1 className="text-2xl font-bold">{t("title")}</h1>
+      <Link href="/riconciliazione" className="mt-1 inline-block text-sm underline">
+        {t("reconciliationLink")}
+      </Link>
       {query.errore ? (
         <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
           {t("error", { code: query.errore })}

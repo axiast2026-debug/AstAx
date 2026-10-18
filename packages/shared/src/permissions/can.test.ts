@@ -173,6 +173,7 @@ const EXPECTED: Record<ActorRole, Action[]> = {
     "refund.request",
     "accounting.view",
     "remittance.execute",
+    "payment.reconcile",
   ],
   BO_SUPERVISOR: [
     ...PRO_SELF,
@@ -194,6 +195,7 @@ const EXPECTED: Record<ActorRole, Action[]> = {
     "withdrawal.manage",
     "accounting.view",
     "remittance.execute",
+    "payment.reconcile",
     "penalty.propose",
     "penalty.apply",
     "organization.approveOnboarding",

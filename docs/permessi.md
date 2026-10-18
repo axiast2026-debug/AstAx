@@ -107,6 +107,7 @@ Abilitazioni aggiuntive di un'appartenenza, decise dal titolare:
 | Registro degli accessi della propria agenzia | `OWNER` di agenzia | VIS-08 |
 | Registro degli accessi ai dati di un cliente | `BO_SUPPORT`, `BO_SUPERVISOR`, `ADMIN` | — |
 | Registro attività completo | `BO_SUPERVISOR`, `ADMIN` | — |
+| Riconciliazione: import dell'estratto conto, abbinamenti, coda delle righe senza abbinamento | `BO_ACCOUNTING`, `BO_SUPERVISOR` | Ogni abbinamento a mano con nota, registrato |
 | Dashboard operativa del back office | Tutti i ruoli del back office; `ADMIN` | Solo le code del proprio ruolo: contatori e attese, nessun dato dei clienti |
 | Ticket di assistenza | `BO_SUPPORT`, `BO_SUPERVISOR` | — |
 | Aprire un reclamo o una segnalazione | `BO_SUPPORT`, `BO_SUPERVISOR` (reclami arrivati per email, PEC, posta o telefono: `complaint.register`); il cliente apre il reclamo dalla sua area (`complaint.open`) | — |

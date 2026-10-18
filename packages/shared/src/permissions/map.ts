@@ -192,6 +192,10 @@ export const PERMISSIONS = {
   // Accounting and penalties
   "accounting.view": { grants: ["BO_ACCOUNTING", "BO_SUPERVISOR", "BO_SUPPORT", "ADMIN"] },
   "remittance.execute": { grants: ["BO_ACCOUNTING", "BO_SUPERVISOR"] },
+  "payment.reconcile": {
+    grants: ["BO_ACCOUNTING", "BO_SUPERVISOR"],
+    conditions: "statement import, matching, the queue",
+  },
   "accounting.agencyStatement": { grants: AGENCY_ACCOUNTING },
   "accounting.brokerStatement": { grants: ["BROKER_OWNER"] },
   "invoice.viewOwn": {

@@ -443,7 +443,8 @@
       "EXECUTED": "Kryer",
       "REJECTED": "Refuzuar",
       "FAILED": "Dështoi"
-    }
+    },
+    "reconciliationLink": "Rakordimi me ekstraktin e llogarisë"
   },
   "penalties": {
     "title": "Gjoba",
@@ -975,7 +976,8 @@
       "onboarding": "Anëtarësime për t’u vendosur",
       "dataRequests": "Kërkesa për të dhënat personale",
       "tickets": "Tiketa të hapura",
-      "complaints": "Ankesa të hapura"
+      "complaints": "Ankesa të hapura",
+      "unmatchedLines": "Rreshta të ekstraktit për t'u lidhur"
     },
     "nothingWaiting": "Asgjë në pritje.",
     "longestWait": "Pritja më e gjatë: {wait}.",
@@ -1286,5 +1288,44 @@
     "responseText": "Teksti i përgjigjes",
     "ivassHint": "Mos harro të tregosh si t'i drejtohet IVASS-it nëse përgjigja nuk e kënaq (teksti për privatin e përmban tashmë).",
     "send": "Regjistro dhe dërgo përgjigjen"
+  },
+  "reconciliation": {
+    "title": "Rakordimi",
+    "intro": "Ngarkohet ekstrakti i llogarisë së veçantë (CSV i bankës ose camt.053). Çdo kreditim me kodin e kërkesës dhe të njëjtën shumë lidhet vetë me pagesën; pjesa tjetër mbetet këtu, për t'u lidhur me dorë ose për t'u injoruar me një shënim.",
+    "error": "Veprimi nuk u krye ({code}).",
+    "imported": "Ekstrakti u ngarkua: {matched} rreshta të lidhur, {queued} në radhë.",
+    "done": "U krye.",
+    "import": "Ngarko një ekstrakt llogarie",
+    "importHint": "CSV me kolonat data;valuta;importo;divisa;controparte;causale;riferimento, ose skedari camt.053 i bankës. I njëjti skedar nuk ngarkohet dy herë.",
+    "importButton": "Ngarko",
+    "filter": "Rreshtat",
+    "status": {
+      "UNMATCHED": "Për t'u lidhur",
+      "MATCHED": "Të lidhur",
+      "IGNORED": "Të injoruar"
+    },
+    "empty": "Asnjë rresht.",
+    "matchedTo": "lidhur me {code}",
+    "matchedBy": {
+      "AUTO": "automatikisht",
+      "MANUAL": "me dorë"
+    },
+    "action": "Veprimi",
+    "match": "Lidhe me pagesën",
+    "ignore": "Injoro (p.sh. komisione ose transferta të ofruesit)",
+    "payment": "Pagesë me të njëjtën shumë",
+    "noCandidates": "Asnjë pagesë e hapur me këtë shumë.",
+    "note": "Shënim",
+    "confirm": "Konfirmo",
+    "reopen": "Ktheje në radhë",
+    "daily": "Barazimi ditor",
+    "from": "Nga",
+    "to": "Deri",
+    "show": "Shfaq",
+    "day": "Dita",
+    "credits": "Kreditime në bankë",
+    "matched": "Prej të cilave të lidhura",
+    "captured": "Pagesa të arkëtuara",
+    "difference": "Diferenca"
   }
 }

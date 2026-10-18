@@ -51,6 +51,8 @@ export async function createApp(
   app.use(/^\/agency\/products\/[^/]+\/documents$/, raw({ type: () => true, limit: "60mb" }));
   // Phase 7: the professional liability policy of an entry (public link: a smaller cap).
   app.use(/^\/onboarding\/[^/]+\/prof-insurance$/, raw({ type: () => true, limit: "20mb" }));
+  // Phase 7: the bank statement of the separate account (CSV or camt.053).
+  app.use(/^\/back-office\/reconciliation\/statements$/, raw({ type: () => true, limit: "20mb" }));
   // EMI-02: policy, receipt and certificate, uploaded by the agency as the body.
   app.use(
     /^\/agency\/issuance\/[^/]+\/documents\/[A-Z_]+$/,

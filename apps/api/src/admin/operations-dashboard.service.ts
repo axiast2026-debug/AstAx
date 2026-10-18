@@ -105,6 +105,17 @@ export class OperationsDashboardService {
           ]);
           return { count, since: first?.cutoffAt ?? null };
         });
+        await add("unmatchedLines", "accounting.view", "/riconciliazione", async () => {
+          const [count, first] = await Promise.all([
+            tx.bankStatementLine.count({ where: { status: "UNMATCHED" } }),
+            tx.bankStatementLine.findFirst({
+              where: { status: "UNMATCHED" },
+              orderBy: { bookingDate: "asc" },
+              select: { bookingDate: true },
+            }),
+          ]);
+          return { count, since: first?.bookingDate ?? null };
+        });
         await add("refunds", "refund.approve", "/pagamenti", async () => {
           const [count, first] = await Promise.all([
             tx.refund.count({ where: { status: "REQUESTED" } }),

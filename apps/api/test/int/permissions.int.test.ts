@@ -302,6 +302,29 @@ const ENDPOINTS: Endpoint[] = [
     path: () => `/back-office/complaints/${randomUUID()}/answer`,
     body: {},
   },
+  {
+    action: "payment.reconcile",
+    method: "POST",
+    path: () => "/back-office/reconciliation/statements",
+    body: {},
+  },
+  {
+    action: "accounting.view",
+    method: "GET",
+    path: () => "/back-office/reconciliation/statements",
+  },
+  { action: "accounting.view", method: "GET", path: () => "/back-office/reconciliation/lines" },
+  ...(["match", "ignore", "reopen"] as const).map((step) => ({
+    action: "payment.reconcile" as const,
+    method: "POST" as const,
+    path: () => `/back-office/reconciliation/lines/${randomUUID()}/${step}`,
+    body: {},
+  })),
+  {
+    action: "accounting.view",
+    method: "GET",
+    path: () => "/back-office/reconciliation/daily?from=2026-10-01&to=2026-10-31",
+  },
   { action: "auditLog.viewAll", method: "GET", path: () => "/admin/audit" },
   // Fase 2: requests, customers, consent
   { action: "request.create", method: "GET", path: () => "/reference/request-options" },

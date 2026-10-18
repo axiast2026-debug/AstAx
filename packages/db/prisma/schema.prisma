@@ -2119,3 +2119,48 @@ model Complaint {
   @@index([status, dueAt])
   @@index([complainantUserId])
 }
+
+/// Phase 7 (spec 06 «Pagamenti»): an imported statement of the separate
+/// account; the same file is never imported twice.
+model BankStatement {
+  id               String   @id @default(uuid(7)) @db.Uuid
+  format           String
+  fileName         String
+  sha256           String   @unique
+  lineCount        Int
+  importedByUserId String   @db.Uuid
+  importedAt       DateTime @db.Timestamptz(3)
+
+  lines BankStatementLine[]
+}
+
+enum StatementLineStatus {
+  MATCHED
+  UNMATCHED
+  IGNORED
+}
+
+/// One entry of a statement, matched to a payment (automatically or by hand),
+/// left in the queue, or ignored with a note (a debit, a provider payout).
+model BankStatementLine {
+  id              String              @id @default(uuid(7)) @db.Uuid
+  statementId     String              @db.Uuid
+  bookingDate     DateTime            @db.Date
+  valueDate       DateTime?           @db.Date
+  amountCents     Int
+  currency        String
+  counterparty    String?
+  description     String
+  reference       String?
+  status          StatementLineStatus @default(UNMATCHED)
+  paymentId       String?             @unique @db.Uuid
+  matchedBy       String?
+  decidedByUserId String?             @db.Uuid
+  note            String?
+  decidedAt       DateTime?           @db.Timestamptz(3)
+
+  statement BankStatement @relation(fields: [statementId], references: [id])
+
+  @@index([status])
+  @@index([bookingDate])
+}

@@ -443,7 +443,8 @@
       "EXECUTED": "Eseguito",
       "REJECTED": "Respinto",
       "FAILED": "Non riuscito"
-    }
+    },
+    "reconciliationLink": "Riconciliazione con l'estratto conto"
   },
   "penalties": {
     "title": "Penali",
@@ -975,7 +976,8 @@
       "onboarding": "Ingressi da decidere",
       "dataRequests": "Richieste sui dati personali",
       "tickets": "Ticket aperti",
-      "complaints": "Reclami aperti"
+      "complaints": "Reclami aperti",
+      "unmatchedLines": "Righe dell'estratto da abbinare"
     },
     "nothingWaiting": "Niente in attesa.",
     "longestWait": "Attesa più lunga: {wait}.",
@@ -1286,5 +1288,44 @@
     "responseText": "Testo della risposta",
     "ivassHint": "Ricorda di indicare come rivolgersi all'IVASS se la risposta non soddisfa (il testo per il privato lo riporta già).",
     "send": "Registra e invia la risposta"
+  },
+  "reconciliation": {
+    "title": "Riconciliazione",
+    "intro": "Si carica l'estratto del conto separato (CSV della banca o camt.053). Ogni accredito con il codice della richiesta e lo stesso importo si abbina da solo al pagamento; il resto resta qui, da abbinare a mano o da ignorare con una nota.",
+    "error": "Operazione non riuscita ({code}).",
+    "imported": "Estratto caricato: {matched} righe abbinate, {queued} in coda.",
+    "done": "Fatto.",
+    "import": "Carica un estratto conto",
+    "importHint": "CSV con le colonne data;valuta;importo;divisa;controparte;causale;riferimento, oppure il file camt.053 della banca. Lo stesso file non si carica due volte.",
+    "importButton": "Carica",
+    "filter": "Righe",
+    "status": {
+      "UNMATCHED": "Da abbinare",
+      "MATCHED": "Abbinate",
+      "IGNORED": "Ignorate"
+    },
+    "empty": "Nessuna riga.",
+    "matchedTo": "abbinata a {code}",
+    "matchedBy": {
+      "AUTO": "in automatico",
+      "MANUAL": "a mano"
+    },
+    "action": "Azione",
+    "match": "Abbina al pagamento",
+    "ignore": "Ignora (per esempio commissioni o versamenti del fornitore)",
+    "payment": "Pagamento con lo stesso importo",
+    "noCandidates": "Nessun pagamento aperto con questo importo.",
+    "note": "Nota",
+    "confirm": "Conferma",
+    "reopen": "Rimetti in coda",
+    "daily": "Quadratura giornaliera",
+    "from": "Dal",
+    "to": "Al",
+    "show": "Mostra",
+    "day": "Giorno",
+    "credits": "Accrediti in banca",
+    "matched": "Di cui abbinati",
+    "captured": "Pagamenti incassati",
+    "difference": "Differenza"
   }
 }

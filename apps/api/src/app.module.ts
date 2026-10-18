@@ -65,6 +65,8 @@ import { ResultsController } from "./results/results.controller.js";
 import { PreferencesService } from "./notifications/preferences.service.js";
 import { CommunicationsController } from "./notifications/communications.controller.js";
 import { CatalogAdminController } from "./admin/catalog-admin.controller.js";
+import { ReconciliationController } from "./admin/reconciliation.controller.js";
+import { ReconciliationService } from "./admin/reconciliation.service.js";
 import { ComplaintsController, OwnComplaintsController } from "./admin/complaints.controller.js";
 import { ComplaintsService } from "./admin/complaints.service.js";
 import { ExceptionsOverviewService } from "./admin/exceptions-overview.service.js";
@@ -125,6 +127,7 @@ export class AppModule {
         CommunicationsController,
         UsersAdminController,
         CatalogAdminController,
+        ReconciliationController,
         ComplaintsController,
         OwnComplaintsController,
         SupportController,
@@ -187,6 +190,7 @@ export class AppModule {
         CommunicationsService,
         UsersAdminService,
         CatalogAdminService,
+        ReconciliationService,
         ComplaintsService,
         ExceptionsOverviewService,
         SupportService,
