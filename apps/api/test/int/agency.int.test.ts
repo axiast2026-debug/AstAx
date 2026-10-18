@@ -28,7 +28,10 @@ const who = async (key: UserKey, org: string): Promise<Who> => ({
 });
 const audit = (action: string, targetId?: string) =>
   withContext(h.db, SYSTEM_CONTEXT, (tx) =>
-    tx.auditLog.findMany({ where: { action, ...(targetId ? { targetId } : {}) } }),
+    tx.auditLog.findMany({
+      where: { action, ...(targetId ? { targetId } : {}) },
+      orderBy: { seq: "asc" },
+    }),
   );
 
 /** VIS-01: none of the customer's contacts, anywhere in an answer to an agency. */

@@ -535,7 +535,7 @@ describe("fase 2: broker requests and the customer's consent", () => {
     );
     expect(summary.status).toBe("SENT");
     expect(JSON.stringify(summary)).not.toContain("anna.riva@example.test");
-    expect(JSON.stringify(summary)).not.toContain("333");
+    expect(JSON.stringify(summary)).not.toContain("3330000042");
 
     await json(await h.call(`/consent-links/${token}/code`, { body: {} }), 204);
     const confirmed = await json<{ method: string }>(

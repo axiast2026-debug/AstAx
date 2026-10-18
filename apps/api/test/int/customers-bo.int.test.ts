@@ -12,6 +12,8 @@ let support: Who;
 const system = <T>(work: Parameters<typeof withContext<T>>[2]) =>
   withContext(h.db, SYSTEM_CONTEXT, work);
 let plate = "";
+// The sample plate is the same for many test customers: the one of this file.
+let galliId = "";
 
 beforeAll(async () => {
   h = await startHarness();
@@ -19,9 +21,11 @@ beforeAll(async () => {
   const owner: Who = { token: await h.tokenFor("private-davide-galli") };
   await acceptAllLegal(h, "private-davide-galli");
   const request = await r.submittedPrivateRequest(owner, "davide.galli@example.test");
-  plate =
-    (await system((tx) => tx.quoteRequest.findUniqueOrThrow({ where: { id: request.id } })))
-      .plate ?? "";
+  const stored = await system((tx) =>
+    tx.quoteRequest.findUniqueOrThrow({ where: { id: request.id } }),
+  );
+  plate = stored.plate ?? "";
+  galliId = stored.customerId ?? "";
   await acceptAllLegal(h, "bo-support");
   support = { token: await h.tokenFor("bo-support"), context: membershipId("bo-support", "astax") };
 });
@@ -45,12 +49,12 @@ describe("phase 7 customers in the back office", () => {
       await r.call(support, `/back-office/customers?q=${plate}`),
       200,
     );
-    expect(byPlate.length).toBeGreaterThanOrEqual(1);
+    expect(byPlate.map((c) => c.id)).toContain(galliId);
     const byName = await r.json<{ id: string }[]>(
       await r.call(support, "/back-office/customers?q=galli"),
       200,
     );
-    expect(byName.map((c) => c.id)).toContain(byPlate[0]?.id);
+    expect(byName.map((c) => c.id)).toContain(galliId);
     const searched = await system((tx) =>
       tx.auditLog.findFirst({ where: { action: "CUSTOMERS_SEARCHED" } }),
     );
@@ -58,10 +62,7 @@ describe("phase 7 customers in the back office", () => {
   });
 
   it("the card shows requests and consents, and the opening goes into its access log", async () => {
-    const [found] = await r.json<{ id: string }[]>(
-      await r.call(support, `/back-office/customers?q=${plate}`),
-      200,
-    );
+    const found = { id: galliId };
     const first = await r.json<Card>(
       await r.call(support, `/back-office/customers/${found?.id}`),
       200,
@@ -89,10 +90,7 @@ describe("phase 7 customers in the back office", () => {
   });
 
   it("a request about personal data gets the legal term and is closed with the outcome", async () => {
-    const [found] = await r.json<{ id: string }[]>(
-      await r.call(support, `/back-office/customers?q=${plate}`),
-      200,
-    );
+    const found = { id: galliId };
     const opened = await r.json<{ id: string; dueAt: string }>(
       await r.call(support, `/back-office/customers/${found?.id}/data-requests`, {
         body: {

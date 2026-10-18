@@ -75,7 +75,10 @@ function sendOffer(
 
 const audit = (action: string, targetId?: string) =>
   withContext(h.db, SYSTEM_CONTEXT, (tx) =>
-    tx.auditLog.findMany({ where: { action, ...(targetId ? { targetId } : {}) } }),
+    tx.auditLog.findMany({
+      where: { action, ...(targetId ? { targetId } : {}) },
+      orderBy: { seq: "asc" },
+    }),
   );
 
 /** The auction as the worker opens it: key pair, wrapped private key, invitations. */
@@ -322,6 +325,17 @@ describe("fase 3: claims and offers (OFF-01..07, BC-02, BC-04, BC-05)", () => {
     for (const plain of ["505,37", "Sconto fedeltà", "Rata mensile possibile"]) {
       expect(everything, plain).not.toContain(plain);
     }
+    // Only this auction's offers: other test files leave closed offers, readable by right.
+    const ours = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.offer.findMany({ where: { auctionId }, select: { id: true } }),
+    );
+    const mine = (table: string) =>
+      (dump[table] ?? "")
+        .split(String.fromCharCode(10))
+        .filter((row) =>
+          table === "Offer" ? row.includes(auctionId) : ours.some((o) => row.includes(o.id)),
+        )
+        .join(String.fromCharCode(10));
     for (const table of ["Offer", "OfferVersion"]) {
       for (const company of [
         companies.Alfa ?? "x",
@@ -329,7 +343,7 @@ describe("fase 3: claims and offers (OFF-01..07, BC-02, BC-04, BC-05)", () => {
         "Compagnia Alfa",
         "Compagnia Beta",
       ]) {
-        expect(dump[table] ?? "", `${table} ${company}`).not.toContain(company);
+        expect(mine(table), `${table} ${company}`).not.toContain(company);
       }
     }
     // The PDFs are stored encrypted.

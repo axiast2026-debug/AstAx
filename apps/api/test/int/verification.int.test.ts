@@ -40,7 +40,9 @@ afterAll(async () => {
 });
 
 const audit = (action: string, targetId: string) =>
-  withContext(h.db, SYSTEM_CONTEXT, (tx) => tx.auditLog.findMany({ where: { action, targetId } }));
+  withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+    tx.auditLog.findMany({ where: { action, targetId }, orderBy: { seq: "asc" } }),
+  );
 
 interface Card {
   status: string;

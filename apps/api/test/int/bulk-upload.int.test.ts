@@ -118,7 +118,10 @@ describe("phase 7 broker bulk upload", () => {
     );
     expect(again.results[0]?.customer).toBe("EXISTING");
     const logged = await system((tx) =>
-      tx.auditLog.findFirst({ where: { action: "BULK_UPLOAD_DONE" } }),
+      tx.auditLog.findFirst({
+        where: { action: "BULK_UPLOAD_DONE", after: { path: ["rows"], equals: 2 } },
+        orderBy: { seq: "desc" },
+      }),
     );
     expect(logged?.after).toMatchObject({ rows: 2, newCustomers: 2, documents: 3 });
   });
