@@ -80,6 +80,7 @@ const ADMIN_MENU: MenuItem[] = [
   item("adminDashboard", "/", "admin.reports.view"),
   item("auctionRules", "/regole-asta", "admin.settings.manage"),
   item("packages", "/pacchetti", "admin.catalog.manage"),
+  item("listsHolidays", "/elenchi-festivita", "admin.catalog.manage"),
   item("economy", "/economia", "admin.settings.manage"),
   item("systemSettings", "/sicurezza-dati", "admin.settings.manage"),
   item("complaintsIndex", "/indice-reclami", "admin.settings.manage"),

@@ -72,7 +72,8 @@
     "integrations": "Integrazioni",
     "reports": "Report ed esportazioni",
     "complaintsIndex": "Indice reclami",
-    "systemSettings": "Sicurezza e dati"
+    "systemSettings": "Sicurezza e dati",
+    "listsHolidays": "Elenchi e festività"
   },
   "home": {
     "welcome": "Ciao {name}",

@@ -308,8 +308,27 @@ model ExclusionRule {
   messageIt        String
   messageSq        String
   active           Boolean  @default(true)
+  /// The version in force (phase 7): every change keeps a copy in ExclusionRuleVersion.
+  version          Int      @default(1)
   createdAt        DateTime @default(now()) @db.Timestamptz(3)
   updatedAt        DateTime @default(now()) @db.Timestamptz(3)
+}
+
+/// Every version of an excluded case, with who changed it and why (spec 07).
+model ExclusionRuleVersion {
+  id               String   @id @default(uuid(7)) @db.Uuid
+  code             String
+  version          Int
+  condition        Json?
+  blockingInWizard Boolean
+  messageIt        String
+  messageSq        String
+  active           Boolean
+  reason           String?
+  changedByUserId  String?  @db.Uuid
+  createdAt        DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([code, version])
 }
 
 /// Coverage packages (spec 09 §2, seed/pacchetti.json). A request stores the
@@ -323,14 +342,18 @@ model CoveragePackage {
 }
 
 model CoveragePackageVersion {
-  id             String          @id @default(uuid(7)) @db.Uuid
-  packageCode    String
-  package        CoveragePackage @relation(fields: [packageCode], references: [code])
-  version        Int
-  requirements   Json
-  customerTextIt String
-  validFrom      DateTime        @db.Timestamptz(3)
-  createdAt      DateTime        @default(now()) @db.Timestamptz(3)
+  id              String          @id @default(uuid(7)) @db.Uuid
+  packageCode     String
+  package         CoveragePackage @relation(fields: [packageCode], references: [code])
+  version         Int
+  requirements    Json
+  customerTextIt  String
+  /// Phase 7: the text in Albanian, for the back office.
+  customerTextSq  String?
+  validFrom       DateTime        @db.Timestamptz(3)
+  reason          String?
+  changedByUserId String?         @db.Uuid
+  createdAt       DateTime        @default(now()) @db.Timestamptz(3)
 
   @@unique([packageCode, version])
 }
@@ -340,6 +363,8 @@ model Holiday {
   id        String   @id @default(uuid(7)) @db.Uuid
   date      DateTime @unique @db.Date
   name      String
+  /// Phase 7: the name in Albanian, for the back office.
+  nameSq    String?
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @default(now()) @db.Timestamptz(3)
 }

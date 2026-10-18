@@ -80,6 +80,7 @@ describe("menus by role (docs/specifiche 02-07)", () => {
       "adminDashboard",
       "auctionRules",
       "packages",
+      "listsHolidays",
       "economy",
       "systemSettings",
       "complaintsIndex",

@@ -20,3 +20,4 @@ export * from "./remittance.js";
 export * from "./invoicing.js";
 export * from "./issuance.js";
 export * from "./ranking-view.js";
+export * from "./holidays.js";

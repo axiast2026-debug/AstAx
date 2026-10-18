@@ -140,6 +140,18 @@ export async function seedReference(tx: DbTransaction, repoRoot: string): Promis
       },
       update: {},
     });
+    await tx.exclusionRuleVersion.upsert({
+      where: { code_version: { code: entry.code, version: 1 } },
+      create: {
+        code: entry.code,
+        version: 1,
+        blockingInWizard: entry.blockingInWizard,
+        messageIt: entry.it,
+        messageSq: entry.sq,
+        active: entry.phase === undefined || entry.phase <= 1,
+      },
+      update: {},
+    });
   }
 
   const packages = packagesFileSchema.parse(readSeedFile(repoRoot, "pacchetti.json")).packages;

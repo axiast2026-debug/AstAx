@@ -164,6 +164,43 @@ const ENDPOINTS: Endpoint[] = [
     path: () => `/admin/users/${randomUUID()}/staff-role`,
     body: {},
   },
+  { action: "admin.catalog.manage", method: "GET", path: () => "/admin/packages" },
+  {
+    action: "admin.catalog.manage",
+    method: "POST",
+    path: () => "/admin/packages/BASE/versions",
+    body: {},
+  },
+  { action: "admin.catalog.manage", method: "GET", path: () => "/admin/exclusion-rules" },
+  {
+    action: "admin.catalog.manage",
+    method: "POST",
+    path: () => "/admin/exclusion-rules",
+    body: {},
+  },
+  {
+    action: "admin.catalog.manage",
+    method: "PUT",
+    path: () => "/admin/exclusion-rules/NONE",
+    body: {},
+  },
+  { action: "admin.catalog.manage", method: "GET", path: () => "/admin/lists" },
+  { action: "admin.catalog.manage", method: "POST", path: () => "/admin/lists/fuel", body: {} },
+  { action: "admin.catalog.manage", method: "PUT", path: () => "/admin/lists/fuel/NONE", body: {} },
+  { action: "admin.catalog.manage", method: "GET", path: () => "/admin/holidays?year=2029" },
+  { action: "admin.catalog.manage", method: "POST", path: () => "/admin/holidays", body: {} },
+  {
+    action: "admin.catalog.manage",
+    method: "POST",
+    path: () => "/admin/holidays/confirm-year",
+    body: {},
+  },
+  {
+    action: "admin.catalog.manage",
+    method: "POST",
+    path: () => `/admin/holidays/${randomUUID()}/remove`,
+    body: {},
+  },
   { action: "auditLog.viewAll", method: "GET", path: () => "/admin/audit" },
   // Fase 2: requests, customers, consent
   { action: "request.create", method: "GET", path: () => "/reference/request-options" },
@@ -893,7 +930,12 @@ describe("SIC-01 every API route is in the table", () => {
               .replace("/checklist/DOCUMENTS", "/checklist/{code}")
               .replace("/documents/none/", "/documents/{key}/")
               .replace("/settings/invitations.max", "/settings/{key}")
-              .replace("/notification-templates/auth.otp", "/notification-templates/{key}")}`,
+              .replace("/notification-templates/auth.otp", "/notification-templates/{key}")
+              .replace("/packages/BASE/", "/packages/{code}/")
+              .replace("/exclusion-rules/NONE", "/exclusion-rules/{code}")
+              .replace("/lists/fuel/NONE", "/lists/{listKey}/{code}")
+              .replace(/\/lists\/fuel$/, "/lists/{listKey}")
+              .replace(/\?year=\d+$/, "")}`,
         ),
       ),
     ].sort();
