@@ -974,7 +974,8 @@
       "refunds": "Rimborsi da approvare",
       "onboarding": "Ingressi da decidere",
       "dataRequests": "Richieste sui dati personali",
-      "tickets": "Ticket aperti"
+      "tickets": "Ticket aperti",
+      "complaints": "Reclami aperti"
     },
     "nothingWaiting": "Niente in attesa.",
     "longestWait": "Attesa più lunga: {wait}.",
@@ -1227,5 +1228,63 @@
       "REJECTED": "respinto"
     },
     "refundable": "rimborsabile {amount}"
+  },
+  "complaintsRegister": {
+    "title": "Reclami",
+    "intro": "Il registro dei reclami: protocollo, data di ricezione, scadenza della risposta (45 giorni, dai parametri) e risposta con l'esito. Cinque giorni prima della scadenza arriva un avviso al supervisore.",
+    "error": "Operazione non riuscita ({code}).",
+    "registered": "Reclamo registrato: protocollo {protocol}. Il reclamante ha ricevuto la conferma.",
+    "filter": "Stato",
+    "status": {
+      "OPEN": "Da rispondere",
+      "ANSWERED": "Risposti",
+      "ALL": "Tutti"
+    },
+    "empty": "Nessun reclamo.",
+    "late": "scaduto",
+    "channels": {
+      "APP": "Area personale",
+      "EMAIL": "Email",
+      "PEC": "PEC",
+      "POST": "Posta",
+      "PHONE": "Telefono"
+    },
+    "receivedAt": "ricevuto il {at}",
+    "dueAt": "risposta entro il {at}",
+    "export": "Esportazione per IVASS",
+    "from": "Dal",
+    "to": "Al",
+    "download": "Scarica il CSV",
+    "new": "Registra un reclamo arrivato fuori dall'app",
+    "channel": "Canale",
+    "receivedOn": "Ricevuto il",
+    "complainantName": "Reclamante",
+    "complainantEmail": "Email del reclamante",
+    "language": "Lingua della risposta",
+    "languages": {
+      "it": "Italiano",
+      "sq": "Albanese"
+    },
+    "requestCode": "Codice della richiesta (se c'è)",
+    "subject": "Oggetto",
+    "description": "Testo del reclamo",
+    "register": "Registra",
+    "back": "Torna al registro",
+    "answered": "Risposta registrata e inviata al reclamante.",
+    "complainant": "Reclamante e reclamo",
+    "fromApp": "dall'area personale",
+    "customerCard": "Apri la scheda del cliente",
+    "request": "Richiesta",
+    "intermediary": "Intermediario",
+    "answer": "Risposta",
+    "outcomes": {
+      "ACCEPTED": "Accolto",
+      "PARTIALLY_ACCEPTED": "Accolto in parte",
+      "REJECTED": "Non accolto"
+    },
+    "outcome": "Esito",
+    "responseText": "Testo della risposta",
+    "ivassHint": "Ricorda di indicare come rivolgersi all'IVASS se la risposta non soddisfa (il testo per il privato lo riporta già).",
+    "send": "Registra e invia la risposta"
   }
 }

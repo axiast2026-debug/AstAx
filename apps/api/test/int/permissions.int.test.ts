@@ -276,6 +276,32 @@ const ENDPOINTS: Endpoint[] = [
     body: {},
   })),
   { action: "issuance.decideMissed", method: "GET", path: () => "/back-office/exceptions" },
+  { action: "complaint.open", method: "GET", path: () => "/me/complaints", personal: true },
+  {
+    action: "complaint.open",
+    method: "POST",
+    path: () => "/me/complaints",
+    body: {},
+    personal: true,
+  },
+  { action: "complaint.manage", method: "GET", path: () => "/back-office/complaints" },
+  { action: "complaint.register", method: "POST", path: () => "/back-office/complaints", body: {} },
+  {
+    action: "complaint.manage",
+    method: "GET",
+    path: () => "/back-office/complaints/export?from=2026-01-01&to=2026-12-31",
+  },
+  {
+    action: "complaint.manage",
+    method: "GET",
+    path: () => `/back-office/complaints/${randomUUID()}`,
+  },
+  {
+    action: "complaint.manage",
+    method: "POST",
+    path: () => `/back-office/complaints/${randomUUID()}/answer`,
+    body: {},
+  },
   { action: "auditLog.viewAll", method: "GET", path: () => "/admin/audit" },
   // Fase 2: requests, customers, consent
   { action: "request.create", method: "GET", path: () => "/reference/request-options" },

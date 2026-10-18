@@ -140,6 +140,18 @@ export class OperationsDashboardService {
           return { count, since: first?.dueAt ?? null };
         });
 
+        await add("complaints", "complaint.manage", "/reclami", async () => {
+          const [count, first] = await Promise.all([
+            tx.complaint.count({ where: { status: "OPEN" } }),
+            tx.complaint.findFirst({
+              where: { status: "OPEN" },
+              orderBy: { dueAt: "asc" },
+              select: { dueAt: true },
+            }),
+          ]);
+          return { count, since: first?.dueAt ?? null };
+        });
+
         // The nearest legal term first: the date shown is the due date.
         await add("dataRequests", "dataSubjectRequest.manage", "/clienti", async () => {
           const [count, first] = await Promise.all([

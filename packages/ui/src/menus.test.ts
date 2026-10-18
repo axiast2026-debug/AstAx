@@ -21,6 +21,7 @@ describe("menus by role (docs/specifiche 02-07)", () => {
       "quotes",
       "policies",
       "documents",
+      "complaints",
       "profile",
     ]);
   });

@@ -160,7 +160,7 @@ const EXPECTED: Record<ActorRole, Action[]> = {
     "accounting.view",
     "accessLog.viewCustomer",
     "support.tickets",
-    "complaint.open",
+    "complaint.register",
     "dataSubjectRequest.manage",
   ],
   BO_ACCOUNTING: [
@@ -201,7 +201,7 @@ const EXPECTED: Record<ActorRole, Action[]> = {
     "accessLog.viewCustomer",
     "auditLog.viewAll",
     "support.tickets",
-    "complaint.open",
+    "complaint.register",
     "complaint.manage",
     "dataSubjectRequest.manage",
   ],

@@ -19,6 +19,7 @@ const PRIVATE_MENU: MenuItem[] = [
   item("quotes", "/preventivi", "request.viewOwn"),
   item("policies", "/polizze", "request.viewOwn"),
   item("documents", "/documenti", "request.viewOwn"),
+  item("complaints", "/reclami", "complaint.open"),
   item("profile", "/profilo", "profile.view"),
 ];
 
@@ -70,7 +71,7 @@ const BACK_OFFICE_MENU: MenuItem[] = [
   item("organizations", "/organizzazioni", "organization.approveOnboarding"),
   item("customers", "/clienti", "accessLog.viewCustomer"),
   item("support", "/assistenza", "support.tickets"),
-  item("complaints", "/reclami", "complaint.manage"),
+  item("complaints", "/reclami", "complaint.register"),
   item("flags", "/segnalazioni", "complaint.manage"),
   item("invoicing", "/fatturazione", "accounting.view"),
   item("auditLog", "/registro", "auditLog.viewAll"),

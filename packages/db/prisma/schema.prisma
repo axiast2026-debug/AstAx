@@ -2073,3 +2073,49 @@ model SupportTicketMessage {
 
   @@index([ticketId])
 }
+
+enum ComplaintStatus {
+  OPEN
+  ANSWERED
+}
+
+enum ComplaintOutcome {
+  ACCEPTED
+  PARTIALLY_ACCEPTED
+  REJECTED
+}
+
+/// Spec 06 «Reclami» (IVASS reg. 24/2008): the register with the protocol,
+/// the answer due within complaints.responseDays, the reminder
+/// complaints.reminderDaysBefore days before, the answer and its outcome.
+model Complaint {
+  id                  String            @id @default(uuid(7)) @db.Uuid
+  number              Int               @unique @default(autoincrement())
+  /// «R-2026-000012»: year of receipt (Rome) and the number.
+  protocol            String            @unique
+  receivedAt          DateTime          @db.Timestamptz(3)
+  dueAt               DateTime          @db.Timestamptz(3)
+  channel             String
+  /// The private user who filed it from the own area, if so.
+  complainantUserId   String?           @db.Uuid
+  complainantName     String
+  complainantEmailEnc String?
+  complainantLocale   Locale            @default(it)
+  customerId          String?           @db.Uuid
+  quoteRequestId      String?           @db.Uuid
+  /// The intermediary concerned: an agency or a broker; null for AstAx itself.
+  organizationId      String?           @db.Uuid
+  subject             String
+  description         String
+  status              ComplaintStatus   @default(OPEN)
+  responseText        String?
+  outcome             ComplaintOutcome?
+  answeredAt          DateTime?         @db.Timestamptz(3)
+  answeredByUserId    String?           @db.Uuid
+  reminderSentAt      DateTime?         @db.Timestamptz(3)
+  createdByUserId     String?           @db.Uuid
+  createdAt           DateTime          @db.Timestamptz(3)
+
+  @@index([status, dueAt])
+  @@index([complainantUserId])
+}

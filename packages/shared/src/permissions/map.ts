@@ -225,9 +225,10 @@ export const PERMISSIONS = {
   "accessLog.viewCustomer": { grants: ["BO_SUPPORT", "BO_SUPERVISOR", "ADMIN"] },
   "auditLog.viewAll": { grants: ["BO_SUPERVISOR", "ADMIN"] },
   "support.tickets": { grants: ["BO_SUPPORT", "BO_SUPERVISOR"] },
-  "complaint.open": {
-    grants: ["BO_SUPPORT", "BO_SUPERVISOR", "PRIVATE"],
-    conditions: "private: own area only",
+  "complaint.open": { grants: ["PRIVATE"], conditions: "own area only" },
+  "complaint.register": {
+    grants: ["BO_SUPPORT", "BO_SUPERVISOR"],
+    conditions: "complaints received by email, PEC, post or phone",
   },
   "complaint.manage": { grants: ["BO_SUPERVISOR"] },
   "dataSubjectRequest.manage": {

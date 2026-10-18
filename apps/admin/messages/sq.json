@@ -974,7 +974,8 @@
       "refunds": "Rimbursime për miratim",
       "onboarding": "Anëtarësime për t’u vendosur",
       "dataRequests": "Kërkesa për të dhënat personale",
-      "tickets": "Tiketa të hapura"
+      "tickets": "Tiketa të hapura",
+      "complaints": "Ankesa të hapura"
     },
     "nothingWaiting": "Asgjë në pritje.",
     "longestWait": "Pritja më e gjatë: {wait}.",
@@ -1227,5 +1228,63 @@
       "REJECTED": "e refuzuar"
     },
     "refundable": "e rimbursueshme {amount}"
+  },
+  "complaintsRegister": {
+    "title": "Ankesat",
+    "intro": "Regjistri i ankesave: protokolli, data e marrjes, afati i përgjigjes (45 ditë, nga parametrat) dhe përgjigja me rezultatin. Pesë ditë para afatit mbikëqyrësi merr një njoftim.",
+    "error": "Veprimi nuk u krye ({code}).",
+    "registered": "Ankesa u regjistrua: protokolli {protocol}. Ankuesi mori konfirmimin.",
+    "filter": "Gjendja",
+    "status": {
+      "OPEN": "Për t'u përgjigjur",
+      "ANSWERED": "Të përgjigjura",
+      "ALL": "Të gjitha"
+    },
+    "empty": "Asnjë ankesë.",
+    "late": "e skaduar",
+    "channels": {
+      "APP": "Zona personale",
+      "EMAIL": "Email",
+      "PEC": "PEC",
+      "POST": "Posta",
+      "PHONE": "Telefon"
+    },
+    "receivedAt": "marrë më {at}",
+    "dueAt": "përgjigje deri më {at}",
+    "export": "Eksportimi për IVASS",
+    "from": "Nga",
+    "to": "Deri",
+    "download": "Shkarko CSV-në",
+    "new": "Regjistro një ankesë të ardhur jashtë aplikacionit",
+    "channel": "Kanali",
+    "receivedOn": "Marrë më",
+    "complainantName": "Ankuesi",
+    "complainantEmail": "Email-i i ankuesit",
+    "language": "Gjuha e përgjigjes",
+    "languages": {
+      "it": "Italisht",
+      "sq": "Shqip"
+    },
+    "requestCode": "Kodi i kërkesës (nëse ka)",
+    "subject": "Subjekti",
+    "description": "Teksti i ankesës",
+    "register": "Regjistro",
+    "back": "Kthehu te regjistri",
+    "answered": "Përgjigja u regjistrua dhe iu dërgua ankuesit.",
+    "complainant": "Ankuesi dhe ankesa",
+    "fromApp": "nga zona personale",
+    "customerCard": "Hap kartelën e klientit",
+    "request": "Kërkesa",
+    "intermediary": "Ndërmjetësi",
+    "answer": "Përgjigja",
+    "outcomes": {
+      "ACCEPTED": "E pranuar",
+      "PARTIALLY_ACCEPTED": "E pranuar pjesërisht",
+      "REJECTED": "E papranuar"
+    },
+    "outcome": "Rezultati",
+    "responseText": "Teksti i përgjigjes",
+    "ivassHint": "Mos harro të tregosh si t'i drejtohet IVASS-it nëse përgjigja nuk e kënaq (teksti për privatin e përmban tashmë).",
+    "send": "Regjistro dhe dërgo përgjigjen"
   }
 }

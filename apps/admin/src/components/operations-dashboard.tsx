@@ -45,7 +45,7 @@ export async function OperationsDashboard() {
                 ? t("nothingWaiting")
                 : q.key === "openAuctions"
                   ? t("nextClosing", { at: formatDateTime(q.since, locale) })
-                  : q.key === "dataRequests" || q.key === "tickets"
+                  : ["dataRequests", "tickets", "complaints"].includes(q.key)
                     ? t("nextDue", { at: formatDateTime(q.since, locale) })
                     : t("longestWait", { wait: wait(q.since) })}
             </p>

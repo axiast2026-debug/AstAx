@@ -60,3 +60,9 @@ export {
 } from "./notification-dispatch.js";
 export { checkOnRui, importRuiRecords, type RuiCheck, type RuiImportRecord } from "./rui.js";
 export { carryOnboardingAcceptances } from "./onboarding.js";
+export {
+  complaintProtocol,
+  complaintsToRemind,
+  registerComplaint,
+  type NewComplaint,
+} from "./complaints.js";

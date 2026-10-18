@@ -109,7 +109,7 @@ Abilitazioni aggiuntive di un'appartenenza, decise dal titolare:
 | Registro attività completo | `BO_SUPERVISOR`, `ADMIN` | — |
 | Dashboard operativa del back office | Tutti i ruoli del back office; `ADMIN` | Solo le code del proprio ruolo: contatori e attese, nessun dato dei clienti |
 | Ticket di assistenza | `BO_SUPPORT`, `BO_SUPERVISOR` | — |
-| Aprire un reclamo o una segnalazione | `BO_SUPPORT`, `BO_SUPERVISOR`; il cliente apre il reclamo dalla sua area | — |
+| Aprire un reclamo o una segnalazione | `BO_SUPPORT`, `BO_SUPERVISOR` (reclami arrivati per email, PEC, posta o telefono: `complaint.register`); il cliente apre il reclamo dalla sua area (`complaint.open`) | — |
 | Gestire reclami e segnalazioni | `BO_SUPERVISOR` | — |
 | Richieste sui dati personali (copia, correzione, cancellazione) | `BO_SUPPORT`, `BO_SUPERVISOR` | Nei termini di legge |
 

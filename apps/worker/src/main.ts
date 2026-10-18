@@ -70,6 +70,12 @@ const email = new MailpitEmailSender(config.MAILPIT_URL, {
 });
 const storage = storageFor(config);
 const fieldCipher = new LocalFieldCipher(config.FIELD_ENCRYPTION_KEY, config.BLIND_INDEX_KEY);
+const notifier = new WorkerNotifier(email, logger, {
+  db,
+  clock,
+  cipher: fieldCipher,
+  push: new MailpitWebPush(email),
+});
 const activities = createActivities({
   db,
   // ADR 0005: the worker holds only the key of the sealed bids.
@@ -82,12 +88,7 @@ const activities = createActivities({
   storage,
   // Rule 9: the fake reader until phase 8; it reads the stored quote itself.
   reader: new FakeDocumentReader(clock, undefined, undefined, (key) => storage.get(key)),
-  notifier: new WorkerNotifier(email, logger, {
-    db,
-    clock,
-    cipher: fieldCipher,
-    push: new MailpitWebPush(email),
-  }),
+  notifier,
   logger,
   urls: { web: config.WEB_URL, admin: config.ADMIN_URL },
   publish,
@@ -131,7 +132,15 @@ const outboxTimer =
       }, config.OUTBOX_DISPATCH_INTERVAL_MS);
 
 const stopSchedules = startSchedules(
-  { db, clock, cipher: fieldCipher, logger, rui: new FakeRuiRegistry() },
+  {
+    db,
+    clock,
+    cipher: fieldCipher,
+    logger,
+    rui: new FakeRuiRegistry(),
+    notifier,
+    adminUrl: config.ADMIN_URL,
+  },
   config.SCHEDULES_INTERVAL_MS,
 );
 

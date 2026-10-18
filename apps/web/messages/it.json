@@ -1504,5 +1504,27 @@
     "accept": "Ho letto e accetto: {title}",
     "notReady": "Prima conferma l'IBAN e carica la polizza.",
     "submit": "Invia la richiesta"
+  },
+  "complaints": {
+    "title": "Reclami",
+    "intro": "Se qualcosa non è andato come doveva, puoi presentare un reclamo formale. Ti diamo un numero di protocollo e una risposta scritta entro 45 giorni.",
+    "filed": "Reclamo registrato con il protocollo {protocol}. Ti abbiamo mandato la conferma via email.",
+    "status": {
+      "OPEN": "In attesa di risposta",
+      "ANSWERED": "Risposto"
+    },
+    "dates": "Ricevuto il {received} · risposta entro il {due}",
+    "outcomes": {
+      "ACCEPTED": "Reclamo accolto",
+      "PARTIALLY_ACCEPTED": "Reclamo accolto in parte",
+      "REJECTED": "Reclamo non accolto"
+    },
+    "ivass": "Se la risposta non ti soddisfa, o non l'hai ricevuta entro la data indicata, puoi rivolgerti all'IVASS (www.ivass.it), allegando il reclamo e la nostra risposta.",
+    "new": "Nuovo reclamo",
+    "subject": "Oggetto",
+    "description": "Cosa è successo",
+    "requestCode": "Codice della richiesta (facoltativo)",
+    "requestCodeHint": "Lo trovi in «Preventivi» o in «Polizze», per esempio AX-2026-000123.",
+    "send": "Invia il reclamo"
   }
 }

@@ -2,6 +2,7 @@ import type { Clock } from "@astax/adapters/clock";
 import type { FieldCipher } from "@astax/adapters/crypto";
 import type { RuiRegistryPort } from "@astax/adapters/rui-registry";
 import {
+  complaintsToRemind,
   importRuiRecords,
   issueBrokerInvoices,
   prepareRemittances,
@@ -14,6 +15,8 @@ import { addCalendarDays, isRemittanceDay, previousMonth } from "@astax/shared/d
 import { romeCalendarDate } from "@astax/shared/format";
 import { errorForLog, type Logger } from "@astax/shared/logging";
 import { label, loadNotificationLabels } from "@astax/shared/notifications";
+import { audit, staffRecipients } from "./activities/support.js";
+import type { PendingEmail, WorkerNotifier } from "./notifier.js";
 
 /**
  * CONT-01: on the run day (Monday, parameter `remittance.runDay`, in Rome)
@@ -82,13 +85,62 @@ export async function importRuiIfDue(
   return { runDate, ...result };
 }
 
+/**
+ * Spec 06 «Reclami»: the supervisors are told complaints.reminderDaysBefore
+ * days before the answer is due, once per complaint.
+ */
+export async function remindComplaintsIfDue(
+  deps: { db: DbClient; cipher: FieldCipher; notifier: WorkerNotifier; adminUrl: string },
+  now: Date,
+): Promise<{ reminded: number }> {
+  const pending: PendingEmail[] = [];
+  const reminded = await withContext(deps.db, SYSTEM_CONTEXT, async (tx) => {
+    const due = await complaintsToRemind(tx, now);
+    if (due.length === 0) return 0;
+    const supervisors = await staffRecipients(tx, deps.cipher, ["BO_SUPERVISOR"]);
+    for (const c of due) {
+      await deps.notifier.notify(
+        tx,
+        pending,
+        supervisors,
+        "complaint.due_soon.bo",
+        () => ({
+          protocollo: c.protocol,
+          giorni: String(c.daysLeft),
+          scadenza: { date: c.dueAt.toISOString() },
+          link: `${deps.adminUrl}/reclami/${c.id}`,
+        }),
+        `/reclami/${c.id}`,
+        { complaintId: c.id },
+      );
+      await audit(tx, now, {
+        action: "COMPLAINT_REMINDED",
+        targetType: "Complaint",
+        targetId: c.id,
+        after: { daysLeft: c.daysLeft },
+      });
+    }
+    return due.length;
+  });
+  await deps.notifier.flush(pending);
+  return { reminded };
+}
+
 /** Checks every few minutes; the identifiers and counts only go to the log (rule 8). */
 export function startSchedules(
-  deps: { db: DbClient; clock: Clock; cipher: FieldCipher; logger: Logger; rui: RuiRegistryPort },
+  deps: {
+    db: DbClient;
+    clock: Clock;
+    cipher: FieldCipher;
+    logger: Logger;
+    rui: RuiRegistryPort;
+    notifier: WorkerNotifier;
+    adminUrl: string;
+  },
   intervalMs: number,
 ): () => void {
   if (intervalMs === 0) return () => undefined;
-  const { db, clock, cipher, logger, rui } = deps;
+  const { db, clock, cipher, logger, rui, notifier, adminUrl } = deps;
   const brokerLine = label(loadNotificationLabels(), "invoice.brokerLine", "it");
   let running = false;
   const tick = () => {
@@ -104,6 +156,9 @@ export function startSchedules(
       }),
       importRuiIfDue(db, rui, now).then((result) => {
         if (!result.skipped) logger.info(result, "RUI imported");
+      }),
+      remindComplaintsIfDue({ db, cipher, notifier, adminUrl }, now).then((result) => {
+        if (result.reminded > 0) logger.info(result, "complaints reminded");
       }),
     ])
       .catch((error: unknown) => logger.error({ err: errorForLog(error) }, "scheduled job failed"))
