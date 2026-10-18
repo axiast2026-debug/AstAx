@@ -10,6 +10,7 @@ import {
 } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { LOGGER } from "../infra/tokens.js";
+import { reportError } from "../telemetry.js";
 import { ProblemError, toProblem } from "./problem.js";
 
 const HTTP_CODES: Record<number, ErrorCode> = {
@@ -47,6 +48,7 @@ export class ProblemFilter implements ExceptionFilter {
         "unhandled error",
       );
       problem = toProblem("INTERNAL", instance);
+      reportError(exception);
     }
     if (exception instanceof ProblemError && exception.retryAfterSeconds !== undefined) {
       response.setHeader("retry-after", String(exception.retryAfterSeconds));

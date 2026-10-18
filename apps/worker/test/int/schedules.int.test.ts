@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { registerComplaint, SYSTEM_CONTEXT, withContext } from "@astax/db";
+import { kmsEventSource, registerComplaint, SYSTEM_CONTEXT, withContext } from "@astax/db";
 import { createLogger } from "@astax/shared/logging";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { FakeRuiRegistry } from "@astax/adapters/rui-registry";
 import type { KeycloakEvent } from "@astax/adapters/identity";
 import {
+  checkKeysIfDue,
   importLoginEventsIfDue,
   importRuiIfDue,
   remindComplaintsIfDue,
@@ -212,5 +213,72 @@ describe("ADR 0010 the schedules", () => {
     expect(rows[0]?.after).toMatchObject({ source: "keycloak", error: "invalid_user_credentials" });
     // The cursor: nothing twice.
     expect(await importLoginEventsIfDue(h.db, identity, at)).toEqual({ imported: 0, anonymous: 0 });
+  });
+
+  it("phase 8 BC-03 a simulated early decryption raises the alarm: audit, administrators, once", async () => {
+    const auction = await withContext(h.db, SYSTEM_CONTEXT, async (tx) => {
+      const request = await tx.quoteRequest.create({
+        data: {
+          code: `AX-K-${randomUUID().slice(0, 8)}`,
+          channel: "BROKER",
+          requesterUserId: userId("broker-owner"),
+          ownerOrganizationId: orgId("broker-demo"),
+        },
+      });
+      return tx.auction.create({
+        data: {
+          quoteRequestId: request.id,
+          ownerOrganizationId: orgId("broker-demo"),
+          kind: "MAIN",
+          round: 1,
+          openedAt: new Date("2031-05-05T08:00:00Z"),
+          scheduledCloseAt: new Date("2031-05-05T12:00:00Z"),
+          originalCloseAt: new Date("2031-05-05T12:00:00Z"),
+          minGuaranteeDate: new Date("2031-06-01"),
+          durationHours: 2,
+          settingsSnapshot: {},
+          publicKey: "x",
+          wrappedPrivateKey: "x",
+          kmsKeyRef: "astax-sealed-bids",
+        },
+      });
+    });
+    // The simulated anomaly: the key used two hours before the closing.
+    await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.kmsEvent.create({
+        data: {
+          at: new Date("2031-05-05T10:00:00Z"),
+          keyId: "astax-sealed-bids",
+          operation: "DECRYPT",
+          context: { purpose: "sealed-bid", auctionId: auction.id },
+          ok: true,
+          process: "worker",
+        },
+      }),
+    );
+    const notifier = new WorkerNotifier(h.email, createLogger({ name: "t", level: "silent" }), {
+      clock: h.clock,
+      cipher: h.cipher,
+    });
+    const deps = { db: h.db, cipher: h.cipher, notifier, adminUrl: "http://admin.test" };
+    const sources = [{ name: "app-test", source: kmsEventSource(h.db), principals: ["worker"] }];
+    const night = new Date("2031-05-06T02:00:00Z");
+    const result = await checkKeysIfDue(deps, sources, night);
+    expect(result.anomalies).toBeGreaterThanOrEqual(1);
+    const logged = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.auditLog.findMany({ where: { action: "KMS_ANOMALY", targetId: auction.id } }),
+    );
+    expect(logged.map((l) => (l.after as { kind: string }).kind)).toEqual(["EARLY"]);
+    const told = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.notification.count({
+        where: { eventKey: "security.kms_anomaly.admin", userId: userId("admin") },
+      }),
+    );
+    expect(told).toBeGreaterThanOrEqual(1);
+    // The next night starts where this one stopped: the same event is not reported again.
+    expect(await checkKeysIfDue(deps, sources, new Date("2031-05-07T02:00:00Z"))).toEqual({
+      checked: 0,
+      anomalies: 0,
+    });
   });
 });

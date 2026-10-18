@@ -82,3 +82,10 @@ export {
   type MessageSenders,
   type QueuedMessage,
 } from "./message-outbox.js";
+export {
+  checkSealedBidDecryptions,
+  keyAnomalies,
+  kmsEventSource,
+  type KeyAnomaly,
+  type KeyAnomalyKind,
+} from "./kms-check.js";

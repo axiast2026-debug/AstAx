@@ -91,6 +91,7 @@ Ogni utente sceglie i canali per evento nel profilo. Restano sempre attivi: le n
 | `penalty.contest_decided` | `agency_owner` | In app, email |
 | `agency.suspended` | `agency_owner` | In app, email |
 | `agency.suspended.admin` | `admins` | In app, email |
+| `security.kms_anomaly.admin` | `admins` | In app, email (fase 8, BC-03: controllo notturno delle chiavi) |
 | `invoice.available` | Destinatario della fattura | In app, email |
 | `refund.approval_needed.bo` | `bo_supervisors` | In app, email |
 | `refund.executed` | Chi riceve il rimborso | In app, email |

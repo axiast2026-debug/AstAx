@@ -41,7 +41,7 @@ export function safe<A extends unknown[], R>(
       const attempt = currentAttempt();
       if (alarm && attempt >= ALARM_AFTER_ATTEMPTS) {
         alarm.logger.error(
-          { activity: alarm.name, attempt, err: loggable },
+          { alarm: "WORKFLOW_STEP_FAILING", activity: alarm.name, attempt, err: loggable },
           "ALARM: an auction step keeps failing",
         );
       }

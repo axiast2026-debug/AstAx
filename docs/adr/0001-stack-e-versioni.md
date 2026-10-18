@@ -38,6 +38,9 @@
 | web-push | 3.6.7 | Invio delle notifiche push vere con le chiavi VAPID, cifrate per il browser (fase 8, ADR 0011); licenza MPL-2.0 |
 | @axe-core/playwright | 4.13.0 | Controllo automatico dell'accessibilità (WCAG 2.1 AA) nei test end-to-end (fase 8) |
 | socket.io-client | 4.8.4 | Solo nei test dell'API: prova della connessione in tempo reale con il biglietto (fase 8) |
+| @aws-sdk/client-sesv2, client-kms, client-bedrock-runtime, client-pinpoint-sms-voice-v2, client-cloudtrail | 3.1151.0 | Adattatori veri di email, chiavi, Claude su Bedrock, SMS e lettura di CloudTrail (fase 8), stessa versione del client S3 |
+| @sentry/node | 11.4.0 | Errori verso Sentry UE, senza dati personali (fase 8, proposta D, `docs/sorveglianza.md`) |
+| @opentelemetry/sdk-node, exporter-trace-otlp-http, instrumentation-http | 0.222.0 | Tempi delle chiamate HTTP verso Grafana Cloud UE (fase 8, proposta D) |
 
 Le dipendenze delle fasi successive si aggiungono a questa tabella quando entrano, nel passo che le usa.
 

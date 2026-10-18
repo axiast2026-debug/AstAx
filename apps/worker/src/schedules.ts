@@ -6,8 +6,10 @@ import {
   KEYCLOAK_LOGIN_EVENTS,
   type KeycloakEvent,
 } from "@astax/adapters/identity";
+import type { KeyEventsSource } from "@astax/adapters/kms";
 import {
   appendAudit,
+  checkSealedBidDecryptions,
   complaintsToRemind,
   importRuiRecords,
   issueBrokerInvoices,
@@ -24,6 +26,7 @@ import { errorForLog, type Logger } from "@astax/shared/logging";
 import { label, loadNotificationLabels } from "@astax/shared/notifications";
 import { audit, staffRecipients } from "./activities/support.js";
 import type { PendingEmail, WorkerNotifier } from "./notifier.js";
+import { reportError } from "./telemetry.js";
 
 /**
  * CONT-01: on the run day (Monday, parameter `remittance.runDay`, in Rome)
@@ -202,6 +205,66 @@ export async function importLoginEventsIfDue(
   });
 }
 
+/**
+ * Phase 8, BC-03 (docs/busta-chiusa.md): once a day the decryptions with the
+ * sealed bids' key since the last check are compared with the auctions'
+ * closing times; each source (the application's KmsEvent, CloudTrail in AWS)
+ * has its own cursor. An anomaly goes to the audit log, to the
+ * administrators and to the log as an alarm.
+ */
+export async function checkKeysIfDue(
+  deps: { db: DbClient; cipher: FieldCipher; notifier: WorkerNotifier; adminUrl: string },
+  sources: readonly { name: string; source: KeyEventsSource; principals: readonly string[] }[],
+  now: Date,
+): Promise<{ checked: number; anomalies: number }> {
+  let checked = 0;
+  let anomalies = 0;
+  for (const { name, source, principals } of sources) {
+    const key = `kms.check.${name}`;
+    const cursor = await withContext(deps.db, SYSTEM_CONTEXT, (tx) =>
+      tx.jobCursor.findUnique({ where: { key } }),
+    );
+    const from = cursor ? new Date(cursor.value) : new Date(now.getTime() - 86_400_000);
+    const result = await checkSealedBidDecryptions(deps.db, source, { from, to: now }, principals);
+    checked += result.checked;
+    anomalies += result.anomalies.length;
+    const pending: PendingEmail[] = [];
+    await withContext(deps.db, SYSTEM_CONTEXT, async (tx) => {
+      for (const a of result.anomalies) {
+        await audit(tx, now, {
+          action: "KMS_ANOMALY",
+          targetType: "Auction",
+          targetId: a.auctionId ?? "-",
+          after: {
+            kind: a.kind,
+            at: a.at.toISOString(),
+            principal: a.principal.slice(0, 200),
+            source: name,
+          },
+        });
+      }
+      if (result.anomalies.length > 0) {
+        await deps.notifier.notify(
+          tx,
+          pending,
+          await staffRecipients(tx, deps.cipher, ["ADMIN"]),
+          "security.kms_anomaly.admin",
+          () => ({ numero: String(result.anomalies.length), link: `${deps.adminUrl}/registro` }),
+          "/registro",
+          { source: name },
+        );
+      }
+      await tx.jobCursor.upsert({
+        where: { key },
+        create: { key, value: now.toISOString(), updatedAt: now },
+        update: { value: now.toISOString(), updatedAt: now },
+      });
+    });
+    await deps.notifier.flush(pending);
+  }
+  return { checked, anomalies };
+}
+
 /** Checks every few minutes; the identifiers and counts only go to the log (rule 8). */
 export function startSchedules(
   deps: {
@@ -216,12 +279,19 @@ export function startSchedules(
     deleteObject: (key: string) => Promise<void>;
     /** Phase 8: Keycloak's login events; absent when the worker has no admin access. */
     identity?: { listEvents(types: string[], sinceMs: number): Promise<KeycloakEvent[]> };
+    /** Phase 8, BC-03: where the decryptions of the sealed bids' key are read. */
+    keySources?: readonly {
+      name: string;
+      source: KeyEventsSource;
+      principals: readonly string[];
+    }[];
   },
   intervalMs: number,
 ): () => void {
   if (intervalMs === 0) return () => undefined;
   const { db, clock, cipher, logger, rui, notifier, adminUrl, deleteObject, identity } = deps;
   let retentionDay = "";
+  let keysDay = "";
   const brokerLine = label(loadNotificationLabels(), "invoice.brokerLine", "it");
   let running = false;
   const tick = () => {
@@ -248,6 +318,20 @@ export function startSchedules(
           }
         },
       ),
+      // BC-03: once a day the decryptions of the sealed bids' key.
+      (keysDay === romeCalendarDate(now) || !deps.keySources
+        ? Promise.resolve(null)
+        : checkKeysIfDue({ db, cipher, notifier, adminUrl }, deps.keySources, now)
+      ).then((result) => {
+        if (!result) return;
+        keysDay = romeCalendarDate(now);
+        if (result.anomalies > 0) {
+          // The alarm (docs/sorveglianza.md): a metric filter on this line.
+          logger.error({ alarm: "KMS_ANOMALY", ...result }, "sealed bids' key used out of rule");
+        } else {
+          logger.info(result, "sealed bids' key check passed");
+        }
+      }),
       // LEG-06, proposal G: once a day the requests not concluded past retention.
       (retentionDay === romeCalendarDate(now)
         ? Promise.resolve(null)
@@ -258,7 +342,10 @@ export function startSchedules(
         if (result.requests > 0) logger.info(result, "retention purged");
       }),
     ])
-      .catch((error: unknown) => logger.error({ err: errorForLog(error) }, "scheduled job failed"))
+      .catch((error: unknown) => {
+        logger.error({ err: errorForLog(error) }, "scheduled job failed");
+        reportError(error);
+      })
       .finally(() => {
         running = false;
       });

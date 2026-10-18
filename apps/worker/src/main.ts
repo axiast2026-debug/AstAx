@@ -1,3 +1,4 @@
+import "./instrument.js";
 import { createServer } from "node:http";
 import { fileURLToPath } from "node:url";
 import { DEV_CLOCK_OFFSET_KEY, OffsetClock, SystemClock } from "@astax/adapters/clock";
@@ -5,7 +6,7 @@ import { LocalFieldCipher } from "@astax/adapters/crypto";
 import { BedrockDocumentReader, FakeDocumentReader } from "@astax/adapters/document-reader";
 import { MailpitEmailSender, SesEmailSender } from "@astax/adapters/email";
 import { MailpitWebPush, revokingGone, VapidWebPush } from "@astax/adapters/web-push";
-import { AwsKms, KMS_KEYS, LocalKms } from "@astax/adapters/kms";
+import { AwsKms, CloudTrailKmsEvents, KMS_KEYS, LocalKms } from "@astax/adapters/kms";
 import {
   InMemoryObjectStorage,
   S3ObjectStorage,
@@ -17,6 +18,7 @@ import {
   dispatchMessages,
   dispatchOutbox,
   kmsEventRecorder,
+  kmsEventSource,
   revokePushSubscription,
 } from "@astax/db";
 import { AwsSmsSender, MailpitSmsSender } from "@astax/adapters/sms";
@@ -30,6 +32,7 @@ import { loadWorkerConfig, type WorkerConfig } from "./config.js";
 import { WorkerNotifier } from "./notifier.js";
 import { outboxHandler } from "./outbox.js";
 import { startSchedules } from "./schedules.js";
+import { reportError } from "./telemetry.js";
 import { FakeRuiRegistry } from "@astax/adapters/rui-registry";
 import { KeycloakAdmin } from "@astax/adapters/identity";
 
@@ -171,9 +174,10 @@ const outboxTimer =
             if (result.failed > 0) logger.error({ ...result }, "messages failed for good");
           }),
         ])
-          .catch((error: unknown) =>
-            logger.error({ err: errorForLog(error) }, "outbox dispatch failed"),
-          )
+          .catch((error: unknown) => {
+            logger.error({ err: errorForLog(error) }, "outbox dispatch failed");
+            reportError(error);
+          })
           .finally(() => {
             dispatching = false;
           });
@@ -188,6 +192,21 @@ const stopSchedules = startSchedules(
     rui: new FakeRuiRegistry(),
     notifier,
     adminUrl: config.ADMIN_URL,
+    // BC-03: the nightly check of the sealed bids' key, from the app's record and from CloudTrail.
+    keySources: [
+      { name: "app", source: kmsEventSource(db), principals: ["worker"] },
+      ...(config.KMS_PROVIDER === "aws" &&
+      config.KMS_SEALED_BIDS_KEY_ID &&
+      config.KMS_WORKER_ROLE_ARN
+        ? [
+            {
+              name: "cloudtrail",
+              source: new CloudTrailKmsEvents(config.AWS_REGION, config.KMS_SEALED_BIDS_KEY_ID),
+              principals: [config.KMS_WORKER_ROLE_ARN],
+            },
+          ]
+        : []),
+    ],
     ...(config.KEYCLOAK_URL && config.KEYCLOAK_API_ADMIN_SECRET
       ? {
           identity: new KeycloakAdmin({

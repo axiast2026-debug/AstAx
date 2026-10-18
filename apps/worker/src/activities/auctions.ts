@@ -77,6 +77,9 @@ const LONG_TX = { timeoutMs: 60_000 };
  * a system transaction, checks the state before acting (a repetition by
  * Temporal changes nothing) and sends emails only after the commit.
  */
+/** Phase 8, load criterion: a closing later than this after its time is an alarm. */
+const CLOSE_DELAY_ALARM_MS = 5_000;
+
 export function auctionActivities(
   deps: ActivityDeps,
 ): Omit<
@@ -851,6 +854,14 @@ export function auctionActivities(
         where: { id: auction.id },
         data: { status: "CLOSED", closedAt: now },
       });
+      // Phase 8 (docs/sorveglianza.md): the closing must come within 5 seconds of its time.
+      const delayMs = now.getTime() - auction.scheduledCloseAt.getTime();
+      if (delayMs > CLOSE_DELAY_ALARM_MS) {
+        deps.logger.warn(
+          { alarm: "AUCTION_CLOSE_LATE", auctionId: auction.id, delayMs },
+          "auction closed late",
+        );
+      }
       if (ranked.length > 0) await setRequestStatus(tx, request, "OFFERS_AVAILABLE");
       await addRequestEvent(tx, request, {
         type: "AUCTION_CLOSED",

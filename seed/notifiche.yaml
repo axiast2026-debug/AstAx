@@ -941,6 +941,27 @@ events:
         Ka mbërritur një ankesë e re, protokolli {{protocollo}}, e marrë më {{data}}.
         Përgjigja duhet dhënë deri më {{scadenza}}: {{link}}
 
+  # Fase 8, BC-03: il controllo notturno ha trovato decifrature della busta chiusa fuori regola.
+  security.kms_anomaly.admin:
+    recipients: [admins]
+    channels: [in_app, email]
+    mandatory: true
+    variables: [numero, link]
+    it:
+      title: "Allarme sicurezza: busta chiusa"
+      body: "Il controllo notturno ha trovato {{numero}} decifrature fuori regola. Controlla il registro attività."
+      emailSubject: "Allarme sicurezza AstAx: busta chiusa"
+      emailBody: |
+        Il controllo notturno delle chiavi ha trovato {{numero}} decifrature della busta chiusa fuori regola (prima della chiusura, da un processo non autorizzato o senza asta).
+        I dettagli sono nel registro attività: {{link}}
+    sq:
+      title: "Alarm sigurie: zarfi i mbyllur"
+      body: "Kontrolli i natës gjeti {{numero}} deshifrime jashtë rregullit. Kontrollo regjistrin e aktivitetit."
+      emailSubject: "Alarm sigurie AstAx: zarfi i mbyllur"
+      emailBody: |
+        Kontrolli i natës i çelësave gjeti {{numero}} deshifrime të zarfit të mbyllur jashtë rregullit (para mbylljes, nga një proces i paautorizuar ose pa ankand).
+        Detajet janë në regjistrin e aktivitetit: {{link}}
+
   complaint.due_soon.bo:
     recipients: [bo_supervisors]
     channels: [in_app, email]

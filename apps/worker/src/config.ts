@@ -29,6 +29,8 @@ const configSchema = z
     KMS_PROVIDER: z.enum(["fake", "aws"]).default("fake"),
     /** AWS KMS key (ARN or alias) of the sealed bids: only the worker's role may use it. */
     KMS_SEALED_BIDS_KEY_ID: z.string().min(1).optional(),
+    /** The IAM role of the worker: the only one CloudTrail may show decrypting the sealed bids. */
+    KMS_WORKER_ROLE_ARN: z.string().min(1).optional(),
     AI_PROVIDER: z.enum(["fake", "bedrock"]).default("fake"),
     BEDROCK_MODEL_ID: z.string().min(1).optional(),
     TEMPORAL_ADDRESS: z.string().min(1).optional(),

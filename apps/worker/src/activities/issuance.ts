@@ -200,6 +200,11 @@ export function issuanceActivities(
         );
       }
       if (step.kind === "DEADLINE") {
+        // Phase 8 (docs/sorveglianza.md): a missed issuance deadline is an alarm for the back office.
+        deps.logger.warn(
+          { alarm: "ISSUANCE_DEADLINE_MISSED", quoteRequestId: request.id },
+          "issuance deadline missed",
+        );
         // EMI-03, decision 27: the penalty for the delay, proposed (EMI-05: the supervisor applies it).
         await tx.penalty.create({
           data: {

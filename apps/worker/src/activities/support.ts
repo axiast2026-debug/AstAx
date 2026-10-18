@@ -140,7 +140,7 @@ export async function agencyRecipients(
 export async function staffRecipients(
   tx: DbTransaction,
   cipher: FieldCipher,
-  roles: readonly ("BO_VERIFIER" | "BO_SUPERVISOR")[],
+  roles: readonly ("BO_VERIFIER" | "BO_SUPERVISOR" | "ADMIN")[],
 ): Promise<Recipient[]> {
   const memberships = await tx.membership.findMany({
     where: { role: { in: [...roles] }, status: "ACTIVE", organization: { type: "ASTAX" } },
