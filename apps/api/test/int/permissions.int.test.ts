@@ -209,6 +209,40 @@ const ENDPOINTS: Endpoint[] = [
     body: {},
     personal: true,
   },
+  {
+    action: "notification.viewOwn",
+    method: "POST",
+    path: () => "/me/notifications/read-all",
+    body: {},
+    personal: true,
+  },
+  {
+    action: "notification.viewOwn",
+    method: "GET",
+    path: () => "/me/notifications/preferences",
+    personal: true,
+  },
+  {
+    action: "notification.viewOwn",
+    method: "PUT",
+    path: () => "/me/notifications/preferences",
+    body: {},
+    personal: true,
+  },
+  {
+    action: "notification.viewOwn",
+    method: "POST",
+    path: () => "/me/notifications/push-subscriptions",
+    body: {},
+    personal: true,
+  },
+  {
+    action: "notification.viewOwn",
+    method: "POST",
+    path: () => "/me/notifications/push-subscriptions/revoke",
+    body: {},
+    personal: true,
+  },
   // Fase 2: back office verification
   { action: "verification.viewQueue", method: "GET", path: () => "/verification/queue" },
   {

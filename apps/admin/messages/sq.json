@@ -17,7 +17,8 @@
     "context": "Po punoni për",
     "switchContext": "Ndrysho",
     "menu": "Menuja kryesore",
-    "language": "Gjuha"
+    "language": "Gjuha",
+    "unread": "{count} njoftime të palexuara"
   },
   "languages": {
     "it": "Italiano",
@@ -100,11 +101,27 @@
     "revoke": "Shkëput",
     "logoutAll": "Shkëput të gjitha pajisjet",
     "noSessions": "Asnjë hyrje aktive.",
-    "missing": "Nuk është treguar"
+    "missing": "Nuk është treguar",
+    "notifications": {
+      "title": "Njoftimet",
+      "intro": "Zgjidh si të marrësh çdo njoftim. Në qendrën e njoftimeve i gjen gjithmonë të gjitha.",
+      "channel": {
+        "EMAIL": "Email",
+        "SMS": "SMS",
+        "PUSH": "Push"
+      },
+      "on": "po",
+      "off": "jo",
+      "locked": "Gjithmonë aktiv",
+      "lockedHint": "Kodet, lidhjet e domosdoshme dhe njoftimet me afat mbeten gjithmonë aktive."
+    }
   },
   "notifications": {
     "title": "Njoftime",
-    "empty": "Nuk keni njoftime."
+    "empty": "Nuk keni njoftime.",
+    "open": "Hap",
+    "markRead": "Shëno si të lexuar",
+    "readAll": "Shëno të gjitha si të lexuara"
   },
   "roles": {
     "BO_VERIFIER": "Operator verifikimi",

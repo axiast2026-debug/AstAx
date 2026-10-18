@@ -60,3 +60,17 @@ export async function realtimeTicket(): Promise<{ ticket: string; url: string } 
   if (status !== 201) return null;
   return { ticket: body.ticket, url: process.env.API_PUBLIC_URL ?? process.env.API_URL ?? "" };
 }
+
+/** Spec 01 «Notifiche»: a channel of an event on or off (the API refuses the locked ones). */
+export async function setNotificationPreference(formData: FormData): Promise<void> {
+  const eventKey = String(formData.get("eventKey") ?? "");
+  const channel = String(formData.get("channel") ?? "");
+  if (!/^[a-z_.]+$/.test(eventKey) || !["EMAIL", "SMS", "PUSH"].includes(channel)) {
+    redirect("/profilo");
+  }
+  await api("/me/notifications/preferences", {
+    method: "PUT",
+    body: JSON.stringify({ eventKey, channel, enabled: formData.get("enabled") === "true" }),
+  });
+  redirect("/profilo#notifiche");
+}

@@ -1,7 +1,7 @@
 import { formatDateTime } from "@astax/shared/format";
-import { Card, CardTitle } from "@astax/ui";
+import { Button, Card, CardTitle } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
-import { markNotificationRead } from "@/app/request-actions";
+import { markAllNotificationsRead, markNotificationRead } from "@/app/request-actions";
 import { AppShell } from "@/components/app-shell";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
@@ -25,7 +25,16 @@ export default async function NotificationsPage() {
   const { body: inbox } = await api<Inbox>("/me/notifications");
   return (
     <AppShell viewer={viewer}>
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        {inbox.unread > 0 ? (
+          <form action={markAllNotificationsRead}>
+            <Button type="submit" size="sm" variant="outline">
+              {t("readAll")}
+            </Button>
+          </form>
+        ) : null}
+      </div>
       {inbox.items.length === 0 ? (
         <Card className="mt-6">
           <p className="text-sm text-warm-600">{t("empty")}</p>

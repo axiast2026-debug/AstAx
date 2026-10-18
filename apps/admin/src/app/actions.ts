@@ -62,3 +62,32 @@ export async function realtimeTicket(): Promise<{ ticket: string; url: string } 
   if (status !== 201) return null;
   return { ticket: body.ticket, url: process.env.API_PUBLIC_URL ?? process.env.API_URL ?? "" };
 }
+
+/** Spec 01 «Notifiche»: a channel of an event on or off (the API refuses the locked ones). */
+export async function setNotificationPreference(formData: FormData): Promise<void> {
+  const eventKey = String(formData.get("eventKey") ?? "");
+  const channel = String(formData.get("channel") ?? "");
+  if (!/^[a-z_.]+$/.test(eventKey) || !["EMAIL", "SMS", "PUSH"].includes(channel)) {
+    redirect("/profilo");
+  }
+  await api("/me/notifications/preferences", {
+    method: "PUT",
+    body: JSON.stringify({ eventKey, channel, enabled: formData.get("enabled") === "true" }),
+  });
+  redirect("/profilo#notifiche");
+}
+
+/** Opening a notification marks it read (only links of this app are followed). */
+export async function markNotificationRead(formData: FormData): Promise<void> {
+  const id = String(formData.get("notificationId") ?? "");
+  const link = String(formData.get("link") ?? "");
+  if (/^[0-9a-f-]{36}$/i.test(id)) {
+    await api(`/me/notifications/${id}/read`, { method: "POST", body: "{}" });
+  }
+  redirect(link.startsWith("/") && !link.startsWith("//") ? link : "/notifiche");
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  await api("/me/notifications/read-all", { method: "POST", body: "{}" });
+  redirect("/notifiche");
+}

@@ -2,6 +2,7 @@ import { Writable } from "node:stream";
 import type { AiExplainerPort } from "@astax/adapters/ai-explainer";
 import { ManualClock } from "@astax/adapters/clock";
 import { InMemoryEmailSender } from "@astax/adapters/email";
+import { InMemoryWebPush } from "@astax/adapters/web-push";
 import { InMemoryObjectStorage } from "@astax/adapters/storage";
 import type { KeycloakSession } from "@astax/adapters/identity";
 import { createDbClient, type DbClient } from "@astax/db";
@@ -104,6 +105,8 @@ export interface Harness {
   clock: ManualClock;
   identity: FakeIdentityAdmin;
   email: InMemoryEmailSender;
+  /** Web Push, kept in memory (phase 7). */
+  push: InMemoryWebPush;
   db: DbClient;
   /** Signals to the workflows, recorded instead of sent (ADR 0008). */
   signals: RecordingWorkflowSignals;
@@ -146,6 +149,7 @@ export async function startHarness(
   const verifier = new JwtTokenVerifier(createLocalJWKSet({ keys: [jwk] }), ISSUER, clock);
   const identity = new FakeIdentityAdmin();
   const email = new InMemoryEmailSender();
+  const push = new InMemoryWebPush();
   const signals = new RecordingWorkflowSignals();
   const storage = new InMemoryObjectStorage();
   const dbUrl = inject("apiDbUrl");
@@ -167,6 +171,7 @@ export async function startHarness(
     db,
     identityAdmin: identity,
     emailSender: email,
+    webPush: push,
     workflowSignals: signals,
     objectStorage: storage,
     tokenVerifier: verifier,
@@ -227,6 +232,7 @@ export async function startHarness(
     clock,
     identity,
     email,
+    push,
     db,
     signals,
     storage,

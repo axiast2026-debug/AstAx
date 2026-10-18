@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { logout, setLocale } from "@/app/actions";
 import { LOCALES } from "@/i18n/request";
+import { api } from "@/lib/auth";
 import type { Viewer } from "@/lib/me";
 
 /** Top bar and menu of the back office (spec 01, «Barra superiore»; specs 06-07). */
@@ -12,6 +13,8 @@ export async function AppShell({ viewer, children }: { viewer: Viewer; children:
   const locale = await getLocale();
   const menu = menuFor(viewer.actor);
   const active = viewer.activeMembership;
+  const { body: inbox } = await api<{ unread: number }>("/me/notifications");
+  const unread = inbox?.unread ?? 0;
 
   return (
     <div className="min-h-screen">
@@ -46,7 +49,12 @@ export async function AppShell({ viewer, children }: { viewer: Viewer; children:
             </form>
             <Link href="/notifiche" className="flex items-center gap-1 hover:text-orange-500">
               {t("shell.notifications")}
-              <Badge className="tabular bg-orange-500 text-night-950">{0}</Badge>
+              <Badge
+                className="tabular bg-orange-500 text-night-950"
+                aria-label={t("shell.unread", { count: unread })}
+              >
+                {unread}
+              </Badge>
             </Link>
             <Link href="/profilo" className="hover:text-orange-500">
               {t("shell.profile")}

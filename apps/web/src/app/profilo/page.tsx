@@ -3,6 +3,7 @@ import { Button, Card, CardTitle } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { logoutEverywhere, revokeConsent, revokeSession } from "@/app/actions";
 import { AppShell } from "@/components/app-shell";
+import { NotificationPreferences } from "@/components/notification-preferences";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
 
@@ -132,6 +133,9 @@ export default async function ProfilePage() {
             </Button>
           </form>
         </Card>
+        <section id="notifiche">
+          <NotificationPreferences />
+        </section>
       </div>
     </AppShell>
   );

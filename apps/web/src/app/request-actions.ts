@@ -473,6 +473,11 @@ export async function markNotificationRead(formData: FormData): Promise<void> {
   redirect(link?.startsWith("/") && !link.startsWith("//") ? link : "/notifiche");
 }
 
+export async function markAllNotificationsRead(): Promise<void> {
+  await api("/me/notifications/read-all", { method: "POST", body: "{}" });
+  redirect("/notifiche");
+}
+
 /** Search forms (customers, plates): the terms go in a server-only cookie, not in the URL. */
 export async function search(formData: FormData): Promise<void> {
   const scope = text(formData, "scope");

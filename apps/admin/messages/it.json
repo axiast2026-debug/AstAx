@@ -17,7 +17,8 @@
     "context": "Stai lavorando per",
     "switchContext": "Cambia",
     "menu": "Menu principale",
-    "language": "Lingua"
+    "language": "Lingua",
+    "unread": "{count} notifiche non lette"
   },
   "menu": {
     "home": "Home",
@@ -96,11 +97,27 @@
     "revoke": "Disconnetti",
     "logoutAll": "Disconnetti tutti i dispositivi",
     "noSessions": "Nessun accesso attivo.",
-    "missing": "Non indicato"
+    "missing": "Non indicato",
+    "notifications": {
+      "title": "Notifiche",
+      "intro": "Scegli come ricevere ogni avviso. Nel centro notifiche li trovi sempre tutti.",
+      "channel": {
+        "EMAIL": "Email",
+        "SMS": "SMS",
+        "PUSH": "Push"
+      },
+      "on": "sì",
+      "off": "no",
+      "locked": "Sempre attivo",
+      "lockedHint": "I codici, i link indispensabili e gli avvisi con una scadenza restano sempre attivi."
+    }
   },
   "notifications": {
     "title": "Notifiche",
-    "empty": "Non hai notifiche."
+    "empty": "Non hai notifiche.",
+    "open": "Apri",
+    "markRead": "Segna come letta",
+    "readAll": "Segna tutte come lette"
   },
   "roles": {
     "BO_VERIFIER": "Operatore verifica",

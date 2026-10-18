@@ -127,13 +127,27 @@
     "consentLine": "Condivisione con le agenzie, il {at} (testo versione {version})",
     "consentRevokedAt": "Revocato il {at}",
     "revokeConsent": "Revoca",
-    "missing": "Non indicato"
+    "missing": "Non indicato",
+    "notifications": {
+      "title": "Notifiche",
+      "intro": "Scegli come ricevere ogni avviso. Nel centro notifiche dell’app li trovi sempre tutti.",
+      "channel": {
+        "EMAIL": "Email",
+        "SMS": "SMS",
+        "PUSH": "Push"
+      },
+      "on": "sì",
+      "off": "no",
+      "locked": "Sempre attivo",
+      "lockedHint": "I codici, i link indispensabili e gli avvisi con una scadenza restano sempre attivi."
+    }
   },
   "notifications": {
     "title": "Notifiche",
     "empty": "Non hai notifiche.",
     "open": "Apri",
-    "markRead": "Segna come letta"
+    "markRead": "Segna come letta",
+    "readAll": "Segna tutte come lette"
   },
   "roles": {
     "OWNER": "Titolare",
