@@ -99,7 +99,7 @@ export const settingSchemas = {
   "remittance.runDay": weekday,
   "remittance.cutoff": z.object({ day: weekday, time: clockTime }).strict(),
   "brokerCommission.enabled": z.boolean(),
-  "withdrawal.byCustomer": z.boolean(),
+  "withdrawal.onPlatform": z.boolean(),
   "brokerCommission.percentOfNetPremium": z.number().min(0).max(100),
   "refunds.beforeIssuance": z.enum(["FULL_INCLUDING_FEE", "PREMIUM_ONLY"]),
   "refunds.afterIssuance": z.enum([

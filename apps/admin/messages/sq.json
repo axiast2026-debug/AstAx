@@ -655,7 +655,7 @@
       "survey_daysAfterIssuance": "Dërgimi i pyetësorit, ditë pas lëshimit",
       "survey_linkValidDays": "Vlefshmëria e lidhjes së pyetësorit (ditë)",
       "withdrawal_days": "Ditë nga lëshimi për tërheqjen (për t'u miratuar nga juristi)",
-      "withdrawal_byCustomer": "Klienti kërkon tërheqjen nga aplikacioni (fikur: jashtë portalit)",
+      "withdrawal_onPlatform": "Tërheqja përmes AstAx (fikur: tërheqja dhe anulimi jashtë portalit)",
       "fees_private_amountCents": "Tarifa e privatit",
       "fees_private_aiSupplementCents": "Shtesa për krahasimin me AI",
       "fees_private_lowPremium_thresholdCents": "Prime nën të cilin zbatohet tarifa e reduktuar",

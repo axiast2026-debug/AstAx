@@ -79,8 +79,8 @@ Abilitazioni aggiuntive di un'appartenenza, decise dal titolare:
 | Decidere una mancata emissione, passare alla seconda offerta | `BO_VERIFIER`, `BO_SUPERVISOR` | EMI-04 |
 | Chiedere un rimborso | `BO_SUPPORT`, `BO_ACCOUNTING`, `BO_SUPERVISOR` | — |
 | Approvare un rimborso | `BO_SUPERVISOR` | PAG-05 |
-| Chiedere il recesso dalla propria polizza, entro `withdrawal.days` dall’emissione | Privato; utenti del broker per i propri clienti (VIS-13), solo con `withdrawal.byCustomer` acceso (spento all'inizio, domanda 18) | PAG-04 |
-| Gestire una richiesta di recesso | `BO_SUPPORT`, `BO_SUPERVISOR`; l'agenzia indica il premio da rimborsare | PAG-04 |
+| Chiedere il recesso dalla propria polizza, entro `withdrawal.days` dall’emissione | Privato; utenti del broker per i propri clienti (VIS-13), solo con `withdrawal.onPlatform` acceso (spento: domanda 18, risposta A) | PAG-04 |
+| Gestire una richiesta di recesso | `BO_SUPPORT`, `BO_SUPERVISOR`; l'agenzia indica il premio da rimborsare; solo con `withdrawal.onPlatform` acceso | PAG-04 |
 
 ## Contabilità e penali
 

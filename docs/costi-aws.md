@@ -61,5 +61,5 @@ Si passa alla versione robusta (sotto) cambiando i valori scritti nel commento d
 
 ## Cosa serve sapere da Dan
 
-- Se il collaudo deve restare acceso sempre o solo nei periodi di prova (domanda 21).
+- Collaudo: Dan ha scelto di tenerlo acceso solo nelle settimane di prova (domanda 21).
 - Il modello di Claude da usare (più capace e costoso, o più veloce ed economico): la misura sugli 80 documenti aiuta a scegliere.

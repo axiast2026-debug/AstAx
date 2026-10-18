@@ -21,7 +21,7 @@ import {
 /**
  * S08 (phase 6), with Dan's answer 18 (2026-10-18): the policy bought and
  * issued (Agenzia Uno, Alfa, 520,00 €, fee 30,00 €). With
- * `withdrawal.byCustomer` off (the starting value) the customer withdraws
+ * `withdrawal.onPlatform` off (the starting value) the customer withdraws
  * outside the platform: the policy page has no withdrawal button and points
  * to the agency. The withdrawal flow itself (497,00 € indicated by the
  * agency, the supervisor's approval, the recovery in the remittance) is in

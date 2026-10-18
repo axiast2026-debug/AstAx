@@ -49,7 +49,7 @@
     { "key": "survey.daysAfterIssuance", "value": 7, "description": "Invio del questionario post-vendita", "rule": "—" },
     { "key": "survey.linkValidDays", "value": 30, "description": "Giorni in cui il link del questionario resta valido", "rule": "—" },
     { "key": "withdrawal.days", "value": 14, "description": "Giorni dall'emissione entro cui il cliente può recedere (vendita a distanza). Da validare con il legale", "rule": "PAG-04" },
-    { "key": "withdrawal.byCustomer", "value": false, "description": "Il cliente chiede il recesso dall'app. Spento: dopo l'emissione recesso e annullamento si fanno fuori dal portale; il back office può ancora registrarne uno per il cliente (domanda 18)", "rule": "PAG-04" },
+    { "key": "withdrawal.onPlatform", "value": false, "description": "Recesso tramite AstAx (richiesta del cliente o del back office, premio indicato dall'agenzia, rimborso). Spento: dopo l'emissione recesso e annullamento si fanno fuori dal portale (domanda 18, Dan: A)", "rule": "PAG-04" },
     { "key": "fees.private.amountCents", "value": 3000, "description": "Fee del privato", "rule": "FEE-01" },
     { "key": "fees.private.aiSupplementCents", "value": 500, "description": "Supplemento se il privato usa il confronto AI", "rule": "FEE-01" },
     { "key": "fees.private.lowPremium.thresholdCents", "value": 20000, "description": "Premio fino al quale (compreso) si applica il fee ridotto", "rule": "FEE-02" },

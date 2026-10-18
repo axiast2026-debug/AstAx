@@ -655,7 +655,7 @@
       "survey_daysAfterIssuance": "Invio del questionario, giorni dopo l'emissione",
       "survey_linkValidDays": "Validità del link del questionario (giorni)",
       "withdrawal_days": "Giorni dall'emissione per il recesso (da validare con il legale)",
-      "withdrawal_byCustomer": "Il cliente chiede il recesso dall'app (spento: recesso fuori dal portale)",
+      "withdrawal_onPlatform": "Recesso tramite AstAx (spento: recesso e annullamento fuori dal portale)",
       "fees_private_amountCents": "Fee del privato",
       "fees_private_aiSupplementCents": "Supplemento per il confronto AI",
       "fees_private_lowPremium_thresholdCents": "Premio sotto cui si applica il fee ridotto",
