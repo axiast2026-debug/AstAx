@@ -22,6 +22,14 @@ labels:
   renewal.autoOff:
     it: "Puoi preparare il rinnovo con i dati già salvati."
     sq: "Mund ta përgatitësh rinovimin me të dhënat e ruajtura."
+  organizationType.AGENCY: { it: "Agenzia", sq: "Agjenci" }
+  organizationType.BROKER: { it: "Broker", sq: "Broker" }
+  onboarding.nextStep.new:
+    it: "Riceverete a parte un'email per scegliere la password e attivare il secondo fattore."
+    sq: "Do të merrni veçmas një email për të zgjedhur fjalëkalimin dhe për të aktivizuar faktorin e dytë."
+  onboarding.nextStep.existing:
+    it: "Accedete con il vostro account e scegliete la nuova organizzazione."
+    sq: "Hyni me llogarinë tuaj dhe zgjidhni organizatën e re."
   invoice.brokerLine:
     it: "Fee AstAx sulle polizze acquistate fino al mese"
     sq: "Tarifa AstAx për policat e blera deri në muajin"

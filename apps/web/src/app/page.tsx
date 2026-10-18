@@ -136,6 +136,9 @@ async function LoginChoice({ expired }: { expired: boolean }) {
           >
             {t("proButton")}
           </a>
+          <Link href="/ingresso" className="mt-3 block text-center text-sm underline">
+            {t("proJoin")}
+          </Link>
         </Card>
       </div>
     </main>

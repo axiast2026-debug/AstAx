@@ -21,7 +21,8 @@
   "otpPurpose": {
     "PRIVATE_CONSENT": "confermare i consensi della tua richiesta",
     "LINK_CONSENT": "confermare il consenso alla richiesta del tuo broker",
-    "CUSTOMER_LINK": "aprire l'offerta che ti ha inviato il tuo broker"
+    "CUSTOMER_LINK": "aprire l'offerta che ti ha inviato il tuo broker",
+    "ONBOARDING_IBAN": "confermare l'IBAN della richiesta di ingresso"
   },
   "agencyDocument": {
     "unreadable": "Documento non visualizzabile in anteprima: chiedi il file all'assistenza AstAx.",

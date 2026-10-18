@@ -201,6 +201,23 @@ const ENDPOINTS: Endpoint[] = [
     path: () => `/admin/holidays/${randomUUID()}/remove`,
     body: {},
   },
+  { action: "organization.approveOnboarding", method: "GET", path: () => "/bo/onboarding" },
+  {
+    action: "organization.approveOnboarding",
+    method: "GET",
+    path: () => `/bo/onboarding/${randomUUID()}`,
+  },
+  {
+    action: "organization.approveOnboarding",
+    method: "GET",
+    path: () => `/bo/onboarding/${randomUUID()}/prof-insurance`,
+  },
+  ...(["approve", "reject"] as const).map((step) => ({
+    action: "organization.approveOnboarding" as const,
+    method: "POST" as const,
+    path: () => `/bo/onboarding/${randomUUID()}/${step}`,
+    body: {},
+  })),
   { action: "auditLog.viewAll", method: "GET", path: () => "/admin/audit" },
   // Fase 2: requests, customers, consent
   { action: "request.create", method: "GET", path: () => "/reference/request-options" },
@@ -838,6 +855,15 @@ const PUBLIC_ROUTES = [
   "POST /customer-links/{token}/acceptance/payment",
   "GET /customer-links/{token}/acceptance/documents/{documentId}",
   "GET /customer-links/{token}/offers/{offerId}/quote",
+  // Phase 7: the entry of agencies and brokers, on its private link.
+  "GET /onboarding/options",
+  "POST /onboarding",
+  "GET /onboarding/{token}",
+  "PUT /onboarding/{token}",
+  "POST /onboarding/{token}/iban-code",
+  "POST /onboarding/{token}/iban-confirm",
+  "POST /onboarding/{token}/prof-insurance",
+  "POST /onboarding/{token}/submit",
 ];
 
 /** One synthetic user per role, with the membership the seed gives them. */

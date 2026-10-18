@@ -680,6 +680,8 @@ enum OtpPurpose {
   LINK_CONSENT
   /// Phase 5: the broker's customer confirms the identity on the link (decision 26).
   CUSTOMER_LINK
+  /// Phase 7: the owner confirms the IBAN of an entry with a code by SMS.
+  ONBOARDING_IBAN
 }
 
 /// One-time codes sent by AstAx (auth.otp), stored only as a keyed hash.
@@ -1878,4 +1880,87 @@ model NotificationDispatch {
   createdAt DateTime            @default(now()) @db.Timestamptz(3)
 
   @@index([eventKey, dedupeKey, channel, userId, createdAt], map: "NotificationDispatch_lookup_idx")
+}
+
+// ---------------------------------------------------------------------------
+// Phase 7: entry of agencies and brokers, the local copy of the RUI
+// ---------------------------------------------------------------------------
+
+/// The public registry of intermediaries (IVASS RUI), imported periodically
+/// by the worker through the RuiRegistryPort; the entry check reads it here.
+model RuiRecord {
+  number       String   @id
+  /// A, B or E (sections of the registry).
+  section      String
+  name         String
+  /// Section E: the agency or broker the collaborator works for.
+  linkedNumber String?
+  /// Section A: the companies of the mandates.
+  companies    String[] @default([])
+  importedAt   DateTime @db.Timestamptz(3)
+}
+
+/// One import of the registry per day (Rome), with the counts.
+model RuiImport {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  runDate    String    @unique
+  records    Int       @default(0)
+  startedAt  DateTime  @db.Timestamptz(3)
+  finishedAt DateTime? @db.Timestamptz(3)
+}
+
+enum OnboardingStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+/// An agency or broker asking to enter (spec 06 «Coda di ingresso»): filled on
+/// the site through a private link, checked on the RUI, decided by the back
+/// office. Personal data are encrypted, as for organizations and users.
+model OnboardingApplication {
+  id                     String           @id @default(uuid(7)) @db.Uuid
+  type                   OrganizationType
+  status                 OnboardingStatus @default(DRAFT)
+  /// The private link to go on or correct (only its hash is kept).
+  tokenHash              String           @unique
+  /// The same link, encrypted, to send it again with the rejection.
+  tokenEnc               String
+  legalName              String
+  vatNumber              String
+  fiscalCodeEnc          String?
+  ruiNumber              String
+  pec                    String
+  address                Json
+  ibanEnc                String
+  ibanConfirmedAt        DateTime?        @db.Timestamptz(3)
+  ownerFirstName         String
+  ownerLastName          String
+  ownerEmailEnc          String
+  ownerEmailHash         String
+  ownerPhoneEnc          String
+  /// Agencies: the companies of the declared mandates.
+  companyIds             String[]         @default([]) @db.Uuid
+  profInsuranceKey       String?
+  profInsuranceSha256    String?
+  profInsuranceSize      Int?
+  profInsuranceExpiresOn DateTime?        @db.Date
+  /// The legal versions accepted, with time, IP and browser (LEG-01).
+  acceptedVersionIds     String[]         @default([]) @db.Uuid
+  acceptedAt             DateTime?        @db.Timestamptz(3)
+  acceptedIp             String?
+  acceptedUserAgent      String?
+  /// The automatic check on the local RUI at the submission.
+  ruiCheck               Json?
+  submittedAt            DateTime?        @db.Timestamptz(3)
+  decidedAt              DateTime?        @db.Timestamptz(3)
+  decidedByUserId        String?          @db.Uuid
+  decisionReason         String?
+  organizationId         String?          @db.Uuid
+  createdAt              DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime         @default(now()) @db.Timestamptz(3)
+
+  @@index([status])
+  @@index([ownerEmailHash])
 }

@@ -49,6 +49,8 @@ export async function createApp(
   );
   // The information set of a product of the agency library (decision 17).
   app.use(/^\/agency\/products\/[^/]+\/documents$/, raw({ type: () => true, limit: "60mb" }));
+  // Phase 7: the professional liability policy of an entry (public link: a smaller cap).
+  app.use(/^\/onboarding\/[^/]+\/prof-insurance$/, raw({ type: () => true, limit: "20mb" }));
   // EMI-02: policy, receipt and certificate, uploaded by the agency as the body.
   app.use(
     /^\/agency\/issuance\/[^/]+\/documents\/[A-Z_]+$/,

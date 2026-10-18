@@ -65,6 +65,11 @@ import { ResultsController } from "./results/results.controller.js";
 import { PreferencesService } from "./notifications/preferences.service.js";
 import { CommunicationsController } from "./notifications/communications.controller.js";
 import { CatalogAdminController } from "./admin/catalog-admin.controller.js";
+import {
+  OnboardingController,
+  OnboardingQueueController,
+} from "./onboarding/onboarding.controller.js";
+import { OnboardingService } from "./onboarding/onboarding.service.js";
 import { CatalogAdminService } from "./admin/catalog-admin.service.js";
 import { UsersAdminController } from "./admin/users-admin.controller.js";
 import { UsersAdminService } from "./admin/users-admin.service.js";
@@ -106,6 +111,8 @@ export class AppModule {
         CommunicationsController,
         UsersAdminController,
         CatalogAdminController,
+        OnboardingController,
+        OnboardingQueueController,
         AuditController,
         RequestsController,
         CustomersController,
@@ -159,6 +166,7 @@ export class AppModule {
         CommunicationsService,
         UsersAdminService,
         CatalogAdminService,
+        OnboardingService,
         QuoteChecksService,
         RealtimeHub,
         RealtimeGateway,

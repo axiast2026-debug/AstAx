@@ -1,6 +1,8 @@
 import type { Clock } from "@astax/adapters/clock";
 import type { FieldCipher } from "@astax/adapters/crypto";
+import type { RuiRegistryPort } from "@astax/adapters/rui-registry";
 import {
+  importRuiRecords,
   issueBrokerInvoices,
   prepareRemittances,
   settingsAt,
@@ -56,13 +58,37 @@ export async function issueBrokerInvoicesIfDue(
   return { period, created: created.length };
 }
 
+/**
+ * Phase 7: the local copy of the RUI, imported once a day (Rome) from the
+ * registry adapter; the entry of agencies and brokers is checked on it.
+ */
+export async function importRuiIfDue(
+  db: DbClient,
+  rui: RuiRegistryPort,
+  now: Date,
+): Promise<{ runDate: string; imported: number; skipped: boolean }> {
+  const runDate = romeCalendarDate(now);
+  const done = await withContext(db, SYSTEM_CONTEXT, (tx) =>
+    tx.ruiImport.findUnique({ where: { runDate } }),
+  );
+  if (done?.finishedAt) return { runDate, imported: 0, skipped: true };
+  const records = await rui.downloadLatest();
+  const result = await withContext(
+    db,
+    SYSTEM_CONTEXT,
+    (tx) => importRuiRecords(tx, runDate, records, now),
+    { timeoutMs: 120_000 },
+  );
+  return { runDate, ...result };
+}
+
 /** Checks every few minutes; the identifiers and counts only go to the log (rule 8). */
 export function startSchedules(
-  deps: { db: DbClient; clock: Clock; cipher: FieldCipher; logger: Logger },
+  deps: { db: DbClient; clock: Clock; cipher: FieldCipher; logger: Logger; rui: RuiRegistryPort },
   intervalMs: number,
 ): () => void {
   if (intervalMs === 0) return () => undefined;
-  const { db, clock, cipher, logger } = deps;
+  const { db, clock, cipher, logger, rui } = deps;
   const brokerLine = label(loadNotificationLabels(), "invoice.brokerLine", "it");
   let running = false;
   const tick = () => {
@@ -75,6 +101,9 @@ export function startSchedules(
       }),
       issueBrokerInvoicesIfDue(db, cipher, now, brokerLine).then((result) => {
         if (result.created > 0) logger.info(result, "broker invoices issued");
+      }),
+      importRuiIfDue(db, rui, now).then((result) => {
+        if (!result.skipped) logger.info(result, "RUI imported");
       }),
     ])
       .catch((error: unknown) => logger.error({ err: errorForLog(error) }, "scheduled job failed"))

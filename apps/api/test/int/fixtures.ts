@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { Writable } from "node:stream";
 import type { AiExplainerPort } from "@astax/adapters/ai-explainer";
 import { ManualClock } from "@astax/adapters/clock";
@@ -71,7 +72,8 @@ export class FakeIdentityAdmin implements IdentityAdmin {
     requiredActions?: string[];
   }) {
     this.track("createUser", user);
-    const id = `kc-new-${this.users.size + 1}`;
+    // Unique across the test files: they share one database (a repeated id links the wrong user).
+    const id = `kc-new-${randomUUID()}`;
     this.users.set(user.email, id);
     return id;
   }

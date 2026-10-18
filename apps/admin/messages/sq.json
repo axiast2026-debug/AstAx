@@ -70,7 +70,8 @@
     "reports": "Raporte dhe eksportime",
     "complaintsIndex": "Indeksi i ankesave",
     "systemSettings": "Siguria dhe të dhënat",
-    "listsHolidays": "Listat dhe festat"
+    "listsHolidays": "Listat dhe festat",
+    "onboardingQueue": "Anëtarësimet"
   },
   "home": {
     "welcome": "Përshëndetje {name}",
@@ -894,5 +895,67 @@
     "nameIt": "Emri në italisht",
     "nameSq": "Emri në shqip",
     "add": "Shto"
+  },
+  "onboardingQueue": {
+    "title": "Anëtarësimi i agjencive dhe brokerëve",
+    "intro": "Kërkesat e ardhura nga faqja, nga më e vjetra. Kontrollo të dhënat në RUI, mandatet, RC profesionale dhe kontratat; pastaj mirato ose refuzo me një arsye.",
+    "filter": "Gjendja",
+    "status": {
+      "SUBMITTED": "Për t'u vendosur",
+      "APPROVED": "Të miratuara",
+      "REJECTED": "Të refuzuara",
+      "DRAFT": "Në plotësim"
+    },
+    "done": {
+      "approve": "U miratua: organizata është aktive dhe titullari mori ftesën.",
+      "reject": "U refuzua: kërkuesi mori arsyen dhe lidhjen për ta korrigjuar."
+    },
+    "empty": "Asnjë kërkesë.",
+    "types": {
+      "AGENCY": "Agjenci",
+      "BROKER": "Broker"
+    },
+    "sentAt": "dërguar më {at}",
+    "ruiFound": "në RUI",
+    "ruiMissing": "nuk gjendet në RUI",
+    "back": "Kthehu te radha",
+    "error": "Veprimi nuk u krye ({code}).",
+    "ruiCheck": "Kontrolli në RUI",
+    "ruiFoundLabel": "Numri ekziston",
+    "sectionMatches": "Seksioni i duhur",
+    "nameMatches": "Emri i shoqërisë i njëjtë",
+    "confirmedCompanies": "Mandate të konfirmuara",
+    "unconfirmedCompanies": "Mandate jo në RUI",
+    "ruiImportedAt": "Lista RUI e",
+    "notSent": "Kërkesa nuk është dërguar ende.",
+    "yes": "po",
+    "no": "jo",
+    "data": "Të dhënat",
+    "vatNumber": "Numri i TVSH-së",
+    "fiscalCode": "Kodi fiskal",
+    "address": "Selia",
+    "owner": "Titullari",
+    "ibanConfirmed": "konfirmuar me SMS",
+    "ibanNotConfirmed": "i pakonfirmuar",
+    "mandates": "Mandate të deklaruara",
+    "profInsurance": "RC profesionale",
+    "expiresOn": "Skadon më {date}.",
+    "open": "Hap PDF-në",
+    "missing": "Nuk është ngarkuar.",
+    "contracts": "Kontratat e pranuara",
+    "version": "versioni {number}",
+    "placeholder": "tekst ende i pavlerësuar nga juristi",
+    "acceptedAt": "Pranuar më {at} nga adresa {ip}.",
+    "decision": "Vendimi",
+    "approve": "Mirato",
+    "reject": "Refuzo",
+    "reason": "Arsyeja (nëse refuzon, e lexon kërkuesi)",
+    "confirm": "Konfirmo",
+    "decidedAt": "Vendosur më {at}",
+    "rui": "RUI {number}",
+    "ruiLabel": "RUI",
+    "pec": "PEC",
+    "iban": "IBAN",
+    "istat": "ISTAT {code}"
   }
 }

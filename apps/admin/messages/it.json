@@ -66,7 +66,8 @@
     "reports": "Report ed esportazioni",
     "complaintsIndex": "Indice reclami",
     "systemSettings": "Sicurezza e dati",
-    "listsHolidays": "Elenchi e festività"
+    "listsHolidays": "Elenchi e festività",
+    "onboardingQueue": "Ingressi"
   },
   "home": {
     "welcome": "Ciao {name}",
@@ -894,5 +895,67 @@
     "nameIt": "Nome in italiano",
     "nameSq": "Nome in albanese",
     "add": "Aggiungi"
+  },
+  "onboardingQueue": {
+    "title": "Ingresso di agenzie e broker",
+    "intro": "Le richieste arrivate dal sito, dalla più vecchia. Controlla i dati sul RUI, i mandati, la RC professionale e i contratti; poi approva o respingi con un motivo.",
+    "filter": "Stato",
+    "status": {
+      "SUBMITTED": "Da decidere",
+      "APPROVED": "Approvate",
+      "REJECTED": "Respinte",
+      "DRAFT": "In compilazione"
+    },
+    "done": {
+      "approve": "Approvata: l'organizzazione è attiva e il titolare ha ricevuto l'invito.",
+      "reject": "Respinta: il richiedente ha ricevuto il motivo e il link per correggere."
+    },
+    "empty": "Nessuna richiesta.",
+    "types": {
+      "AGENCY": "Agenzia",
+      "BROKER": "Broker"
+    },
+    "sentAt": "inviata il {at}",
+    "ruiFound": "sul RUI",
+    "ruiMissing": "non trovata sul RUI",
+    "back": "Torna alla coda",
+    "error": "Operazione non riuscita ({code}).",
+    "ruiCheck": "Controllo sul RUI",
+    "ruiFoundLabel": "Numero presente",
+    "sectionMatches": "Sezione giusta",
+    "nameMatches": "Ragione sociale uguale",
+    "confirmedCompanies": "Mandati confermati",
+    "unconfirmedCompanies": "Mandati non sul RUI",
+    "ruiImportedAt": "Elenco RUI del",
+    "notSent": "La richiesta non è ancora stata inviata.",
+    "yes": "sì",
+    "no": "no",
+    "data": "Dati",
+    "vatNumber": "Partita IVA",
+    "fiscalCode": "Codice fiscale",
+    "address": "Sede",
+    "owner": "Titolare",
+    "ibanConfirmed": "confermato via SMS",
+    "ibanNotConfirmed": "non confermato",
+    "mandates": "Mandati dichiarati",
+    "profInsurance": "RC professionale",
+    "expiresOn": "Scadenza {date}.",
+    "open": "Apri il PDF",
+    "missing": "Non caricata.",
+    "contracts": "Contratti accettati",
+    "version": "versione {number}",
+    "placeholder": "testo non ancora validato dal legale",
+    "acceptedAt": "Accettati il {at} dall'indirizzo {ip}.",
+    "decision": "Decisione",
+    "approve": "Approva",
+    "reject": "Respingi",
+    "reason": "Motivo (se respingi, lo legge il richiedente)",
+    "confirm": "Conferma",
+    "decidedAt": "Decisa il {at}",
+    "rui": "RUI {number}",
+    "ruiLabel": "RUI",
+    "pec": "PEC",
+    "iban": "IBAN",
+    "istat": "ISTAT {code}"
   }
 }

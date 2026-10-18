@@ -22,6 +22,7 @@ import { loadWorkerConfig, type WorkerConfig } from "./config.js";
 import { WorkerNotifier } from "./notifier.js";
 import { outboxHandler } from "./outbox.js";
 import { startSchedules } from "./schedules.js";
+import { FakeRuiRegistry } from "@astax/adapters/rui-registry";
 
 /** The channel the API listens to for the changes it forwards to the browsers (ADR 0008). */
 export const REALTIME_CHANNEL = "astax:realtime";
@@ -130,7 +131,7 @@ const outboxTimer =
       }, config.OUTBOX_DISPATCH_INTERVAL_MS);
 
 const stopSchedules = startSchedules(
-  { db, clock, cipher: fieldCipher, logger },
+  { db, clock, cipher: fieldCipher, logger, rui: new FakeRuiRegistry() },
   config.SCHEDULES_INTERVAL_MS,
 );
 

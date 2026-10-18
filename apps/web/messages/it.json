@@ -11,7 +11,8 @@
     "proTitle": "Sono un broker o un'agenzia",
     "proText": "Entri con email, password e codice dell'app di autenticazione.",
     "proButton": "Accesso professionisti",
-    "expired": "La sessione è scaduta. Accedi di nuovo."
+    "expired": "La sessione è scaduta. Accedi di nuovo.",
+    "proJoin": "Non sei ancora su AstAx? Chiedi di entrare"
   },
   "shell": {
     "notifications": "Notifiche",
@@ -73,7 +74,8 @@
     "reports": "Report ed esportazioni",
     "complaintsIndex": "Indice reclami",
     "systemSettings": "Sicurezza e dati",
-    "listsHolidays": "Elenchi e festività"
+    "listsHolidays": "Elenchi e festività",
+    "onboardingQueue": "Ingressi"
   },
   "home": {
     "welcome": "Ciao {name}",
@@ -409,7 +411,16 @@
     "PROPOSAL_CLOSED": "Questa proposta non è più aperta.",
     "NOTHING_TO_PAY": "Non c'è nulla da pagare: la differenza ti viene restituita.",
     "CONTEST_CLOSED": "Il termine per contestare questa penale è scaduto.",
-    "WRONG_STATE": "Questa operazione non è possibile in questo stato."
+    "WRONG_STATE": "Questa operazione non è possibile in questo stato.",
+    "IBAN_NOT_CONFIRMED": "Conferma l'IBAN con il codice via SMS.",
+    "MISSING": "Carica la polizza di RC professionale.",
+    "EXPIRED": "La polizza di RC professionale è scaduta.",
+    "NOT_ACCEPTED": "Accetta tutti i contratti.",
+    "RUI_IN_USE": "Questo numero RUI è già su AstAx o ha già una richiesta in corso.",
+    "WRONG_SECTION": "Il numero RUI non è della sezione giusta: A per le agenzie, B per i broker.",
+    "NOT_EDITABLE": "La richiesta è già al back office: aspetta l'esito.",
+    "UNKNOWN_COMPANY": "Scegli almeno una compagnia mandante.",
+    "INVALID_IBAN": "L'IBAN non è valido."
   },
   "wizard": {
     "choose": "Scegli",
@@ -1415,5 +1426,83 @@
     "send": "Invia",
     "thanks": "Grazie: le tue risposte sono arrivate.",
     "error": "Non siamo riusciti a salvare le risposte: riprova."
+  },
+  "onboarding": {
+    "brand": "AstAx",
+    "title": "Lavora con AstAx",
+    "intro": "Agenzie (RUI sezione A) e broker (sezione B) possono chiedere di entrare. Prima i dati della società; poi, sul link privato che ricevi, la conferma dell'IBAN con un codice via SMS, la polizza di RC professionale e i contratti. Il back office controlla i dati sul RUI e ti risponde.",
+    "typeChoice": "Chi sei",
+    "types": {
+      "AGENCY": "Sono un'agenzia",
+      "BROKER": "Sono un broker"
+    },
+    "company": "La società",
+    "legalName": "Ragione sociale",
+    "legalNameHint": "Come risulta al RUI.",
+    "vatNumber": "Partita IVA",
+    "fiscalCode": "Codice fiscale della società",
+    "optional": "Facoltativo, se diverso dalla partita IVA.",
+    "ruiNumberA": "Numero RUI (sezione A)",
+    "ruiNumberB": "Numero RUI (sezione B)",
+    "ruiNumber": "Numero RUI",
+    "pec": "PEC",
+    "address": "Sede",
+    "street": "Indirizzo",
+    "postalCode": "CAP",
+    "province": "Provincia (sigla)",
+    "municipalityIstat": "Codice ISTAT del comune",
+    "municipalityIstatHint": "Sei cifre, per esempio 058091 per Roma.",
+    "owner": "Titolare",
+    "firstName": "Nome",
+    "lastName": "Cognome",
+    "email": "Email",
+    "phone": "Cellulare",
+    "phoneHint": "Ci arriva il codice per confermare l'IBAN.",
+    "iban": "IBAN",
+    "ibanHint": "Il conto su cui AstAx versa premi e provvigioni. Lo confermi con un codice via SMS.",
+    "ibanAgainHint": "Per sicurezza scrivilo di nuovo. Se cambi IBAN o cellulare, va confermato con un nuovo codice.",
+    "mandates": "Compagnie mandanti",
+    "mandatesHint": "Le compagnie di cui hai il mandato. Le controlliamo sul RUI: solo queste potrai usare nelle offerte.",
+    "start": "Continua",
+    "saveChanges": "Salva le modifiche",
+    "status": {
+      "DRAFT": "Da completare",
+      "SUBMITTED": "Inviata al back office",
+      "APPROVED": "Approvata",
+      "REJECTED": "Da correggere"
+    },
+    "keepLink": "Conserva l'indirizzo di questa pagina: è il tuo link privato per completare o correggere la richiesta.",
+    "done": {
+      "creata": "Dati salvati. Completa i passi qui sotto.",
+      "salvata": "Modifiche salvate.",
+      "iban": "IBAN confermato.",
+      "polizza": "Polizza caricata.",
+      "inviata": "Richiesta inviata: il back office la controlla e ti scrive."
+    },
+    "rejected": "La richiesta va corretta",
+    "waiting": "La richiesta è al back office. Riceverai un'email con l'esito.",
+    "approved": "La richiesta è approvata: controlla l'email per il primo accesso.",
+    "editTitle": "Correggi i dati",
+    "step1": "1. Dati",
+    "edit": "Modifica i dati",
+    "step2": "2. Conferma dell'IBAN",
+    "ibanConfirmed": "IBAN confermato.",
+    "ibanCodeIntro": "Ti mandiamo un codice via SMS al numero {phone}.",
+    "sendCode": "Mandami il codice",
+    "sendAgain": "Mandami un nuovo codice",
+    "code": "Codice",
+    "confirm": "Conferma",
+    "step3": "3. Polizza di RC professionale",
+    "policyUploaded": "Polizza caricata, in scadenza il {date}.",
+    "policyFile": "Polizza in PDF",
+    "policyExpiry": "Scadenza della polizza",
+    "uploadPolicy": "Carica la polizza",
+    "replacePolicy": "Sostituisci la polizza",
+    "step4": "4. Contratti e invio",
+    "contractsIntro": "Leggi e accetta i contratti: registriamo versione, data, ora e indirizzo IP. Il titolare li accetta anche per la società.",
+    "version": "versione {number}",
+    "accept": "Ho letto e accetto: {title}",
+    "notReady": "Prima conferma l'IBAN e carica la polizza.",
+    "submit": "Invia la richiesta"
   }
 }

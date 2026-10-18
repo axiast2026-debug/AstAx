@@ -1,6 +1,6 @@
 import type { Clock } from "@astax/adapters/clock";
 import type { FieldCipher } from "@astax/adapters/crypto";
-import { SYSTEM_CONTEXT, withContext, type DbClient } from "@astax/db";
+import { carryOnboardingAcceptances, SYSTEM_CONTEXT, withContext, type DbClient } from "@astax/db";
 import type { MembershipFlags } from "@astax/shared/permissions";
 import { Inject, Injectable } from "@nestjs/common";
 import { AuditService } from "../audit/audit.service.js";
@@ -146,6 +146,13 @@ export class UserResolver {
           },
         );
       }
+      // An owner approved at the entry: the contracts accepted there count (LEG-01).
+      await carryOnboardingAcceptances(
+        tx,
+        user.id,
+        emailHash,
+        invites.map((i) => i.organizationId),
+      );
       return user;
     });
     return linked ? { user: linked } : { refused: "NOT_PROVISIONED" };

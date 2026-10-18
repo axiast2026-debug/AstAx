@@ -72,6 +72,8 @@ describe("menus by role (docs/specifiche 02-07)", () => {
     expect(keys(member("BO_ACCOUNTING", "ASTAX"))).toContain("payments");
     expect(keys(member("BO_ACCOUNTING", "ASTAX"))).not.toContain("verificationQueue");
     expect(keys(member("BO_SUPERVISOR", "ASTAX"))).toContain("auditLog");
+    expect(keys(member("BO_SUPERVISOR", "ASTAX"))).toContain("onboardingQueue");
+    expect(keys(member("BO_VERIFIER", "ASTAX"))).not.toContain("onboardingQueue");
     expect(keys(member("BO_SUPPORT", "ASTAX"))).not.toContain("auditLog");
   });
 

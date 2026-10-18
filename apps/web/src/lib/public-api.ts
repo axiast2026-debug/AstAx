@@ -17,7 +17,9 @@ export async function publicApi<T>(
   if (!apiUrl) throw new Error("API_URL is not set: run pnpm env:init");
   const client = await browserClient();
   const headers = new Headers(init.headers);
-  if (init.body !== undefined) headers.set("content-type", "application/json");
+  if (init.body !== undefined && !headers.has("content-type")) {
+    headers.set("content-type", "application/json");
+  }
   if (client.forwardedFor) headers.set("x-forwarded-for", client.forwardedFor);
   if (client.userAgent) headers.set("user-agent", client.userAgent.slice(0, 300));
   const response = await fetch(`${apiUrl}${path}`, { ...init, headers, cache: "no-store" });

@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { SYSTEM_CONTEXT, withContext } from "@astax/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { issueBrokerInvoicesIfDue, prepareRemittancesIfDue } from "../../src/schedules.js";
+import { FakeRuiRegistry } from "@astax/adapters/rui-registry";
+import {
+  importRuiIfDue,
+  issueBrokerInvoicesIfDue,
+  prepareRemittancesIfDue,
+} from "../../src/schedules.js";
 import { harness, orgId, userId, type Harness } from "./fixtures.js";
 
 // ADR 0010: the Monday remittances and the brokers' monthly invoices follow
@@ -80,5 +85,22 @@ describe("ADR 0010 the schedules", () => {
       period: "2026-10",
       created: 0,
     });
+  });
+
+  it("phase 7 the RUI is imported once a day; a cancelled intermediary leaves the copy", async () => {
+    const day = new Date("2031-03-03T09:00:00.000Z");
+    const first = await importRuiIfDue(h.db, new FakeRuiRegistry(), day);
+    expect(first).toMatchObject({ runDate: "2031-03-03", skipped: false });
+    expect(first.imported).toBeGreaterThan(10);
+    expect(await importRuiIfDue(h.db, new FakeRuiRegistry(), day)).toMatchObject({ skipped: true });
+
+    const smaller = new FakeRuiRegistry(
+      "number;section;name;linked;companies\nA000000001;A;Agenzia Uno;;Compagnia Alfa",
+    );
+    const next = await importRuiIfDue(h.db, smaller, new Date("2031-03-04T09:00:00.000Z"));
+    expect(next.imported).toBe(1);
+    const left = await withContext(h.db, SYSTEM_CONTEXT, (tx) => tx.ruiRecord.findMany());
+    expect(left.map((r) => r.number)).toEqual(["A000000001"]);
+    expect(left[0]?.companies).toEqual(["Compagnia Alfa"]);
   });
 });

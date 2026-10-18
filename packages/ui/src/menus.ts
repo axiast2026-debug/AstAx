@@ -66,6 +66,7 @@ const BACK_OFFICE_MENU: MenuItem[] = [
   item("auctions", "/aste", "auction.viewStatus"),
   item("exceptions", "/eccezioni", "issuance.decideMissed"),
   item("payments", "/pagamenti", "accounting.view"),
+  item("onboardingQueue", "/ingressi", "organization.approveOnboarding"),
   item("organizations", "/organizzazioni", "organization.approveOnboarding"),
   item("customers", "/clienti", "customer.viewContacts"),
   item("support", "/assistenza", "support.tickets"),

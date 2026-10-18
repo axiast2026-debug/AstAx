@@ -63,6 +63,10 @@
     "./web-push": {
       "types": "./dist/web-push/index.d.ts",
       "default": "./dist/web-push/index.js"
+    },
+    "./rui-registry": {
+      "types": "./dist/rui-registry/index.d.ts",
+      "default": "./dist/rui-registry/index.js"
     }
   },
   "scripts": {
