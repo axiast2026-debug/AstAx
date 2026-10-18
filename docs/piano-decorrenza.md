@@ -1,6 +1,6 @@
 # Piano: tre tipi di decorrenza (domanda 1)
 
-**Stato:** da approvare da Dan. Niente codice cambiato finché Dan non approva.
+**Stato:** risposte di Dan del 2026-10-18 qui sotto (A, nuova regola, A, A, A). Restano da chiarire i punti 6 e 7; il codice parte dopo.
 
 ## Cosa ha deciso Dan (2026-10-18)
 
@@ -28,6 +28,8 @@ Le richieste già esistenti restano di tipo 1.
 
 ## Proposte da approvare
 
+Risposte di Dan (2026-10-18): A sì; B no, vedi «Nessuna decorrenza retroattiva»; C sì; D sì; E sì.
+
 - **A. Termine di emissione per i tipi 2 e 3.** Le stesse 4 ore lavorative dal pagamento, senza il limite «prima della decorrenza», perché la copertura parte già al pagamento. Con la polizza l'agenzia rispetta la decorrenza scelta. Alternativa: un termine più breve, solo per questi tipi (un nuovo parametro).
 - **B. Pagamento fuori orario.** Con il tipo 2 pagato sabato sera, l'agenzia emette lunedì mattina (ore lavorative), con decorrenza sabato. Alternativa: il tipo 2 si può pagare solo in orario lavorativo.
 - **C. Date dei controlli.** Età, patente e anni del veicolo si calcolano al giorno della richiesta, e il back office li rivede se il pagamento arriva molto dopo. Alternativa: al giorno dell'accettazione.
@@ -41,3 +43,12 @@ Le richieste già esistenti restano di tipo 1.
 3. Accettazione, pagamento, emissione, polizza (worker e API).
 4. Pagine, notifiche e PDF; test E2E di uno scenario per tipo.
 5. Aggiornamento di `docs/regole-di-dominio.md` (GAR-04, EMI-01, EMI-04) e degli scenari.
+
+## Nessuna decorrenza retroattiva (Dan, 2026-10-18, risposta 2)
+
+Se il cliente paga sabato o domenica, la prima decorrenza possibile cade entro le prime quattro ore lavorative di lunedì. La decorrenza non può mai essere precedente all'emissione. Quindi per il tipo 2 la decorrenza non è più «al pagamento» in senso letterale.
+
+Da chiarire con Dan:
+
+6. **Tipo 2, «immediata»:** la decorrenza è (A) il momento in cui l'agenzia emette, al massimo 4 ore lavorative dopo il pagamento, oppure (B) sempre la fine delle 4 ore lavorative dopo il pagamento, un orario fisso noto al pagamento?
+7. **Tipo 3, «dalle 24:00 del giorno del pagamento»:** se le 4 ore lavorative finiscono dopo quella mezzanotte (pagamento venerdì alle 18, o di sabato), la decorrenza (A) passa alle 24:00 del giorno in cui finiscono le 4 ore, oppure (B) l'agenzia deve emettere entro quella mezzanotte, e se non è possibile la scelta non si offre?
