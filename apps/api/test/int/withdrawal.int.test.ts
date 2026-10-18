@@ -114,7 +114,40 @@ afterAll(async () => {
   await h.close();
 });
 
-describe("S08 the withdrawal within the term", () => {
+const setByCustomer = (value: boolean) =>
+  system(async (tx) => {
+    const count = await tx.setting.count({ where: { key: "withdrawal.byCustomer" } });
+    await tx.setting.create({
+      data: {
+        key: "withdrawal.byCustomer",
+        value,
+        version: count + 1,
+        validFrom: new Date(h.clock.now().getTime() - 1000),
+        reason: "test",
+      },
+    });
+  });
+
+describe("question 18: by default the customer withdraws outside the platform", () => {
+  it("PAG-04 withdrawal.byCustomer off: the request is refused and the policy points to the agency", async () => {
+    const { policy } = await issuedPolicy("agenzia-tre");
+    const refused = await r.json<{ errors: { issue: string }[] }>(
+      await r.call(customer, `/policies/${policy.id}/withdrawal`, { body: {} }),
+      409,
+    );
+    expect(refused.errors[0]?.issue).toBe("NOT_ON_PLATFORM");
+    const listed = await r.json<
+      { id: string; withdrawable: boolean; withdrawalOutside: boolean }[]
+    >(await r.call(customer, "/policies"), 200);
+    expect(listed.find((p) => p.id === policy.id)).toMatchObject({
+      withdrawable: false,
+      withdrawalOutside: true,
+    });
+    await setByCustomer(true);
+  });
+});
+
+describe("S08 the withdrawal within the term (withdrawal.byCustomer on)", () => {
   it("S08 PAG-04 PAG-05 the agency prices 497 €, the supervisor approves: refund, «Receduta», «Annullata», recovery in the remittance", async () => {
     const { requestId, policy, payment } = await issuedPolicy("agenzia-tre");
     const asked = await r.json<{ id: string; status: string }>(

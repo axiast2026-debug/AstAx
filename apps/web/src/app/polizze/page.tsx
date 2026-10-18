@@ -158,6 +158,10 @@ export default async function PoliciesPage({
                       {t("withdraw")}
                     </Button>
                   </form>
+                ) : !isAgency && p.withdrawalOutside ? (
+                  <p className="mt-2 text-sm text-warm-600">
+                    {t("withdrawalOutside", { agency: p.agency?.name ?? "" })}
+                  </p>
                 ) : null}
                 {p.documents && p.requestId ? (
                   <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">

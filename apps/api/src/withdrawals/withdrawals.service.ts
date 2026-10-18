@@ -128,6 +128,13 @@ export class WithdrawalsService {
         where: { id: policyId, quoteRequestId: { in: requests.map((r) => r.id) } },
       });
       if (!policy) return this.denied(auth, "Policy", policyId);
+      // Question 18: after the issuance the customer withdraws outside the platform.
+      const { "withdrawal.byCustomer": byCustomer } = await settingsAt(
+        tx,
+        ["withdrawal.byCustomer"],
+        this.clock.now(),
+      );
+      if (!byCustomer) throw this.wrong("NOT_ON_PLATFORM");
       return this.open(tx, auth, policy);
     });
     await out.postbox.flush();

@@ -101,6 +101,8 @@ export interface PolicyRow {
   renewalRequestId?: string | null;
   /** S08: the withdrawal, its state once asked. */
   withdrawable?: boolean;
+  /** Question 18: withdrawal and cancellation outside the platform. */
+  withdrawalOutside?: boolean;
   withdrawal?: "REQUESTED" | "PRICED" | "APPROVED" | "REJECTED" | null;
   documents?: { id: string; kind: string }[];
 }

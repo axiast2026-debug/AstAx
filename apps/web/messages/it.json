@@ -1259,6 +1259,7 @@
     "renewHint": "Con i dati già salvati: serve solo il nuovo attestato di rischio.",
     "renewalOpen": "Vai al rinnovo",
     "withdraw": "Chiedi il recesso",
+    "withdrawalOutside": "Per recesso, annullamento e altre modifiche della polizza rivolgiti all’agenzia che l’ha emessa: {agency}.",
     "withdrawalAsked": "Recesso chiesto: l’agenzia indica il premio rimborsabile, poi AstAx approva il rimborso.",
     "withdrawalPriced": "Premio rimborsabile indicato: il rimborso va all’approvazione di AstAx.",
     "withdrawalsTitle": "Recessi da valutare",

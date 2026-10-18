@@ -176,6 +176,8 @@ Variante: stessa data di garanzia, **allora** vince l'invio più vecchio secondo
 **e** il supervisore del back office approva,
 **allora** Giulia riceve 497,00 €; il fee di 35,00 € resta e non ci sono note di credito; la polizza è «Receduta» e la richiesta «Annullata»; la rimessa di Agenzia Uno del 30/11 contiene una voce di −497,00 €.
 
+**Con la risposta 18 di Dan (2026-10-18)** il cliente non recede più dall'app: con il parametro `withdrawal.byCustomer` spento (valore iniziale) la pagina della polizza indica di rivolgersi all'agenzia, e la richiesta di Giulia riceve 409. Lo scenario sopra resta provato nei test di integrazione con il parametro acceso; il test E2E prova la pagina con il parametro spento.
+
 ---
 
 ## S09 — Premio sotto i 200 €
@@ -185,7 +187,7 @@ Variante: stessa data di garanzia, **allora** vince l'invio più vecchio secondo
 **Dato che** Luca Ferri chiede un preventivo per un ciclomotore e riceve Alfa 180,00 € e Beta 195,00 €,
 **quando** acquista Alfa senza confronto AI, **allora** paga 195,00 € (fee 15,00 €).
 **Quando** acquista Alfa dopo aver usato il confronto AI, **allora** paga 200,00 € (fee 20,00 €).
-**Quando** il premio è esattamente 200,00 €, **allora** il fee è quello pieno (30,00 € o 35,00 €).
+**Quando** il premio è esattamente 200,00 €, **allora** il fee è ancora quello ridotto (15,00 € o 20,00 €; domanda 3, Dan 2026-10-18).
 **Quando** la stessa offerta passa da un broker, **allora** il cliente paga 180,00 € e il broker deve 30,00 €.
 
 ---

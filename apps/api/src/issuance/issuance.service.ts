@@ -647,8 +647,15 @@ export class IssuanceService {
         orderBy: { issuedAt: "desc" },
         take: 200,
       });
-      const { "renewal.daysBefore": renewalDays, "withdrawal.days": withdrawalDays } =
-        await settingsAt(tx, ["renewal.daysBefore", "withdrawal.days"], this.clock.now());
+      const {
+        "renewal.daysBefore": renewalDays,
+        "withdrawal.days": withdrawalDays,
+        "withdrawal.byCustomer": byCustomer,
+      } = await settingsAt(
+        tx,
+        ["renewal.daysBefore", "withdrawal.days", "withdrawal.byCustomer"],
+        this.clock.now(),
+      );
       const withdrawals = await asSystem(tx, () =>
         tx.consumerWithdrawal.findMany({ where: { policyId: { in: policies.map((p) => p.id) } } }),
       );
@@ -699,9 +706,12 @@ export class IssuanceService {
           // S08: the withdrawal within withdrawal.days of the issuance.
           withdrawal: withdrawals.find((w) => w.policyId === p.id)?.status ?? null,
           withdrawable:
+            byCustomer &&
             ["ACTIVE", "EXPIRING"].includes(p.status) &&
             today <= addCalendarDays(romeCalendarDate(p.issuedAt), withdrawalDays) &&
             !withdrawals.some((w) => w.policyId === p.id && w.status !== "REJECTED"),
+          // Question 18: withdrawal and cancellation go through the agency, outside AstAx.
+          withdrawalOutside: !byCustomer && ["ACTIVE", "EXPIRING"].includes(p.status),
           documents: documents
             .filter((d) => d.quoteRequestId === p.quoteRequestId)
             .map((d) => ({ id: d.id, kind: d.kind })),
