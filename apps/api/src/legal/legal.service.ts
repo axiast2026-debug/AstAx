@@ -1,12 +1,39 @@
 import type { Clock } from "@astax/adapters/clock";
-import { withContext, type DbClient } from "@astax/db";
+import type { FieldCipher } from "@astax/adapters/crypto";
+import { asSystem, withContext, type DbClient, type Prisma } from "@astax/db";
 import { Inject, Injectable } from "@nestjs/common";
 import { actorOf, AuditService } from "../audit/audit.service.js";
 import type { AuthContext } from "../auth/auth-context.js";
 import { UserResolver } from "../auth/user-resolver.js";
 import { ProblemError } from "../http/problem.js";
-import { CLOCK, DB } from "../infra/tokens.js";
-import { BLOCKING_MOMENTS, legalAudiences } from "./legal-audiences.js";
+import { CLOCK, DB, FIELD_CIPHER } from "../infra/tokens.js";
+import { NotificationService } from "../notifications/notification.service.js";
+import { BLOCKING_MOMENTS, legalAudiences, type LegalAudience } from "./legal-audiences.js";
+
+/** Who a document is for, as a filter on users (the opposite of legalAudiences). */
+function usersOf(audiences: readonly string[]): Prisma.UserWhereInput {
+  if (audiences.includes("ALL")) return {};
+  const active = { status: "ACTIVE" as const };
+  const or: Prisma.UserWhereInput[] = [];
+  for (const a of audiences as LegalAudience[]) {
+    if (a === "PRIVATE" || a === "STAFF") or.push({ kind: a });
+    if (a === "AGENCY" || a === "BROKER") {
+      or.push({ memberships: { some: { ...active, role: "OWNER", organization: { type: a } } } });
+    }
+    if (a === "SUB_AGENT") {
+      or.push({
+        memberships: {
+          some: {
+            ...active,
+            role: { not: "OWNER" },
+            organization: { type: { in: ["AGENCY", "BROKER"] } },
+          },
+        },
+      });
+    }
+  }
+  return { OR: or };
+}
 
 export interface PendingLegalDocument {
   documentKey: string;
@@ -25,7 +52,80 @@ export class LegalService {
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(UserResolver) private readonly users: UserResolver,
     @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(FIELD_CIPHER) private readonly cipher: FieldCipher,
+    @Inject(NotificationService) private readonly notifications: NotificationService,
   ) {}
+
+  /**
+   * LEG-02: a draft version becomes the one in force; everyone concerned
+   * accepts it at the next access and gets the legal.new_version email with
+   * the summary of the changes.
+   */
+  async publish(auth: AuthContext, id: string, reason: string, summary: string, now: Date) {
+    const out = await withContext(
+      this.db,
+      auth.db,
+      async (tx) => {
+        const version = await tx.legalDocumentVersion.findUnique({
+          where: { id },
+          include: { document: true },
+        });
+        if (!version) throw new ProblemError("NOT_FOUND");
+        if (version.publishedAt) {
+          throw new ProblemError("CONFLICT", "Already published", [
+            { path: "version", issue: "ALREADY_PUBLISHED" },
+          ]);
+        }
+        const newer = await tx.legalDocumentVersion.findFirst({
+          where: {
+            documentId: version.documentId,
+            number: { gt: version.number },
+            publishedAt: { not: null },
+          },
+        });
+        if (newer) {
+          throw new ProblemError("CONFLICT", "A newer version is in force", [
+            { path: "version", issue: "NEWER_PUBLISHED" },
+          ]);
+        }
+        await tx.legalDocumentVersion.update({ where: { id }, data: { publishedAt: now } });
+        const users = await asSystem(tx, () =>
+          tx.user.findMany({ where: { status: "ACTIVE", ...usersOf(version.document.audiences) } }),
+        );
+        const names = new Map(users.map((u) => [u.id, u.firstName]));
+        const outbound = await this.notifications.deliver(
+          tx,
+          users.map((u) => ({
+            userId: u.id,
+            locale: u.locale === "sq" ? "sq" : "it",
+            email: u.emailEnc ? this.cipher.decrypt(u.emailEnc) : null,
+            phone: null,
+          })),
+          "legal.new_version",
+          (_locale, userId) => ({
+            nome: names.get(userId) ?? "",
+            documento: version.document.title,
+            data: { date: now.toISOString() },
+            sintesi: summary,
+          }),
+          null,
+          { versionId: id },
+        );
+        await this.audit.inTransaction(tx, actorOf(auth), {
+          action: "LEGAL_VERSION_PUBLISHED",
+          targetType: "LegalDocumentVersion",
+          targetId: id,
+          before: { publishedAt: null },
+          after: { key: version.document.key, number: version.number, recipients: users.length },
+          reason,
+        });
+        return { outbound, recipients: users.length, number: version.number };
+      },
+      { timeoutMs: 60_000 },
+    );
+    await this.notifications.send(out.outbound);
+    return { id, number: out.number, recipients: out.recipients, publishedAt: now.toISOString() };
+  }
 
   /** Versions in force for this user that still wait for acceptance. */
   async pending(auth: AuthContext): Promise<PendingLegalDocument[]> {

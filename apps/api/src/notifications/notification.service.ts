@@ -95,7 +95,7 @@ export class NotificationService {
     tx: DbTransaction,
     users: readonly DispatchUser[],
     eventKey: string,
-    variables: (locale: "it" | "sq") => TemplateVariables,
+    variables: (locale: "it" | "sq", userId: string) => TemplateVariables,
     link: string | null,
     payload: Record<string, string> = {},
     only?: readonly ("IN_APP" | "EMAIL" | "SMS" | "PUSH")[],
@@ -119,7 +119,7 @@ export class NotificationService {
           data: plan.inApp.map((u) => ({
             userId: u.userId,
             eventKey,
-            ...renderInApp(texts, eventKey, u.locale, variables(u.locale), this.#labels),
+            ...renderInApp(texts, eventKey, u.locale, variables(u.locale, u.userId), this.#labels),
             link,
             payload,
           })),
@@ -131,7 +131,7 @@ export class NotificationService {
       out.push({
         channel: "EMAIL",
         to: u.email ?? "",
-        ...renderEmail(texts, eventKey, u.locale, variables(u.locale), this.#labels),
+        ...renderEmail(texts, eventKey, u.locale, variables(u.locale, u.userId), this.#labels),
         eventKey,
         ids: payload,
       });
@@ -140,14 +140,20 @@ export class NotificationService {
       out.push({
         channel: "SMS",
         to: u.phone ?? "",
-        text: renderSms(texts, eventKey, variables(u.locale), u.locale),
+        text: renderSms(texts, eventKey, variables(u.locale, u.userId), u.locale),
         eventKey,
         ids: payload,
       });
     }
     for (const { user, subscriptions } of plan.push) {
       const message = {
-        ...renderPush(texts, eventKey, user.locale, variables(user.locale), this.#labels),
+        ...renderPush(
+          texts,
+          eventKey,
+          user.locale,
+          variables(user.locale, user.userId),
+          this.#labels,
+        ),
         url: link ?? "/notifiche",
       };
       for (const enc of subscriptions) {

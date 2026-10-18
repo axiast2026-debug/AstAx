@@ -155,13 +155,24 @@ describe("LEG-01 LEG-02 legal documents gate", () => {
     expect(created.status).toBe(201);
     // Every administrator change keeps before, after, author and reason (docs/permessi.md).
     const logged = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
-      tx.auditLog.findFirstOrThrow({ where: { action: "LEGAL_VERSION_CREATED" } }),
+      tx.auditLog.findFirstOrThrow({
+        where: { action: "LEGAL_VERSION_CREATED", reason: "Nuovi cookie tecnici" },
+      }),
     );
     expect(logged).toMatchObject({
       reason: "Nuovi cookie tecnici",
       before: { number: 1, status: "DRAFT" },
       after: { key: "cookie-policy", number: 2, status: "DRAFT" },
     });
+
+    // A draft is not in force: it is published apart (phase 7).
+    const { id } = (await created.json()) as { id: string };
+    const published = await h.call(`/admin/legal/versions/${id}/publish`, {
+      token: admin,
+      context: adminContext,
+      body: { reason: "In vigore", summary: "Nuovi cookie tecnici." },
+    });
+    expect(published.status).toBe(200);
 
     const owner = await h.tokenFor("agenzia-cinque-owner");
     const pending = (await (await h.call("/legal/pending", { token: owner })).json()) as {

@@ -736,5 +736,92 @@
     "messageTitle": "Titolo",
     "messageText": "Testo",
     "send": "Invia il messaggio"
+  },
+  "users": {
+    "title": "Utenti e permessi",
+    "intro": "Cerca un utente per nome o email. Puoi bloccarlo, sbloccarlo, azzerare il secondo fattore e cambiare il ruolo nel back office. Ogni azione chiede un motivo e va nel registro.",
+    "error": "Operazione non riuscita ({code}).",
+    "done": {
+      "block": "Utente bloccato: tutte le sue sessioni sono chiuse.",
+      "unblock": "Utente sbloccato.",
+      "reset-second-factor": "Secondo fattore azzerato: lo configurerà al prossimo accesso.",
+      "role": "Ruolo aggiornato."
+    },
+    "search": "Nome o email",
+    "kind": "Tipo",
+    "allKinds": "Tutti",
+    "kinds": {
+      "PRIVATE": "Privato",
+      "PROFESSIONAL": "Professionista",
+      "STAFF": "AstAx"
+    },
+    "status": {
+      "ACTIVE": "attivo",
+      "SUSPENDED": "sospeso",
+      "BLOCKED": "bloccato"
+    },
+    "find": "Cerca",
+    "results": "{count, plural, one {# utente} other {# utenti}} (al massimo 100)",
+    "actions": "Azioni",
+    "step": "Azione",
+    "block": "Blocca",
+    "unblock": "Sblocca",
+    "resetSecondFactor": "Azzera il secondo fattore",
+    "reason": "Motivo",
+    "confirm": "Conferma",
+    "role": "Ruolo nel back office",
+    "noRole": "Nessun ruolo",
+    "roles": {
+      "BO_VERIFIER": "Verificatore",
+      "BO_SUPPORT": "Supporto",
+      "BO_ACCOUNTING": "Contabilità",
+      "BO_SUPERVISOR": "Supervisore",
+      "ADMIN": "Amministratore"
+    },
+    "saveRole": "Salva il ruolo"
+  },
+  "legalDocuments": {
+    "title": "Contratti e documenti legali",
+    "intro": "Ogni testo con le sue versioni. Una nuova versione nasce come bozza: il legale la valida, poi la pubblichi. Da quel momento chi è interessato la accetta di nuovo al prossimo accesso e riceve un'email con la sintesi.",
+    "error": "Operazione non riuscita ({code}).",
+    "done": {
+      "draft": "Bozza salvata. Non è ancora in vigore.",
+      "validate": "Versione segnata come validata dal legale.",
+      "publish": "Versione pubblicata: è in vigore e va accettata di nuovo."
+    },
+    "documents": "Documenti",
+    "meta": "per {audiences} · da accettare: {moment}",
+    "audiences": {
+      "ALL": "tutti",
+      "PRIVATE": "privati",
+      "BROKER": "broker",
+      "AGENCY": "agenzie",
+      "SUB_AGENT": "collaboratori",
+      "STAFF": "AstAx"
+    },
+    "moments": {
+      "FIRST_ACCESS": "al primo accesso",
+      "REGISTRATION": "alla registrazione",
+      "ONBOARDING": "all'adesione",
+      "BEFORE_REQUEST": "prima di una richiesta",
+      "ACCEPTANCE": "all'accettazione dell'offerta",
+      "FIRST_SIGNATURE": "alla prima firma"
+    },
+    "version": "Versione {number}",
+    "validated": "validata",
+    "draft": "bozza",
+    "inForce": "in vigore dal {at}",
+    "replaced": "sostituita",
+    "notPublished": "non pubblicata",
+    "text": "Testo",
+    "reason": "Motivo",
+    "summary": "Sintesi delle modifiche (va nell'email)",
+    "validate": "Segna come validata dal legale",
+    "publish": "Pubblica",
+    "newVersion": "Nuova versione",
+    "newVersionHint": "Parte dal testo dell'ultima versione. Finché il legale non lo valida, lascia «[DA VALIDARE — LEGALE]».",
+    "markdown": "Testo (Markdown)",
+    "saveDraft": "Salva come bozza",
+    "choose": "Scegli un documento a sinistra."
   }
 }

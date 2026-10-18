@@ -144,6 +144,26 @@ const ENDPOINTS: Endpoint[] = [
     path: () => `/admin/legal/versions/${randomUUID()}/validate`,
     body: {},
   },
+  { action: "admin.legal.manage", method: "GET", path: () => "/admin/legal/documents" },
+  {
+    action: "admin.legal.manage",
+    method: "POST",
+    path: () => `/admin/legal/versions/${randomUUID()}/publish`,
+    body: {},
+  },
+  { action: "admin.users.manage", method: "GET", path: () => "/admin/users" },
+  ...(["block", "unblock", "reset-second-factor"] as const).map((step) => ({
+    action: "admin.users.manage" as const,
+    method: "POST" as const,
+    path: () => `/admin/users/${randomUUID()}/${step}`,
+    body: {},
+  })),
+  {
+    action: "admin.users.manage",
+    method: "PUT",
+    path: () => `/admin/users/${randomUUID()}/staff-role`,
+    body: {},
+  },
   { action: "auditLog.viewAll", method: "GET", path: () => "/admin/audit" },
   // Fase 2: requests, customers, consent
   { action: "request.create", method: "GET", path: () => "/reference/request-options" },

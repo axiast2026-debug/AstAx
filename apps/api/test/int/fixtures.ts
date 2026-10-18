@@ -52,6 +52,13 @@ export class FakeIdentityAdmin implements IdentityAdmin {
     this.track("logoutUser", userId);
     this.sessions.set(userId, []);
   }
+  async setEnabled(userId: string, enabled: boolean) {
+    this.track("setEnabled", userId, enabled);
+  }
+  async removeCredentials(userId: string, type: string) {
+    this.track("removeCredentials", userId, type);
+    return 1;
+  }
   async findUserByEmail(email: string) {
     this.track("findUserByEmail", email);
     const id = this.users.get(email);

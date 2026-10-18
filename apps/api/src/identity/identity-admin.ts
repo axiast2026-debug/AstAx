@@ -6,6 +6,8 @@ export type IdentityAdmin = Pick<
   | "listSessions"
   | "deleteSession"
   | "logoutUser"
+  | "setEnabled"
+  | "removeCredentials"
   | "findUserByEmail"
   | "realmRoles"
   | "createUser"

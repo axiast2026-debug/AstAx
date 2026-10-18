@@ -20,6 +20,7 @@ const acceptSchema = z.object({ versionIds: z.array(z.uuid()).min(1).max(20) }).
 const reason = z.string().trim().min(3).max(500);
 const newVersionSchema = z.object({ contentMd: z.string().min(1).max(200_000), reason }).strict();
 const validateSchema = z.object({ reason }).strict();
+const publishSchema = z.strictObject({ reason, summary: z.string().trim().min(3).max(500) });
 
 @ApiTags("legal")
 @ApiBearerAuth()
@@ -50,7 +51,47 @@ export class LegalController {
     return this.legal.accept(auth, parseInput(acceptSchema, body).versionIds);
   }
 
-  /** A new version of a legal text: in force at once, to be accepted again (LEG-02). */
+  /** Spec 07 «Contratti e documenti legali»: every document with its versions. */
+  @Get("admin/legal/documents")
+  @RequirePermission("admin.legal.manage")
+  async documents(@CurrentAuth() auth: AuthContext) {
+    return withContext(this.db, auth.db, async (tx) =>
+      (
+        await tx.legalDocument.findMany({
+          include: { versions: { orderBy: { number: "desc" } } },
+          orderBy: { key: "asc" },
+        })
+      ).map((d) => ({
+        key: d.key,
+        title: d.title,
+        audiences: d.audiences,
+        moment: d.moment,
+        versions: d.versions.map((v) => ({
+          id: v.id,
+          number: v.number,
+          status: v.status,
+          contentMd: v.contentMd,
+          validatedAt: v.validatedAt?.toISOString() ?? null,
+          publishedAt: v.publishedAt?.toISOString() ?? null,
+        })),
+      })),
+    );
+  }
+
+  /**
+   * LEG-02, phase 7: publishes a version: from now it is the one in force,
+   * and everyone concerned accepts it at the next access (legal.new_version).
+   */
+  @Post("admin/legal/versions/:id/publish")
+  @HttpCode(200)
+  @RequirePermission("admin.legal.manage")
+  async publish(@CurrentAuth() auth: AuthContext, @Param("id") id: string, @Body() body: unknown) {
+    const input = parseInput(publishSchema, body);
+    const now = this.clock.now();
+    return this.legal.publish(auth, parseInput(z.uuid(), id), input.reason, input.summary, now);
+  }
+
+  /** A new version of a legal text, as a draft: published apart (LEG-02). */
   @Post("admin/legal/documents/:key/versions")
   @HttpCode(201)
   @RequirePermission("admin.legal.manage")
@@ -74,7 +115,7 @@ export class LegalController {
           number,
           contentMd: input.contentMd,
           status: "DRAFT",
-          publishedAt: now,
+          createdAt: now,
         },
       });
       await this.audit.inTransaction(tx, actorOf(auth), {
