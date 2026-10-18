@@ -957,5 +957,101 @@
     "pec": "PEC",
     "iban": "IBAN",
     "istat": "ISTAT {code}"
+  },
+  "operations": {
+    "queues": "Code di lavoro",
+    "queue": {
+      "verification": "Verifiche",
+      "integration": "Integrazioni chieste al cliente",
+      "openAuctions": "Aste aperte",
+      "deserted": "Aste deserte",
+      "issuanceProblems": "Problemi di emissione",
+      "remittances": "Rimesse da eseguire",
+      "refunds": "Rimborsi da approvare",
+      "onboarding": "Ingressi da decidere"
+    },
+    "nothingWaiting": "Niente in attesa.",
+    "longestWait": "Attesa più lunga: {wait}.",
+    "nextClosing": "Prossima chiusura: {at}.",
+    "lessThanHour": "meno di un’ora",
+    "hours": "{count, plural, one {# ora} other {# ore}}",
+    "today": "Oggi",
+    "verificationsToday": "Verifiche decise",
+    "averageVerification": "Tempo medio di verifica",
+    "automaticShare": "Verifiche automatiche",
+    "desertedToday": "Aste deserte",
+    "minutes": "{count, plural, one {# minuto} other {# minuti}}",
+    "percent": "{value}%"
+  },
+  "organizationsList": {
+    "title": "Agenzie e broker",
+    "search": "Nome o numero RUI",
+    "type": "Tipo",
+    "all": "Tutti",
+    "types": {
+      "AGENCY": "Agenzia",
+      "BROKER": "Broker"
+    },
+    "find": "Cerca",
+    "name": "Nome",
+    "status": "Stato",
+    "participation": "Inviti · offerte · vinte",
+    "participationValue": "{invitations} · {offers} · {wins}",
+    "penalties": "Penali",
+    "flags": "Segnalazioni aperte",
+    "profInsurance": "RC professionale fino al",
+    "statuses": {
+      "PENDING": "in attesa",
+      "ACTIVE": "attiva",
+      "SUSPENDED": "sospesa",
+      "EXCLUDED": "esclusa"
+    },
+    "suspended": "sospesa",
+    "exclusionProposed": "esclusione proposta",
+    "proposals": "Proposte di esclusione",
+    "noProposals": "Nessuna proposta da decidere.",
+    "exclude": "Escludi",
+    "keep": "Non escludere",
+    "reason": "Motivo",
+    "decide": "Decidi",
+    "back": "Torna all'elenco",
+    "error": "Operazione non riuscita ({code}).",
+    "done": {
+      "suspend": "Sospesa: niente nuovi inviti; il lavoro in corso continua.",
+      "reactivate": "Riattivata.",
+      "NOTE": "Nota aggiunta.",
+      "EXCLUSION_PROPOSAL": "Esclusione proposta all'amministratore."
+    },
+    "details": "Dati",
+    "mandates": "Mandati",
+    "sources": {
+      "RUI": "dal RUI",
+      "MANUAL": "a mano"
+    },
+    "actions": "Azioni",
+    "action": "Azione",
+    "steps": {
+      "suspend": "Sospendi",
+      "reactivate": "Riattiva",
+      "NOTE": "Aggiungi una nota",
+      "EXCLUSION_PROPOSAL": "Proponi l'esclusione"
+    },
+    "text": "Motivo o testo della nota",
+    "confirm": "Conferma",
+    "notes": "Note",
+    "noNotes": "Nessuna nota.",
+    "decisions": {
+      "EXCLUDED": "Esclusa dall'amministratore",
+      "REJECTED": "Esclusione non accolta"
+    },
+    "history": "Storico",
+    "suspendedFrom": "Sospesa dal {at}",
+    "audit": {
+      "ORGANIZATION_SUSPENDED": "sospesa",
+      "ORGANIZATION_REACTIVATED": "riattivata",
+      "ORGANIZATION_EXCLUSION_PROPOSED": "esclusione proposta",
+      "ORGANIZATION_EXCLUDED": "esclusa",
+      "ORGANIZATION_EXCLUSION_REJECTED": "esclusione non accolta"
+    }
   }
 }

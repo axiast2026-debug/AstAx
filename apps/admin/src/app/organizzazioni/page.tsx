@@ -2,7 +2,9 @@ import { formatDateTime } from "@astax/shared/format";
 import { Badge, Button, Card, CardTitle } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { AppShell } from "@/components/app-shell";
+import { ExclusionProposals, OrganizationsList } from "@/components/organizations-list";
 import { PenaltiesList } from "@/components/penalties-list";
+import { can } from "@astax/shared/permissions";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
 import { decideSuspension } from "../penali/actions";
@@ -17,14 +19,15 @@ interface SuspensionRow {
 }
 
 /**
- * «Organizzazioni» (spec 07), for now: the suspensions to confirm or revoke
- * (EMI-06) and the contested penalties to decide (EMI-05). The rest of the
- * page (onboarding, exclusion) is phase 7.
+ * «Organizzazioni» (spec 06 and 07): the agencies and brokers with their
+ * figures, the exclusion proposals for the administrator, the automatic
+ * suspensions to confirm or revoke (EMI-06) and the contested penalties
+ * (EMI-05). The entries are in «Ingressi».
  */
 export default async function OrganizationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ errore?: string; fatto?: string }>;
+  searchParams: Promise<{ errore?: string; fatto?: string; q?: string; type?: string }>;
 }) {
   const viewer = await requireViewer();
   const t = await getTranslations("organizationsPage");
@@ -43,6 +46,8 @@ export default async function OrganizationsPage({
           {t("done")}
         </p>
       ) : null}
+      {can(viewer.actor, "organization.exclude") ? <ExclusionProposals /> : null}
+      <OrganizationsList q={query.q} type={query.type} />
       {status === 200 ? (
         <Card className="mt-6">
           <CardTitle>{t("suspensions")}</CardTitle>

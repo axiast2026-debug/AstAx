@@ -16,7 +16,7 @@ export async function decideOnboarding(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   const outcome = String(formData.get("outcome") ?? "");
   if (!ID.test(id) || (outcome !== "approve" && outcome !== "reject")) redirect("/ingressi");
-  const { status, body } = await api(`/bo/onboarding/${id}/${outcome}`, {
+  const { status, body } = await api(`/back-office/onboarding/${id}/${outcome}`, {
     method: "POST",
     body: JSON.stringify({ reason: String(formData.get("reason") ?? "") }),
   });

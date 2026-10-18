@@ -168,7 +168,7 @@ const reason = z.strictObject({ reason: z.string().trim().min(3).max(500) });
 /** Spec 06 «Coda di ingresso» (organization.approveOnboarding). */
 @ApiTags("back-office")
 @ApiBearerAuth()
-@Controller("bo/onboarding")
+@Controller("back-office/onboarding")
 export class OnboardingQueueController {
   constructor(@Inject(OnboardingService) private readonly onboarding: OnboardingService) {}
 

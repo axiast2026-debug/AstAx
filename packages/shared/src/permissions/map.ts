@@ -80,6 +80,10 @@ export const PERMISSIONS = {
   "request.bulkUpload": { grants: BROKER_USERS },
 
   // Verification and auction
+  "backOffice.dashboard": {
+    grants: [...BACK_OFFICE, "ADMIN"],
+    conditions: "queues of the own role, counts and waits only",
+  },
   "verification.viewQueue": { grants: ["BO_VERIFIER", "BO_SUPERVISOR", "BO_SUPPORT", "ADMIN"] },
   "verification.decide": {
     grants: ["BO_VERIFIER", "BO_SUPERVISOR"],

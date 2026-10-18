@@ -66,6 +66,13 @@ import { PreferencesService } from "./notifications/preferences.service.js";
 import { CommunicationsController } from "./notifications/communications.controller.js";
 import { CatalogAdminController } from "./admin/catalog-admin.controller.js";
 import {
+  ExclusionProposalsController,
+  OrganizationsBackOfficeController,
+} from "./admin/organizations-bo.controller.js";
+import { OrganizationsBackOfficeService } from "./admin/organizations-bo.service.js";
+import { OperationsDashboardController } from "./admin/operations-dashboard.controller.js";
+import { OperationsDashboardService } from "./admin/operations-dashboard.service.js";
+import {
   OnboardingController,
   OnboardingQueueController,
 } from "./onboarding/onboarding.controller.js";
@@ -111,6 +118,9 @@ export class AppModule {
         CommunicationsController,
         UsersAdminController,
         CatalogAdminController,
+        OrganizationsBackOfficeController,
+        ExclusionProposalsController,
+        OperationsDashboardController,
         OnboardingController,
         OnboardingQueueController,
         AuditController,
@@ -166,6 +176,8 @@ export class AppModule {
         CommunicationsService,
         UsersAdminService,
         CatalogAdminService,
+        OrganizationsBackOfficeService,
+        OperationsDashboardService,
         OnboardingService,
         QuoteChecksService,
         RealtimeHub,

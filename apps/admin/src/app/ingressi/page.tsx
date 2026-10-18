@@ -30,7 +30,7 @@ export default async function OnboardingQueuePage({
   const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const query = await searchParams;
   const status = STATUSES.find((s) => s === query.stato) ?? "SUBMITTED";
-  const { status: code, body } = await api<Row[]>(`/bo/onboarding?status=${status}`);
+  const { status: code, body } = await api<Row[]>(`/back-office/onboarding?status=${status}`);
   if (code !== 200) notFound();
 
   return (

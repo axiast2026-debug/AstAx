@@ -130,7 +130,7 @@ describe("phase 7 entry of a new agency", () => {
     );
 
     const queue = await r.json<{ id: string; legalName: string; ruiFound: boolean }[]>(
-      await r.call(supervisor, "/bo/onboarding"),
+      await r.call(supervisor, "/back-office/onboarding"),
       200,
     );
     const entry = queue.find((q) => q.legalName === "Agenzia Undici");
@@ -138,7 +138,7 @@ describe("phase 7 entry of a new agency", () => {
     const detail = await r.json<{
       ruiCheck: { sectionMatches: boolean; nameMatches: boolean; unconfirmedCompanies: string[] };
       contracts: unknown[];
-    }>(await r.call(supervisor, `/bo/onboarding/${entry?.id}`), 200);
+    }>(await r.call(supervisor, `/back-office/onboarding/${entry?.id}`), 200);
     expect(detail.ruiCheck).toMatchObject({ sectionMatches: true, nameMatches: true });
     // Delta is declared but not on the RUI: the supervisor sees it.
     expect(detail.ruiCheck.unconfirmedCompanies).toEqual(["Compagnia Delta"]);
@@ -149,7 +149,7 @@ describe("phase 7 entry of a new agency", () => {
     expect(viewed).not.toBeNull();
 
     const approved = await r.json<{ organizationId: string }>(
-      await r.call(supervisor, `/bo/onboarding/${entry?.id}/approve`, {
+      await r.call(supervisor, `/back-office/onboarding/${entry?.id}/approve`, {
         body: { reason: "RUI e documenti in ordine" },
       }),
       200,
@@ -219,17 +219,17 @@ describe("phase 7 entry of a new agency", () => {
     expect((await h.call(`/onboarding/${token}`, { method: "PUT", body })).status).toBe(409);
     const entry = (
       await r.json<{ id: string; legalName: string }[]>(
-        await r.call(supervisor, "/bo/onboarding"),
+        await r.call(supervisor, "/back-office/onboarding"),
         200,
       )
     ).find((q) => q.legalName === "Agenzia Dodicesima");
     const detail = await r.json<{ ruiCheck: { nameMatches: boolean } }>(
-      await r.call(supervisor, `/bo/onboarding/${entry?.id}`),
+      await r.call(supervisor, `/back-office/onboarding/${entry?.id}`),
       200,
     );
     expect(detail.ruiCheck.nameMatches).toBe(false);
     await r.json(
-      await r.call(supervisor, `/bo/onboarding/${entry?.id}/reject`, {
+      await r.call(supervisor, `/back-office/onboarding/${entry?.id}/reject`, {
         body: { reason: "La ragione sociale non è quella del RUI" },
       }),
       200,
@@ -248,7 +248,7 @@ describe("phase 7 entry of a new agency", () => {
     );
     await r.json(await h.call(`/onboarding/${token}/submit`, { body: { versionIds } }), 200);
     const again = await r.json<{ ruiCheck: { nameMatches: boolean } }>(
-      await r.call(supervisor, `/bo/onboarding/${entry?.id}`),
+      await r.call(supervisor, `/back-office/onboarding/${entry?.id}`),
       200,
     );
     expect(again.ruiCheck.nameMatches).toBe(true);
@@ -260,7 +260,7 @@ describe("phase 7 entry of a new agency", () => {
       token: await h.tokenFor("bo-verifier"),
       context: membershipId("bo-verifier", "astax"),
     };
-    expect((await r.call(verifier, "/bo/onboarding")).status).toBe(403);
+    expect((await r.call(verifier, "/back-office/onboarding")).status).toBe(403);
   });
 
   it("a RUI number already on AstAx cannot enter twice", async () => {

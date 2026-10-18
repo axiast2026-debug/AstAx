@@ -3,6 +3,8 @@ import { getTranslations } from "next-intl/server";
 import { AppShell } from "@/components/app-shell";
 import { sessionId, webAuth } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
+import { can } from "@astax/shared/permissions";
+import { OperationsDashboard } from "@/components/operations-dashboard";
 
 export default async function HomePage({
   searchParams,
@@ -20,6 +22,7 @@ export default async function HomePage({
         <CardTitle>{t("welcome", { name: viewer.me.firstName })}</CardTitle>
         <p className="mt-2 text-warm-600">{t("intro")}</p>
       </Card>
+      {can(viewer.actor, "backOffice.dashboard") ? <OperationsDashboard /> : null}
     </AppShell>
   );
 }

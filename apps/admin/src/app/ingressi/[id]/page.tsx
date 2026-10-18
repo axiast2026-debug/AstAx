@@ -60,7 +60,7 @@ export default async function OnboardingDetailPage({
   const t = await getTranslations("onboardingQueue");
   const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const query = await searchParams;
-  const { status, body: a } = await api<Detail>(`/bo/onboarding/${id}`);
+  const { status, body: a } = await api<Detail>(`/back-office/onboarding/${id}`);
   if (status !== 200) notFound();
   const check = a.ruiCheck;
   const ok = (value: boolean) => (

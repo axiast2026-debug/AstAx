@@ -1964,3 +1964,26 @@ model OnboardingApplication {
   @@index([status])
   @@index([ownerEmailHash])
 }
+
+enum OrganizationNoteKind {
+  NOTE
+  EXCLUSION_PROPOSAL
+}
+
+/// Spec 06 «Agenzie e broker»: the back office notes on an organization and
+/// the exclusion proposals, decided by the administrator (spec 07).
+model OrganizationNote {
+  id              String               @id @default(uuid(7)) @db.Uuid
+  organizationId  String               @db.Uuid
+  kind            OrganizationNoteKind
+  text            String
+  authorUserId    String               @db.Uuid
+  createdAt       DateTime             @db.Timestamptz(3)
+  /// Exclusion proposals: the administrator's decision.
+  decision        String?
+  decisionReason  String?
+  decidedByUserId String?              @db.Uuid
+  decidedAt       DateTime?            @db.Timestamptz(3)
+
+  @@index([organizationId])
+}

@@ -957,5 +957,101 @@
     "pec": "PEC",
     "iban": "IBAN",
     "istat": "ISTAT {code}"
+  },
+  "operations": {
+    "queues": "Radhët e punës",
+    "queue": {
+      "verification": "Verifikimet",
+      "integration": "Plotësime të kërkuara klientit",
+      "openAuctions": "Ankande të hapura",
+      "deserted": "Ankande pa oferta",
+      "issuanceProblems": "Probleme lëshimi",
+      "remittances": "Transferta për t’u kryer",
+      "refunds": "Rimbursime për miratim",
+      "onboarding": "Anëtarësime për t’u vendosur"
+    },
+    "nothingWaiting": "Asgjë në pritje.",
+    "longestWait": "Pritja më e gjatë: {wait}.",
+    "nextClosing": "Mbyllja e radhës: {at}.",
+    "lessThanHour": "më pak se një orë",
+    "hours": "{count, plural, one {# orë} other {# orë}}",
+    "today": "Sot",
+    "verificationsToday": "Verifikime të vendosura",
+    "averageVerification": "Koha mesatare e verifikimit",
+    "automaticShare": "Verifikime automatike",
+    "desertedToday": "Ankande pa oferta",
+    "minutes": "{count, plural, one {# minutë} other {# minuta}}",
+    "percent": "{value}%"
+  },
+  "organizationsList": {
+    "title": "Agjencitë dhe brokerët",
+    "search": "Emri ose numri RUI",
+    "type": "Lloji",
+    "all": "Të gjithë",
+    "types": {
+      "AGENCY": "Agjenci",
+      "BROKER": "Broker"
+    },
+    "find": "Kërko",
+    "name": "Emri",
+    "status": "Gjendja",
+    "participation": "Ftesa · oferta · fituara",
+    "participationValue": "{invitations} · {offers} · {wins}",
+    "penalties": "Penalitete",
+    "flags": "Sinjalizime të hapura",
+    "profInsurance": "RC profesionale deri më",
+    "statuses": {
+      "PENDING": "në pritje",
+      "ACTIVE": "aktive",
+      "SUSPENDED": "e pezulluar",
+      "EXCLUDED": "e përjashtuar"
+    },
+    "suspended": "e pezulluar",
+    "exclusionProposed": "përjashtim i propozuar",
+    "proposals": "Propozime përjashtimi",
+    "noProposals": "Asnjë propozim për t'u vendosur.",
+    "exclude": "Përjashto",
+    "keep": "Mos e përjashto",
+    "reason": "Arsyeja",
+    "decide": "Vendos",
+    "back": "Kthehu te lista",
+    "error": "Veprimi nuk u krye ({code}).",
+    "done": {
+      "suspend": "U pezullua: asnjë ftesë e re; puna në vazhdim vazhdon.",
+      "reactivate": "U riaktivizua.",
+      "NOTE": "Shënimi u shtua.",
+      "EXCLUSION_PROPOSAL": "Përjashtimi iu propozua administratorit."
+    },
+    "details": "Të dhënat",
+    "mandates": "Mandatet",
+    "sources": {
+      "RUI": "nga RUI",
+      "MANUAL": "me dorë"
+    },
+    "actions": "Veprimet",
+    "action": "Veprimi",
+    "steps": {
+      "suspend": "Pezullo",
+      "reactivate": "Riaktivizo",
+      "NOTE": "Shto një shënim",
+      "EXCLUSION_PROPOSAL": "Propozo përjashtimin"
+    },
+    "text": "Arsyeja ose teksti i shënimit",
+    "confirm": "Konfirmo",
+    "notes": "Shënime",
+    "noNotes": "Asnjë shënim.",
+    "decisions": {
+      "EXCLUDED": "U përjashtua nga administratori",
+      "REJECTED": "Përjashtimi nuk u pranua"
+    },
+    "history": "Historiku",
+    "suspendedFrom": "E pezulluar nga {at}",
+    "audit": {
+      "ORGANIZATION_SUSPENDED": "u pezullua",
+      "ORGANIZATION_REACTIVATED": "u riaktivizua",
+      "ORGANIZATION_EXCLUSION_PROPOSED": "përjashtim i propozuar",
+      "ORGANIZATION_EXCLUDED": "u përjashtua",
+      "ORGANIZATION_EXCLUSION_REJECTED": "përjashtimi nuk u pranua"
+    }
   }
 }

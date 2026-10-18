@@ -61,7 +61,7 @@ const SUB_AGENT_MENU: MenuItem[] = [
 
 /** 06 — back office, each item shown to the roles that may use it. */
 const BACK_OFFICE_MENU: MenuItem[] = [
-  item("operationsDashboard", "/", "auction.viewStatus"),
+  item("operationsDashboard", "/", "backOffice.dashboard"),
   item("verificationQueue", "/verifiche", "verification.viewQueue"),
   item("auctions", "/aste", "auction.viewStatus"),
   item("exceptions", "/eccezioni", "issuance.decideMissed"),
