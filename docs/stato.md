@@ -10,7 +10,7 @@ Claude Code aggiorna questo file alla fine di ogni sessione di lavoro e alla chi
 | 2. Richiesta e verifica | In verifica | | Criteri con prova; verifica indipendente in due giri, problemi corretti; CI verde. Demo provata da Dan il 2026-10-16: «tante cose non tornano», da riprendere in seguito; non chiusa |
 | 3. Motore d'asta | In verifica | | Criteri con prova; verifica indipendente in tre giri, problemi corretti; manca la demo con Dan |
 | 4. Offerte | In verifica | | Tutti i passi fatti; verifica indipendente (primo giro) con i problemi corretti; manca la demo con Dan |
-| 5. Accettazione | In corso | | Tutti i passi del piano fatti (proposte A-I); in corso le prove finali e la verifica indipendente; poi la demo con Dan |
+| 5. Accettazione | In verifica | | Tutti i passi fatti (proposte A-I); verifica indipendente con le correzioni (passo 0 della fase 6); E2E verdi; manca la demo con Dan |
 | 6. Dopo l'acquisto | In verifica | | Tutti i passi fatti; due giri di verifica indipendente con le correzioni; E2E S01, S02, S05, S08, S09 verdi; manca la demo con Dan (e i punti aperti in «Verifica indipendente (fase 6, secondo giro)») |
 | 7. Pannelli e notifiche | In verifica | | Piano approvato da Dan il 2026-10-18 (proposte A-L); tutti i passi fatti; verifica indipendente con le correzioni; manca la demo con Dan |
 | 8. Fornitori reali e sicurezza | In corso | | Piano approvato da Dan il 2026-10-18 (proposte A-H). Parte A fatta (in locale, senza account); parte B in attesa degli accessi di Dan (AWS, domini, sandbox, documenti, società del test di sicurezza) |
