@@ -1,0 +1,55 @@
+# AstAx rules on top of the public Semgrep sets (phase 8). Each rule cites the
+# CLAUDE.md rule or the ASVS requirement it protects.
+rules:
+  - id: astax-no-raw-unsafe-sql
+    message: "Raw SQL with string building: use tagged $queryRaw/$executeRaw (ASVS V5.3.4)."
+    languages: [typescript]
+    severity: ERROR
+    pattern-either:
+      - pattern: $DB.$queryRawUnsafe(...)
+      - pattern: $DB.$executeRawUnsafe(...)
+    paths:
+      # The tests of the audit log and of row level security switch triggers and
+      # row security off on purpose, with fixed statements.
+      exclude: ["**/test/**"]
+  - id: astax-no-math-random-for-secrets
+    message: "Math.random is not for tokens, codes or ids: use node:crypto (ASVS V6.3.1)."
+    languages: [typescript]
+    severity: ERROR
+    pattern: Math.random()
+    paths:
+      exclude: ["**/*.test.ts", "**/test/**", "tests/**", "**/seed/**"]
+  - id: astax-no-eval
+    message: "No eval or new Function (ASVS V5.2.4)."
+    languages: [typescript]
+    severity: ERROR
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: new Function(...)
+  - id: astax-no-dangerous-html
+    message: "No dangerouslySetInnerHTML: texts come from the translation files (ASVS V5.3.3)."
+    languages: [typescript]
+    severity: ERROR
+    pattern: <$EL dangerouslySetInnerHTML={...} />
+  - id: astax-no-personal-data-in-logs
+    message: "Logs carry identifiers only, never personal data (CLAUDE.md rule 8, SIC-06)."
+    languages: [typescript]
+    severity: ERROR
+    patterns:
+      - pattern-either:
+          - pattern: "$LOG.$LEVEL({..., email: $X, ...}, ...)"
+          - pattern: "$LOG.$LEVEL({..., phone: $X, ...}, ...)"
+          - pattern: "$LOG.$LEVEL({..., fiscalCode: $X, ...}, ...)"
+          - pattern: "$LOG.$LEVEL({..., iban: $X, ...}, ...)"
+          - pattern: "$LOG.$LEVEL({..., plate: $X, ...}, ...)"
+          - pattern: "$LOG.$LEVEL({..., premiumCents: $X, ...}, ...)"
+      - metavariable-regex:
+          metavariable: $LEVEL
+          regex: ^(trace|debug|info|warn|error|fatal)$
+  - id: astax-no-tls-bypass
+    message: "TLS checks stay on (ASVS V9.2.1)."
+    languages: [typescript]
+    severity: ERROR
+    pattern-either:
+      - pattern: "{..., rejectUnauthorized: false, ...}"
+      - pattern: process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"

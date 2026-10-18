@@ -1,0 +1,21 @@
+# Phase 8: secrets in the history. The repository is public: no real secret may
+# ever be committed (CLAUDE.md, rule 12). The allowlist covers only the
+# placeholders and the synthetic test keys, which are not secrets.
+title = "AstAx"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Placeholders and synthetic keys of the tests"
+paths = [
+  '''(^|/)\.env\.example$''',
+  '''(^|/)pnpm-lock\.yaml$''',
+  '''(^|/)tests?/''',
+  '''\.test\.ts$''',
+  '''(^|/)demo-documenti/''',
+]
+regexes = [
+  '''__GENERATE__''',
+  '''test-secret-not-used''',
+]

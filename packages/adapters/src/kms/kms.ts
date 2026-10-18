@@ -93,7 +93,7 @@ export class LocalKms implements KmsPort {
     try {
       const key = this.#key(keyId);
       const iv = randomBytes(IV_BYTES);
-      const cipher = createCipheriv("aes-256-gcm", key, iv);
+      const cipher = createCipheriv("aes-256-gcm", key, iv, { authTagLength: TAG_BYTES });
       cipher.setAAD(contextBytes(context));
       const body = Buffer.concat([cipher.update(plaintext), cipher.final()]);
       ok = true;
@@ -110,7 +110,10 @@ export class LocalKms implements KmsPort {
       const prefix = `v1:kms:${keyId}:`;
       if (!ciphertext.startsWith(prefix)) throw new KmsDecryptFailed(keyId);
       const raw = Buffer.from(ciphertext.slice(prefix.length), "base64");
-      const decipher = createDecipheriv("aes-256-gcm", key, raw.subarray(0, IV_BYTES));
+      // The tag length is fixed: a shorter forged tag is refused (ASVS V6.2).
+      const decipher = createDecipheriv("aes-256-gcm", key, raw.subarray(0, IV_BYTES), {
+        authTagLength: TAG_BYTES,
+      });
       decipher.setAAD(contextBytes(context));
       decipher.setAuthTag(raw.subarray(IV_BYTES, IV_BYTES + TAG_BYTES));
       let plain: Buffer;

@@ -53,7 +53,9 @@ export class LocalFieldCipher implements FieldCipher {
 
   encrypt(plain: string): string {
     const iv = randomBytes(IV_BYTES);
-    const cipher = createCipheriv("aes-256-gcm", this.#encryptionKey, iv);
+    const cipher = createCipheriv("aes-256-gcm", this.#encryptionKey, iv, {
+      authTagLength: TAG_BYTES,
+    });
     const body = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
     return `${VERSION}:${Buffer.concat([iv, cipher.getAuthTag(), body]).toString("base64")}`;
   }
@@ -63,10 +65,12 @@ export class LocalFieldCipher implements FieldCipher {
     if (version !== VERSION || payload === undefined)
       throw new Error("Unknown field encryption format");
     const raw = Buffer.from(payload, "base64");
+    // The tag length is fixed: a shorter forged tag is refused (ASVS V6.2, Semgrep gcm-no-tag-length).
     const decipher = createDecipheriv(
       "aes-256-gcm",
       this.#encryptionKey,
       raw.subarray(0, IV_BYTES),
+      { authTagLength: TAG_BYTES },
     );
     decipher.setAuthTag(raw.subarray(IV_BYTES, IV_BYTES + TAG_BYTES));
     return Buffer.concat([
