@@ -271,6 +271,17 @@ describe("fase 4: the agency area (spec 04)", () => {
       }),
     );
     expect((await audit("OFFER_OWNER_COPY_READ", offerId)).length - before).toBe(4);
+    // Phase 8: «Le mie offerte» opens all the own sealed copies at once and logs
+    // them in one entry on the organization, with the list of the offers.
+    const listedBefore = (await audit("OFFER_OWNER_COPY_READ", orgId("agenzia-uno"))).length;
+    const mine = await r.json<{ id: string; annualGrossPremiumCents: number | null }[]>(
+      await r.call(await who("agenzia-uno-owner", "agenzia-uno"), "/agency/offers"),
+      200,
+    );
+    expect(mine.find((o) => o.id === offerId)?.annualGrossPremiumCents).not.toBeNull();
+    const listed = await audit("OFFER_OWNER_COPY_READ", orgId("agenzia-uno"));
+    expect(listed).toHaveLength(listedBefore + 1);
+    expect((listed.at(-1)?.after as { offerIds: string[] }).offerIds).toContain(offerId);
   });
 
   it("OFF-02 OFF-03 a claim is not given to a colleague who already works on the request for another agency", async () => {

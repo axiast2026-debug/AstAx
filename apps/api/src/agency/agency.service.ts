@@ -531,12 +531,18 @@ export class AgencyService {
           select: { id: true, firstName: true, lastName: true },
         }),
       ]);
-      return { offers, requests, companies, users };
+      // BC-04: the own copies of the sealed offers, all at once (one audit entry).
+      const copies = await this.offers.readOwnCopies(
+        tx,
+        auth,
+        offers.filter((o) => o.annualGrossPremiumCents === null && o.status !== "WITHDRAWN"),
+      );
+      return { offers, requests, companies, users, copies };
     });
     const out = [];
     for (const o of rows.offers) {
-      const sealed = o.annualGrossPremiumCents === null && o.status !== "WITHDRAWN";
-      const copy = sealed ? await this.offers.read(auth, o.id).catch(() => null) : null;
+      const payload = rows.copies.get(o.id);
+      const copy = payload ? { offer: payload } : null;
       const r = rows.requests.find((q) => q.id === o.auction.quoteRequestId);
       const author = rows.users.find((u) => u.id === o.userId);
       const companyId = o.companyId ?? copy?.offer.companyId ?? null;

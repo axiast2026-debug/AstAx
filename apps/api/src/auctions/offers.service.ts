@@ -71,6 +71,9 @@ const text = new TextEncoder();
  * separate key, and each reading is logged (BC-04). Everyone else gets 403
  * and SEALED_BID_ACCESS_DENIED in the log (BC-01).
  */
+/** Owner copies decrypted at the same time (KMS calls in parallel, a few at a time). */
+const OWNER_COPY_PARALLEL = 8;
+
 @Injectable()
 export class OffersService {
   constructor(
@@ -746,6 +749,43 @@ export class OffersService {
         hasPdf: copy.pdfKey !== null,
       };
     });
+  }
+
+  /**
+   * BC-04, «Le mie offerte» (phase 8, load test): the agency's own copies of
+   * several sealed offers at once, in the caller's transaction. Only rows of
+   * the caller's organization, its own or with the colleagues' permission;
+   * decrypted a few at a time in parallel; one audit entry lists them all
+   * (rule 4) instead of one entry, and one transaction, per offer.
+   */
+  async readOwnCopies(
+    tx: DbTransaction,
+    auth: AuthContext,
+    offers: readonly Offer[],
+  ): Promise<Map<string, OwnerCopy["payload"]>> {
+    const m = auth.membership;
+    const colleagues = can(auth.actor, "offer.readColleagueDuringAuction");
+    const allowed = offers.filter(
+      (o) => m && o.organizationId === m.organizationId && (o.userId === auth.userId || colleagues),
+    );
+    const out = new Map<string, OwnerCopy["payload"]>();
+    for (let i = 0; i < allowed.length; i += OWNER_COPY_PARALLEL) {
+      const batch = allowed.slice(i, i + OWNER_COPY_PARALLEL);
+      const copies = await Promise.all(batch.map((o) => this.readCopy(o).catch(() => null)));
+      batch.forEach((o, j) => {
+        const copy = copies[j];
+        if (copy) out.set(o.id, copy.payload);
+      });
+    }
+    if (m && out.size > 0) {
+      await this.audit.inTransaction(tx, actorOf(auth), {
+        action: "OFFER_OWNER_COPY_READ",
+        targetType: "Organization",
+        targetId: m.organizationId,
+        after: { offerIds: [...out.keys()] },
+      });
+    }
+    return out;
   }
 
   async readPdf(auth: AuthContext, offerId: string) {
