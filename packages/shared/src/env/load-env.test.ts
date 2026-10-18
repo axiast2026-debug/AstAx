@@ -1,5 +1,6 @@
+import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
-import { expandEnv } from "./load-env.js";
+import { expandEnv, loadEnv } from "./load-env.js";
 
 describe("expandEnv", () => {
   it("expands references to earlier values and to the base environment", () => {
@@ -21,5 +22,9 @@ describe("expandEnv", () => {
 
   it("refuses a reference cycle", () => {
     expect(() => expandEnv({ A: "${B}", B: "${A}" })).toThrow(/Cyclic/);
+  });
+
+  it("phase 8 outside a repository (a container image) loads nothing and does not fail", () => {
+    expect(() => loadEnv(tmpdir())).not.toThrow();
   });
 });

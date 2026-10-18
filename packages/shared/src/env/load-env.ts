@@ -46,10 +46,18 @@ export function findRepoRoot(startDir: string): string {
 
 /**
  * Loads the repository .env into process.env, without overriding variables that
- * are already set (CI and cloud set them directly). A missing file is not an error.
+ * are already set (CI and cloud set them directly). A missing file is not an
+ * error, and neither is a missing repository: a container image has none, its
+ * configuration comes from the environment (phase 8).
  */
 export function loadEnv(startDir: string = process.cwd()): void {
-  const file = join(findRepoRoot(startDir), ".env");
+  let root: string;
+  try {
+    root = findRepoRoot(startDir);
+  } catch {
+    return;
+  }
+  const file = join(root, ".env");
   if (!existsSync(file)) return;
   const expanded = expandEnv(parseEnv(readFileSync(file, "utf8")), process.env);
   for (const [key, value] of Object.entries(expanded)) {

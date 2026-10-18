@@ -67,6 +67,24 @@ jobs:
           docker run --rm -v "${{ github.workspace }}:/repo" zricethezav/gitleaks:v8.30.1
           git /repo --config /repo/.gitleaks.toml --redact --no-banner
 
+  # Phase 8: the AWS infrastructure (infra/terraform), checked without any account:
+  # format, validation and the security tests with a simulated AWS.
+  infra:
+    name: infra
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Terraform format, validate, test
+        run: |
+          tf() { docker run --rm -v "$PWD/infra/terraform:/tf" -w "/tf/$1" hashicorp/terraform:1.16.4 "${@:2}"; }
+          tf . fmt -check -recursive
+          for dir in modules/astax envs/collaudo envs/produzione bootstrap; do
+            tf "$dir" init -backend=false -input=false
+            tf "$dir" validate
+          done
+          tf modules/astax test
+
   e2e:
     name: e2e
     runs-on: ubuntu-24.04

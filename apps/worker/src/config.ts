@@ -22,6 +22,7 @@ const configSchema = z
     /** Phase 8 (docs/adattatori.md): the fake (rule 9) or the real provider of each port. */
     AWS_REGION: z.string().min(1).default("eu-south-1"),
     EMAIL_PROVIDER: z.enum(["fake", "ses"]).default("fake"),
+    STORAGE_PROVIDER: z.enum(["fake", "aws"]).default("fake"),
     SES_CONFIGURATION_SET: z.string().min(1).optional(),
     SMS_PROVIDER: z.enum(["fake", "aws"]).default("fake"),
     SMS_ORIGINATOR: z.string().min(1).default("AstAx"),
@@ -37,6 +38,8 @@ const configSchema = z
     TEMPORAL_PORT: z.coerce.number().int().min(1).max(65535).default(7233),
     TEMPORAL_NAMESPACE: z.string().min(1).default("astax"),
     TEMPORAL_TASK_QUEUE: z.string().min(1).default("astax-requests"),
+    /** Phase 8, ADR 0012: the API key of Temporal Cloud; with it the connections use TLS. */
+    TEMPORAL_API_KEY: z.string().min(1).optional(),
     WEB_URL: z.url().default("http://localhost:3000"),
     ADMIN_URL: z.url().default("http://localhost:3001"),
     /** Phase 8: "vapid" sends real Web Push; "fake" delivers them to Mailpit (rule 9). */
@@ -57,6 +60,8 @@ const configSchema = z
     REDIS_PORT: z.coerce.number().int().min(1).max(65535).default(6380),
     /** Local health check (127.0.0.1 only): 200 while the worker runs. 0 switches it off. */
     WORKER_HEALTH_PORT: z.coerce.number().int().min(0).max(65535).default(4100),
+    /** 127.0.0.1 on a developer's machine; 0.0.0.0 in a container (phase 8). */
+    WORKER_HEALTH_HOST: z.string().min(1).default("127.0.0.1"),
     OUTBOX_DISPATCH_INTERVAL_MS: z.coerce.number().int().min(0).default(2000),
     /** How often the scheduled jobs (the Monday remittances) are checked. 0 switches them off. */
     SCHEDULES_INTERVAL_MS: z.coerce.number().int().min(0).default(300_000),
@@ -83,10 +88,16 @@ const configSchema = z
     message: "DEV_TOOLS must be false in production",
     path: ["DEV_TOOLS"],
   })
-  .refine((c) => c.NODE_ENV !== "production" || (c.S3_ACCESS_KEY && c.S3_SECRET_KEY), {
-    message: "S3 credentials are required in production",
-    path: ["S3_ACCESS_KEY"],
-  });
+  .refine(
+    (c) =>
+      c.NODE_ENV !== "production" ||
+      c.STORAGE_PROVIDER === "aws" ||
+      (c.S3_ACCESS_KEY && c.S3_SECRET_KEY),
+    {
+      message: "S3 credentials are required in production",
+      path: ["S3_ACCESS_KEY"],
+    },
+  );
 
 export type WorkerConfig = z.infer<typeof configSchema>;
 

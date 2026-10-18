@@ -123,6 +123,10 @@ function fakeWebhookSecret(config: ApiConfig): string {
  * storage) the documents stay in memory.
  */
 function objectStorageFor(config: ApiConfig): ObjectStoragePort {
+  // Phase 8: in AWS the bucket of Terraform, reached with the task's own role.
+  if (config.STORAGE_PROVIDER === "aws") {
+    return new S3ObjectStorage({ region: config.S3_REGION, bucket: config.S3_BUCKET });
+  }
   if (!config.S3_ACCESS_KEY || !config.S3_SECRET_KEY) {
     // In production the documents must never live in memory: refuse to start.
     if (config.NODE_ENV === "production") {
@@ -347,6 +351,7 @@ export class InfraModule {
             new TemporalWorkflowSignals(
               config.TEMPORAL_ADDRESS ?? `127.0.0.1:${config.TEMPORAL_PORT}`,
               config.TEMPORAL_NAMESPACE,
+              config.TEMPORAL_API_KEY,
             ),
         },
         {

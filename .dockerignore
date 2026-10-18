@@ -1,0 +1,14 @@
+# Phase 8: what never goes into an image (rule 12: no .env, no secrets).
+.env
+.env.*
+!.env.example
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/coverage
+tests/e2e/playwright-report
+tests/e2e/test-results
+tests/e2e/.state
+.git
+demo-documenti

@@ -30,7 +30,8 @@
     "seed": "tsx src/seed/run.ts",
     "legal:check": "tsx src/scripts/legal-check.ts",
     "reference:municipalities": "tsx src/scripts/import-municipalities.ts",
-    "release:check": "tsx src/scripts/release-check.ts"
+    "release:check": "tsx src/scripts/release-check.ts",
+    "seed:reference": "tsx src/seed/reference-run.ts"
   },
   "dependencies": {
     "@astax/shared": "workspace:*",

@@ -1,0 +1,119 @@
+# Release of AstAx to AWS (phase 8, infra/terraform/README.md). Started by hand
+# only; it works once the environments exist (part B, Dan's «crea»).
+# GitHub settings per environment (collaudo, produzione):
+#   - variables AWS_DEPLOY_ROLE_ARN (output deploy_role_arn of Terraform),
+#     AWS_PRIVATE_SUBNETS (comma separated), AWS_SERVICES_SECURITY_GROUP;
+#   - produzione: «Required reviewers» = Dan, so nothing reaches it without approval.
+# No secret is stored in GitHub: the job assumes the AWS role with OIDC.
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "collaudo o produzione"
+        type: choice
+        options: [collaudo, produzione]
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: eu-south-1
+  CLUSTER: astax-${{ inputs.environment }}
+  TAG: ${{ github.sha }}
+
+jobs:
+  images:
+    name: images
+    runs-on: ubuntu-24.04-arm
+    environment: ${{ inputs.environment }}
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        include:
+          - { name: api, file: infra/docker/node-service.Dockerfile, app: api, context: . }
+          - { name: worker, file: infra/docker/node-service.Dockerfile, app: worker, context: . }
+          - { name: web, file: infra/docker/next-app.Dockerfile, app: web, context: . }
+          - { name: admin, file: infra/docker/next-app.Dockerfile, app: admin, context: . }
+          - { name: tools, file: infra/docker/tools.Dockerfile, app: tools, context: . }
+          - {
+              name: keycloak,
+              file: infra/keycloak/Dockerfile,
+              app: keycloak,
+              context: infra/keycloak,
+            }
+    steps:
+      - uses: actions/checkout@v5
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build and push ${{ matrix.name }}
+        run: |
+          docker build -f ${{ matrix.file }} --build-arg APP=${{ matrix.app }} \
+            -t ${{ steps.ecr.outputs.registry }}/astax/${{ matrix.name }}:${TAG} ${{ matrix.context }}
+          docker push ${{ steps.ecr.outputs.registry }}/astax/${{ matrix.name }}:${TAG}
+
+  release:
+    name: release
+    needs: images
+    runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: One-off tasks in the VPC (migrations, reference data, release gate)
+        env:
+          SUBNETS: ${{ vars.AWS_PRIVATE_SUBNETS }}
+          SECURITY_GROUP: ${{ vars.AWS_SERVICES_SECURITY_GROUP }}
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          set -euo pipefail
+          family="${CLUSTER}-tools"
+          # The tools task definition with this release's image.
+          current=$(aws ecs describe-task-definition --task-definition "$family" --query taskDefinition)
+          image=$(echo "$current" | jq -r '.containerDefinitions[0].image | sub(":[^:]+$"; "")'):${TAG}
+          echo "$current" | jq --arg image "$image" '.containerDefinitions[0].image = $image
+            | {family, taskRoleArn, executionRoleArn, networkMode, containerDefinitions, requiresCompatibilities, cpu, memory, runtimePlatform}' > tools.json
+          arn=$(aws ecs register-task-definition --cli-input-json file://tools.json --query taskDefinition.taskDefinitionArn --output text)
+          run_tool() {
+            task=$(aws ecs run-task --cluster "$CLUSTER" --launch-type FARGATE --task-definition "$arn" \
+              --network-configuration "awsvpcConfiguration={subnets=[${SUBNETS}],securityGroups=[${SECURITY_GROUP}],assignPublicIp=DISABLED}" \
+              --overrides "{\"containerOverrides\":[{\"name\":\"tools\",\"command\":[\"pnpm\",\"$1\"]}]}" \
+              --query 'tasks[0].taskArn' --output text)
+            aws ecs wait tasks-stopped --cluster "$CLUSTER" --tasks "$task"
+            code=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$task" --query 'tasks[0].containers[0].exitCode' --output text)
+            echo "pnpm $1 exited with $code"
+            [ "$code" = "0" ]
+          }
+          # LEG-03 and rule 13: the production release stops here if a legal text in
+          # force is not validated, a provider is fake or the development tools are on.
+          if [ "$ENVIRONMENT" = "produzione" ]; then run_tool release:check; fi
+          run_tool db:migrate
+          run_tool db:seed:reference
+      - name: New tasks with this release's images
+        run: |
+          set -euo pipefail
+          for service in api worker web admin keycloak; do
+            family="${CLUSTER}-${service}"
+            current=$(aws ecs describe-task-definition --task-definition "$family" --query taskDefinition)
+            image=$(echo "$current" | jq -r '.containerDefinitions[0].image | sub(":[^:]+$"; "")'):${TAG}
+            echo "$current" | jq --arg image "$image" '.containerDefinitions[0].image = $image
+              | {family, taskRoleArn, executionRoleArn, networkMode, containerDefinitions, requiresCompatibilities, cpu, memory, runtimePlatform}' > task.json
+            arn=$(aws ecs register-task-definition --cli-input-json file://task.json --query taskDefinition.taskDefinitionArn --output text)
+            aws ecs update-service --cluster "$CLUSTER" --service "$service" --task-definition "$arn" > /dev/null
+          done
+          aws ecs wait services-stable --cluster "$CLUSTER" --services api worker web admin keycloak

@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
 import { baseSecurityHeaders } from "@astax/shared/http";
 import createNextIntlPlugin from "next-intl/plugin";
@@ -6,6 +7,9 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const config: NextConfig = {
   poweredByHeader: false,
+  // Phase 8: a self-contained server for the container image (infra/docker).
+  output: "standalone",
+  outputFileTracingRoot: fileURLToPath(new URL("../../", import.meta.url)),
   // Phase 8: the headers of every answer; the CSP with its nonce is set in src/proxy.ts.
   async headers() {
     const headers = baseSecurityHeaders(process.env.NODE_ENV === "production");

@@ -40,6 +40,10 @@ import { KeycloakAdmin } from "@astax/adapters/identity";
 export const REALTIME_CHANNEL = "astax:realtime";
 
 function storageFor(config: WorkerConfig): ObjectStoragePort {
+  // Phase 8: in AWS the bucket of Terraform, reached with the task's own role.
+  if (config.STORAGE_PROVIDER === "aws") {
+    return new S3ObjectStorage({ region: config.S3_REGION, bucket: config.S3_BUCKET });
+  }
   if (!config.S3_ACCESS_KEY || !config.S3_SECRET_KEY) return new InMemoryObjectStorage();
   return new S3ObjectStorage({
     endpoint: config.S3_ENDPOINT ?? `http://127.0.0.1:${config.S3_PORT}`,
@@ -140,7 +144,9 @@ const activities = createActivities({
   allowEarlyClose: config.DEV_TOOLS && config.NODE_ENV !== "production",
 });
 
-const connection = await NativeConnection.connect({ address });
+// ADR 0012: Temporal Cloud (EU) with an API key and TLS; the local server without.
+const cloud = config.TEMPORAL_API_KEY ? { apiKey: config.TEMPORAL_API_KEY, tls: true } : {};
+const connection = await NativeConnection.connect({ address, ...cloud });
 const worker = await Worker.create({
   connection,
   namespace: config.TEMPORAL_NAMESPACE,
@@ -153,7 +159,7 @@ const worker = await Worker.create({
 });
 
 const client = new Client({
-  connection: await Connection.connect({ address }),
+  connection: await Connection.connect({ address, ...cloud }),
   namespace: config.TEMPORAL_NAMESPACE,
 });
 const deliver = outboxHandler(client, config.TEMPORAL_TASK_QUEUE, logger);
@@ -245,7 +251,7 @@ const health =
     ? undefined
     : createServer((_request, response) => {
         response.writeHead(worker.getState() === "RUNNING" ? 200 : 503).end();
-      }).listen(config.WORKER_HEALTH_PORT, "127.0.0.1");
+      }).listen(config.WORKER_HEALTH_PORT, config.WORKER_HEALTH_HOST);
 
 logger.info(
   { taskQueue: config.TEMPORAL_TASK_QUEUE, namespace: config.TEMPORAL_NAMESPACE },

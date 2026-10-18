@@ -36,8 +36,9 @@ export interface S3StorageConfig {
   endpoint?: string;
   region: string;
   bucket: string;
-  accessKeyId: string;
-  secretAccessKey: string;
+  /** Static keys (SeaweedFS in development); in AWS none: the task's role is used. */
+  accessKeyId?: string;
+  secretAccessKey?: string;
   /** SeaweedFS and other local servers need path-style URLs. */
   forcePathStyle?: boolean;
   /** Development only: create the bucket on the first write. In the cloud Terraform creates it. */
@@ -58,7 +59,14 @@ export class S3ObjectStorage implements ObjectStoragePort {
       region: config.region,
       endpoint: config.endpoint,
       forcePathStyle: config.forcePathStyle ?? false,
-      credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey },
+      ...(config.accessKeyId && config.secretAccessKey
+        ? {
+            credentials: {
+              accessKeyId: config.accessKeyId,
+              secretAccessKey: config.secretAccessKey,
+            },
+          }
+        : {}),
     });
   }
 

@@ -26,13 +26,16 @@ export class TemporalWorkflowSignals implements WorkflowSignals {
   constructor(
     private readonly address: string,
     private readonly namespace: string,
+    /** Phase 8, ADR 0012: Temporal Cloud (EU) with an API key, over TLS. */
+    private readonly apiKey?: string,
   ) {}
 
   /** Connects at the first signal: the API starts also when Temporal is down. */
   private client(): Promise<Client> {
-    this.#client ??= Connection.connect({ address: this.address }).then(
-      (connection) => new Client({ connection, namespace: this.namespace }),
-    );
+    this.#client ??= Connection.connect({
+      address: this.address,
+      ...(this.apiKey ? { apiKey: this.apiKey, tls: true } : {}),
+    }).then((connection) => new Client({ connection, namespace: this.namespace }));
     this.#client.catch(() => {
       this.#client = null;
     });

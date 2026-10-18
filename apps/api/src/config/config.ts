@@ -12,6 +12,8 @@ const configSchema = z
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
     DEV_TOOLS: flag,
     API_PORT: z.coerce.number().int().min(1).max(65535).default(4000),
+    /** 127.0.0.1 on a developer's machine; 0.0.0.0 in a container (phase 8). */
+    API_HOST: z.string().min(1).default("127.0.0.1"),
     LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
     DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
     FIELD_ENCRYPTION_KEY: hexKey,
@@ -36,6 +38,8 @@ const configSchema = z
      */
     AWS_REGION: z.string().min(1).default("eu-south-1"),
     EMAIL_PROVIDER: z.enum(["fake", "ses"]).default("fake"),
+    /** "aws": the documents' bucket with the task's role; "fake": SeaweedFS or memory. */
+    STORAGE_PROVIDER: z.enum(["fake", "aws"]).default("fake"),
     SES_CONFIGURATION_SET: z.string().min(1).optional(),
     SMS_PROVIDER: z.enum(["fake", "aws"]).default("fake"),
     SMS_ORIGINATOR: z.string().min(1).default("AstAx"),
@@ -72,6 +76,8 @@ const configSchema = z
     TEMPORAL_ADDRESS: z.string().min(1).optional(),
     TEMPORAL_PORT: z.coerce.number().int().min(1).max(65535).default(7233),
     TEMPORAL_NAMESPACE: z.string().min(1).default("astax"),
+    /** Phase 8, ADR 0012: the API key of Temporal Cloud; with it the connection uses TLS. */
+    TEMPORAL_API_KEY: z.string().min(1).optional(),
     /**
      * Who may write X-Forwarded-For (Express "trust proxy"): the web apps on the same
      * machine in development; in the cloud the private network of the services (phase 8).
