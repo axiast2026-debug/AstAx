@@ -568,7 +568,8 @@ export class VerificationService {
       eventKey,
       () => all,
       link,
-      { requestId: request.id },
+      // Each decision is its own event (a second integration is not a duplicate).
+      { requestId: request.id, decidedAt: this.clock.now().toISOString() },
     );
   }
 

@@ -2,9 +2,9 @@ import { Button, Card } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { api } from "@/lib/auth";
+import { api, sessionId, webAuth } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
-import { staffRole, userStep } from "./actions";
+import { searchUsers, staffRole, userStep } from "./actions";
 
 interface User {
   id: string;
@@ -27,24 +27,22 @@ const field = "rounded-lg border border-warm-200 px-3 py-2";
 export default async function UsersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; tipo?: string; errore?: string; fatto?: string }>;
+  searchParams: Promise<{ errore?: string; fatto?: string }>;
 }) {
   const viewer = await requireViewer();
   const t = await getTranslations("users");
   const query = await searchParams;
-  const kind = KINDS.find((k) => k === query.tipo);
-  const params = new URLSearchParams();
-  if (query.q) params.set("q", query.q);
-  if (kind) params.set("kind", kind);
-  const { status, body } = await api<User[]>(`/admin/users?${params.toString()}`);
+  // Rule 8: the search stays in the server session, never in the URL.
+  const saved = await webAuth().search(await sessionId(), "admin-users");
+  const kind = KINDS.find((k) => k === saved.kind);
+  const q = saved.q ?? "";
+  const { status, body } = await api<User[]>("/admin/users/search", {
+    method: "POST",
+    body: JSON.stringify({ ...(q ? { q } : {}), ...(kind ? { kind } : {}) }),
+  });
   if (status !== 200) notFound();
 
-  const hidden = (
-    <>
-      <input type="hidden" name="q" value={query.q ?? ""} />
-      <input type="hidden" name="kind" value={kind ?? ""} />
-    </>
-  );
+  const hidden = <></>;
 
   return (
     <AppShell viewer={viewer}>
@@ -61,10 +59,10 @@ export default async function UsersPage({
         </p>
       ) : null}
 
-      <form method="get" className="mt-6 flex flex-wrap items-end gap-3 text-sm">
+      <form action={searchUsers} className="mt-6 flex flex-wrap items-end gap-3 text-sm">
         <label className="grid gap-1">
           {t("search")}
-          <input name="q" defaultValue={query.q ?? ""} className={field} />
+          <input name="q" defaultValue={q} className={field} />
         </label>
         <label className="grid gap-1">
           {t("kind")}

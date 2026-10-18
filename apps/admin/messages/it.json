@@ -700,7 +700,8 @@
       "rca_legalMinimums": "Massimali minimi di legge della RCA (euro)",
       "requests_codePrefix": "Prefisso del codice richiesta",
       "privacy_requestResponseDays": "Termine di risposta alle richieste sui dati personali (giorni)",
-      "support_responseHours": "Prima risposta a un ticket di assistenza (ore)"
+      "support_responseHours": "Prima risposta a un ticket di assistenza (ore)",
+      "requests_bulkMaxRows": "Righe al massimo per file del caricamento in blocco"
     }
   },
   "communications": {

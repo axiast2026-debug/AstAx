@@ -1,6 +1,6 @@
 import type { FieldCipher } from "@astax/adapters/crypto";
 import type { Clock } from "@astax/adapters/clock";
-import { withContext, type DbClient } from "@astax/db";
+import { settingsAt, withContext, type DbClient } from "@astax/db";
 import { parseBulkCsv, type BulkProblem, type BulkRow } from "@astax/shared/domain";
 import { romeCalendarDate } from "@astax/shared/format";
 import { Inject, Injectable } from "@nestjs/common";
@@ -12,8 +12,6 @@ import { CLOCK, DB, FIELD_CIPHER } from "../infra/tokens.js";
 import { CustomersService } from "./customers.service.js";
 import { RequestsService } from "./requests.service.js";
 
-/** A technical cap, not a business rule: a bigger list goes in more files. */
-export const BULK_MAX_ROWS = 200;
 /** Uncompressed, for the whole ZIP (a guard against archives that explode). */
 const MAX_UNZIPPED_BYTES = 200 * 1024 * 1024;
 
@@ -108,10 +106,12 @@ export class BulkUploadService {
     if (!membership || membership.organizationType !== "BROKER")
       throw new ProblemError("FORBIDDEN");
     const { csv, files } = this.unpack(body);
-    const { rows, problems } = parseBulkCsv(csv, {
-      maxRows: BULK_MAX_ROWS,
-      today: romeCalendarDate(this.clock.now()),
-    });
+    // Rule 7: the limit of rows is a parameter (requests.bulkMaxRows).
+    const now = this.clock.now();
+    const { "requests.bulkMaxRows": maxRows } = await withContext(this.db, auth.db, (tx) =>
+      settingsAt(tx, ["requests.bulkMaxRows"], now),
+    );
+    const { rows, problems } = parseBulkCsv(csv, { maxRows, today: romeCalendarDate(now) });
     const missing: BulkProblem[] = rows.flatMap((row) =>
       Object.entries(row.files)
         .filter(([, name]) => !files.has(baseName(name)))

@@ -1,8 +1,14 @@
 import type { DbTransaction } from "./client.js";
 import { randomUUID } from "node:crypto";
+import { addCalendarDays, endOfRomeDay } from "@astax/shared/domain";
+import { romeCalendarDate } from "@astax/shared/format";
 import { settingsAt } from "./auction-data.js";
 
 const DAY_MS = 86_400_000;
+
+/** Calendar days in Rome between two dates «YYYY-MM-DD» (rule 6, no hours involved). */
+const daysFrom = (from: string, to: string) =>
+  Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS);
 
 export interface NewComplaint {
   receivedAt: Date;
@@ -42,7 +48,8 @@ export async function registerComplaint(tx: DbTransaction, input: NewComplaint, 
       ...input,
       // A placeholder for the instant between the insert and the protocol below.
       protocol: `pending-${randomUUID()}`,
-      dueAt: new Date(input.receivedAt.getTime() + days * DAY_MS),
+      // The end of the Rome day, complaints.responseDays calendar days after the receipt.
+      dueAt: endOfRomeDay(addCalendarDays(romeCalendarDate(input.receivedAt), days)),
       createdAt: now,
     },
   });
@@ -67,7 +74,8 @@ export async function complaintsToRemind(tx: DbTransaction, now: Date) {
     where: {
       status: "OPEN",
       reminderSentAt: null,
-      dueAt: { lte: new Date(now.getTime() + days * DAY_MS) },
+      // Due on or before the Rome day that is reminderDaysBefore days from today.
+      dueAt: { lte: endOfRomeDay(addCalendarDays(romeCalendarDate(now), days)) },
     },
     orderBy: { dueAt: "asc" },
   });
@@ -81,6 +89,6 @@ export async function complaintsToRemind(tx: DbTransaction, now: Date) {
     id: c.id,
     protocol: c.protocol,
     dueAt: c.dueAt,
-    daysLeft: Math.max(0, Math.ceil((c.dueAt.getTime() - now.getTime()) / DAY_MS)),
+    daysLeft: Math.max(0, daysFrom(romeCalendarDate(now), romeCalendarDate(c.dueAt))),
   }));
 }

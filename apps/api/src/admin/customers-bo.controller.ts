@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Inject, Param, Post, Query, Res } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Inject, Param, Post, Res } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import type { Response } from "express";
 import { z } from "zod";
@@ -27,10 +27,13 @@ export class CustomersBackOfficeController {
     @Inject(CustomersBackOfficeService) private readonly customers: CustomersBackOfficeService,
   ) {}
 
-  @Get("customers")
+  /** Rule 8: names, fiscal codes and plates travel in the body, never in the URL. */
+  @Post("customers/search")
+  @HttpCode(200)
   @RequirePermission("accessLog.viewCustomer")
-  search(@CurrentAuth() auth: AuthContext, @Query("q") q: string | undefined) {
-    return this.customers.search(auth, parseInput(z.string().max(120), q ?? ""));
+  search(@CurrentAuth() auth: AuthContext, @Body() body: unknown) {
+    const { q } = parseInput(z.strictObject({ q: z.string().max(120) }), body);
+    return this.customers.search(auth, q);
   }
 
   @Get("customers/:id")

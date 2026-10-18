@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { api } from "@/lib/auth";
+import { api, sessionId, webAuth } from "@/lib/auth";
 
 const ID = /^[0-9a-f-]{36}$/;
 const STEPS = ["block", "unblock", "reset-second-factor"] as const;
@@ -12,16 +12,21 @@ function codesOf(body: unknown): string {
   return problem.errors?.map((e) => e.issue).join(",") || problem.code || "INTERNAL";
 }
 
-/** Back to the list with the same search, and the outcome. */
-function back(formData: FormData, outcome: string): never {
-  const params = new URLSearchParams();
-  const q = String(formData.get("q") ?? "");
-  const kind = String(formData.get("kind") ?? "");
-  if (q) params.set("q", q);
-  if (kind) params.set("tipo", kind);
+/** Back to the list, with the outcome (the search stays in the session). */
+function back(_formData: FormData, outcome: string): never {
   const [key, value] = outcome.split("=") as [string, string];
-  params.set(key, value);
-  redirect(`/utenti?${params.toString()}`);
+  redirect(`/utenti?${new URLSearchParams({ [key]: value }).toString()}`);
+}
+
+/** Rule 8: the search stays in the server session, never in the URL. */
+export async function searchUsers(formData: FormData): Promise<void> {
+  const q = String(formData.get("q") ?? "")
+    .trim()
+    .slice(0, 120);
+  const kind = String(formData.get("tipo") ?? "");
+  await webAuth().setSearch(await sessionId(), "admin-users", { q, kind });
+  revalidatePath("/utenti");
+  redirect("/utenti");
 }
 
 /** Block, unblock or reset the second factor, with the reason. */

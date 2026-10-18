@@ -2,7 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { api } from "@/lib/auth";
+import { api, sessionId, webAuth } from "@/lib/auth";
+
+/** Rule 8: the search stays in the server session, never in the URL. */
+export async function searchCustomers(formData: FormData): Promise<void> {
+  const q = String(formData.get("q") ?? "")
+    .trim()
+    .slice(0, 120);
+  await webAuth().setSearch(await sessionId(), "back-office-customers", { q });
+  revalidatePath("/clienti");
+  redirect("/clienti");
+}
 
 const ID = /^[0-9a-f-]{36}$/;
 const KINDS = ["ACCESS", "RECTIFICATION", "ERASURE"];

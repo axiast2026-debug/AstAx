@@ -607,10 +607,19 @@ export class OnboardingService {
     const now = this.clock.now();
     // An address with a Keycloak account already: reused if professional; a
     // private customer's or AstAx's account never becomes an agency's (ADR 0002).
-    const ownerEmail = await withContext(this.db, auth.db, async (tx) =>
-      this.cipher.decrypt((await this.submitted(tx, id)).ownerEmailEnc),
-    );
-    const keycloakUser = await this.identity.findUserByEmail(ownerEmail);
+    const owner = await withContext(this.db, auth.db, async (tx) => {
+      const a = await this.submitted(tx, id);
+      const user = await asSystem(tx, () =>
+        tx.user.findUnique({ where: { emailHash: a.ownerEmailHash }, select: { id: true } }),
+      );
+      return {
+        email: this.cipher.decrypt(a.ownerEmailEnc),
+        firstName: a.ownerFirstName,
+        lastName: a.ownerLastName,
+        inAstax: user !== null,
+      };
+    });
+    const keycloakUser = await this.identity.findUserByEmail(owner.email);
     if (
       keycloakUser &&
       !(await this.identity.realmRoles(keycloakUser.id)).includes("astax-professional")
@@ -618,6 +627,22 @@ export class OnboardingService {
       throw new ProblemError("CONFLICT", "The owner's address belongs to another kind of account", [
         { path: "owner.email", issue: "EMAIL_NOT_PROFESSIONAL" },
       ]);
+    }
+    // The Keycloak account first: if Keycloak fails nothing is approved and the
+    // supervisor tries again; if the approval fails afterwards, the account is
+    // found and reused at the next try.
+    const keycloakId =
+      keycloakUser?.id ??
+      (owner.inAstax
+        ? null
+        : await this.identity.createUser({
+            email: owner.email,
+            firstName: owner.firstName,
+            lastName: owner.lastName,
+            requiredActions: ["UPDATE_PASSWORD", "CONFIGURE_TOTP"],
+          }));
+    if (keycloakId && !keycloakUser) {
+      await this.identity.addRealmRoles(keycloakId, ["astax-professional"]);
     }
     const done = await withContext(this.db, auth.db, async (tx) => {
       const a = await this.submitted(tx, id);
@@ -738,14 +763,7 @@ export class OnboardingService {
         validityDays: days,
       };
     });
-    if (!done.existing && !keycloakUser) {
-      const keycloakId = await this.identity.createUser({
-        email: done.email,
-        firstName: done.name,
-        lastName: done.lastName,
-        requiredActions: ["UPDATE_PASSWORD", "CONFIGURE_TOTP"],
-      });
-      await this.identity.addRealmRoles(keycloakId, ["astax-professional"]);
+    if (keycloakId && !keycloakUser) {
       await this.identity.executeActionsEmail(keycloakId, ["UPDATE_PASSWORD", "CONFIGURE_TOTP"], {
         clientId: KEYCLOAK_CLIENTS.professional,
         redirectUri: this.config.WEB_URL,

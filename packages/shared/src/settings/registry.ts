@@ -125,6 +125,7 @@ export const settingSchemas = {
   "complaints.reminderDaysBefore": positiveInt,
   "privacy.requestResponseDays": positiveInt,
   "support.responseHours": positiveInt,
+  "requests.bulkMaxRows": positiveInt,
   "organizations.profInsuranceReminderDays": positiveInt,
   "otp.validityMinutes": positiveInt,
   "otp.maxAttempts": positiveInt,

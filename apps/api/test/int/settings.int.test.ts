@@ -1,5 +1,5 @@
 import type { KeycloakSession } from "@astax/adapters/identity";
-import { SYSTEM_CONTEXT, withContext } from "@astax/db";
+import { auctionSettingsAt, SYSTEM_CONTEXT, withContext } from "@astax/db";
 import { SETTING_KEYS } from "@astax/shared/settings";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { acceptAllLegal, membershipId, startHarness, type Harness } from "./fixtures.js";
@@ -163,6 +163,51 @@ describe("fase 1 passo 10: parameters with history", () => {
       body: { value: 5, reason: "tentativo" },
     });
     expect(response.status).toBe(403);
+  });
+});
+
+describe("phase 7: a change from the panel and the auctions (ASTA-09, rule 7)", () => {
+  it("an auction opened before keeps the parameters of its opening; new requests and auctions use the new ones", async () => {
+    const openedAt = h.clock.now();
+    const read = (at: Date) => withContext(h.db, SYSTEM_CONTEXT, (tx) => auctionSettingsAt(tx, at));
+    const before = (await read(openedAt))["invitations.max"];
+    h.clock.set(new Date(openedAt.getTime() + 3_600_000));
+    admin = await h.tokenFor("admin");
+    const put = (key: string, value: unknown, reason: string) =>
+      h.call(`/admin/settings/${key}`, {
+        token: admin,
+        context: adminContext(),
+        method: "PUT",
+        body: { value, reason },
+      });
+    expect((await put("invitations.max", before + 2, "Più agenzie per asta")).status).toBe(200);
+    // The snapshot taken at the opening (the worker reads it at that instant) does not move.
+    expect((await read(openedAt))["invitations.max"]).toBe(before);
+    expect((await read(h.clock.now()))["invitations.max"]).toBe(before + 2);
+
+    // The wizard of a new request offers the new default duration at once.
+    await acceptAllLegal(h, "private-luca-ferri");
+    const luca = await h.tokenFor("private-luca-ferri");
+    const options = async () =>
+      (
+        (await (await h.call("/reference/request-options", { token: luca })).json()) as {
+          defaultAuctionDurationHours: number;
+        }
+      ).defaultAuctionDurationHours;
+    const duration = await options();
+    const other = duration === 5 ? 2 : 5;
+    expect(
+      (await put("auction.defaultDurationWorkingHours", other, "Aste più lunghe")).status,
+    ).toBe(200);
+    expect(await options()).toBe(other);
+
+    // Back as they were: the test files share one database.
+    h.clock.set(new Date(openedAt.getTime() + 2 * 3_600_000));
+    admin = await h.tokenFor("admin");
+    expect((await put("invitations.max", before, "Fine della prova")).status).toBe(200);
+    expect(
+      (await put("auction.defaultDurationWorkingHours", duration, "Fine della prova")).status,
+    ).toBe(200);
   });
 });
 

@@ -151,7 +151,7 @@ const ENDPOINTS: Endpoint[] = [
     path: () => `/admin/legal/versions/${randomUUID()}/publish`,
     body: {},
   },
-  { action: "admin.users.manage", method: "GET", path: () => "/admin/users" },
+  { action: "admin.users.manage", method: "POST", path: () => "/admin/users/search", body: {} },
   ...(["block", "unblock", "reset-second-factor"] as const).map((step) => ({
     action: "admin.users.manage" as const,
     method: "POST" as const,
@@ -242,7 +242,12 @@ const ENDPOINTS: Endpoint[] = [
     path: () => `/admin/exclusion-proposals/${randomUUID()}/decide`,
     body: {},
   },
-  { action: "accessLog.viewCustomer", method: "GET", path: () => "/back-office/customers?q=rossi" },
+  {
+    action: "accessLog.viewCustomer",
+    method: "POST",
+    path: () => "/back-office/customers/search",
+    body: {},
+  },
   {
     action: "accessLog.viewCustomer",
     method: "GET",
@@ -325,7 +330,7 @@ const ENDPOINTS: Endpoint[] = [
     method: "GET",
     path: () => "/back-office/reconciliation/daily?from=2026-10-01&to=2026-10-31",
   },
-  { action: "brokerCustomer.manage", method: "POST", path: () => "/broker/bulk-uploads", body: {} },
+  { action: "request.bulkUpload", method: "POST", path: () => "/broker/bulk-uploads", body: {} },
   { action: "admin.settings.manage", method: "GET", path: () => "/admin/retention" },
   { action: "admin.settings.manage", method: "POST", path: () => "/admin/retention/run", body: {} },
   { action: "auditLog.viewAll", method: "GET", path: () => "/admin/audit" },

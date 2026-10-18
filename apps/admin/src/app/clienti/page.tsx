@@ -4,7 +4,8 @@ import { Button, Card, CardTitle } from "@astax/ui";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { api } from "@/lib/auth";
+import { api, sessionId, webAuth } from "@/lib/auth";
+import { searchCustomers } from "./actions";
 import { requireViewer } from "@/lib/me";
 
 interface Found {
@@ -26,19 +27,17 @@ interface OpenRequest {
 const field = "rounded-lg border border-warm-200 px-3 py-2";
 
 /** Spec 06 «Clienti»: search by name, fiscal code or plate; the open data requests. */
-export default async function CustomersPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string }>;
-}) {
+export default async function CustomersPage() {
   const viewer = await requireViewer();
   const t = await getTranslations("customersBo");
   const locale = (await getLocale()) === "sq" ? "sq" : "it";
-  const query = await searchParams;
-  const q = query.q?.trim() ?? "";
+  const q = ((await webAuth().search(await sessionId(), "back-office-customers")).q ?? "").trim();
   const found =
     q.length >= 2
-      ? await api<Found[]>(`/back-office/customers?q=${encodeURIComponent(q)}`)
+      ? await api<Found[]>("/back-office/customers/search", {
+          method: "POST",
+          body: JSON.stringify({ q }),
+        })
       : { status: 200, body: [] as Found[] };
   const open = can(viewer.actor, "dataSubjectRequest.manage")
     ? await api<OpenRequest[]>("/back-office/data-requests")
@@ -48,7 +47,7 @@ export default async function CustomersPage({
     <AppShell viewer={viewer}>
       <h1 className="text-2xl font-bold">{t("title")}</h1>
       <p className="mt-1 text-sm text-warm-600">{t("intro")}</p>
-      <form method="get" className="mt-4 flex flex-wrap items-end gap-3 text-sm">
+      <form action={searchCustomers} className="mt-4 flex flex-wrap items-end gap-3 text-sm">
         <label className="grid gap-1">
           {t("search")}
           <input name="q" defaultValue={q} minLength={2} className={field} />

@@ -874,7 +874,8 @@ export class RequestsService {
         };
       },
       `/verifiche/${request.id}`,
-      { requestId: request.id },
+      // Each submission is its own event: a second one after an integration is not a duplicate.
+      { requestId: request.id, submittedAt: this.clock.now().toISOString() },
     );
   }
 

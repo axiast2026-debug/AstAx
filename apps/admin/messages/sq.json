@@ -700,7 +700,8 @@
       "rca_legalMinimums": "Kufijtë minimalë ligjorë të RCA (euro)",
       "requests_codePrefix": "Parashtesa e kodit të kërkesës",
       "privacy_requestResponseDays": "Afati i përgjigjes ndaj kërkesave për të dhënat personale (ditë)",
-      "support_responseHours": "Përgjigja e parë për një tiketë asistence (orë)"
+      "support_responseHours": "Përgjigja e parë për një tiketë asistence (orë)",
+      "requests_bulkMaxRows": "Rreshta maksimumi për skedar në ngarkimin në bllok"
     }
   },
   "communications": {

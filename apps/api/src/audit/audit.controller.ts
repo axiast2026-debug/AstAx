@@ -5,6 +5,8 @@ import type { Response } from "express";
 import { z } from "zod";
 import type { AuthContext } from "../auth/auth-context.js";
 import { CurrentAuth, RequirePermission } from "../auth/decorators.js";
+import { csvFile, romePeriod } from "../http/csv.js";
+import { ProblemError } from "../http/problem.js";
 import { parseInput } from "../http/validation.js";
 import { sendFile } from "../requests/requests.controller.js";
 import { DB } from "../infra/tokens.js";
@@ -24,7 +26,6 @@ const exportSchema = z.object({
 
 /** Spec 07 «Registro attività»: at most this many rows per file (a narrower period for more). */
 const EXPORT_MAX_ROWS = 50_000;
-const csvCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
 
 /** Read-only audit log for supervisors and administrators (fase 1, passo 12). */
 @ApiTags("admin")
@@ -79,14 +80,13 @@ export class AuditController {
   ) {
     const { from, to, action } = parseInput(exportSchema, query);
     const rows = await withContext(this.db, auth.db, async (tx) => {
-      const found = await tx.auditLog.findMany({
-        where: {
-          at: { gte: new Date(`${from}T00:00:00.000Z`), lte: new Date(`${to}T23:59:59.999Z`) },
-          ...(action ? { action } : {}),
-        },
-        orderBy: { seq: "asc" },
-        take: EXPORT_MAX_ROWS,
-      });
+      const where = { at: romePeriod(from, to), ...(action ? { action } : {}) };
+      if ((await tx.auditLog.count({ where })) > EXPORT_MAX_ROWS) {
+        throw new ProblemError("VALIDATION_FAILED", "Too many rows: choose a shorter period", [
+          { path: "period", issue: "TOO_MANY_ROWS" },
+        ]);
+      }
+      const found = await tx.auditLog.findMany({ where, orderBy: { seq: "asc" } });
       await this.audit.inTransaction(tx, actorOf(auth), {
         action: "AUDIT_LOG_EXPORTED",
         targetType: "AuditLog",
@@ -94,26 +94,32 @@ export class AuditController {
       });
       return found;
     });
-    const header =
-      "seq;at;action;actor_user;actor_membership;actor_organization;target_type;target_id;reason;hash";
-    const lines = rows.map((r) =>
-      [
-        r.seq.toString(),
-        r.at.toISOString(),
-        r.action,
-        r.actorUserId ?? "",
-        r.actorMembershipId ?? "",
-        r.actorOrganizationId ?? "",
-        r.targetType ?? "",
-        r.targetId ?? "",
-        r.reason ?? "",
-        r.hash,
-      ]
-        .map(csvCell)
-        .join(";"),
-    );
+    const header = [
+      "seq",
+      "at",
+      "action",
+      "actor_user",
+      "actor_membership",
+      "actor_organization",
+      "target_type",
+      "target_id",
+      "reason",
+      "hash",
+    ];
+    const lines = rows.map((r) => [
+      r.seq.toString(),
+      r.at.toISOString(),
+      r.action,
+      r.actorUserId ?? "",
+      r.actorMembershipId ?? "",
+      r.actorOrganizationId ?? "",
+      r.targetType ?? "",
+      r.targetId ?? "",
+      r.reason ?? "",
+      r.hash,
+    ]);
     sendFile(response, {
-      body: new TextEncoder().encode(`${[header, ...lines].join("\r\n")}\r\n`),
+      body: csvFile(header, lines),
       mime: "text/csv; charset=utf-8",
       fileName: `registro-${from}-${to}.csv`,
     });

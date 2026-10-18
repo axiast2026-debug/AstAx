@@ -34,6 +34,7 @@
 | libsodium-wrappers | 0.8.4 | Busta chiusa: `crypto_box_seal` e `crypto_secretbox` (fase 3, ADR 0005) |
 | Temporal TypeScript SDK | 1.24.0 | `@temporalio/worker`, `client`, `workflow`, `activity`, `testing`: worker delle aste (fase 3, ADR 0008) |
 | Playwright | 1.64.1 | Chromium per i test end-to-end |
+| fflate | 0.8.3 | Lettura dello ZIP del caricamento in blocco dei broker, con il limite della dimensione decompressa (fase 7, proposta H) |
 
 Le dipendenze delle fasi successive si aggiungono a questa tabella quando entrano, nel passo che le usa.
 

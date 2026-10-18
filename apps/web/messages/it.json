@@ -1540,7 +1540,7 @@
     "toDrafts": "Vai alle richieste",
     "format": "Il file",
     "formatText": "Un CSV con il punto e virgola e questa prima riga, oppure uno ZIP con dentro il CSV e i documenti (libretto, patente, attestato) con i nomi scritti nelle colonne:",
-    "formatHint": "Nella colonna tipo scrivi «persona» o «società». Al massimo 200 righe per file. Documenti in PDF, JPG o PNG.",
+    "formatHint": "Nella colonna tipo scrivi «persona» o «società». Documenti in PDF, JPG o PNG. I file troppo lunghi si dividono in più parti.",
     "upload": "Carica il file",
     "issues": {
       "HEADER": "la prima riga non è quella attesa",

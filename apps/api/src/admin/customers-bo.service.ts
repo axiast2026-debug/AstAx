@@ -1,7 +1,12 @@
 import type { Clock } from "@astax/adapters/clock";
 import type { FieldCipher } from "@astax/adapters/crypto";
 import { asSystem, settingsAt, withContext, type DbClient, type DbTransaction } from "@astax/db";
-import { normalizeFiscalCodeInput } from "@astax/shared/domain";
+import {
+  addCalendarDays,
+  endOfRomeDay,
+  normalizeFiscalCodeInput,
+  romeInstant,
+} from "@astax/shared/domain";
 import { Inject, Injectable } from "@nestjs/common";
 import { actorOf, AuditService } from "../audit/audit.service.js";
 import type { AuthContext } from "../auth/auth-context.js";
@@ -292,7 +297,8 @@ export class CustomersBackOfficeService {
     const now = this.clock.now();
     return withContext(this.db, auth.db, async (tx) => {
       await this.customer(tx, customerId);
-      const receivedAt = new Date(`${input.receivedOn}T12:00:00.000Z`);
+      // The day of receipt in Rome (rule 6); midday stands for the unknown hour.
+      const receivedAt = romeInstant(input.receivedOn, "12:00");
       if (receivedAt.getTime() > now.getTime() + DAY_MS) {
         throw new ProblemError("VALIDATION_FAILED", undefined, [
           { path: "receivedOn", issue: "IN_THE_FUTURE" },
@@ -309,7 +315,8 @@ export class CustomersBackOfficeService {
           kind: input.kind,
           description: input.description,
           receivedAt,
-          dueAt: new Date(receivedAt.getTime() + days * DAY_MS),
+          // The end of the Rome day, privacy.requestResponseDays calendar days later.
+          dueAt: endOfRomeDay(addCalendarDays(input.receivedOn, days)),
           createdByUserId: auth.userId,
         },
       });

@@ -46,12 +46,12 @@ describe("phase 7 customers in the back office", () => {
   it("finds the customer by plate and by name; the search is logged", async () => {
     expect(plate).not.toBe("");
     const byPlate = await r.json<{ id: string; name: string }[]>(
-      await r.call(support, `/back-office/customers?q=${plate}`),
+      await r.call(support, "/back-office/customers/search", { body: { q: plate } }),
       200,
     );
     expect(byPlate.map((c) => c.id)).toContain(galliId);
     const byName = await r.json<{ id: string }[]>(
-      await r.call(support, "/back-office/customers?q=galli"),
+      await r.call(support, "/back-office/customers/search", { body: { q: "galli" } }),
       200,
     );
     expect(byName.map((c) => c.id)).toContain(galliId);
@@ -102,7 +102,7 @@ describe("phase 7 customers in the back office", () => {
       201,
     );
     // privacy.requestResponseDays (30) from the receipt.
-    expect(opened.dueAt).toBe("2026-10-31T12:00:00.000Z");
+    expect(opened.dueAt).toBe("2026-10-31T22:59:59.999Z");
     const queue = await r.json<{ id: string }[]>(
       await r.call(support, "/back-office/data-requests"),
       200,
@@ -126,6 +126,8 @@ describe("phase 7 customers in the back office", () => {
       token: await h.tokenFor("bo-verifier"),
       context: membershipId("bo-verifier", "astax"),
     };
-    expect((await r.call(verifier, "/back-office/customers?q=galli")).status).toBe(403);
+    expect(
+      (await r.call(verifier, "/back-office/customers/search", { body: { q: "galli" } })).status,
+    ).toBe(403);
   });
 });

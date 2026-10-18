@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Inject, Param, Post, Put, Query } from "@nestjs/common";
+import { Body, Controller, HttpCode, Inject, Param, Post, Put } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { z } from "zod";
 import type { AuthContext } from "../auth/auth-context.js";
@@ -23,10 +23,12 @@ const staffRole = z.strictObject({
 export class UsersAdminController {
   constructor(@Inject(UsersAdminService) private readonly users: UsersAdminService) {}
 
-  @Get()
+  /** Rule 8: the name or email searched travels in the body, never in the URL. */
+  @Post("search")
+  @HttpCode(200)
   @RequirePermission("admin.users.manage")
-  list(@CurrentAuth() auth: AuthContext, @Query() query: unknown) {
-    return this.users.list(auth, parseInput(listQuery, query));
+  list(@CurrentAuth() auth: AuthContext, @Body() body: unknown) {
+    return this.users.list(auth, parseInput(listQuery, body));
   }
 
   @Post(":id/block")

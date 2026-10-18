@@ -7,6 +7,7 @@ import { romeCalendarDate } from "@astax/shared/format";
 import { Inject, Injectable } from "@nestjs/common";
 import { actorOf, AuditService } from "../audit/audit.service.js";
 import type { AuthContext } from "../auth/auth-context.js";
+import { csvFile as csv } from "../http/csv.js";
 import { CLOCK, DB } from "../infra/tokens.js";
 
 const HOUR_MS = 3_600_000;
@@ -19,11 +20,6 @@ export interface DashboardFilter {
   province?: string;
 }
 
-const csvCell = (value: string | number | null) => `"${String(value ?? "").replace(/"/g, '""')}"`;
-const csv = (header: string[], rows: (string | number | null)[][]) =>
-  new TextEncoder().encode(
-    `${[header.join(";"), ...rows.map((r) => r.map(csvCell).join(";"))].join("\r\n")}\r\n`,
-  );
 const average = (values: number[]) =>
   values.length > 0 ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : null;
 
@@ -326,9 +322,9 @@ export class AdminReportsService {
             "serie",
             "data",
             "destinatario",
-            "esente",
-            "bollo",
-            "totale",
+            "esente_centesimi",
+            "bollo_centesimi",
+            "totale_centesimi",
             "natura_iva",
             "stato_sdi",
           ],
@@ -337,9 +333,9 @@ export class AdminReportsService {
             r.series,
             r.issuedOn.toISOString().slice(0, 10),
             r.recipientType,
-            (r.exemptCents / 100).toFixed(2).replace(".", ","),
-            (r.stampDutyCents / 100).toFixed(2).replace(".", ","),
-            (r.totalCents / 100).toFixed(2).replace(".", ","),
+            r.exemptCents,
+            r.stampDutyCents,
+            r.totalCents,
             r.vatNature,
             r.sdiStatus,
           ]),

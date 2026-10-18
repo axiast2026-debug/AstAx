@@ -100,6 +100,7 @@
     { "key": "vehicle.vintageAgeYears", "value": 30, "description": "Anni compiuti dalla prima immatricolazione alla decorrenza da cui il veicolo è un possibile veicolo d'epoca: controllo rosso, decide il back office (domanda 6)", "rule": "ASTA-10" },
     { "key": "consent.linkValidityDays", "value": 7, "description": "Giorni di validità del link di consenso che il broker manda al cliente (domanda 7)", "rule": "LEG-04" },
     { "key": "rca.legalMinimums", "value": { "bodilyInjuryPerClaimEur": 6450000, "propertyDamagePerClaimEur": 1300000 }, "description": "Massimali minimi di legge della RCA per sinistro, in euro (DM 31 maggio 2022): il pacchetto Base li chiede, nessuna offerta può stare sotto (OFF-06)", "rule": "OFF-06" },
+    { "key": "requests.bulkMaxRows", "value": 200, "description": "Righe al massimo in un file del caricamento in blocco dei broker", "rule": "—" },
     { "key": "requests.codePrefix", "value": "AX", "description": "Prefisso del codice richiesta (AX-AAAA-NNNNNN)", "rule": "—" }
   ]
 }

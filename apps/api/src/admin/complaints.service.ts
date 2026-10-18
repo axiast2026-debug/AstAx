@@ -8,10 +8,12 @@ import {
   type DbTransaction,
   type NewComplaint,
 } from "@astax/db";
+import { romeInstant } from "@astax/shared/domain";
 import { Inject, Injectable } from "@nestjs/common";
 import type { ApiConfig } from "../config/config.js";
 import { actorOf, AuditService } from "../audit/audit.service.js";
 import type { AuthContext } from "../auth/auth-context.js";
+import { csvFile, romePeriod } from "../http/csv.js";
 import { ProblemError } from "../http/problem.js";
 import { CLOCK, CONFIG, DB, FIELD_CIPHER } from "../infra/tokens.js";
 import { NotificationService, type Outbound } from "../notifications/notification.service.js";
@@ -19,7 +21,6 @@ import { NotificationService, type Outbound } from "../notifications/notificatio
 const DAY_MS = 86_400_000;
 export type ComplaintOutcome = "ACCEPTED" | "PARTIALLY_ACCEPTED" | "REJECTED";
 
-const csvCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
 const romeDay = (d: Date) =>
   new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(d);
 
@@ -229,7 +230,8 @@ export class ComplaintsService {
     },
   ) {
     const now = this.clock.now();
-    const receivedAt = new Date(`${input.receivedOn}T10:00:00.000Z`);
+    // The day of receipt in Rome (rule 6); the hour is not known, midday stands for it.
+    const receivedAt = romeInstant(input.receivedOn, "12:00");
     if (receivedAt.getTime() > now.getTime() + DAY_MS) {
       throw new ProblemError("VALIDATION_FAILED", undefined, [
         { path: "receivedOn", issue: "IN_THE_FUTURE" },
@@ -412,10 +414,7 @@ export class ComplaintsService {
     return withContext(this.db, auth.db, async (tx) => {
       const rows = await tx.complaint.findMany({
         where: {
-          receivedAt: {
-            gte: new Date(`${from}T00:00:00.000Z`),
-            lte: new Date(`${to}T23:59:59.999Z`),
-          },
+          receivedAt: romePeriod(from, to),
         },
         orderBy: { number: "asc" },
       });
@@ -457,12 +456,10 @@ export class ComplaintsService {
           c.answeredAt
             ? String(Math.ceil((c.answeredAt.getTime() - c.receivedAt.getTime()) / DAY_MS))
             : "",
-        ]
-          .map(csvCell)
-          .join(";");
+        ];
       });
       return {
-        body: new TextEncoder().encode(`${[header.join(";"), ...lines].join("\r\n")}\r\n`),
+        body: csvFile(header, lines),
         mime: "text/csv; charset=utf-8",
         fileName: `reclami-${from}-${to}.csv`,
       };

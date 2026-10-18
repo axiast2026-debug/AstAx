@@ -130,7 +130,8 @@ describe("ADR 0010 the schedules", () => {
       ),
     );
     expect(complaint.protocol).toMatch(/^R-2026-\d{6}$/);
-    expect(complaint.dueAt.toISOString()).toBe("2026-11-27T10:00:00.000Z");
+    // 45 calendar days later, at the end of the Rome day (CET: 23:59:59.999 is 22:59:59.999Z).
+    expect(complaint.dueAt.toISOString()).toBe("2026-11-27T22:59:59.999Z");
     const notifier = new WorkerNotifier(h.email, createLogger({ name: "t", level: "silent" }), {
       clock: h.clock,
       cipher: h.cipher,

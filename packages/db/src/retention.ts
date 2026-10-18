@@ -3,7 +3,7 @@ import { SYSTEM_CONTEXT, withContext } from "./context.js";
 import { settingsAt } from "./auction-data.js";
 import { appendAudit } from "./audit.js";
 
-/** Requests that never became a policy: they are deleted after retention (LEG-06). */
+/** Requests that never became a contract: they are deleted after retention (LEG-06). */
 export const INCOMPLETE_STATUSES = [
   "DRAFT",
   "EXCLUDED",
@@ -44,16 +44,34 @@ export async function retentionCandidates(tx: DbTransaction, now: Date) {
     orderBy: { updatedAt: "asc" },
     take: BATCH,
   });
-  // A policy is a contract: never deleted with the incomplete requests.
-  const withPolicy = new Set(
-    (
+  // LEG-06: contracts and accounting documents stay for the legal terms
+  // (retention.contractsYears): a request with a policy, a signed or paid
+  // acceptance, a payment or an invoice is never deleted with the incomplete ones.
+  const ids = found.map((r) => r.id);
+  const kept = new Set([
+    ...(
       await tx.policy.findMany({
-        where: { quoteRequestId: { in: found.map((r) => r.id) } },
+        where: { quoteRequestId: { in: ids } },
         select: { quoteRequestId: true },
       })
     ).map((p) => p.quoteRequestId),
-  );
-  const requests = found.filter((r) => !withPolicy.has(r.id));
+    ...(
+      await tx.acceptance.findMany({
+        where: {
+          quoteRequestId: { in: ids },
+          OR: [{ status: { in: ["SIGNED", "PAID"] } }, { payments: { some: {} } }],
+        },
+        select: { quoteRequestId: true },
+      })
+    ).map((a) => a.quoteRequestId),
+    ...(
+      await tx.invoice.findMany({
+        where: { quoteRequestId: { in: ids } },
+        select: { quoteRequestId: true },
+      })
+    ).flatMap((i) => (i.quoteRequestId ? [i.quoteRequestId] : [])),
+  ]);
+  const requests = found.filter((r) => !kept.has(r.id));
   const documents = await tx.document.findMany({
     where: { quoteRequestId: { in: requests.map((r) => r.id) }, deletedAt: null },
     select: { id: true, storageKey: true },

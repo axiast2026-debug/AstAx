@@ -1,4 +1,6 @@
 import { SYSTEM_CONTEXT, withContext } from "@astax/db";
+import { addCalendarDays, endOfRomeDay } from "@astax/shared/domain";
+import { romeCalendarDate } from "@astax/shared/format";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { acceptAllLegal, membershipId, startHarness, type Harness } from "./fixtures.js";
 import { requestHelpers, type Who } from "./request-helpers.js";
@@ -44,7 +46,13 @@ describe("phase 7 complaints", () => {
       201,
     );
     expect(filed.protocol).toMatch(/^R-\d{4}-\d{6}$/);
-    expect(new Date(filed.dueAt).getTime() - h.clock.now().getTime()).toBe(45 * 86_400_000);
+    // 45 calendar days, to the end of the Rome day.
+    expect(romeCalendarDate(new Date(filed.dueAt))).toBe(
+      addCalendarDays(romeCalendarDate(h.clock.now()), 45),
+    );
+    expect(new Date(filed.dueAt).getTime()).toBe(
+      endOfRomeDay(addCalendarDays(romeCalendarDate(h.clock.now()), 45)).getTime(),
+    );
     const mails = h.email.sent.slice(before);
     expect(
       mails.some(

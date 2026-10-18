@@ -33,7 +33,10 @@ interface ListedUser {
 
 describe("phase 7 users and permissions", () => {
   it("finds users by name and records the search", async () => {
-    const list = await r.json<ListedUser[]>(await r.call(admin, "/admin/users?q=sala"), 200);
+    const list = await r.json<ListedUser[]>(
+      await r.call(admin, "/admin/users/search", { body: { q: "sala" } }),
+      200,
+    );
     expect(list.map((u) => u.id)).toContain(userId("private-elena-sala"));
     const logged = await system((tx) =>
       tx.auditLog.findFirst({ where: { action: "USERS_VIEWED" }, orderBy: { seq: "desc" } }),
@@ -152,7 +155,7 @@ describe("phase 7 users and permissions", () => {
       token: await h.tokenFor("bo-supervisor"),
       context: membershipId("bo-supervisor", "astax"),
     };
-    expect((await r.call(supervisor, "/admin/users")).status).toBe(403);
+    expect((await r.call(supervisor, "/admin/users/search", { body: {} })).status).toBe(403);
   });
 });
 

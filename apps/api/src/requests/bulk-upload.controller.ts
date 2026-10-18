@@ -14,7 +14,7 @@ export class BulkUploadController {
   constructor(@Inject(BulkUploadService) private readonly bulk: BulkUploadService) {}
 
   @Post()
-  @RequirePermission("brokerCustomer.manage")
+  @RequirePermission("request.bulkUpload")
   upload(@CurrentAuth() auth: AuthContext, @Req() request: Request) {
     const body = request.body as unknown;
     if (!(body instanceof Buffer) || body.byteLength === 0) {

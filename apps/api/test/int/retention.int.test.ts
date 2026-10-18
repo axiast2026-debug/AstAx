@@ -62,13 +62,51 @@ describe("phase 7 retention (LEG-06)", () => {
     );
     expect(await h.storage.get(document.storageKey)).toBeDefined();
 
-    // 13 months later.
-    h.clock.set(new Date(h.clock.now().getTime() + 396 * 86_400_000));
+    // A request cancelled after the signature and the payment (a full refund
+    // before issuance): a contract, kept for the legal terms (LEG-06).
+    const paid = await system(async (tx) => {
+      const q = await tx.quoteRequest.create({
+        data: {
+          code: `AX-RET-${draftId.slice(0, 8)}`,
+          channel: "BROKER",
+          status: "CANCELLED",
+          requesterUserId: (await tx.quoteRequest.findUniqueOrThrow({ where: { id: draftId } }))
+            .requesterUserId,
+          ownerOrganizationId: (await tx.quoteRequest.findUniqueOrThrow({ where: { id: draftId } }))
+            .ownerOrganizationId,
+        },
+      });
+      await tx.acceptance.create({
+        data: {
+          quoteRequestId: q.id,
+          offerId: draftId,
+          ownerOrganizationId: q.ownerOrganizationId,
+          acceptedByUserId: q.requesterUserId,
+          premiumCents: 40_000,
+          feeCents: 3000,
+          feeRule: "BROKER",
+          aiUsed: false,
+          status: "PAID",
+          paidAt: h.clock.now(),
+        },
+      });
+      return q;
+    });
+
+    // 11 months later: not yet.
+    const start = h.clock.now().getTime();
+    h.clock.set(new Date(start + 335 * 86_400_000));
     await acceptAllLegal(h, "admin");
-    const admin: Who = {
-      token: await h.tokenFor("admin"),
-      context: membershipId("admin", "astax"),
-    };
+    let admin: Who = { token: await h.tokenFor("admin"), context: membershipId("admin", "astax") };
+    const early = await r.json<{ candidates: { code: string }[] }>(
+      await r.call(admin, "/admin/retention"),
+      200,
+    );
+    expect(early.candidates.map((c) => c.code)).not.toContain(done.results[0]?.code);
+
+    // 13 months later.
+    h.clock.set(new Date(start + 396 * 86_400_000));
+    admin = { token: await h.tokenFor("admin"), context: membershipId("admin", "astax") };
     const preview = await r.json<{ months: number; candidates: { code: string }[] }>(
       await r.call(admin, "/admin/retention"),
       200,
@@ -105,6 +143,12 @@ describe("phase 7 retention (LEG-06)", () => {
       tx.auditLog.findFirst({ where: { action: "RETENTION_PURGED", targetId: draftId } }),
     );
     expect(logged?.before).toMatchObject({ code: done.results[0]?.code, status: "DRAFT" });
+
+    // The paid one is still whole.
+    const kept = await system((tx) =>
+      tx.quoteRequest.findUniqueOrThrow({ where: { id: paid.id } }),
+    );
+    expect(kept.purgedAt).toBeNull();
 
     // A second run finds nothing more of it.
     const again = await r.json<{ candidates: { code: string }[] }>(
