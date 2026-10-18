@@ -17,7 +17,8 @@ Ogni utente sceglie i canali per evento nel profilo. Restano sempre attivi: le n
 ## Regole sui contenuti
 
 - Nessun dato personale di terzi nelle notifiche: niente nomi, codici fiscali, telefoni o email dei clienti verso le agenzie. Il dettaglio si apre nell'app, con il link.
-- Verso le agenzie `{{veicolo}}` è solo marca e modello; la targa si vede nell'app.
+- Verso il richiedente e il cliente del broker `{{veicolo}}` è marca, modello e targa (domanda 15, risposta A); verso le agenzie solo marca e modello, la targa si vede nell'app.
+- I prezzi possono stare nelle notifiche (domanda 15): al richiedente le sue offerte e i suoi importi, all'agenzia la propria offerta e, dalla classifica, le prime due anonime.
 - Nessun prezzo di altre agenzie, mai. Prima della pubblicazione della classifica, nessuna posizione.
 - Gli importi arrivano già formattati («505,00 €»); le date nel fuso di Roma e nella lingua del destinatario («martedì 14 ottobre alle 10:30» / «e martë, 14 tetor, ora 10:30»).
 - Le variabili con valori di elenco (stato dell'offerta, motivo, pacchetto) usano l'etichetta nella lingua del destinatario.

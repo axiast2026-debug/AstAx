@@ -20,6 +20,10 @@ import {
   type WorkingCalendar,
 } from "@astax/shared/domain";
 import type { Logger } from "@astax/shared/logging";
+import {
+  vehicleForAgency as agencyVehicle,
+  vehicleForRequester as requesterVehicle,
+} from "@astax/shared/notifications";
 import type { WorkerNotifier, Recipient } from "../notifier.js";
 import type { RoundTimes } from "./types.js";
 
@@ -189,14 +193,14 @@ export function requesterLink(urls: ActivityDeps["urls"], request: QuoteRequest)
     : `${urls.web}/richieste/${request.id}`;
 }
 
-/** Rule 8: make and model only in notifications, never the plate. */
+/** Question 15A: make, model and plate for the requester. */
 export function vehicleForRequester(quoteData: QuoteData): string {
-  return `${quoteData.vehicle.make} ${quoteData.vehicle.model}`;
+  return requesterVehicle(quoteData.vehicle);
 }
 
 /** For the agencies: make and model only. */
 export function vehicleForAgency(quoteData: QuoteData): string {
-  return `${quoteData.vehicle.make} ${quoteData.vehicle.model}`;
+  return agencyVehicle(quoteData.vehicle);
 }
 
 /**

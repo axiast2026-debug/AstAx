@@ -16,7 +16,13 @@ import {
   transitionRequest,
   type RankedOffer,
 } from "@astax/shared/domain";
-import { dbDateToCalendarDate, formatDate, romeCalendarDate } from "@astax/shared/format";
+import {
+  dbDateToCalendarDate,
+  formatDate,
+  formatEuroCents,
+  romeCalendarDate,
+} from "@astax/shared/format";
+import { rankingVariables } from "@astax/shared/notifications";
 import type { PendingEmail } from "../notifier.js";
 import {
   audit,
@@ -169,6 +175,7 @@ export function guaranteeActivities(
         () => ({
           nome: requester.firstName,
           veicolo: vehicleForRequester(quoteData),
+          premio: formatEuroCents(best.premium),
           garanzia: formatDate(best.guaranteeUntil),
           giorni: String(days),
           link: requesterLink(urls, request),
@@ -347,6 +354,7 @@ export function guaranteeActivities(
             "ranking.available",
             () => ({
               codice: request.code,
+              ...rankingVariables(published.entries, e, formatEuroCents),
               posizione: String(e.rank),
               totale_offerte: String(published.validCount),
               link,

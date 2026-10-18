@@ -21,8 +21,10 @@ import {
   dbDateToCalendarDate,
   formatDate,
   formatDateTime,
+  formatEuroCents,
   romeCalendarDate,
 } from "@astax/shared/format";
+import { vehicleForRequester } from "@astax/shared/notifications";
 import { Inject, Injectable } from "@nestjs/common";
 import { AcceptanceService } from "../acceptance/acceptance.service.js";
 import { actorOf, AuditService } from "../audit/audit.service.js";
@@ -450,8 +452,9 @@ export class ExceptionsService {
       next.kind === "SECOND_OFFER" ? "issuance.second_offer_proposed" : "issuance.reprice_proposed",
       {
         nome: requester.firstName,
-        veicolo: `${data.vehicle.make} ${data.vehicle.model}`,
+        veicolo: vehicleForRequester(data.vehicle),
         compagnia: company?.name ?? "",
+        premio: formatEuroCents(terms.premiumCents),
         garanzia: offer.guaranteeUntil
           ? formatDate(dbDateToCalendarDate(offer.guaranteeUntil))
           : "",

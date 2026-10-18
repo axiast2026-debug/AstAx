@@ -38,19 +38,34 @@ describe("texts for the agencies (VIS-01, rule 8)", () => {
     }
   }
 
-  it("rule 8: the requester's texts of phase 3 carry no price", () => {
+  it("question 15A: the requester's texts of phase 3 carry the price", () => {
     for (const [eventKey, variables] of [
       [
         "auction.closed.requester",
-        { nome: "Giulia", codice: "AX-1", veicolo: "Marca", numero_offerte: "3", link: "l" },
+        {
+          nome: "Giulia",
+          codice: "AX-1",
+          veicolo: "Marca Modello AB123CD",
+          numero_offerte: "3",
+          premio_minimo: "480,00 €",
+          link: "l",
+        },
       ],
       [
         "guarantee.expiring",
-        { nome: "Giulia", veicolo: "Marca", garanzia: "03/12/2026", giorni: "2", link: "l" },
+        {
+          nome: "Giulia",
+          veicolo: "Marca Modello AB123CD",
+          premio: "480,00 €",
+          garanzia: "03/12/2026",
+          giorni: "2",
+          link: "l",
+        },
       ],
     ] as const) {
       const { inApp, email } = notifier.render(eventKey, "it", variables);
-      expect(JSON.stringify([inApp, email])).not.toContain("€");
+      expect(JSON.stringify(inApp)).toContain("480,00 €");
+      expect(JSON.stringify([inApp, email])).toContain("AB123CD");
     }
   });
 });

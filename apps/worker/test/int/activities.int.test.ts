@@ -367,7 +367,7 @@ describe("closing (docs/busta-chiusa.md, step 5)", () => {
     expect(again.opened && again.auctionId).toBe(opened.auctionId);
     // GAR-07: no new agency at the top-up of a reconfirmation.
     expect(await h.activities.topUp({ auctionId: opened.auctionId })).toEqual({ invited: 0 });
-    // Rule 8: the agencies are told without a price.
+    // Question 15A: each agency reads the price of its own offer.
     const notes = await read((tx) =>
       tx.notification.findMany({
         where: {
@@ -377,7 +377,9 @@ describe("closing (docs/busta-chiusa.md, step 5)", () => {
       }),
     );
     expect(notes.length).toBeGreaterThan(0);
-    expect(JSON.stringify(notes)).not.toContain("€");
+    const mails = h.email.sent.filter((m) => m.subject.startsWith("Riconferma entro"));
+    expect(mails.length).toBeGreaterThan(0);
+    expect(mails.every((m) => /\d+,\d{2}\s€/.test(m.text))).toBe(true);
   });
 
   it("GAR-07 proposal C a confirmation without a new PDF keeps the previous quote; the requester is told", async () => {

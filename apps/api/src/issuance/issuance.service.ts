@@ -650,10 +650,10 @@ export class IssuanceService {
       const {
         "renewal.daysBefore": renewalDays,
         "withdrawal.days": withdrawalDays,
-        "withdrawal.byCustomer": byCustomer,
+        "withdrawal.onPlatform": onPlatform,
       } = await settingsAt(
         tx,
-        ["renewal.daysBefore", "withdrawal.days", "withdrawal.byCustomer"],
+        ["renewal.daysBefore", "withdrawal.days", "withdrawal.onPlatform"],
         this.clock.now(),
       );
       const withdrawals = await asSystem(tx, () =>
@@ -706,12 +706,12 @@ export class IssuanceService {
           // S08: the withdrawal within withdrawal.days of the issuance.
           withdrawal: withdrawals.find((w) => w.policyId === p.id)?.status ?? null,
           withdrawable:
-            byCustomer &&
+            onPlatform &&
             ["ACTIVE", "EXPIRING"].includes(p.status) &&
             today <= addCalendarDays(romeCalendarDate(p.issuedAt), withdrawalDays) &&
             !withdrawals.some((w) => w.policyId === p.id && w.status !== "REJECTED"),
           // Question 18: withdrawal and cancellation go through the agency, outside AstAx.
-          withdrawalOutside: !byCustomer && ["ACTIVE", "EXPIRING"].includes(p.status),
+          withdrawalOutside: !onPlatform && ["ACTIVE", "EXPIRING"].includes(p.status),
           documents: documents
             .filter((d) => d.quoteRequestId === p.quoteRequestId)
             .map((d) => ({ id: d.id, kind: d.kind })),

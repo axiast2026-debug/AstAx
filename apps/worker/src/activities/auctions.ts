@@ -44,6 +44,7 @@ import {
   dbDateToCalendarDate,
   formatDate,
   formatDateTime,
+  formatEuroCents,
 } from "@astax/shared/format";
 import { errorForLog } from "@astax/shared/logging";
 import { ApplicationFailure } from "@temporalio/activity";
@@ -299,20 +300,26 @@ export function auctionActivities(
       after: { quoteRequestId: request.id, kind: "RECONFIRMATION", invited: organizationIds },
     });
     const quoteData = await quoteDataOf(tx, cipher, request);
-    await notifier.notify(
-      tx,
-      pending,
-      await agencyRecipients(tx, cipher, organizationIds),
-      "reconfirmation.requested",
-      () => ({
-        codice: request.code,
-        veicolo: vehicleForAgency(quoteData),
-        termine: formatDateTime(auction.scheduledCloseAt),
-        link: `${urls.web}/richieste-in-arrivo`,
-      }),
-      `/richieste-in-arrivo`,
-      { auctionId: auction.id },
-    );
+    for (const organizationId of organizationIds) {
+      const own = expired
+        .filter((o) => o.organizationId === organizationId && o.annualGrossPremiumCents !== null)
+        .map((o) => o.annualGrossPremiumCents as number);
+      await notifier.notify(
+        tx,
+        pending,
+        await agencyRecipients(tx, cipher, [organizationId]),
+        "reconfirmation.requested",
+        () => ({
+          codice: request.code,
+          veicolo: vehicleForAgency(quoteData),
+          premio_offerto: own.length > 0 ? formatEuroCents(Math.min(...own)) : "",
+          termine: formatDateTime(auction.scheduledCloseAt),
+          link: `${urls.web}/richieste-in-arrivo`,
+        }),
+        `/richieste-in-arrivo`,
+        { auctionId: auction.id },
+      );
+    }
     return { opened: true, invited: organizationIds.length, ...roundTimesOf(auction, calendar) };
   }
 
@@ -892,6 +899,9 @@ export function auctionActivities(
             codice: request.code,
             veicolo: vehicleForRequester(quoteData),
             numero_offerte: String(ranked.length),
+            premio_minimo: formatEuroCents(
+              Math.min(...ranked.map((o) => o.annualGrossPremiumCents)),
+            ),
             link: requesterLink(urls, request),
           }),
           new URL(requesterLink(urls, request)).pathname,

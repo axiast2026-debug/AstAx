@@ -143,7 +143,7 @@ describe("fase 5: the broker's customer on the link (decision 26)", () => {
   let proof: string;
   const withProof = () => ({ headers: { "x-astax-link-proof": proof } });
 
-  it("the broker sends Alfa to the customer: email with the link, no price; valid until the end of the guarantee", async () => {
+  it("the broker sends Alfa to the customer: email with the link and the price; valid until the end of the guarantee", async () => {
     const alfa = offers[0] as string;
     const sent = await r.json<{ expiresAt: string; offerIds: string[] }>(
       await r.call(broker, `/requests/${requestId}/customer-link`, { body: { offerIds: [alfa] } }),
@@ -155,9 +155,9 @@ describe("fase 5: the broker's customer on the link (decision 26)", () => {
     const mail = lastMail(EMAIL);
     expect(mail?.subject).toContain("la tua offerta RC auto");
     expect(mail?.text).toContain("Compagnia Alfa");
-    expect(mail?.text).not.toMatch(/480,00|€/);
-    // Rule 8: make and model, never the plate.
-    expect(mail?.text).not.toContain("MC789EF");
+    // Question 15A: the premium and the plate are in the email.
+    expect(mail?.text).toContain("480,00");
+    expect(mail?.text).toContain("MC789EF");
     token = /\/offerta\/([A-Za-z0-9_-]+)/.exec(mail?.text ?? "")?.[1] ?? "";
     expect(token.length).toBeGreaterThan(40);
   });

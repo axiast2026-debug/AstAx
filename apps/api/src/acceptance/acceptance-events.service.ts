@@ -21,7 +21,12 @@ import {
   type QuoteRequest,
 } from "@astax/db";
 import { issuanceDeadline, transitionOffer } from "@astax/shared/domain";
-import { dbDateToCalendarDate, formatDate, formatDateTime } from "@astax/shared/format";
+import {
+  dbDateToCalendarDate,
+  formatDate,
+  formatDateTime,
+  formatEuroCents,
+} from "@astax/shared/format";
 import type { Logger } from "@astax/shared/logging";
 import { Inject, Injectable } from "@nestjs/common";
 import { AuditService } from "../audit/audit.service.js";
@@ -39,7 +44,12 @@ import {
 } from "../infra/tokens.js";
 import labels from "../notifications/labels.it.json" with { type: "json" };
 import { NotificationService, type Outbound } from "../notifications/notification.service.js";
-import type { TemplateVariables } from "@astax/shared/notifications";
+import {
+  rankingVariables,
+  vehicleForAgency,
+  vehicleForRequester,
+  type TemplateVariables,
+} from "@astax/shared/notifications";
 import { Postbox } from "../notifications/postbox.js";
 import { RefundsService } from "../refunds/refunds.service.js";
 import { ACCEPTANCE_TX, AcceptanceService } from "./acceptance.service.js";
@@ -285,7 +295,7 @@ export class AcceptanceEventsService {
    * CLA-02, decision 32: at the signature, or at the cancellation of a
    * request without acceptance, the ranking of the last round with valid
    * offers goes to the participating agencies, once. Each learns its
-   * position; the premiums are in the app (rule 8, question 15).
+   * position, the first two premiums (anonymous) and its own (question 15A).
    */
   async publishRanking(tx: DbTransaction, emails: Email[], request: QuoteRequest, now: Date) {
     const published = await asSystem(tx, () => publishLastRanking(tx, request.id, now));
@@ -306,6 +316,7 @@ export class AcceptanceEventsService {
         "ranking.available",
         {
           codice: request.code,
+          ...rankingVariables(published.entries, e, formatEuroCents),
           posizione: String(e.rank),
           totale_offerte: String(published.validCount),
           link,
@@ -488,6 +499,11 @@ export class AcceptanceEventsService {
       : "";
     const vehicle = await this.vehicle(tx, request);
     const term = formatDateTime(deadline);
+    const amounts = {
+      totale: formatEuroCents(a.premiumCents + a.feeCents),
+      premio: formatEuroCents(a.premiumCents),
+      fee: formatEuroCents(a.feeCents),
+    };
     await this.tell(
       tx,
       emails,
@@ -496,6 +512,7 @@ export class AcceptanceEventsService {
       {
         nome: await this.payerName(tx, request),
         veicolo: vehicle,
+        ...amounts,
         agenzia: agency.legalName,
         termine_emissione: term,
         link: this.requesterLink(request),
@@ -538,7 +555,8 @@ export class AcceptanceEventsService {
       "offer.won",
       {
         codice: request.code,
-        veicolo: vehicle,
+        veicolo: await this.vehicle(tx, request, "agency"),
+        premio: amounts.premio,
         compagnia: company,
         termine_emissione: term,
         decorrenza: formatDate(dbDateToCalendarDate(request.startDate)),
@@ -580,8 +598,13 @@ export class AcceptanceEventsService {
     return (await tx.user.findUniqueOrThrow({ where: { id: request.requesterUserId } })).firstName;
   }
 
-  private async vehicle(tx: DbTransaction, request: QuoteRequest) {
-    const data = await this.acceptance.quoteDataOf(tx, request);
-    return `${data.vehicle.make} ${data.vehicle.model}`;
+  /** Question 15A: with the plate for the payer, make and model for the agency. */
+  private async vehicle(
+    tx: DbTransaction,
+    request: QuoteRequest,
+    to: "payer" | "agency" = "payer",
+  ) {
+    const { vehicle } = await this.acceptance.quoteDataOf(tx, request);
+    return to === "agency" ? vehicleForAgency(vehicle) : vehicleForRequester(vehicle);
   }
 }

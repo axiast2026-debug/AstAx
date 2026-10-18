@@ -6,7 +6,12 @@ import {
   type DbTransaction,
 } from "@astax/db";
 import { romeInstant, transitionOffer, transitionRequest } from "@astax/shared/domain";
-import { dbDateToCalendarDate, formatDate, formatDateTime } from "@astax/shared/format";
+import {
+  dbDateToCalendarDate,
+  formatDate,
+  formatDateTime,
+  formatEuroCents,
+} from "@astax/shared/format";
 import type { PendingEmail } from "../notifier.js";
 import { agencyRecipients, staffRecipients, type ActivityDeps } from "./support.js";
 import type { AuctionActivities, IssuanceSchedule, IssuanceSteps } from "./types.js";
@@ -341,6 +346,7 @@ export function issuanceActivities(
         "refund.approval_needed.bo",
         () => ({
           codice: request.code,
+          importo: formatEuroCents(paid.premiumCents + paid.feeCents),
           motivo: "EMI-04",
           richiedente_rimborso: "AstAx",
           link: `${urls.admin}/pagamenti`,

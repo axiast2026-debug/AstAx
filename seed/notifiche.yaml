@@ -154,16 +154,16 @@ events:
   auction.closed.requester:
     recipients: [requester]
     channels: [in_app, push, email]
-    # Regola 8 di CLAUDE.md: nessun prezzo nelle notifiche (domanda aperta 15).
-    variables: [nome, codice, veicolo, numero_offerte, link]
+    # Domanda 15, risposta A (Dan, 2026-10-18): prezzi e targa nelle notifiche.
+    variables: [nome, codice, veicolo, numero_offerte, premio_minimo, link]
     it:
       title: "Le offerte sono pronte"
-      body: "{{numero_offerte}} offerte per {{veicolo}}: aprile per confrontarle."
+      body: "{{numero_offerte}} offerte per {{veicolo}}, a partire da {{premio_minimo}}."
       emailSubject: "{{numero_offerte}} offerte per {{veicolo}}"
       emailBody: |
         Ciao {{nome}},
         l'asta della richiesta {{codice}} è chiusa.
-        Offerte valide: {{numero_offerte}}.
+        Offerte valide: {{numero_offerte}}. La più conveniente: {{premio_minimo}}.
         Ogni offerta è garantita fino alla data indicata accanto al prezzo. Confrontale e scegli: {{link}}
 
   auction.closed.agency:
@@ -309,15 +309,15 @@ events:
     recipients: [requester]
     channels: [in_app, push, email]
     forcePush: true
-    # Regola 8 di CLAUDE.md: nessun prezzo nelle notifiche (domanda aperta 15).
-    variables: [nome, veicolo, garanzia, giorni, link]
+    # Domanda 15, risposta A (Dan, 2026-10-18): prezzi e targa nelle notifiche.
+    variables: [nome, veicolo, premio, garanzia, giorni, link]
     it:
       title: "Il prezzo migliore scade tra {{giorni}} giorni"
-      body: "L'offerta più conveniente per {{veicolo}} è garantita fino al {{garanzia}}."
+      body: "{{premio}} per {{veicolo}}, garantito fino al {{garanzia}}."
       emailSubject: "La tua offerta migliore è garantita fino al {{garanzia}}"
       emailBody: |
         Ciao {{nome}},
-        l'offerta più conveniente per {{veicolo}} è garantita fino al {{garanzia}}.
+        l'offerta più conveniente per {{veicolo}} ({{premio}}) è garantita fino al {{garanzia}}.
         Se vuoi acquistare a questo prezzo, accetta entro quella data: {{link}}
 
   request.expired:
@@ -337,29 +337,29 @@ events:
     recipients: [agencies_with_valid_offer]
     channels: [in_app, push, email]
     forcePush: true
-    # Regola 8 di CLAUDE.md: nessun prezzo nelle notifiche (domanda aperta 15).
-    variables: [codice, veicolo, termine, link]
+    # Domanda 15, risposta A (Dan, 2026-10-18): prezzi e targa nelle notifiche.
+    variables: [codice, veicolo, premio_offerto, termine, link]
     it:
       title: "Richiesta di riconferma: {{codice}}"
       body: "Il cliente chiede di riconfermare il prezzo. Rispondete entro {{termine}}."
       emailSubject: "Riconferma entro {{termine}}: {{codice}}"
       emailBody: |
-        Il richiedente della pratica {{codice}} ({{veicolo}}) chiede di riconfermare la vostra offerta.
+        Il richiedente della pratica {{codice}} ({{veicolo}}) chiede di riconfermare la vostra offerta di {{premio_offerto}}.
         Potete confermare il prezzo, aggiornarlo o rinunciare entro {{termine}}. Le risposte restano in busta chiusa fino alla scadenza.
         Rispondi: {{link}}
 
   reconfirmation.completed.requester:
     recipients: [requester]
     channels: [in_app, push, email]
-    # Regola 8 di CLAUDE.md: nessun prezzo nelle notifiche (domanda aperta 15).
-    variables: [nome, veicolo, numero_offerte, link]
+    # Domanda 15, risposta A (Dan, 2026-10-18): prezzi e targa nelle notifiche.
+    variables: [nome, codice, veicolo, numero_offerte, premio_minimo, link]
     it:
       title: "Prezzi riconfermati"
-      body: "{{numero_offerte}} offerte valide per {{veicolo}}, con nuove date di garanzia."
+      body: "{{numero_offerte}} offerte valide per {{veicolo}}, a partire da {{premio_minimo}}."
       emailSubject: "Prezzi riconfermati per {{veicolo}}"
       emailBody: |
         Ciao {{nome}},
-        le agenzie hanno risposto: {{numero_offerte}} offerte valide, con nuove date di garanzia.
+        le agenzie hanno risposto: {{numero_offerte}} offerte valide, la più conveniente a {{premio_minimo}}, con nuove date di garanzia.
         Confrontale e scegli: {{link}}
 
   request.auto_cancelled:
@@ -381,7 +381,8 @@ events:
     recipients: [broker_client]
     channels: [email, sms]
     mandatory: true
-    # Regola 8 di CLAUDE.md: nessun prezzo nelle notifiche (domanda aperta 15, proposta G della fase 5).
+    # Domanda 15, risposta A (Dan, 2026-10-18): prezzi e targa nelle notifiche.
+    # descrizione_offerta: compagnia, prodotto e premio annuo di ogni offerta.
     variables: [nome, broker, veicolo, descrizione_offerta, garanzia, link, scadenza_link]
     it:
       sms: "{{broker}} ti ha inviato l'offerta RC auto per {{veicolo}}: {{link}}"
@@ -389,22 +390,22 @@ events:
       emailBody: |
         Buongiorno {{nome}},
         {{broker}} ti propone {{descrizione_offerta}} per {{veicolo}}.
-        Il prezzo è garantito fino al {{garanzia}}: lo trovi nel link.
+        Prezzo garantito fino al {{garanzia}}.
         Da questo link leggi i documenti, firmi con un codice e paghi: {{link}}
         Il link vale fino al {{scadenza_link}}.
 
   payment.confirmed:
     recipients: [payer]
     channels: [in_app, email]
-    # Regola 8 di CLAUDE.md: nessun prezzo nelle notifiche (domanda aperta 15, proposta G della fase 5).
-    variables: [nome, veicolo, agenzia, termine_emissione, link]
+    # Domanda 15, risposta A (Dan, 2026-10-18): prezzi e targa nelle notifiche.
+    variables: [nome, veicolo, totale, premio, fee, agenzia, termine_emissione, link]
     it:
       title: "Pagamento ricevuto"
-      body: "Abbiamo ricevuto il pagamento. La polizza sarà emessa entro {{termine_emissione}}."
+      body: "Abbiamo ricevuto {{totale}}. La polizza sarà emessa entro {{termine_emissione}}."
       emailSubject: "Pagamento ricevuto per {{veicolo}}"
       emailBody: |
         Ciao {{nome}},
-        abbiamo ricevuto il pagamento per {{veicolo}}; il riepilogo con gli importi è nella pagina della richiesta.
+        abbiamo ricevuto il pagamento di {{totale}} per {{veicolo}}: premio {{premio}}, compenso di AstAx {{fee}}.
         L'agenzia {{agenzia}} emetterà la polizza entro {{termine_emissione}}. Ti avvisiamo appena i documenti sono pronti.
         Riepilogo: {{link}}
 
@@ -438,14 +439,14 @@ events:
     recipients: [winning_agency_users]
     channels: [in_app, push, email]
     forcePush: true
-    # Regola 8 di CLAUDE.md: nessun prezzo nelle notifiche (domanda aperta 15, proposta G della fase 5).
-    variables: [codice, veicolo, compagnia, termine_emissione, decorrenza, link]
+    # Domanda 15, risposta A (Dan, 2026-10-18): prezzi e targa nelle notifiche.
+    variables: [codice, veicolo, premio, compagnia, termine_emissione, decorrenza, link]
     it:
       title: "Avete vinto: {{codice}}"
       body: "Pagamento confermato. Emettete entro {{termine_emissione}}."
       emailSubject: "Polizza da emettere entro {{termine_emissione}}: {{codice}}"
       emailBody: |
-        Il cliente ha accettato e pagato la vostra offerta ({{compagnia}}) per {{veicolo}}.
+        Il cliente ha accettato e pagato la vostra offerta di {{premio}} ({{compagnia}}) per {{veicolo}}.
         Termine di emissione: {{termine_emissione}}, comunque prima della decorrenza del {{decorrenza}}.
         Nell'area «Da emettere» trovate i dati completi, i contatti del cliente, i documenti firmati e la ricevuta di pagamento: {{link}}
 
@@ -463,15 +464,19 @@ events:
   ranking.available:
     recipients: [participating_agency_users]
     channels: [in_app, email]
-    # Regola 8 di CLAUDE.md: nessun prezzo nelle notifiche (domanda aperta 15, proposta G della fase 5).
-    variables: [codice, posizione, totale_offerte, link]
+    # Domanda 15, risposta A (Dan, 2026-10-18): prezzi e targa nelle notifiche.
+    # Le altre offerte restano anonime (CLA-04).
+    variables: [codice, premio_primo, premio_secondo, premio_proprio, posizione, totale_offerte, scarto, link]
     it:
       title: "Classifica disponibile: {{codice}}"
       body: "La vostra offerta è {{posizione}}ª su {{totale_offerte}}."
       emailSubject: "Classifica della richiesta {{codice}}"
       emailBody: |
-        La classifica della richiesta {{codice}} è disponibile: la vostra offerta è {{posizione}}ª su {{totale_offerte}}.
-        Le offerte degli altri sono anonime. I premi e lo scarto dalla prima sono nella pagina dei risultati: {{link}}
+        La classifica della richiesta {{codice}} è disponibile.
+        Prima offerta: {{premio_primo}}
+        Seconda offerta: {{premio_secondo}}
+        La vostra: {{premio_proprio}}, {{posizione}}ª su {{totale_offerte}}, {{scarto}} dalla prima.
+        Le offerte degli altri sono anonime. Dettagli e statistiche: {{link}}
 
   ranking.available.excluded:
     recipients: [participating_agency_users]
@@ -584,31 +589,31 @@ events:
     recipients: [requester, broker_client]
     channels: [in_app, push, email, sms]
     forcePush: true
-    # Regola 8 di CLAUDE.md: nessun prezzo nelle notifiche (domanda 15): premio e differenza sono nell'app.
-    variables: [nome, veicolo, compagnia, garanzia, termine, link]
+    # Domanda 15, risposta A (Dan, 2026-10-18): prezzi e targa nelle notifiche.
+    variables: [nome, veicolo, compagnia, premio, garanzia, termine, link]
     it:
       title: "Serve una tua conferma"
-      body: "L'agenzia scelta non ha potuto emettere. Ti proponiamo la seconda offerta: conferma entro {{termine}}."
+      body: "L'agenzia scelta non ha potuto emettere. Ti proponiamo la seconda offerta: {{premio}}. Conferma entro {{termine}}."
       sms: "AstAx: l'agenzia scelta non ha potuto emettere la polizza per {{veicolo}}. Conferma la seconda offerta entro {{termine}}: {{link}}"
       emailSubject: "Polizza per {{veicolo}}: serve una tua conferma"
       emailBody: |
         Ciao {{nome}},
         ci dispiace: l'agenzia che aveva vinto non ha potuto emettere la polizza per {{veicolo}}.
-        Ti proponiamo la seconda offerta migliore, {{compagnia}}, garantita fino al {{garanzia}}: premio e differenza da pagare o da restituire sono nell'app.
+        Ti proponiamo la seconda offerta migliore: {{compagnia}}, {{premio}}, garantita fino al {{garanzia}}. La differenza da pagare o da restituire è nell'app.
         Conferma entro {{termine}}, oppure chiedi il rimborso completo: {{link}}
   issuance.reprice_proposed:
     recipients: [requester]
     channels: [in_app, push, email]
     forcePush: true
-    # Regola 8: il nuovo premio e la differenza sono nell'app.
-    variables: [nome, veicolo, compagnia, garanzia, termine, link]
+    # Domanda 15, risposta A (Dan, 2026-10-18): prezzi e targa nelle notifiche.
+    variables: [nome, veicolo, compagnia, premio, garanzia, termine, link]
     it:
       title: "Serve una tua conferma"
-      body: "Alcuni dati della richiesta non corrispondevano: l'agenzia ti propone un nuovo prezzo. Conferma entro {{termine}}."
+      body: "Alcuni dati della richiesta non corrispondevano: l'agenzia ti propone {{premio}}. Conferma entro {{termine}}."
       emailSubject: "Polizza per {{veicolo}}: serve una tua conferma"
       emailBody: |
         Ciao {{nome}},
-        alcuni dati della richiesta per {{veicolo}} non corrispondevano ai documenti: l'agenzia ({{compagnia}}) ti propone un nuovo prezzo, che trovi nell'app.
+        alcuni dati della richiesta per {{veicolo}} non corrispondevano ai documenti: l'agenzia ({{compagnia}}) ti propone un nuovo prezzo di {{premio}}. La differenza da pagare o da restituire è nell'app.
         Conferma entro {{termine}}, oppure chiedi il rimborso completo: {{link}}
 
   policy.issued:
@@ -753,22 +758,22 @@ events:
   refund.approval_needed.bo:
     recipients: [bo_supervisors]
     channels: [in_app, email]
-    # Regola 8: l'importo è nella pagina «Pagamenti», non nell'avviso.
-    variables: [codice, motivo, richiedente_rimborso, link]
+    # Domanda 15, risposta A (Dan, 2026-10-18): prezzi e targa nelle notifiche.
+    variables: [codice, importo, motivo, richiedente_rimborso, link]
     it:
       title: "Rimborso da approvare: {{codice}}"
-      body: "Motivo: {{motivo}}. Chiesto da {{richiedente_rimborso}}."
+      body: "{{importo}}. Motivo: {{motivo}}. Chiesto da {{richiedente_rimborso}}."
       emailSubject: "Rimborso da approvare: {{codice}}"
       emailBody: |
-        {{richiedente_rimborso}} chiede un rimborso sulla richiesta {{codice}}.
+        {{richiedente_rimborso}} chiede un rimborso di {{importo}} sulla richiesta {{codice}}.
         Motivo: {{motivo}}
         Approva o respingi: {{link}}
     sq:
       title: "Rimbursim për miratim: {{codice}}"
-      body: "Arsyeja: {{motivo}}. Kërkuar nga {{richiedente_rimborso}}."
+      body: "{{importo}}. Arsyeja: {{motivo}}. Kërkuar nga {{richiedente_rimborso}}."
       emailSubject: "Rimbursim për miratim: {{codice}}"
       emailBody: |
-        {{richiedente_rimborso}} kërkon një rimbursim për kërkesën {{codice}}.
+        {{richiedente_rimborso}} kërkon një rimbursim prej {{importo}} për kërkesën {{codice}}.
         Arsyeja: {{motivo}}
         Mirato ose refuzo: {{link}}
 
@@ -788,15 +793,15 @@ events:
   refund.executed:
     recipients: [refund_recipient]
     channels: [in_app, email]
-    # Regola 8: l'importo è nell'app, non nell'avviso.
-    variables: [nome, veicolo]
+    # Domanda 15, risposta A (Dan, 2026-10-18): prezzi e targa nelle notifiche.
+    variables: [nome, importo, veicolo]
     it:
       title: "Rimborso eseguito"
-      body: "Abbiamo eseguito il rimborso: l'accredito può richiedere alcuni giorni lavorativi."
-      emailSubject: "Rimborso eseguito"
+      body: "Ti abbiamo rimborsato {{importo}}. L'accredito può richiedere alcuni giorni lavorativi."
+      emailSubject: "Rimborso di {{importo}} eseguito"
       emailBody: |
         Ciao {{nome}},
-        abbiamo eseguito il rimborso per {{veicolo}}, con lo stesso metodo che hai usato per pagare. L'importo è nell'app.
+        ti abbiamo rimborsato {{importo}} per {{veicolo}}, con lo stesso metodo che hai usato per pagare.
         L'accredito può richiedere alcuni giorni lavorativi, secondo la tua banca.
 
   # ---------------------------------------------------------------- Rinnovi e post-vendita

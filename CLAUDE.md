@@ -86,7 +86,7 @@ Su Windows Docker Desktop è installato nella cartella dell'utente: i comandi ch
 5. **Denaro.** Importi in centesimi interi (`...Cents`); massimali e capitali in euro interi (`...Eur`). Mai numeri decimali per il denaro.
 6. **Tempo.** Date in UTC nel database, mostrate nel fuso di Roma. L'ora la dà solo `Clock` (nei workflow, il tempo di Temporal). Le ore lavorative si calcolano solo con il calendario di dominio.
 7. **Parametri.** Ogni numero di business (durate, fee, soglie, penali, pesi) viene dai parametri, mai scritto nel codice. Un'asta usa i parametri in vigore alla sua apertura.
-8. **Niente dati sensibili dove non servono.** Log, errori, analisi, payload di Temporal, URL e notifiche contengono identificativi, non dati personali, prezzi di offerte o documenti.
+8. **Niente dati sensibili dove non servono.** Log, errori, analisi, payload di Temporal e URL contengono identificativi, non dati personali, prezzi di offerte o documenti. Le notifiche possono contenere i prezzi e, verso il richiedente, la targa (Dan, domanda 15, 2026-10-18), come nei testi di `seed/notifiche.yaml`; mai i contatti del cliente, mai i prezzi di altre agenzie prima della classifica, mai documenti.
 9. **Fornitori solo tramite adattatori.** Ogni fornitore ha una porta e un adattatore finto; test e sviluppo usano solo i finti.
 10. **Testi legali solo dall'archivio con versioni.** Finché il legale non li valida mostrano «[DA VALIDARE — LEGALE]» e la produzione non parte.
 11. **Solo dati sintetici** in sviluppo, test e collaudo. Compagnie inventate («Compagnia Alfa»…), persone e targhe inventate.

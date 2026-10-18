@@ -12,6 +12,8 @@ import {
   type RefundReason,
 } from "@astax/db";
 import { transitionRequest, type RequestStatus } from "@astax/shared/domain";
+import { formatEuroCents } from "@astax/shared/format";
+import { vehicleForRequester } from "@astax/shared/notifications";
 import { Inject, Injectable } from "@nestjs/common";
 import { AcceptanceService } from "../acceptance/acceptance.service.js";
 import { actorOf, AuditService } from "../audit/audit.service.js";
@@ -97,6 +99,7 @@ export class RefundsService {
         "refund.approval_needed.bo",
         {
           codice: request.code,
+          importo: formatEuroCents(input.premiumCents + input.feeCents),
           motivo: (labels.refundReason as Record<string, string>)[input.reason] ?? input.reason,
           richiedente_rimborso: input.requestedByLabel,
           link,
@@ -275,7 +278,11 @@ export class RefundsService {
         tx,
         [requester],
         "refund.executed",
-        { nome: requester.firstName, veicolo: await this.vehicle(tx, request) },
+        {
+          nome: requester.firstName,
+          importo: formatEuroCents(fresh.premiumCents + fresh.feeCents),
+          veicolo: await this.vehicle(tx, request),
+        },
         request.channel === "PRIVATE" ? `/preventivi/${request.id}` : `/richieste/${request.id}`,
         { quoteRequestId: request.id },
       );
@@ -310,9 +317,8 @@ export class RefundsService {
     });
   }
 
-  /** Make and model only: no plate in notifications (rule 8). */
+  /** Question 15A: make, model and plate for the customer. */
   private async vehicle(tx: DbTransaction, request: QuoteRequest) {
-    const data = await this.acceptance.quoteDataOf(tx, request);
-    return `${data.vehicle.make} ${data.vehicle.model}`;
+    return vehicleForRequester((await this.acceptance.quoteDataOf(tx, request)).vehicle);
   }
 }

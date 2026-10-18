@@ -11,8 +11,9 @@ import {
   type QuoteRequest,
 } from "@astax/db";
 import { endOfRomeDay } from "@astax/shared/domain";
-import { formatDate, formatDateTime } from "@astax/shared/format";
+import { formatDate, formatDateTime, formatEuroCents } from "@astax/shared/format";
 import type { Logger } from "@astax/shared/logging";
+import { vehicleForAgency, vehicleForRequester } from "@astax/shared/notifications";
 import { Inject, Injectable } from "@nestjs/common";
 import { actorOf, AuditService, type AuditActor } from "../audit/audit.service.js";
 import type { AuthContext } from "../auth/auth-context.js";
@@ -74,10 +75,13 @@ export class CustomerLinksService {
     return Array.isArray(link.offerIds) ? (link.offerIds as string[]) : [];
   }
 
-  /** Make and model only: no plate in notifications or before the code (rule 8). */
-  private async vehicle(tx: DbTransaction, request: QuoteRequest) {
-    const data = await this.acceptance.quoteDataOf(tx, request);
-    return `${data.vehicle.make} ${data.vehicle.model}`;
+  /**
+   * Question 15A: make, model and plate in the message to the customer; the
+   * page before the code shows make and model only (rule 8).
+   */
+  private async vehicle(tx: DbTransaction, request: QuoteRequest, withPlate = true) {
+    const { vehicle } = await this.acceptance.quoteDataOf(tx, request);
+    return withPlate ? vehicleForRequester(vehicle) : vehicleForAgency(vehicle);
   }
 
   /**
@@ -170,8 +174,14 @@ export class CustomerLinksService {
           nome: customer.person.givenName ?? customer.person.companyName ?? "",
           broker: organization.legalName,
           veicolo: await this.vehicle(tx, request),
-          // Rule 8: company and product, never the price.
-          descrizione_offerta: rows.map((r) => `${r.company} ${r.product}`.trim()).join(", "),
+          // Question 15A: company, product and the annual premium of each offer.
+          descrizione_offerta: rows
+            .map((r) =>
+              [r.company, r.product, formatEuroCents(r.annualGrossPremiumCents)]
+                .filter(Boolean)
+                .join(" "),
+            )
+            .join(", "),
           garanzia: formatDate(lastGuarantee),
           link: `${this.config.WEB_URL}/offerta/${token}`,
           scadenza_link: formatDateTime(link.expiresAt),
@@ -282,7 +292,7 @@ export class CustomerLinksService {
         linkId: link.id,
         state: this.stateOf(link, now),
         broker: organization.legalName,
-        vehicle: await this.vehicle(tx, link.quoteRequest),
+        vehicle: await this.vehicle(tx, link.quoteRequest, false),
         expiresAt: link.expiresAt.toISOString(),
       };
       const live = await tx.acceptance.findFirst({
