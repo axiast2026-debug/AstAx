@@ -361,6 +361,19 @@ events:
         L'agenzia {{agenzia}} emetterà la polizza entro {{termine_emissione}}. Ti avvisiamo appena i documenti sono pronti.
         Riepilogo: {{link}}
 
+  # Fase 8: il cliente del broker non ha un account; il riepilogo resta nel link che gli ha mandato il broker.
+  payment.confirmed.customer:
+    recipients: [broker_client]
+    channels: [email]
+    mandatory: true
+    variables: [nome, veicolo, agenzia, termine_emissione, broker]
+    it:
+      emailSubject: "Pagamento ricevuto per {{veicolo}}"
+      emailBody: |
+        Buongiorno {{nome}},
+        abbiamo ricevuto il pagamento per {{veicolo}}; il riepilogo con gli importi è nel link che ti ha mandato {{broker}}.
+        L'agenzia {{agenzia}} emetterà la polizza entro {{termine_emissione}}.
+
   payment.failed:
     recipients: [payer]
     channels: [in_app, push, email]

@@ -5,7 +5,9 @@ import type { PushMessage, PushSubscriptionData, WebPushPort } from "@astax/adap
 import {
   asRenderable,
   asSystem,
+  markMessageSent,
   planDispatch,
+  queueMessage,
   TemplateStore,
   templatesFromFile,
   type DbClient,
@@ -40,6 +42,8 @@ interface PendingMail {
   variables: TemplateVariables;
   locale: "it" | "sq";
   ids: Record<string, string>;
+  /** Phase 8: the row of MessageOutbox written in the activity's transaction. */
+  outboxId?: string;
 }
 
 interface PendingPush {
@@ -48,6 +52,7 @@ interface PendingPush {
   message: PushMessage;
   eventKey: string;
   ids: Record<string, string>;
+  outboxId?: string;
 }
 
 type PendingEmail = PendingMail | PendingPush;
@@ -154,7 +159,7 @@ export class WorkerNotifier {
       );
     }
     for (const r of plan.email) {
-      pending.push({
+      await this.queueEmail(tx, pending, {
         to: r.email ?? "",
         eventKey,
         variables: variables(r.locale),
@@ -170,15 +175,54 @@ export class WorkerNotifier {
         url: link ?? "/notifiche",
       };
       for (const enc of subscriptions) {
+        const subscription = JSON.parse(cipher.decrypt(enc)) as PushSubscriptionData;
         pending.push({
           kind: "push",
-          subscription: JSON.parse(cipher.decrypt(enc)) as PushSubscriptionData,
+          subscription,
           message,
           eventKey,
           ids,
+          outboxId: await queueMessage(
+            tx,
+            cipher,
+            { channel: "PUSH", subscription, push: message },
+            { eventKey, ids },
+            now,
+          ),
         });
       }
     }
+  }
+
+  /**
+   * An email to send after the commit, also to an address with no account.
+   * Phase 8: with a database and a cipher it is queued in MessageOutbox in the
+   * same transaction, so the worker sends it even if this process stops first.
+   */
+  async queueEmail(
+    tx: DbTransaction,
+    pending: PendingEmail[],
+    mail: Omit<PendingMail, "kind" | "outboxId">,
+  ) {
+    const { cipher, clock } = this.options;
+    let outboxId: string | undefined;
+    if (cipher && clock && this.options.db) {
+      const texts = asRenderable(await this.stored());
+      outboxId = await queueMessage(
+        tx,
+        cipher,
+        {
+          channel: "EMAIL",
+          email: {
+            to: mail.to,
+            ...renderEmail(texts, mail.eventKey, mail.locale, mail.variables, this.#labels),
+          },
+        },
+        { eventKey: mail.eventKey, ids: mail.ids },
+        clock.now(),
+      );
+    }
+    pending.push({ ...mail, ...(outboxId ? { outboxId } : {}) });
   }
 
   async flush(pending: readonly PendingEmail[]): Promise<void> {
@@ -196,7 +240,17 @@ export class WorkerNotifier {
       } catch (error) {
         this.logger.error(
           { eventKey: p.eventKey, ...p.ids, err: errorForLog(error) },
-          "notification not sent",
+          p.outboxId ? "notification not sent, will retry" : "notification not sent",
+        );
+        continue;
+      }
+      const { db, clock } = this.options;
+      if (p.outboxId && db && clock) {
+        await markMessageSent(db, p.outboxId, clock.now()).catch((error: unknown) =>
+          this.logger.warn(
+            { eventKey: p.eventKey, err: errorForLog(error) },
+            "sent message not marked",
+          ),
         );
       }
     }

@@ -1904,6 +1904,37 @@ model RuiRecord {
 }
 
 /// One import of the registry per day (Rome), with the counts.
+/// Phase 8: emails, SMS and pushes, written with the change that causes them
+/// and sent after the commit; the worker sends again what was left behind.
+model MessageOutbox {
+  id            String         @id @default(uuid(7)) @db.Uuid
+  channel       MessageChannel
+  eventKey      String
+  ids           Json           @default("{}")
+  /// Encrypted JSON of the message (address or number, texts); emptied once sent.
+  contentEnc    String
+  status        MessageStatus  @default(PENDING)
+  attempts      Int            @default(0)
+  nextAttemptAt DateTime       @db.Timestamptz(3)
+  lastErrorCode String?
+  createdAt     DateTime       @db.Timestamptz(3)
+  sentAt        DateTime?      @db.Timestamptz(3)
+
+  @@index([status, nextAttemptAt])
+}
+
+enum MessageChannel {
+  EMAIL
+  SMS
+  PUSH
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
 /// Phase 8: where a periodic job of the worker has got to.
 model JobCursor {
   key       String   @id

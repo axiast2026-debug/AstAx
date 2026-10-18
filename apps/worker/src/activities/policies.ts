@@ -114,7 +114,7 @@ export function policyActivities(
         // Email only (survey.post_sale): the customer of a broker has no account.
         const { emails, name } = await surveyRecipient(tx, request);
         for (const to of emails) {
-          pending.push({
+          await notifier.queueEmail(tx, pending, {
             to,
             eventKey: "survey.post_sale",
             variables: { nome: name, veicolo: vehicle, link: `${urls.web}/questionario/${token}` },

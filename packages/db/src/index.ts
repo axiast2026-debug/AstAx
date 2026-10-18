@@ -72,3 +72,12 @@ export {
   retentionCandidates,
   runRetention,
 } from "./retention.js";
+export {
+  dispatchMessages,
+  markMessageSent,
+  queueMessage,
+  sendQueued,
+  type MessageDispatchResult,
+  type MessageSenders,
+  type QueuedMessage,
+} from "./message-outbox.js";

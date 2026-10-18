@@ -12,7 +12,8 @@ import {
   ObjectNotFoundError,
   type ObjectStoragePort,
 } from "@astax/adapters/storage";
-import { createDbClient, dispatchOutbox, kmsEventRecorder } from "@astax/db";
+import { createDbClient, dispatchMessages, dispatchOutbox, kmsEventRecorder } from "@astax/db";
+import { MailpitSmsSender } from "@astax/adapters/sms";
 import { loadEnv } from "@astax/shared/env";
 import { createLogger, errorForLog } from "@astax/shared/logging";
 import { Client, Connection } from "@temporalio/client";
@@ -72,12 +73,10 @@ const email = new MailpitEmailSender(config.MAILPIT_URL, {
 });
 const storage = storageFor(config);
 const fieldCipher = new LocalFieldCipher(config.FIELD_ENCRYPTION_KEY, config.BLIND_INDEX_KEY);
-const notifier = new WorkerNotifier(email, logger, {
-  db,
-  clock,
-  cipher: fieldCipher,
-  push: new MailpitWebPush(email),
-});
+const push = new MailpitWebPush(email);
+const notifier = new WorkerNotifier(email, logger, { db, clock, cipher: fieldCipher, push });
+/** Phase 8: the senders of MessageOutbox (the fakes until the real providers, rule 9). */
+const senders = { email, sms: new MailpitSmsSender(email), push };
 const activities = createActivities({
   db,
   // ADR 0005: the worker holds only the key of the sealed bids.
@@ -121,10 +120,16 @@ const outboxTimer =
     : setInterval(() => {
         if (dispatching) return;
         dispatching = true;
-        dispatchOutbox(db, deliver, { now: clock.now() })
-          .then((result) => {
+        Promise.all([
+          dispatchOutbox(db, deliver, { now: clock.now() }).then((result) => {
             if (result.failed > 0) logger.error({ ...result }, "outbox events failed for good");
-          })
+          }),
+          // Phase 8: emails, SMS and pushes left behind by a stopped process or a provider down.
+          dispatchMessages(db, fieldCipher, senders, { now: clock.now() }).then((result) => {
+            if (result.sent + result.retried > 0) logger.info({ ...result }, "messages sent again");
+            if (result.failed > 0) logger.error({ ...result }, "messages failed for good");
+          }),
+        ])
           .catch((error: unknown) =>
             logger.error({ err: errorForLog(error) }, "outbox dispatch failed"),
           )

@@ -20,9 +20,24 @@ import { type InvoiceLine, type InvoiceSeries } from "@astax/shared/domain";
 import { formatEuroCents } from "@astax/shared/format";
 import type { Logger } from "@astax/shared/logging";
 import { errorForLog } from "@astax/shared/logging";
-import { Inject, Injectable } from "@nestjs/common";
+import {
+  Inject,
+  Injectable,
+  type OnApplicationBootstrap,
+  type OnApplicationShutdown,
+} from "@nestjs/common";
 import { acceptancePdf } from "../acceptance/documents-pdf.js";
-import { CLOCK, DB, E_INVOICING, FIELD_CIPHER, LOGGER, OBJECT_STORAGE } from "../infra/tokens.js";
+import type { ApiConfig } from "../config/config.js";
+import {
+  CLOCK,
+  CONFIG,
+  DB,
+  E_INVOICING,
+  FIELD_CIPHER,
+  LOGGER,
+  OBJECT_STORAGE,
+} from "../infra/tokens.js";
+import { NotificationService, type Outbound } from "../notifications/notification.service.js";
 import labels from "../notifications/labels.it.json" with { type: "json" };
 import { decryptJson } from "../requests/request-support.js";
 
@@ -41,7 +56,9 @@ export const recipientComplete = (r: InvoiceRecipient) =>
  * with issues at the same moment; the delivery to SDI happens after.
  */
 @Injectable()
-export class InvoicingService {
+export class InvoicingService implements OnApplicationBootstrap, OnApplicationShutdown {
+  #timer: NodeJS.Timeout | null = null;
+
   constructor(
     @Inject(DB) private readonly db: DbClient,
     @Inject(CLOCK) private readonly clock: Clock,
@@ -49,7 +66,35 @@ export class InvoicingService {
     @Inject(OBJECT_STORAGE) private readonly storage: ObjectStoragePort,
     @Inject(E_INVOICING) private readonly sdi: EInvoicingPort,
     @Inject(LOGGER) private readonly logger: Logger,
+    @Inject(CONFIG) private readonly config: ApiConfig,
+    @Inject(NotificationService) private readonly notifications: NotificationService,
   ) {}
+
+  /**
+   * Phase 8: the invoices still to deliver go to SDI by themselves every
+   * INVOICE_DELIVERY_INTERVAL_MS (the broker's monthly ones issued by the
+   * worker, those whose delivery failed), without waiting for the back office.
+   */
+  onApplicationBootstrap(): void {
+    const every = this.config.INVOICE_DELIVERY_INTERVAL_MS;
+    if (every === 0) return;
+    let running = false;
+    this.#timer = setInterval(() => {
+      if (running) return;
+      running = true;
+      this.deliverPending()
+        .catch((error: unknown) =>
+          this.logger.error({ err: errorForLog(error) }, "invoice delivery round failed"),
+        )
+        .finally(() => {
+          running = false;
+        });
+    }, every);
+  }
+
+  onApplicationShutdown(): void {
+    if (this.#timer) clearInterval(this.#timer);
+  }
 
   /** The municipality's name from its ISTAT code, for the address on the invoice. */
   addressOf(tx: DbTransaction, address: StoredAddress): Promise<InvoiceRecipient["address"]> {
@@ -118,11 +163,17 @@ export class InvoicingService {
    * completare»; a failure is logged and retried by the next delivery.
    */
   async deliver(invoiceId: string): Promise<void> {
+    const outbound: Outbound[] = [];
     try {
       await withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
+        // Phase 8: one delivery at a time, also with several API instances.
+        const locked = await tx.$queryRaw<{ id: string }[]>`
+          SELECT "id" FROM "Invoice" WHERE "id" = ${invoiceId}::uuid FOR UPDATE SKIP LOCKED`;
+        if (locked.length === 0) return;
         const invoice = await tx.invoice.findUniqueOrThrow({ where: { id: invoiceId } });
         if (invoice.sdiStatus !== "TO_SEND") return;
         const recipient = decryptJson(this.cipher, invoice.recipientEnc) as InvoiceRecipient;
+        const firstDelivery = invoice.pdfDocumentId === null;
         const astax = await tx.organization.findFirstOrThrow({ where: { type: "ASTAX" } });
         const astaxAddress = astax.address as {
           street: string;
@@ -132,6 +183,8 @@ export class InvoicingService {
         } | null;
         const lines = invoice.lines as unknown as InvoiceLine[];
         await this.courtesyPdf(tx, invoice, recipient, lines);
+        // The courtesy copy exists from now on: its recipient is told, once.
+        if (firstDelivery) outbound.push(...(await this.tellAvailable(tx, invoice, lines)));
         if (!recipientComplete(recipient) || !astax.vatNumber || !astaxAddress) return;
         const credited = invoice.creditedInvoiceId
           ? await tx.invoice.findUnique({ where: { id: invoice.creditedInvoiceId } })
@@ -187,6 +240,52 @@ export class InvoicingService {
     } catch (error) {
       this.logger.error({ invoiceId, err: errorForLog(error) }, "invoice not delivered");
     }
+    await this.notifications.send(outbound);
+  }
+
+  /**
+   * invoice.available: to the private customer who owns the invoice, or to the
+   * owners of the organization (broker, agency). The amount is the invoice's,
+   * never an offer's price (rule 8).
+   */
+  private async tellAvailable(
+    tx: DbTransaction,
+    invoice: Invoice,
+    lines: InvoiceLine[],
+  ): Promise<Outbound[]> {
+    const users = await asSystem(tx, async () =>
+      invoice.ownerUserId
+        ? await tx.user.findMany({ where: { id: invoice.ownerUserId } })
+        : (
+            await tx.membership.findMany({
+              where: {
+                organizationId: invoice.ownerOrganizationId ?? "",
+                role: "OWNER",
+                status: "ACTIVE",
+              },
+              include: { user: true },
+            })
+          ).map((m) => m.user),
+    );
+    const link = `/fatture/${invoice.id}`;
+    return this.notifications.deliver(
+      tx,
+      users.map((u) => ({
+        userId: u.id,
+        locale: u.locale === "sq" ? "sq" : "it",
+        email: u.emailEnc ? this.cipher.decrypt(u.emailEnc) : null,
+        phone: null,
+      })),
+      "invoice.available",
+      () => ({
+        numero_fattura: invoice.code,
+        importo: formatEuroCents(invoice.totalCents),
+        descrizione: lines[0]?.description ?? invoice.code,
+        link: new URL(link, this.config.WEB_URL).toString(),
+      }),
+      link,
+      { invoiceId: invoice.id },
+    );
   }
 
   /**

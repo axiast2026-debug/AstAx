@@ -6,7 +6,11 @@ import type { PushSubscriptionData, WebPushPort } from "@astax/adapters/web-push
 import {
   asRenderable,
   asSystem,
+  markMessageSent,
   planDispatch,
+  queueMessage,
+  type DbClient,
+  type QueuedMessage,
   type DbTransaction,
   type DispatchUser,
   type TemplateStore,
@@ -24,6 +28,7 @@ import {
 import { Inject, Injectable } from "@nestjs/common";
 import {
   CLOCK,
+  DB,
   EMAIL_SENDER,
   FIELD_CIPHER,
   LOGGER,
@@ -37,8 +42,12 @@ export interface InAppRecipient {
   locale: "it" | "sq";
 }
 
-/** A message to send after the commit (a rolled back change sends nothing). */
-export type Outbound =
+/**
+ * A message to send after the commit (a rolled back change sends nothing).
+ * Phase 8: it is also queued in MessageOutbox in the same transaction
+ * (`outboxId`), so the worker sends it if this process stops first.
+ */
+export type Outbound = { outboxId?: string } & (
   | {
       channel: "EMAIL";
       to: string;
@@ -54,7 +63,15 @@ export type Outbound =
       message: { title: string; body: string; url: string };
       eventKey: string;
       ids: Record<string, string>;
-    };
+    }
+);
+
+function queued(o: Outbound): QueuedMessage {
+  if (o.channel === "EMAIL")
+    return { channel: "EMAIL", email: { to: o.to, subject: o.subject, text: o.text } };
+  if (o.channel === "SMS") return { channel: "SMS", sms: { to: o.to, text: o.text } };
+  return { channel: "PUSH", subscription: o.subscription, push: o.message };
+}
 
 /**
  * Notifications (docs/notifiche.md). The texts in force come from
@@ -75,6 +92,7 @@ export class NotificationService {
     @Inject(NOTIFICATION_TEMPLATES) private readonly store: TemplateStore,
     @Inject(LOGGER) private readonly logger: Logger,
     @Inject(CLOCK) private readonly clock: Clock,
+    @Inject(DB) private readonly db: DbClient,
   ) {}
 
   /** The texts in force, for the panels and the previews. */
@@ -166,10 +184,17 @@ export class NotificationService {
         });
       }
     }
+    const now = this.clock.now();
+    for (const o of out) {
+      o.outboxId = await queueMessage(tx, this.cipher, queued(o), { eventKey, ids: payload }, now);
+    }
     return out;
   }
 
-  /** After the commit; a failed send is logged and the others go on. */
+  /**
+   * After the commit. A sent message is marked in MessageOutbox; a failed one
+   * is logged and stays there for the worker to send again (phase 8).
+   */
   async send(outbound: readonly Outbound[]): Promise<void> {
     for (const o of outbound) {
       try {
@@ -180,7 +205,16 @@ export class NotificationService {
       } catch (error) {
         this.logger.error(
           { eventKey: o.eventKey, channel: o.channel, ...o.ids, err: errorForLog(error) },
-          "notification not sent",
+          o.outboxId ? "notification not sent, the worker will retry" : "notification not sent",
+        );
+        continue;
+      }
+      if (o.outboxId) {
+        await markMessageSent(this.db, o.outboxId, this.clock.now()).catch((error: unknown) =>
+          this.logger.warn(
+            { eventKey: o.eventKey, err: errorForLog(error) },
+            "sent message not marked",
+          ),
         );
       }
     }
@@ -207,6 +241,36 @@ export class NotificationService {
       payload,
       ["IN_APP"],
     );
+  }
+
+  /**
+   * Phase 8: an email to an address with no account, queued in the caller's
+   * transaction and returned to send after the commit (like deliver).
+   */
+  async queueEmail(
+    tx: DbTransaction,
+    to: string,
+    eventKey: string,
+    variables: TemplateVariables,
+    ids: Record<string, string>,
+    locale: "it" | "sq" = "it",
+  ): Promise<Outbound> {
+    const texts = asRenderable(await this.store.get());
+    const out: Outbound = {
+      channel: "EMAIL",
+      to,
+      ...renderEmail(texts, eventKey, locale, variables, this.#labels),
+      eventKey,
+      ids,
+    };
+    out.outboxId = await queueMessage(
+      tx,
+      this.cipher,
+      queued(out),
+      { eventKey, ids },
+      this.clock.now(),
+    );
+    return out;
   }
 
   /** An email to an address with no account (the broker's customer, a code). */

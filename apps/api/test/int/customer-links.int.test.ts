@@ -358,6 +358,12 @@ describe("fase 5: the broker's customer on the link (decision 26)", () => {
       method: "INSTANT_TRANSFER",
     });
     expect(acceptance).toMatchObject({ acceptedByUserId: null, brokerFeeCents: 3000 });
+    // Phase 8: the customer is told by email, without a link and without amounts (rule 8).
+    const told = h.email.sent.filter(
+      (m) => m.to === EMAIL && m.subject.startsWith("Pagamento ricevuto"),
+    );
+    expect(told).toHaveLength(1);
+    expect(told[0]?.text).not.toMatch(/http|€/);
     expect(acceptance.customerLinkId).not.toBeNull();
     const toIssue = async (key: "agenzia-tre-owner" | "agenzia-uno-owner", org: string) =>
       (await (

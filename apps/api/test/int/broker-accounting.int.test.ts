@@ -137,6 +137,14 @@ describe("decision 24 the broker's monthly invoice", () => {
     });
     expect(invoice.lines).toEqual([expect.objectContaining({ quantity: 3, unitCents: 3000 })]);
     expect(invoice.dueOn?.toISOString().slice(0, 10)).toBe(addCalendarDays(nextMonthFirst, 30));
+    // Phase 8: invoice.available to the broker's owner, once, with the link to the copy.
+    const told = await system((tx) =>
+      tx.notification.findMany({
+        where: { eventKey: "invoice.available", payload: { equals: { invoiceId: invoice.id } } },
+      }),
+    );
+    expect(told.map((n) => n.userId)).toEqual([userId("broker-owner")]);
+    expect(told[0]?.link).toBe(`/fatture/${invoice.id}`);
     // Again for the same month: nothing new.
     await r.json(
       await r.call(await accounting(), "/back-office/invoices/broker-month", { body: { period } }),

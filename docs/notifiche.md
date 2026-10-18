@@ -68,6 +68,7 @@ Ogni utente sceglie i canali per evento nel profilo. Restano sempre attivi: le n
 | `reconfirmation.completed.requester` | `requester` | In app, push, email |
 | `request.auto_cancelled` | `requester` | In app, email |
 | `offer.link_to_client` | `broker_client` | Email, SMS |
+| `payment.confirmed.customer` | `broker_client` | Email (fase 8: il cliente del broker non ha un account; nessun link, il riepilogo è nel link del broker) |
 | `payment.confirmed` | Chi ha pagato | In app, email |
 | `payment.failed` | Chi ha pagato | In app, push, email |
 | `offer.won` | `winning_agency_users` | In app, push, email |

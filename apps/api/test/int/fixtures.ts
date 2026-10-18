@@ -179,6 +179,7 @@ export async function startHarness(
     KEYCLOAK_URL: "http://keycloak.test",
     KEYCLOAK_API_ADMIN_SECRET: "test-secret-not-used-0000",
     IDENTITY_SYNC_ON_START: "false",
+    INVOICE_DELIVERY_INTERVAL_MS: "0",
     ...options.env,
   });
   const app = await createApp(config, {

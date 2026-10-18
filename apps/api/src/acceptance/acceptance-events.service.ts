@@ -503,6 +503,33 @@ export class AcceptanceEventsService {
       this.requesterLink(request),
       { quoteRequestId: request.id },
     );
+    // Phase 8: the broker's customer has no account; an email without a link.
+    if (request.channel === "BROKER" && request.customerId) {
+      const customer = await tx.customer.findUnique({
+        where: { id: request.customerId },
+        include: { person: true },
+      });
+      if (customer?.emailEnc) {
+        const broker = await tx.organization.findUnique({
+          where: { id: request.ownerOrganizationId ?? "" },
+        });
+        emails.push(
+          await this.notifications.queueEmail(
+            tx,
+            this.cipher.decrypt(customer.emailEnc),
+            "payment.confirmed.customer",
+            {
+              nome: customer.person.givenName ?? customer.person.companyName ?? "",
+              veicolo: vehicle,
+              agenzia: agency.legalName,
+              termine_emissione: term,
+              broker: broker?.legalName ?? "",
+            },
+            { quoteRequestId: request.id },
+          ),
+        );
+      }
+    }
     const toIssue = `${this.config.WEB_URL}/da-emettere`;
     await this.tell(
       tx,
