@@ -1104,11 +1104,10 @@ export function auctionActivities(
 
   /**
    * ASTA-06: the back office cancels the auction, with reason. The request
-   * becomes «Deserta» (question 13, prudent value): from there the back office
-   * opens a new auction or closes it. Sealed offers stay sealed.
+   * becomes «Annullata» (question 13, answer B). Sealed offers stay sealed.
    */
   async function cancelRound(input: BackOfficeAction) {
-    const requestId = await inSystem(async (tx) => {
+    const requestId = await inSystem(async (tx, pending) => {
       const auction = await lockAuction(tx, input.auctionId);
       if (auction.status !== "OPEN") return auction.quoteRequestId;
       const now = clock.now();
@@ -1120,7 +1119,7 @@ export function auctionActivities(
       const request = await tx.quoteRequest.findUniqueOrThrow({
         where: { id: auction.quoteRequestId },
       });
-      await setRequestStatus(tx, request, "DESERTED");
+      await setRequestStatus(tx, request, "CANCELLED");
       await addRequestEvent(tx, request, {
         type: "AUCTION_CANCELLED",
         actorKind: "BACK_OFFICE",
@@ -1134,6 +1133,21 @@ export function auctionActivities(
         actorUserId: input.byUserId,
         after: { actionId: input.actionId },
       });
+      const quoteData = await quoteDataOf(tx, cipher, request);
+      const requester = await requesterOf(tx, cipher, request);
+      await notifier.notify(
+        tx,
+        pending,
+        requester.recipients,
+        "auction.cancelled.requester",
+        () => ({
+          nome: requester.firstName,
+          codice: request.code,
+          veicolo: vehicleForRequester(quoteData),
+        }),
+        new URL(requesterLink(urls, request)).pathname,
+        { quoteRequestId: request.id },
+      );
       return request.id;
     });
     await publish(requestId);

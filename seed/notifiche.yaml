@@ -203,6 +203,20 @@ events:
         Il nostro back office valuta le alternative e ti scrive.
         Non ti è stato addebitato nulla.
 
+  auction.cancelled.requester:
+    recipients: [requester]
+    channels: [in_app, push, email]
+    variables: [nome, codice, veicolo]
+    it:
+      title: "Asta annullata"
+      body: "L'asta per {{veicolo}} è stata annullata dal nostro back office."
+      emailSubject: "Richiesta {{codice}}: asta annullata"
+      emailBody: |
+        Ciao {{nome}},
+        il nostro back office ha annullato l'asta della richiesta {{codice}} ({{veicolo}}) e la richiesta è chiusa.
+        Se ti serve ancora un preventivo puoi inviare una nuova richiesta.
+        Non ti è stato addebitato nulla.
+
   auction.deserted.bo:
     recipients: [bo_verifiers, bo_supervisors]
     channels: [in_app, email]
@@ -257,6 +271,39 @@ events:
         Per chiarimenti scrivete all'assistenza dalla pagina della richiesta: {{link}}
 
   # ---------------------------------------------------------------- Garanzia e riconferma
+
+  offer.excluded_last.requester:
+    recipients: [requester]
+    channels: [in_app, push, email]
+    variables: [nome, codice]
+    it:
+      title: "Nessuna offerta valida"
+      body: "Per la richiesta {{codice}} non resta un'offerta valida."
+      emailSubject: "Richiesta {{codice}}: nessuna offerta valida"
+      emailBody: |
+        Ciao {{nome}},
+        il nostro controllo ha escluso l'ultima offerta valida della richiesta {{codice}}: il preventivo dell'agenzia non corrispondeva a quanto dichiarato.
+        Il nostro back office valuta le alternative e ti scrive.
+        Non ti è stato addebitato nulla.
+
+  offer.excluded_last.bo:
+    recipients: [bo_verifiers, bo_supervisors]
+    channels: [in_app, email]
+    variables: [codice, link]
+    it:
+      title: "Richiesta deserta dopo un'esclusione"
+      body: "La richiesta {{codice}} non ha più offerte valide ed è deserta."
+      emailSubject: "Richiesta {{codice}} deserta dopo un'esclusione"
+      emailBody: |
+        La richiesta {{codice}} non ha più offerte valide dopo l'esclusione dell'ultima ed è «Deserta».
+        Da qui puoi aprire una nuova asta o chiudere la richiesta: {{link}}
+    sq:
+      title: "Kërkesë pa oferta pas një përjashtimi"
+      body: "Kërkesa {{codice}} nuk ka më oferta të vlefshme."
+      emailSubject: "Kërkesa {{codice}} pa oferta pas një përjashtimi"
+      emailBody: |
+        Kërkesa {{codice}} nuk ka më oferta të vlefshme pas përjashtimit të së fundit.
+        Mund të hapësh një ankand të ri ose ta mbyllësh kërkesën: {{link}}
 
   guarantee.expiring:
     recipients: [requester]

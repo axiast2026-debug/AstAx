@@ -581,7 +581,7 @@ describe("deserted and back office actions (ASTA-06, ASTA-08)", () => {
     ).rejects.toThrow(/AFTER_FIRST_HALF/);
   });
 
-  it("ASTA-06 a cancellation closes the auction without opening the envelopes; the request is «Deserta» (question 13)", async () => {
+  it("ASTA-06 a cancellation closes the auction without opening the envelopes; the request is «Annullata» (question 13, answer B)", async () => {
     h.clock.set(MONDAY_9);
     const request = await approvedRequest(h);
     const opened = await h.activities.openRound({ requestId: request.id, kind: "MAIN", round: 1 });
@@ -611,7 +611,16 @@ describe("deserted and back office actions (ASTA-06, ASTA-08)", () => {
     const status = await read((tx) =>
       tx.quoteRequest.findUniqueOrThrow({ where: { id: request.id } }),
     );
-    expect(status.status).toBe("DESERTED");
+    expect(status.status).toBe("CANCELLED");
+    const told = await read((tx) =>
+      tx.notification.count({
+        where: {
+          eventKey: "auction.cancelled.requester",
+          payload: { path: ["quoteRequestId"], equals: request.id },
+        },
+      }),
+    );
+    expect(told).toBeGreaterThan(0);
   });
 });
 

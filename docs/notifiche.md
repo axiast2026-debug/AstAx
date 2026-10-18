@@ -59,8 +59,11 @@ Ogni utente sceglie i canali per evento nel profilo. Restano sempre attivi: le n
 | `auction.closed.agency` | `participating_agency_users` | In app, email |
 | `auction.reopened.requester` | `requester` | In app, push |
 | `auction.deserted.requester` | `requester` | In app, push, email |
+| `auction.cancelled.requester` | `requester` | In app, push, email |
 | `auction.deserted.bo` | `bo_verifiers`, `bo_supervisors` | In app, email |
 | `offer.excluded_after_review` | `participating_agency_users` | In app, email |
+| `offer.excluded_last.requester` | `requester` | In app, push, email |
+| `offer.excluded_last.bo` | `bo_verifiers`, `bo_supervisors` | In app, email |
 | `guarantee.expiring` | `requester` | In app, push, email |
 | `request.expired` | `requester` | In app, push, email |
 | `offer.quote_mismatch.bo` | `bo_verifiers`, `bo_supervisors` | In app, email |

@@ -1,7 +1,14 @@
 import type { Clock } from "@astax/adapters/clock";
 import type { FieldCipher } from "@astax/adapters/crypto";
-import { asSystem, withContext, type DbClient } from "@astax/db";
-import { transitionOffer } from "@astax/shared/domain";
+import {
+  addRequestEvent,
+  asSystem,
+  withContext,
+  type DbClient,
+  type DbTransaction,
+  type QuoteRequest,
+} from "@astax/db";
+import { transitionOffer, transitionRequest } from "@astax/shared/domain";
 import { Inject, Injectable } from "@nestjs/common";
 import { actorOf, AuditService } from "../audit/audit.service.js";
 import type { AuthContext } from "../auth/auth-context.js";
@@ -153,7 +160,8 @@ export class QuoteChecksService {
           "/le-mie-offerte",
           { offerId: offer.id },
         );
-        return { decision: input.decision, outbound };
+        const deserted = await this.desertedIfNoneLeft(tx, auth, request, offer.auctionId, now);
+        return { decision: input.decision, outbound: [...outbound, ...deserted] };
       }
       return { decision: input.decision, outbound: [] };
     }).then(async (outcome) => {
@@ -161,5 +169,78 @@ export class QuoteChecksService {
       await this.notifications.send(outcome.outbound);
       return { decision: outcome.decision };
     });
+  }
+
+  /**
+   * Question 16, answer B: with the last valid offer excluded the request is
+   * «Deserta» at once, and the customer and the back office are told. From
+   * there the back office opens a new auction or closes it (ASTA-08).
+   */
+  private async desertedIfNoneLeft(
+    tx: DbTransaction,
+    auth: AuthContext,
+    request: QuoteRequest,
+    auctionId: string,
+    now: Date,
+  ) {
+    const left = await asSystem(tx, () =>
+      tx.offer.count({ where: { auctionId, status: "AWAITING_CUSTOMER" } }),
+    );
+    if (left > 0) return [];
+    transitionRequest("OFFERS_AVAILABLE", "DESERTED");
+    await asSystem(tx, () =>
+      tx.quoteRequest.update({ where: { id: request.id }, data: { status: "DESERTED" } }),
+    );
+    await addRequestEvent(tx, request, {
+      type: "DESERTED",
+      actorKind: "BACK_OFFICE",
+      actorUserId: auth.userId,
+      at: now,
+    });
+    await this.audit.inTransaction(tx, actorOf(auth), {
+      action: "REQUEST_DESERTED",
+      targetType: "QuoteRequest",
+      targetId: request.id,
+    });
+    const { requester, staff } = await asSystem(tx, async () => ({
+      requester: await tx.user.findUniqueOrThrow({ where: { id: request.requesterUserId } }),
+      staff: await tx.membership.findMany({
+        where: {
+          organization: { type: "ASTAX" },
+          role: { in: ["BO_VERIFIER", "BO_SUPERVISOR"] },
+          status: "ACTIVE",
+        },
+        include: { user: true },
+      }),
+    }));
+    const toRequester = await this.notifications.deliver(
+      tx,
+      [
+        {
+          userId: requester.id,
+          locale: requester.locale,
+          email: requester.emailEnc ? this.cipher.decrypt(requester.emailEnc) : null,
+          phone: null,
+        },
+      ],
+      "offer.excluded_last.requester",
+      () => ({ nome: requester.firstName, codice: request.code }),
+      request.channel === "PRIVATE" ? `/preventivi/${request.id}` : `/richieste/${request.id}`,
+      { quoteRequestId: request.id },
+    );
+    const toStaff = await this.notifications.deliver(
+      tx,
+      staff.map((m) => ({
+        userId: m.user.id,
+        locale: m.user.locale,
+        email: m.user.emailEnc ? this.cipher.decrypt(m.user.emailEnc) : null,
+        phone: null,
+      })),
+      "offer.excluded_last.bo",
+      () => ({ codice: request.code, link: `${this.config.ADMIN_URL}/aste` }),
+      "/aste",
+      { quoteRequestId: request.id },
+    );
+    return [...toRequester, ...toStaff];
   }
 }

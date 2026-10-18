@@ -173,6 +173,27 @@ describe("fase 4: OFF-09 decisions of the back office", () => {
     expect(offer.exclusionReason).toBe("Il premio del PDF è diverso da quello dichiarato");
     expect(audit?.reason).toBe("Il premio del PDF è diverso da quello dichiarato");
     expect(told).toBeGreaterThan(0);
+    // Question 16, answer B: it was the last valid offer, the request is «Deserta» at once.
+    const [request, requesterTold, backOfficeTold] = await system((tx) =>
+      Promise.all([
+        tx.quoteRequest.findUniqueOrThrow({ where: { id: requestId } }),
+        tx.notification.count({
+          where: {
+            eventKey: "offer.excluded_last.requester",
+            payload: { path: ["quoteRequestId"], equals: requestId },
+          },
+        }),
+        tx.notification.count({
+          where: {
+            eventKey: "offer.excluded_last.bo",
+            payload: { path: ["quoteRequestId"], equals: requestId },
+          },
+        }),
+      ]),
+    );
+    expect(request.status).toBe("DESERTED");
+    expect(requesterTold).toBe(1);
+    expect(backOfficeTold).toBeGreaterThan(0);
     // Decided once.
     const again = await r.json<{ errors: { issue: string }[] }>(
       await decide(verifier, { decision: "KEPT", reason: "Ripensamento" }),

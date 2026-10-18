@@ -178,9 +178,11 @@ stateDiagram-v2
     AUCTION_OPEN --> AUCTION_OPEN: riapertura automatica
     AUCTION_OPEN --> OFFERS_AVAILABLE: chiusura con offerte valide
     AUCTION_OPEN --> DESERTED: nessuna offerta valida
+    AUCTION_OPEN --> CANCELLED: annullamento del back office
     DESERTED --> AUCTION_OPEN: nuova asta del back office
     OFFERS_AVAILABLE --> ACCEPTED: firma
     OFFERS_AVAILABLE --> EXPIRED: garanzie scadute
+    OFFERS_AVAILABLE --> DESERTED: esclusa l'ultima offerta valida
     EXPIRED --> IN_RECONFIRMATION: riconferma
     IN_RECONFIRMATION --> OFFERS_AVAILABLE: almeno una risposta valida
     IN_RECONFIRMATION --> DESERTED: nessuna risposta
