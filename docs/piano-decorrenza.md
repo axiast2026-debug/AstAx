@@ -52,3 +52,10 @@ Da chiarire con Dan:
 
 6. **Tipo 2, «immediata»:** la decorrenza è (A) il momento in cui l'agenzia emette, al massimo 4 ore lavorative dopo il pagamento, oppure (B) sempre la fine delle 4 ore lavorative dopo il pagamento, un orario fisso noto al pagamento?
 7. **Tipo 3, «dalle 24:00 del giorno del pagamento»:** se le 4 ore lavorative finiscono dopo quella mezzanotte (pagamento venerdì alle 18, o di sabato), la decorrenza (A) passa alle 24:00 del giorno in cui finiscono le 4 ore, oppure (B) l'agenzia deve emettere entro quella mezzanotte, e se non è possibile la scelta non si offre?
+
+Risposte di Dan (2026-10-18): **6A**, la decorrenza «immediata» è il momento dell'emissione, al massimo 4 ore lavorative dopo il pagamento. **7**: con il pagamento venerdì sera o di sabato l'agenzia ha tempo fino alle 12 di lunedì.
+
+Da chiarire ancora:
+
+8. **Tipo 3 quando l'emissione slitta a lunedì:** la decorrenza è (A) il momento dell'emissione, come il tipo 2, oppure (B) le 24:00 di lunedì?
+9. **Orario dell'emissione.** Oggi le ore lavorative sono quelle delle aste (`calendar.workingHours`: lunedì-venerdì 9-19, sabato 9-13): con un pagamento venerdì alle 18 il termine cadrebbe sabato alle 12. «Lunedì alle 12» vuol dire un orario solo per l'emissione, senza il sabato e da un'ora diversa: nuovo parametro `issuance.workingHours`, da fissare con Dan.
