@@ -12,12 +12,25 @@ Claude Code aggiorna questo file alla fine di ogni sessione di lavoro e alla chi
 | 4. Offerte | In verifica | | Tutti i passi fatti; verifica indipendente (primo giro) con i problemi corretti; manca la demo con Dan |
 | 5. Accettazione | In corso | | Tutti i passi del piano fatti (proposte A-I); in corso le prove finali e la verifica indipendente; poi la demo con Dan |
 | 6. Dopo l'acquisto | In verifica | | Tutti i passi fatti; due giri di verifica indipendente con le correzioni; E2E S01, S02, S05, S08, S09 verdi; manca la demo con Dan (e i punti aperti in «Verifica indipendente (fase 6, secondo giro)») |
-| 7. Pannelli e notifiche | In corso | | Piano approvato da Dan il 2026-10-18 (proposte A-L) |
+| 7. Pannelli e notifiche | In corso | | Piano approvato da Dan il 2026-10-18 (proposte A-L); passi 1-8 fatti, in corso il 9 (reclami) |
 | 8. Fornitori reali e sicurezza | Da iniziare | | |
 
 Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in attesa della revisione di Dan), Chiusa.
 
 ## Ultima sessione
+
+**2026-10-18 — fase 7, passi 1-8** (piano approvato da Dan il 2026-10-18 con le proposte A-L; demo e domande alla fine di tutte le fasi).
+
+- Passi 1-4 (già pubblicati): ogni parametro si cambia dal pannello in tre pagine («Regole d'asta», «Economia», «Sicurezza e dati») con motivo, data di validità e storico, e un test che le prova tutte; testi delle notifiche nel database con versioni, preferenze per evento e canale nel profilo, centro notifiche con contatore, nessun doppione entro 10 minuti; «Comunicazioni» con anteprima in italiano e albanese, prova a sé stessi e messaggi a un gruppo.
+- Passo 5, utenti e documenti legali: «Utenti e permessi» (cerca, blocca e sblocca anche in Keycloak chiudendo le sessioni, azzera il secondo fattore, ruoli del back office; mai su sé stessi); «Contratti e documenti legali»: una nuova versione nasce bozza, il legale la valida, poi si pubblica: da quel momento chi è interessato la riaccetta e riceve l'email `legal.new_version` con la sintesi.
+- Passo 6, pacchetti, casi esclusi, elenchi e festività: nuova versione di un pacchetto da una data futura (le richieste tengono la loro); ogni modifica di un caso escluso è una versione con autore e motivo; etichette degli elenchi in italiano e albanese; festività dell'anno con il nome albanese e la proposta dell'anno dopo (date fisse più Pasquetta calcolata dalla Pasqua) da confermare.
+- Passo 7, ingresso di agenzie e broker: modulo «Lavora con AstAx» sul sito, poi su un link privato la conferma dell'IBAN con codice via SMS, la polizza di RC professionale in PDF con la scadenza e i contratti; all'invio il controllo sulla copia locale del RUI (numero, sezione, ragione sociale, mandati), importata ogni giorno dal worker con l'adattatore finto (intermediari inventati). Il supervisore approva (organizzazione attiva, mandati dal RUI o «a mano», invito del titolare con l'email di benvenuto; i contratti accettati valgono già al primo accesso) o respinge con il motivo, e il richiedente corregge dallo stesso link.
+- Passo 8, back office: cruscotto con le code del proprio ruolo (contatore e attesa più lunga) e gli indicatori del giorno; «Agenzie e broker» con inviti, offerte, vinte, penali, segnalazioni e scadenza della RC, sospensione e riattivazione con motivo, note e proposta di esclusione che decide l'amministratore; «Clienti» con ricerca per nome, codice fiscale o targa, scheda con chi ha aperto i dati, copia dei dati in un file, richieste sui dati personali con la scadenza; «Assistenza» con i ticket, le risposte pronte (elenco modificabile), la risposta via email e le note interne; in «Eccezioni» anche le richieste deserte, le riconferme in corso e i recessi.
+- Nuovi parametri (valori prudenti, da confermare): `privacy.requestResponseDays` 30 giorni (da validare con il legale), `support.responseHours` 24 ore. Nuovo permesso `backOffice.dashboard` (tutti i ruoli del back office e l'amministratore), scritto in `docs/permessi.md`.
+- Scelta: la sospensione manuale di un'agenzia usa lo stesso meccanismo di EMI-06 (niente nuovi inviti, il lavoro in corso continua); quella di un broker blocca l'organizzazione. L'esclusione (solo l'amministratore) blocca l'organizzazione.
+- Correzione nei test: gli id finti di Keycloak si ripetevano tra file di test che usano lo stesso database e collegavano l'utente sbagliato; ora sono unici.
+- Come provarlo: `pnpm dev`, poi sul sito «Non sei ancora su AstAx? Chiedi di entrare» con il numero RUI A000000101 («Agenzia Undici», compagnie Alfa e Gamma); il codice SMS arriva in Mailpit; nel pannello, con il supervisore del back office, «Ingressi».
+- Prossimi passi: 9 reclami, 10 riconciliazione, 11 caricamento in blocco e conservazione, 12 cruscotto dell'amministratore e report, 13 prove end-to-end e verifica.
 
 **2026-10-17 — fase 6, passi 7-12 e prove finali** (Dan: «procedi per i prossimi passi»).
 
@@ -478,8 +491,12 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 
 | Debito | Perché | Quando chiuderlo |
 | --- | --- | --- |
+| Le pagine pubbliche dell'ingresso (`/onboarding`) non hanno un limite di richieste per indirizzo | I codici SMS hanno già attesa e tentativi massimi | Fase 8, con la sicurezza |
+| L'elenco RUI è finto; l'adattatore vero (dati aperti IVASS) manca | Regola 9 | Fase 8 |
+| I requisiti di un pacchetto si modificano come testo JSON (controllato) | Una scheda con i campi è più comoda per l'amministratore | Dopo la demo, se Dan la chiede |
+| I ticket di assistenza si aprono a mano dal back office; le email in arrivo non creano ticket da sole | Proposta E: registro interno, nessuno strumento esterno | Fase 8, con l'email vera |
 | Email del worker inviate dopo il salvataggio, senza outbox: se il processo cade in mezzo, l'email si perde (la notifica in app resta) | Un outbox delle email porterebbe gli indirizzi in una tabella in più | Fase 7, con le notifiche |
-| Dalla «Deserta» il back office non può ancora aprire una nuova asta (S04) | Serve la schermata con i filtri più ampi | Fase 7 |
+| Dalla «Deserta» il back office non può ancora aprire una nuova asta (S04) | La riapertura automatica con filtri allargati c'è (ASTA-08); la fase 7 mostra le deserte in «Eccezioni». Una nuova asta a mano con filtri scelti dal back office aspetta una decisione di Dan su quali filtri allargare | Dopo la demo |
 | Prezzi e targa tolti dalle notifiche della fase 3 in attesa della domanda 15 | Regola 8 contro i testi di `seed/notifiche.yaml` | Con la risposta di Dan |
 | Biglietti del tempo reale tenuti nella memoria del processo API | Con una sola istanza dell'API basta; con più istanze un biglietto chiesto a una non vale sull'altra | Fase 8, in Redis |
 | Filtri, capacità, orari di ricezione e prodotti delle agenzie impostati solo dai dati di prova | Le schermate delle agenzie sono della fase 4 (proposta D approvata) | Fase 4 |
