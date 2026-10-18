@@ -1327,5 +1327,21 @@
     "matched": "Di cui abbinati",
     "captured": "Pagamenti incassati",
     "difference": "Differenza"
+  },
+  "retention": {
+    "title": "Conservazione dei dati",
+    "intro": "Le richieste mai concluse e ferme da {months} mesi (prima del {before}) perdono documenti e dati personali; restano il codice, le date e il registro attività. Il controllo gira da solo ogni giorno.",
+    "done": "{count, plural, =0 {Niente da cancellare.} one {Cancellati i dati di # richiesta.} other {Cancellati i dati di # richieste.}}",
+    "next": "{count, plural, =0 {Nessuna richiesta da cancellare ora.} one {# richiesta da cancellare ({documents} documenti).} other {# richieste da cancellare ({documents} documenti).}}",
+    "statuses": {
+      "DRAFT": "bozza",
+      "EXCLUDED": "esclusa",
+      "EXPIRED": "scaduta",
+      "CANCELLED": "annullata",
+      "DESERTED": "deserta"
+    },
+    "lastActivity": "ultima attività {at}",
+    "run": "Cancella ora",
+    "last": "Ultime cancellazioni"
   }
 }

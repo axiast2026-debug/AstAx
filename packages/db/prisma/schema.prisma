@@ -574,6 +574,8 @@ model QuoteRequest {
   renewalOfPolicyId     String?            @db.Uuid
   submittedAt           DateTime?          @db.Timestamptz(3)
   cancelledAt           DateTime?          @db.Timestamptz(3)
+  /// LEG-06, phase 7: documents and personal data deleted for retention; code, dates and log stay.
+  purgedAt              DateTime?          @db.Timestamptz(3)
   createdAt             DateTime           @default(now()) @db.Timestamptz(3)
   updatedAt             DateTime           @default(now()) @db.Timestamptz(3)
 
@@ -591,6 +593,7 @@ model QuoteRequest {
   @@index([ownerUserId, status])
   @@index([ownerOrganizationId, status])
   @@index([status, submittedAt])
+  @@index([status, updatedAt])
 }
 
 enum QuoteDataSource {

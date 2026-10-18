@@ -6,6 +6,7 @@ import {
   importRuiRecords,
   issueBrokerInvoices,
   prepareRemittances,
+  runRetention,
   settingsAt,
   SYSTEM_CONTEXT,
   withContext,
@@ -136,11 +137,14 @@ export function startSchedules(
     rui: RuiRegistryPort;
     notifier: WorkerNotifier;
     adminUrl: string;
+    /** LEG-06: the files of the documents to delete. */
+    deleteObject: (key: string) => Promise<void>;
   },
   intervalMs: number,
 ): () => void {
   if (intervalMs === 0) return () => undefined;
-  const { db, clock, cipher, logger, rui, notifier, adminUrl } = deps;
+  const { db, clock, cipher, logger, rui, notifier, adminUrl, deleteObject } = deps;
+  let retentionDay = "";
   const brokerLine = label(loadNotificationLabels(), "invoice.brokerLine", "it");
   let running = false;
   const tick = () => {
@@ -159,6 +163,15 @@ export function startSchedules(
       }),
       remindComplaintsIfDue({ db, cipher, notifier, adminUrl }, now).then((result) => {
         if (result.reminded > 0) logger.info(result, "complaints reminded");
+      }),
+      // LEG-06, proposal G: once a day the requests not concluded past retention.
+      (retentionDay === romeCalendarDate(now)
+        ? Promise.resolve(null)
+        : runRetention(db, deleteObject, now)
+      ).then((result) => {
+        if (!result) return;
+        retentionDay = romeCalendarDate(now);
+        if (result.requests > 0) logger.info(result, "retention purged");
       }),
     ])
       .catch((error: unknown) => logger.error({ err: errorForLog(error) }, "scheduled job failed"))

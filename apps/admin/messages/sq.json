@@ -1327,5 +1327,21 @@
     "matched": "Prej të cilave të lidhura",
     "captured": "Pagesa të arkëtuara",
     "difference": "Diferenca"
+  },
+  "retention": {
+    "title": "Ruajtja e të dhënave",
+    "intro": "Kërkesat që nuk u përfunduan dhe janë të ndaluara prej {months} muajsh (para {before}) humbasin dokumentet dhe të dhënat personale; mbeten kodi, datat dhe regjistri i aktivitetit. Kontrolli kryhet vetë çdo ditë.",
+    "done": "{count, plural, =0 {Asgjë për të fshirë.} one {U fshinë të dhënat e # kërkese.} other {U fshinë të dhënat e # kërkesave.}}",
+    "next": "{count, plural, =0 {Asnjë kërkesë për t'u fshirë tani.} one {# kërkesë për t'u fshirë ({documents} dokumente).} other {# kërkesa për t'u fshirë ({documents} dokumente).}}",
+    "statuses": {
+      "DRAFT": "draft",
+      "EXCLUDED": "e përjashtuar",
+      "EXPIRED": "e skaduar",
+      "CANCELLED": "e anuluar",
+      "DESERTED": "pa oferta"
+    },
+    "lastActivity": "aktiviteti i fundit {at}",
+    "run": "Fshi tani",
+    "last": "Fshirjet e fundit"
   }
 }

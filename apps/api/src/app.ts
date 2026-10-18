@@ -53,6 +53,8 @@ export async function createApp(
   app.use(/^\/onboarding\/[^/]+\/prof-insurance$/, raw({ type: () => true, limit: "20mb" }));
   // Phase 7: the bank statement of the separate account (CSV or camt.053).
   app.use(/^\/back-office\/reconciliation\/statements$/, raw({ type: () => true, limit: "20mb" }));
+  // Phase 7: the broker's bulk upload (CSV, or ZIP with the CSV and the documents).
+  app.use("/broker/bulk-uploads", raw({ type: () => true, limit: "60mb" }));
   // EMI-02: policy, receipt and certificate, uploaded by the agency as the body.
   app.use(
     /^\/agency\/issuance\/[^/]+\/documents\/[A-Z_]+$/,

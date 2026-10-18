@@ -65,6 +65,10 @@ import { ResultsController } from "./results/results.controller.js";
 import { PreferencesService } from "./notifications/preferences.service.js";
 import { CommunicationsController } from "./notifications/communications.controller.js";
 import { CatalogAdminController } from "./admin/catalog-admin.controller.js";
+import { RetentionController } from "./admin/retention.controller.js";
+import { RetentionService } from "./admin/retention.service.js";
+import { BulkUploadController } from "./requests/bulk-upload.controller.js";
+import { BulkUploadService } from "./requests/bulk-upload.service.js";
 import { ReconciliationController } from "./admin/reconciliation.controller.js";
 import { ReconciliationService } from "./admin/reconciliation.service.js";
 import { ComplaintsController, OwnComplaintsController } from "./admin/complaints.controller.js";
@@ -127,6 +131,8 @@ export class AppModule {
         CommunicationsController,
         UsersAdminController,
         CatalogAdminController,
+        RetentionController,
+        BulkUploadController,
         ReconciliationController,
         ComplaintsController,
         OwnComplaintsController,
@@ -190,6 +196,8 @@ export class AppModule {
         CommunicationsService,
         UsersAdminService,
         CatalogAdminService,
+        RetentionService,
+        BulkUploadService,
         ReconciliationService,
         ComplaintsService,
         ExceptionsOverviewService,

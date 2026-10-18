@@ -59,9 +59,12 @@ function inputValue(value: unknown, kind: string) {
 export async function SettingsPanel({
   page,
   query,
+  children,
 }: {
   page: SettingsPage;
   query: { errore?: string; fatto?: string; chiave?: string; storico?: string };
+  /** What the page shows after the parameters (the retention on «Sicurezza e dati»). */
+  children?: React.ReactNode;
 }) {
   const viewer = await requireViewer();
   const t = await getTranslations("settingsPage");
@@ -203,6 +206,7 @@ export async function SettingsPanel({
           </ul>
         </Card>
       ))}
+      {children}
     </AppShell>
   );
 }

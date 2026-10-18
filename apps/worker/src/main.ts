@@ -9,6 +9,7 @@ import { KMS_KEYS, LocalKms } from "@astax/adapters/kms";
 import {
   InMemoryObjectStorage,
   S3ObjectStorage,
+  ObjectNotFoundError,
   type ObjectStoragePort,
 } from "@astax/adapters/storage";
 import { createDbClient, dispatchOutbox, kmsEventRecorder } from "@astax/db";
@@ -140,6 +141,14 @@ const stopSchedules = startSchedules(
     rui: new FakeRuiRegistry(),
     notifier,
     adminUrl: config.ADMIN_URL,
+    deleteObject: async (key) => {
+      try {
+        await storage.delete(key);
+      } catch (error) {
+        // Already gone: nothing to delete.
+        if (!(error instanceof ObjectNotFoundError)) throw error;
+      }
+    },
   },
   config.SCHEDULES_INTERVAL_MS,
 );

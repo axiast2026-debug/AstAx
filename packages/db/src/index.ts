@@ -66,3 +66,9 @@ export {
   registerComplaint,
   type NewComplaint,
 } from "./complaints.js";
+export {
+  INCOMPLETE_STATUSES,
+  purgeRequests,
+  retentionCandidates,
+  runRetention,
+} from "./retention.js";

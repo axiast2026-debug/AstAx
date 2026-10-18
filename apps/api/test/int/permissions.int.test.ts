@@ -325,6 +325,9 @@ const ENDPOINTS: Endpoint[] = [
     method: "GET",
     path: () => "/back-office/reconciliation/daily?from=2026-10-01&to=2026-10-31",
   },
+  { action: "brokerCustomer.manage", method: "POST", path: () => "/broker/bulk-uploads", body: {} },
+  { action: "admin.settings.manage", method: "GET", path: () => "/admin/retention" },
+  { action: "admin.settings.manage", method: "POST", path: () => "/admin/retention/run", body: {} },
   { action: "auditLog.viewAll", method: "GET", path: () => "/admin/audit" },
   // Fase 2: requests, customers, consent
   { action: "request.create", method: "GET", path: () => "/reference/request-options" },

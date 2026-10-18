@@ -29,9 +29,14 @@ export default async function CustomersPage() {
     <AppShell viewer={viewer}>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <Link href="/clienti/nuovo" className={buttonVariants()}>
-          {t("new")}
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <Link href="/clienti/caricamento" className={buttonVariants({ variant: "outline" })}>
+            {t("bulk")}
+          </Link>
+          <Link href="/clienti/nuovo" className={buttonVariants()}>
+            {t("new")}
+          </Link>
+        </div>
       </div>
       <form action={search} className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end">
         <input type="hidden" name="scope" value="clienti" />

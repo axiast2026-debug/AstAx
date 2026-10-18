@@ -203,7 +203,8 @@
     "fiscalCode": "Codice fiscale o partita IVA",
     "vehicles": "Veicoli",
     "requests": "Richieste",
-    "empty": "Nessun cliente."
+    "empty": "Nessun cliente.",
+    "bulk": "Caricamento in blocco"
   },
   "newCustomer": {
     "title": "Nuovo cliente",
@@ -1526,5 +1527,38 @@
     "requestCode": "Codice della richiesta (facoltativo)",
     "requestCodeHint": "Lo trovi in «Preventivi» o in «Polizze», per esempio AX-2026-000123.",
     "send": "Invia il reclamo"
+  },
+  "bulkUpload": {
+    "back": "Torna ai clienti",
+    "title": "Caricamento in blocco",
+    "intro": "Carica molti clienti in una volta: per ogni riga del file nasce (o si ritrova) il cliente e una bozza di richiesta con i documenti. Poi completi e invii ogni bozza da «Richieste».",
+    "errorsTitle": "Il file ha degli errori: non è stato salvato niente. Correggi e ricarica.",
+    "doneTitle": "{count, plural, one {Creata # bozza} other {Create # bozze}}",
+    "doneRow": "Riga {line}: {code}, cliente {customer}, {documents} documenti",
+    "existing": "già presente",
+    "created": "nuovo",
+    "toDrafts": "Vai alle richieste",
+    "format": "Il file",
+    "formatText": "Un CSV con il punto e virgola e questa prima riga, oppure uno ZIP con dentro il CSV e i documenti (libretto, patente, attestato) con i nomi scritti nelle colonne:",
+    "formatHint": "Nella colonna tipo scrivi «persona» o «società». Al massimo 200 righe per file. Documenti in PDF, JPG o PNG.",
+    "upload": "Carica il file",
+    "issues": {
+      "HEADER": "la prima riga non è quella attesa",
+      "EMPTY": "il file non ha righe",
+      "TOO_MANY_ROWS": "troppe righe in un file solo",
+      "REQUIRED": "manca un dato obbligatorio",
+      "INVALID_KIND": "il tipo deve essere «persona» o «società»",
+      "INVALID_FISCAL_CODE": "codice fiscale non valido",
+      "INVALID_VAT_NUMBER": "partita IVA non valida",
+      "INVALID_EMAIL": "email non valida",
+      "INVALID_PHONE": "telefono non valido",
+      "INVALID_PLATE": "targa non valida",
+      "INVALID_FILE_NAME": "nome del documento non valido (PDF, JPG o PNG)",
+      "NOT_IN_ZIP": "il documento non è nello ZIP",
+      "ZIP_UNREADABLE": "lo ZIP non si legge",
+      "ONE_CSV_IN_ZIP": "nello ZIP ci deve essere un solo file CSV",
+      "TOO_LARGE": "il file è troppo grande",
+      "FILE_REQUIRED": "scegli un file"
+    }
   }
 }
