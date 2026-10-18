@@ -59,3 +59,5 @@ Da chiarire ancora:
 
 8. **Tipo 3 quando l'emissione slitta a lunedì:** la decorrenza è (A) il momento dell'emissione, come il tipo 2, oppure (B) le 24:00 di lunedì?
 9. **Orario dell'emissione.** Oggi le ore lavorative sono quelle delle aste (`calendar.workingHours`: lunedì-venerdì 9-19, sabato 9-13): con un pagamento venerdì alle 18 il termine cadrebbe sabato alle 12. «Lunedì alle 12» vuol dire un orario solo per l'emissione, senza il sabato e da un'ora diversa: nuovo parametro `issuance.workingHours`, da fissare con Dan.
+
+Risposta di Dan (2026-10-19) al punto 9: orario delle emissioni dal lunedì al venerdì, 9-19 (nuovo parametro `issuance.workingHours`, sabato e domenica esclusi). Esempi: pagamento venerdì alle 18, termine lunedì alle 12; pagamento di sabato o domenica, termine lunedì alle 13. Resta il punto 8.
