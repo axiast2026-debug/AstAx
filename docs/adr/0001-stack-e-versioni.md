@@ -35,6 +35,9 @@
 | Temporal TypeScript SDK | 1.24.0 | `@temporalio/worker`, `client`, `workflow`, `activity`, `testing`: worker delle aste (fase 3, ADR 0008) |
 | Playwright | 1.64.1 | Chromium per i test end-to-end |
 | fflate | 0.8.3 | Lettura dello ZIP del caricamento in blocco dei broker, con il limite della dimensione decompressa (fase 7, proposta H) |
+| web-push | 3.6.7 | Invio delle notifiche push vere con le chiavi VAPID, cifrate per il browser (fase 8, ADR 0011); licenza MPL-2.0 |
+| @axe-core/playwright | 4.13.0 | Controllo automatico dell'accessibilità (WCAG 2.1 AA) nei test end-to-end (fase 8) |
+| socket.io-client | 4.8.4 | Solo nei test dell'API: prova della connessione in tempo reale con il biglietto (fase 8) |
 
 Le dipendenze delle fasi successive si aggiungono a questa tabella quando entrano, nel passo che le usa.
 

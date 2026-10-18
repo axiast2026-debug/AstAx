@@ -2,6 +2,7 @@ import { Card, CardTitle } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { setNotificationPreference } from "@/app/actions";
 import { api } from "@/lib/auth";
+import { PushSwitch } from "./push-switch";
 
 interface Preference {
   eventKey: string;
@@ -22,6 +23,21 @@ export async function NotificationPreferences() {
     <Card>
       <CardTitle>{t("title")}</CardTitle>
       <p className="mt-1 text-sm text-warm-600">{t("intro")}</p>
+      <PushSwitch
+        publicKey={process.env.VAPID_PUBLIC_KEY ?? ""}
+        texts={{
+          title: t("push.title"),
+          intro: t("push.intro"),
+          turnOn: t("push.turnOn"),
+          turnOff: t("push.turnOff"),
+          unsupported: t("push.unsupported"),
+          denied: t("push.denied"),
+          off: t("push.off"),
+          on: t("push.on"),
+          busy: t("push.busy"),
+          error: t("push.error"),
+        }}
+      />
       <ul className="mt-3 divide-y divide-warm-200 text-sm">
         {body.map((p) => (
           <li key={p.eventKey} className="flex flex-wrap items-center justify-between gap-2 py-2">

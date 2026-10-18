@@ -30,6 +30,14 @@ const configSchema = z
     ADMIN_URL: z.url().default("http://localhost:3001"),
     /** Development email delivery (Mailpit); production uses a real provider (phase 8). */
     MAILPIT_URL: z.url().default("http://127.0.0.1:8025"),
+    /** Phase 8: "vapid" sends real Web Push; "fake" delivers them to Mailpit (rule 9). */
+    PUSH_PROVIDER: z.enum(["fake", "vapid"]).default("fake"),
+    VAPID_PUBLIC_KEY: z.string().min(40).optional(),
+    VAPID_PRIVATE_KEY: z.string().min(40).optional(),
+    VAPID_SUBJECT: z
+      .string()
+      .regex(/^(mailto:|https:)/)
+      .default("mailto:sicurezza@astax.it"),
     EMAIL_FROM: z.email().default("noreply@astax.test"),
     /** Writes session and OTP parameters to Keycloak at start-up (false in tests). */
     IDENTITY_SYNC_ON_START: z
@@ -59,6 +67,10 @@ const configSchema = z
     S3_SECRET_KEY: z.string().min(1).optional(),
   })
   // Development tools never run in production (CLAUDE.md rule 13).
+  .refine((c) => c.PUSH_PROVIDER !== "vapid" || (c.VAPID_PUBLIC_KEY && c.VAPID_PRIVATE_KEY), {
+    message: "PUSH_PROVIDER=vapid needs VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY",
+    path: ["PUSH_PROVIDER"],
+  })
   .refine((c) => !(c.NODE_ENV === "production" && c.DEV_TOOLS), {
     message: "DEV_TOOLS must be false in production",
     path: ["DEV_TOOLS"],

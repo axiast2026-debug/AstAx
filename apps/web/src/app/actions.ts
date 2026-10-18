@@ -74,3 +74,22 @@ export async function setNotificationPreference(formData: FormData): Promise<voi
   });
   redirect("/profilo#notifiche");
 }
+
+/** Phase 8 (ADR 0011): this browser's push subscription, kept by the API (encrypted). */
+export async function subscribePush(subscription: {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}): Promise<boolean> {
+  const { status } = await api("/me/notifications/push-subscriptions", {
+    method: "POST",
+    body: JSON.stringify(subscription),
+  });
+  return status === 201;
+}
+
+export async function unsubscribePush(endpoint: string): Promise<void> {
+  await api("/me/notifications/push-subscriptions/revoke", {
+    method: "POST",
+    body: JSON.stringify({ endpoint }),
+  });
+}

@@ -142,7 +142,19 @@
       "on": "sì",
       "off": "no",
       "locked": "Sempre attivo",
-      "lockedHint": "I codici, i link indispensabili e gli avvisi con una scadenza restano sempre attivi."
+      "lockedHint": "I codici, i link indispensabili e gli avvisi con una scadenza restano sempre attivi.",
+      "push": {
+        "title": "Notifiche su questo telefono",
+        "intro": "Ricevi gli avvisi anche con AstAx chiusa. Su iPhone funziona dopo «Aggiungi alla schermata Home».",
+        "turnOn": "Attiva sul telefono",
+        "turnOff": "Disattiva",
+        "unsupported": "Questo browser non riceve notifiche push.",
+        "denied": "Le notifiche sono bloccate nelle impostazioni del browser.",
+        "off": "Non attive su questo dispositivo.",
+        "on": "Attive su questo dispositivo.",
+        "busy": "Un momento…",
+        "error": "Non è stato possibile cambiare l'impostazione. Riprova."
+      }
     }
   },
   "notifications": {

@@ -76,6 +76,7 @@ export {
   dispatchMessages,
   markMessageSent,
   queueMessage,
+  revokePushSubscription,
   sendQueued,
   type MessageDispatchResult,
   type MessageSenders,

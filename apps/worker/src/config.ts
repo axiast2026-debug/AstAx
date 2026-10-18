@@ -25,6 +25,14 @@ const configSchema = z
     TEMPORAL_TASK_QUEUE: z.string().min(1).default("astax-requests"),
     WEB_URL: z.url().default("http://localhost:3000"),
     ADMIN_URL: z.url().default("http://localhost:3001"),
+    /** Phase 8: "vapid" sends real Web Push; "fake" delivers them to Mailpit (rule 9). */
+    PUSH_PROVIDER: z.enum(["fake", "vapid"]).default("fake"),
+    VAPID_PUBLIC_KEY: z.string().min(40).optional(),
+    VAPID_PRIVATE_KEY: z.string().min(40).optional(),
+    VAPID_SUBJECT: z
+      .string()
+      .regex(/^(mailto:|https:)/)
+      .default("mailto:sicurezza@astax.it"),
     /** Phase 8: read Keycloak's login events with the API's service account (optional). */
     KEYCLOAK_URL: z.url().optional(),
     KEYCLOAK_REALM: z.string().min(1).default("astax"),

@@ -4,7 +4,12 @@ import { MailpitEmailSender, type EmailSender } from "@astax/adapters/email";
 import { KeycloakAdmin } from "@astax/adapters/identity";
 import { FakeDocumentReader, type DocumentReaderPort } from "@astax/adapters/document-reader";
 import { MailpitSmsSender, type SmsPort } from "@astax/adapters/sms";
-import { MailpitWebPush, type WebPushPort } from "@astax/adapters/web-push";
+import {
+  MailpitWebPush,
+  revokingGone,
+  VapidWebPush,
+  type WebPushPort,
+} from "@astax/adapters/web-push";
 import { loadNotificationTemplates } from "@astax/shared/notifications";
 import {
   InMemoryObjectStorage,
@@ -18,7 +23,13 @@ import { FakeEInvoicing, type EInvoicingPort } from "@astax/adapters/e-invoicing
 import { FakePaymentsProvider, type PaymentsPort } from "@astax/adapters/payments";
 import { FakeSignatureProvider, type SignaturePort } from "@astax/adapters/signature";
 import { createHmac } from "node:crypto";
-import { createDbClient, kmsEventRecorder, TemplateStore, type DbClient } from "@astax/db";
+import {
+  createDbClient,
+  kmsEventRecorder,
+  revokePushSubscription,
+  TemplateStore,
+  type DbClient,
+} from "@astax/db";
 import { createLogger, errorForLog, type Logger } from "@astax/shared/logging";
 import {
   Global,
@@ -182,7 +193,23 @@ export class InfraModule {
         { provide: EMAIL_SENDER, useValue: emailSender },
         { provide: SMS_SENDER, useValue: overrides.smsSender ?? new MailpitSmsSender(emailSender) },
         // Proposal B of phase 7: the fake push until phase 8, delivered to Mailpit.
-        { provide: WEB_PUSH, useValue: overrides.webPush ?? new MailpitWebPush(emailSender) },
+        {
+          // Phase 8: real Web Push with PUSH_PROVIDER=vapid; a subscription gone is revoked.
+          provide: WEB_PUSH,
+          inject: [DB],
+          useFactory: (db: DbClient) =>
+            overrides.webPush ??
+            revokingGone(
+              config.PUSH_PROVIDER === "vapid"
+                ? new VapidWebPush({
+                    publicKey: config.VAPID_PUBLIC_KEY ?? "",
+                    privateKey: config.VAPID_PRIVATE_KEY ?? "",
+                    subject: config.VAPID_SUBJECT,
+                  })
+                : new MailpitWebPush(emailSender),
+              (endpoint) => revokePushSubscription(db, endpoint, clock.now()),
+            ),
+        },
         {
           // The texts in force (NotificationTemplate), read again every 30 seconds.
           provide: NOTIFICATION_TEMPLATES,

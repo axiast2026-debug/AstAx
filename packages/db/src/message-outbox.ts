@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { FieldCipher } from "@astax/adapters/crypto";
 import type { EmailMessage } from "@astax/adapters/email";
 import type { SmsMessage } from "@astax/adapters/sms";
@@ -50,6 +51,21 @@ export async function sendQueued(senders: MessageSenders, message: QueuedMessage
   if (message.channel === "EMAIL") await senders.email.send(message.email);
   else if (message.channel === "SMS") await senders.sms.send(message.sms);
   else await senders.push?.send(message.subscription, message.push);
+}
+
+/** Phase 8: the browser's push service says the subscription is gone. */
+export async function revokePushSubscription(
+  db: DbClient,
+  endpoint: string,
+  now: Date,
+): Promise<void> {
+  const endpointHash = createHash("sha256").update(endpoint).digest("hex");
+  await withContext(db, SYSTEM_CONTEXT, (tx) =>
+    tx.pushSubscription.updateMany({
+      where: { endpointHash, revokedAt: null },
+      data: { revokedAt: now },
+    }),
+  );
 }
 
 /** Sent: the content is emptied, only identifiers and dates stay. */

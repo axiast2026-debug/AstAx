@@ -4,7 +4,7 @@ import { DEV_CLOCK_OFFSET_KEY, OffsetClock, SystemClock } from "@astax/adapters/
 import { LocalFieldCipher } from "@astax/adapters/crypto";
 import { FakeDocumentReader } from "@astax/adapters/document-reader";
 import { MailpitEmailSender } from "@astax/adapters/email";
-import { MailpitWebPush } from "@astax/adapters/web-push";
+import { MailpitWebPush, revokingGone, VapidWebPush } from "@astax/adapters/web-push";
 import { KMS_KEYS, LocalKms } from "@astax/adapters/kms";
 import {
   InMemoryObjectStorage,
@@ -12,7 +12,13 @@ import {
   ObjectNotFoundError,
   type ObjectStoragePort,
 } from "@astax/adapters/storage";
-import { createDbClient, dispatchMessages, dispatchOutbox, kmsEventRecorder } from "@astax/db";
+import {
+  createDbClient,
+  dispatchMessages,
+  dispatchOutbox,
+  kmsEventRecorder,
+  revokePushSubscription,
+} from "@astax/db";
 import { MailpitSmsSender } from "@astax/adapters/sms";
 import { loadEnv } from "@astax/shared/env";
 import { createLogger, errorForLog } from "@astax/shared/logging";
@@ -73,7 +79,17 @@ const email = new MailpitEmailSender(config.MAILPIT_URL, {
 });
 const storage = storageFor(config);
 const fieldCipher = new LocalFieldCipher(config.FIELD_ENCRYPTION_KEY, config.BLIND_INDEX_KEY);
-const push = new MailpitWebPush(email);
+// Phase 8: real Web Push with PUSH_PROVIDER=vapid; a subscription gone is revoked.
+const push = revokingGone(
+  config.PUSH_PROVIDER === "vapid" && config.VAPID_PUBLIC_KEY && config.VAPID_PRIVATE_KEY
+    ? new VapidWebPush({
+        publicKey: config.VAPID_PUBLIC_KEY,
+        privateKey: config.VAPID_PRIVATE_KEY,
+        subject: config.VAPID_SUBJECT,
+      })
+    : new MailpitWebPush(email),
+  (endpoint) => revokePushSubscription(db, endpoint, clock.now()),
+);
 const notifier = new WorkerNotifier(email, logger, { db, clock, cipher: fieldCipher, push });
 /** Phase 8: the senders of MessageOutbox (the fakes until the real providers, rule 9). */
 const senders = { email, sms: new MailpitSmsSender(email), push };
