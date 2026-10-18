@@ -641,6 +641,8 @@
       "guarantee_reminderTime": "Ora e kujtesës së garancisë (Romë)",
       "agency_dashboard_statsDays": "Ditët e treguesve në panelin e agjencisë",
       "agency_dashboard_closingSoonMinutes": "Minutat për «mbyllen brenda një ore pa ofertë»",
+      "agency_defaultFilter_maxStartDateDays": "Agjenci e re: data më e largët e fillimit në filtrat fillestarë (ditë)",
+      "agency_defaultFilter_maxGuaranteeDays": "Agjenci e re: garancia më e gjatë në filtrat fillestarë (ditë)",
       "backOffice_recentAuctionsDays": "Ditët që ankandet e mbyllura mbeten në listën «Ankandet»",
       "reconfirmation_workingHours": "Koha e agjencive për rikonfirmimin (orë pune)",
       "reconfirmation_maxPerRequest": "Rikonfirmime më së shumti për kërkesë",
@@ -653,6 +655,7 @@
       "survey_daysAfterIssuance": "Dërgimi i pyetësorit, ditë pas lëshimit",
       "survey_linkValidDays": "Vlefshmëria e lidhjes së pyetësorit (ditë)",
       "withdrawal_days": "Ditë nga lëshimi për tërheqjen (për t'u miratuar nga juristi)",
+      "withdrawal_byCustomer": "Klienti kërkon tërheqjen nga aplikacioni (fikur: jashtë portalit)",
       "fees_private_amountCents": "Tarifa e privatit",
       "fees_private_aiSupplementCents": "Shtesa për krahasimin me AI",
       "fees_private_lowPremium_thresholdCents": "Prime nën të cilin zbatohet tarifa e reduktuar",
@@ -684,7 +687,7 @@
       "documents_maxUploadMb": "Madhësia maksimale e një skedari (MB)",
       "notes_maxChars": "Gjatësia e shënimeve për klientin",
       "drivingFormula_expertMinAge": "Mosha minimale e drejtuesve për formulën me përvojë",
-      "session_privateDays": "Kohëzgjatja e seancës së privatëve (ditë)",
+      "session_privateDays": "Ditë pa përdorur aplikacionin para një hyrjeje të re (privatë)",
       "session_professionalIdleHours": "Pasiviteti maksimal i llogarive profesionale (orë)",
       "session_staffIdleHours": "Pasiviteti maksimal i back office dhe administratorit (orë)",
       "retention_incompleteRequestsMonths": "Ruajtja e kërkesave të papërfunduara (muaj)",
@@ -709,7 +712,8 @@
       "security_codesPerDestinationPerHour": "Kode OTP për numër ose adresë në një orë",
       "security_publicRequestsPerMinute": "Kërkesa në minutë për IP te faqet publike",
       "security_publicApplicationsPerHour": "Aplikime hyrjeje për IP në një orë",
-      "security_failedAuthPerMinute": "Hyrje të pavlefshme për IP në një minutë"
+      "security_failedAuthPerMinute": "Hyrje të pavlefshme për IP në një minutë",
+      "session_privateMaxDays": "Kohëzgjatja maksimale e seancës së privatëve (ditë)"
     }
   },
   "communications": {

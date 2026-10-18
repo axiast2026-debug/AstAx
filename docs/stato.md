@@ -19,6 +19,19 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 
 ## Ultima sessione
 
+**2026-10-18 — risposte di Dan alle domande aperte** (`docs/domande-aperte.md`, colonna «Risposta»).
+
+- 2B: sessione del privato di 30 giorni dall'ultimo utilizzo, al massimo `session.privateMaxDays` (365, nuovo parametro) dal login.
+- 3B: fee ridotto anche con premio di esattamente 200,00 € (FEE-02 «fino a 200 € compresi»).
+- 4C: invito nel team valido 30 giorni. 5: resta com'è.
+- 13B: il back office annulla un'asta aperta → la richiesta va in «Annullata» (nuovo passaggio nel diagramma); il cliente riceve l'avviso `auction.cancelled.requester` (nuovo).
+- 16B: escludendo l'ultima offerta valida dopo il controllo del PDF la richiesta diventa subito «Deserta», con avviso al cliente e al back office (`offer.excluded_last.*`, nuovi).
+- 18: il cliente non recede più dall'app: nuovo parametro `withdrawal.byCustomer` (spento); la pagina della polizza indica l'agenzia. Il back office può ancora registrare un recesso arrivato da fuori (solo da API, nessuna schermata). S08 aggiornato: il flusso completo resta provato nei test di integrazione con il parametro acceso; l'E2E prova la pagina.
+- 19B: all'approvazione l'agenzia nuova riceve filtri larghi (tutti i veicoli, province, classi, età e pacchetti, le sue compagnie) e gli orari lavorativi: è subito invitabile alle aste. Nuovi parametri `agency.defaultFilter.maxStartDateDays` (60) e `agency.defaultFilter.maxGuaranteeDays` (30).
+- 24: produzione in versione di partenza in Terraform (1 copia per servizio, worker 2, 1 NAT, database in una zona, Redis 1 nodo; protezione dalla cancellazione e backup restano, con prova). Corretto anche il collaudo: aveva 2 copie per servizio mentre la stima ne conta 1. Stima in `docs/costi-aws.md` (~450-650 $).
+- Da confermare con Dan: 1 (decorrenza «immediata dal pagamento» o «dalle 24:00 del giorno del pagamento»: cosa cambia per la data scelta dal cliente), 15C (prezzi e targa nelle notifiche: cambia la regola 8), 18 (il back office deve poter registrare recessi?). Aperte: 21 (collaudo sempre acceso o no), 22, 23.
+- Dopo il pull: `pnpm db:seed` per i parametri nuovi.
+
 **2026-10-18 — fase 8, parte A** (piano approvato da Dan con le proposte A-H; nessuna risorsa cloud creata, nessuna spesa).
 
 - A1 sicurezza nell'app: limiti di frequenza dai nuovi parametri `security.*` (pagine pubbliche, domande di ingresso, codici OTP per numero o indirizzo, token non validi), in Redis; blocco degli accessi e limite dei codici email per indirizzo in Keycloak dai parametri; CSP con nonce e intestazioni di sicurezza; accessi riusciti fuori dalle nostre app e accessi falliti da Keycloak al registro. **Trovato e corretto**: il tempo reale nel browser non si collegava mai (dalla fase 3) perché Socket.IO rispondeva anche all'indirizzo del biglietto; ora `/realtime/socket`, con prova.
@@ -191,7 +204,7 @@ A parametri che valgono da ora in poi; B Web Push finto fino alla fase 8; C rico
 | Le aste aperte tengono i parametri dell'apertura, le nuove usano i nuovi | `settings.int.test.ts` «a change from the panel and the auctions», worker `activities.int` |
 | Modelli delle notifiche: modifica, anteprima, prova; albanese; preferenze e push obbligatorie; niente doppioni | `communications.int`, `preferences.int`, `notification-dispatch.int` |
 | Matrice dei permessi di back office e amministratore a tabella | `can.test.ts`, `permissions.int.test.ts` |
-| Un'agenzia si registra, il back office la approva, l'agenzia riceve il primo invito | `onboarding.int`, E2E `fase7-pannelli` (invito all'account; domanda 19) |
+| Un'agenzia si registra, il back office la approva, l'agenzia riceve il primo invito | `onboarding.int`, E2E `fase7-pannelli` (domanda 19, risposta B: all'approvazione filtri larghi e orari lavorativi, invitabile subito alle aste) |
 | Reclami: protocollo, scadenza, avviso a 5 giorni, esportazione | `complaints.int`, worker `schedules.int` |
 | Riconciliazione: abbinamenti e coda | `reconciliation.int`, `reconciliation.test` |
 | Conservazione: una richiesta non conclusa di 12 mesi fa si cancella, ed è registrata | `retention.int` (anche: 11 mesi resta, pagata resta) |
@@ -591,7 +604,7 @@ Prima: Docker Desktop acceso; in PowerShell, nella cartella `C:\Users\clien\Sear
 | Filtri, capacità, orari di ricezione e prodotti delle agenzie impostati solo dai dati di prova | Le schermate delle agenzie sono della fase 4 (proposta D approvata) | Fase 4 |
 | Avviso «Nuova richiesta in target» a tutti i membri attivi dell'agenzia, anche con la distribuzione per filtri personali | La scelta dell'agenzia rispetta i filtri dei membri; i destinatari dell'avviso no | Fase 4, con le schermate dell'agenzia |
 | `KmsEvent` come registro delle chiavi al posto di CloudTrail | Nessun KMS vero in sviluppo (ADR 0005) | Fatto in parte (fase 8): il controllo notturno legge anche CloudTrail (`CloudTrailKmsEvents`); da provare in collaudo |
-| Il richiedente non può annullare una richiesta con l'asta aperta | Il diagramma degli stati non prevede il passaggio da «Asta aperta» ad «Annullata» | Da decidere con Dan, insieme alla domanda 13 |
+| Il richiedente non può annullare una richiesta con l'asta aperta | Solo il back office annulla un'asta aperta (domanda 13, risposta B: la richiesta va in «Annullata») | Se Dan lo chiede |
 | Colonna `Verification.excludedAgencies` della fase 2 non usata | Le esclusioni dall'anteprima stanno in `InvitationExclusion` | Alla prossima migrazione che tocca la tabella |
 | I test dei workflow scaricano il server di test di Temporal la prima volta | Senza rete quei test falliscono, non passano in silenzio | — |
 | Offerte di prova degli strumenti di sviluppo con il primo prodotto dell'agenzia e coperture del pacchetto Completo | Bastano alle demo | — |

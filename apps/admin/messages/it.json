@@ -641,6 +641,8 @@
       "guarantee_reminderTime": "Ora del promemoria della garanzia (Roma)",
       "agency_dashboard_statsDays": "Giorni degli indicatori nel cruscotto dell'agenzia",
       "agency_dashboard_closingSoonMinutes": "Minuti per «chiudono entro un'ora senza offerta»",
+      "agency_defaultFilter_maxStartDateDays": "Agenzia nuova: decorrenza più lontana dei filtri iniziali (giorni)",
+      "agency_defaultFilter_maxGuaranteeDays": "Agenzia nuova: garanzia più lunga dei filtri iniziali (giorni)",
       "backOffice_recentAuctionsDays": "Giorni in cui le aste chiuse restano nell'elenco «Aste»",
       "reconfirmation_workingHours": "Tempo delle agenzie per la riconferma (ore lavorative)",
       "reconfirmation_maxPerRequest": "Riconferme al massimo per richiesta",
@@ -653,6 +655,7 @@
       "survey_daysAfterIssuance": "Invio del questionario, giorni dopo l'emissione",
       "survey_linkValidDays": "Validità del link del questionario (giorni)",
       "withdrawal_days": "Giorni dall'emissione per il recesso (da validare con il legale)",
+      "withdrawal_byCustomer": "Il cliente chiede il recesso dall'app (spento: recesso fuori dal portale)",
       "fees_private_amountCents": "Fee del privato",
       "fees_private_aiSupplementCents": "Supplemento per il confronto AI",
       "fees_private_lowPremium_thresholdCents": "Premio sotto cui si applica il fee ridotto",
@@ -684,7 +687,7 @@
       "documents_maxUploadMb": "Dimensione massima di un file (MB)",
       "notes_maxChars": "Lunghezza delle note per il cliente",
       "drivingFormula_expertMinAge": "Età minima dei conducenti per la formula esperta",
-      "session_privateDays": "Durata della sessione dei privati (giorni)",
+      "session_privateDays": "Giorni senza usare l'app prima di un nuovo accesso (privati)",
       "session_professionalIdleHours": "Inattività massima delle utenze professionali (ore)",
       "session_staffIdleHours": "Inattività massima di back office e amministratore (ore)",
       "retention_incompleteRequestsMonths": "Conservazione delle richieste non concluse (mesi)",
@@ -709,7 +712,8 @@
       "security_codesPerDestinationPerHour": "Codici OTP per numero o indirizzo in un'ora",
       "security_publicRequestsPerMinute": "Richieste al minuto per IP alle pagine pubbliche",
       "security_publicApplicationsPerHour": "Domande di ingresso per IP in un'ora",
-      "security_failedAuthPerMinute": "Accessi non validi per IP in un minuto"
+      "security_failedAuthPerMinute": "Accessi non validi per IP in un minuto",
+      "session_privateMaxDays": "Durata massima della sessione dei privati (giorni)"
     }
   },
   "communications": {

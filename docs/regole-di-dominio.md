@@ -42,7 +42,7 @@ Dettagli tecnici: [`busta-chiusa.md`](busta-chiusa.md).
 - **OFF-06** Le coperture dichiarate devono essere uguali o migliori di quelle del pacchetto. Un'offerta dichiarata non conforme viene esclusa alla chiusura, con il motivo.
 - **OFF-07** Modifica e ritiro sono possibili fino alla chiusura. Dopo la chiusura l'offerta è vincolante fino alla data di garanzia e non si ritira.
 - **OFF-08** La rinuncia («non interessato») ha un motivo facoltativo, scelto dall'elenco.
-- **OFF-09** Alla chiusura l'AI confronta il PDF con l'offerta dichiarata. Le differenze diventano una segnalazione al back office, che può escludere l'offerta, con motivo, finché il cliente non l'ha accettata. L'offerta vincolante è quella dichiarata.
+- **OFF-09** Alla chiusura l'AI confronta il PDF con l'offerta dichiarata. Le differenze diventano una segnalazione al back office, che può escludere l'offerta, con motivo, finché il cliente non l'ha accettata. L'offerta vincolante è quella dichiarata. Se esclude l'ultima offerta valida, la richiesta diventa subito «Deserta», con avviso al cliente e al back office (domanda 16).
 - **OFF-10** Offrono solo intermediari iscritti in sez. A o B. I collaboratori sez. E operano sempre a nome dell'agenzia selezionata.
 
 ## ASTA — Apertura, inviti e tempi
@@ -83,7 +83,7 @@ Dettagli tecnici: [`busta-chiusa.md`](busta-chiusa.md).
 ## FEE — Fee e importi
 
 - **FEE-01** Privato: 30 € a polizza; 35 € se ha usato il confronto AI su quella richiesta, in qualunque momento prima dell'acquisto.
-- **FEE-02** Privato, premio lordo dell'offerta acquistata sotto 200 €: 15 €, oppure 20 € con il confronto AI.
+- **FEE-02** Privato, premio lordo dell'offerta acquistata fino a 200 € compresi (domanda 3, Dan 2026-10-18): 15 €, oppure 20 € con il confronto AI.
 - **FEE-03** Broker: 30 € a polizza emessa, a carico del broker, senza riduzione per i premi bassi. Il cliente del broker non paga fee.
 - **FEE-04** Agenzia: 15 € a polizza emessa, trattenuti dalla rimessa.
 - **FEE-05** Tutti i fee sono compensi di intermediazione esenti IVA. Il riferimento normativo e la natura IVA sulle fatture vengono dai parametri.
@@ -95,7 +95,7 @@ Dettagli tecnici: [`busta-chiusa.md`](busta-chiusa.md).
 - **PAG-01** Il cliente paga premio e, se privato, fee ad AstAx tramite il fornitore dei pagamenti, con carta o bonifico istantaneo. Il premio va sul conto separato.
 - **PAG-02** Pagamento confermato: richiesta «In emissione», offerta «Vincente», le altre offerte «Non scelta», contatti all'agenzia vincitrice, parte il termine di emissione.
 - **PAG-03** Pagamento fallito o abbandonato: l'accettazione decade e la richiesta torna a «Offerte disponibili», finché ci sono garanzie valide.
-- **PAG-04** Rimborso prima dell'emissione: totale, fee compreso. Dopo l'emissione (recesso): il premio indicato dall'agenzia secondo le condizioni della compagnia; il fee del cliente e quello dell'agenzia restano dovuti. Il premio rimborsato si recupera dall'agenzia come voce negativa della rimessa successiva. Regola da validare con il legale.
+- **PAG-04** Rimborso prima dell'emissione: totale, fee compreso. Dopo l'emissione (recesso): il premio indicato dall'agenzia secondo le condizioni della compagnia; il fee del cliente e quello dell'agenzia restano dovuti. Il premio rimborsato si recupera dall'agenzia come voce negativa della rimessa successiva. Regola da validare con il legale. Domanda 18: dopo l'emissione il cliente recede o annulla fuori dal portale (parametro `withdrawal.byCustomer` spento); il back office può registrare per lui un recesso arrivato da fuori.
 - **PAG-05** Ogni rimborso richiede l'approvazione del supervisore del back office ed è registrato.
 - **PAG-06** Ogni giorno ogni incasso è abbinato a una richiesta; le differenze vanno in coda al back office.
 
