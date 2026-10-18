@@ -25,6 +25,10 @@ const configSchema = z
     TEMPORAL_TASK_QUEUE: z.string().min(1).default("astax-requests"),
     WEB_URL: z.url().default("http://localhost:3000"),
     ADMIN_URL: z.url().default("http://localhost:3001"),
+    /** Phase 8: read Keycloak's login events with the API's service account (optional). */
+    KEYCLOAK_URL: z.url().optional(),
+    KEYCLOAK_REALM: z.string().min(1).default("astax"),
+    KEYCLOAK_API_ADMIN_SECRET: z.string().min(16).optional(),
     MAILPIT_URL: z.url().default("http://127.0.0.1:8025"),
     EMAIL_FROM: z.email().default("noreply@astax.test"),
     REDIS_URL: z.string().min(1).optional(),

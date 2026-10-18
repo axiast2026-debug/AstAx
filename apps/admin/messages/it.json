@@ -617,7 +617,8 @@
       "consent": "Consenso",
       "rca": "RCA",
       "privacy": "Dati personali",
-      "support": "Assistenza"
+      "support": "Assistenza",
+      "security": "Limiti di sicurezza"
     },
     "labels": {
       "calendar_timeZone": "Fuso orario di riferimento",
@@ -701,7 +702,14 @@
       "requests_codePrefix": "Prefisso del codice richiesta",
       "privacy_requestResponseDays": "Termine di risposta alle richieste sui dati personali (giorni)",
       "support_responseHours": "Prima risposta a un ticket di assistenza (ore)",
-      "requests_bulkMaxRows": "Righe al massimo per file del caricamento in blocco"
+      "requests_bulkMaxRows": "Righe al massimo per file del caricamento in blocco",
+      "security_loginMaxFailures": "Errori di accesso prima del blocco",
+      "security_loginLockMinutes": "Attesa massima dopo il blocco (minuti)",
+      "security_emailCodesPerAddressPerHour": "Codici di accesso per indirizzo email in un'ora",
+      "security_codesPerDestinationPerHour": "Codici OTP per numero o indirizzo in un'ora",
+      "security_publicRequestsPerMinute": "Richieste al minuto per IP alle pagine pubbliche",
+      "security_publicApplicationsPerHour": "Domande di ingresso per IP in un'ora",
+      "security_failedAuthPerMinute": "Accessi non validi per IP in un minuto"
     }
   },
   "communications": {

@@ -2,6 +2,12 @@ import type { Clock } from "@astax/adapters/clock";
 import type { FieldCipher } from "@astax/adapters/crypto";
 import type { RuiRegistryPort } from "@astax/adapters/rui-registry";
 import {
+  KEYCLOAK_CLIENTS,
+  KEYCLOAK_LOGIN_EVENTS,
+  type KeycloakEvent,
+} from "@astax/adapters/identity";
+import {
+  appendAudit,
   complaintsToRemind,
   importRuiRecords,
   issueBrokerInvoices,
@@ -127,6 +133,75 @@ export async function remindComplaintsIfDue(
   return { reminded };
 }
 
+const LOGIN_EVENTS_CURSOR = "keycloak.loginEvents";
+const OUR_CLIENTS: readonly string[] = Object.values(KEYCLOAK_CLIENTS);
+
+/**
+ * Phase 8: the login events of Keycloak go into the audit log (CLAUDE.md rule 4).
+ * Failed logins of a known user are written (with the error code and the IP);
+ * a login is written only when it did not come from our apps, which record their
+ * own logins with the browser's address (POST /me/logins). Events of addresses
+ * without an account are counted in the log only, so they cannot flood the chain.
+ */
+export async function importLoginEventsIfDue(
+  db: DbClient,
+  identity: { listEvents(types: string[], sinceMs: number): Promise<KeycloakEvent[]> },
+  now: Date,
+): Promise<{ imported: number; anonymous: number }> {
+  const cursor = await withContext(db, SYSTEM_CONTEXT, (tx) =>
+    tx.jobCursor.findUnique({ where: { key: LOGIN_EVENTS_CURSOR } }),
+  );
+  // The first run starts a day back.
+  const since = cursor ? Number(cursor.value) : now.getTime() - 86_400_000;
+  const events = await identity.listEvents([...KEYCLOAK_LOGIN_EVENTS.types], since);
+  if (events.length === 0) return { imported: 0, anonymous: 0 };
+  return withContext(db, SYSTEM_CONTEXT, async (tx) => {
+    const ids = [...new Set(events.map((e) => e.userId).filter((id): id is string => !!id))];
+    const users = await tx.user.findMany({
+      where: { keycloakId: { in: ids } },
+      select: { id: true, keycloakId: true },
+    });
+    const userOf = new Map(users.map((u) => [u.keycloakId, u.id]));
+    let imported = 0;
+    let anonymous = 0;
+    for (const e of events) {
+      const userId = e.userId ? userOf.get(e.userId) : undefined;
+      const ours = e.clientId !== undefined && OUR_CLIENTS.includes(e.clientId);
+      if (e.type === "LOGIN" && ours) continue;
+      if (!userId) {
+        anonymous += 1;
+        continue;
+      }
+      await appendAudit(tx, {
+        actorUserId: userId,
+        actorMembershipId: null,
+        actorOrganizationId: null,
+        ip: e.ipAddress?.slice(0, 64) ?? null,
+        userAgent: null,
+        at: new Date(e.time),
+        action: e.type === "LOGIN" ? "LOGIN" : "LOGIN_FAILED",
+        targetType: "User",
+        targetId: userId,
+        before: null,
+        after: {
+          source: "keycloak",
+          clientId: e.clientId ?? null,
+          ...(e.error ? { error: e.error.slice(0, 100) } : {}),
+        },
+        reason: null,
+      });
+      imported += 1;
+    }
+    const last = Math.max(...events.map((e) => e.time));
+    await tx.jobCursor.upsert({
+      where: { key: LOGIN_EVENTS_CURSOR },
+      create: { key: LOGIN_EVENTS_CURSOR, value: String(last), updatedAt: now },
+      update: { value: String(last), updatedAt: now },
+    });
+    return { imported, anonymous };
+  });
+}
+
 /** Checks every few minutes; the identifiers and counts only go to the log (rule 8). */
 export function startSchedules(
   deps: {
@@ -139,11 +214,13 @@ export function startSchedules(
     adminUrl: string;
     /** LEG-06: the files of the documents to delete. */
     deleteObject: (key: string) => Promise<void>;
+    /** Phase 8: Keycloak's login events; absent when the worker has no admin access. */
+    identity?: { listEvents(types: string[], sinceMs: number): Promise<KeycloakEvent[]> };
   },
   intervalMs: number,
 ): () => void {
   if (intervalMs === 0) return () => undefined;
-  const { db, clock, cipher, logger, rui, notifier, adminUrl, deleteObject } = deps;
+  const { db, clock, cipher, logger, rui, notifier, adminUrl, deleteObject, identity } = deps;
   let retentionDay = "";
   const brokerLine = label(loadNotificationLabels(), "invoice.brokerLine", "it");
   let running = false;
@@ -164,6 +241,13 @@ export function startSchedules(
       remindComplaintsIfDue({ db, cipher, notifier, adminUrl }, now).then((result) => {
         if (result.reminded > 0) logger.info(result, "complaints reminded");
       }),
+      (identity ? importLoginEventsIfDue(db, identity, now) : Promise.resolve(null)).then(
+        (result) => {
+          if (result && result.imported + result.anonymous > 0) {
+            logger.info(result, "login events imported");
+          }
+        },
+      ),
       // LEG-06, proposal G: once a day the requests not concluded past retention.
       (retentionDay === romeCalendarDate(now)
         ? Promise.resolve(null)

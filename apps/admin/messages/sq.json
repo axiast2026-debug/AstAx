@@ -617,7 +617,8 @@
       "consent": "Pëlqimi",
       "rca": "RCA",
       "privacy": "Të dhënat personale",
-      "support": "Asistenca"
+      "support": "Asistenca",
+      "security": "Kufijtë e sigurisë"
     },
     "labels": {
       "calendar_timeZone": "Zona orare e referencës",
@@ -701,7 +702,14 @@
       "requests_codePrefix": "Parashtesa e kodit të kërkesës",
       "privacy_requestResponseDays": "Afati i përgjigjes ndaj kërkesave për të dhënat personale (ditë)",
       "support_responseHours": "Përgjigja e parë për një tiketë asistence (orë)",
-      "requests_bulkMaxRows": "Rreshta maksimumi për skedar në ngarkimin në bllok"
+      "requests_bulkMaxRows": "Rreshta maksimumi për skedar në ngarkimin në bllok",
+      "security_loginMaxFailures": "Gabime hyrjeje para bllokimit",
+      "security_loginLockMinutes": "Pritja maksimale pas bllokimit (minuta)",
+      "security_emailCodesPerAddressPerHour": "Kode hyrjeje për adresë email në një orë",
+      "security_codesPerDestinationPerHour": "Kode OTP për numër ose adresë në një orë",
+      "security_publicRequestsPerMinute": "Kërkesa në minutë për IP te faqet publike",
+      "security_publicApplicationsPerHour": "Aplikime hyrjeje për IP në një orë",
+      "security_failedAuthPerMinute": "Hyrje të pavlefshme për IP në një minutë"
     }
   },
   "communications": {

@@ -15,6 +15,7 @@ public class EmailCodeAuthenticatorFactory implements AuthenticatorFactory {
   static final String TTL_MINUTES = "codeTtlMinutes";
   static final String MAX_ATTEMPTS = "maxAttempts";
   static final String CODE_LENGTH = "codeLength";
+  static final String MAX_CODES_PER_HOUR = "maxCodesPerHour";
 
   private static final EmailCodeAuthenticator SINGLETON = new EmailCodeAuthenticator();
 
@@ -62,7 +63,8 @@ public class EmailCodeAuthenticatorFactory implements AuthenticatorFactory {
     return List.of(
         property(TTL_MINUTES, "Code validity (minutes)", "10"),
         property(MAX_ATTEMPTS, "Maximum attempts per code", "5"),
-        property(CODE_LENGTH, "Code length (digits)", "6"));
+        property(CODE_LENGTH, "Code length (digits)", "6"),
+        property(MAX_CODES_PER_HOUR, "Codes per address per hour", "10"));
   }
 
   private static ProviderConfigProperty property(String name, String label, String defaultValue) {

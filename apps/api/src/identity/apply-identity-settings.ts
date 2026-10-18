@@ -1,6 +1,8 @@
 import {
   EMAIL_CODE_CONFIG,
+  KEYCLOAK_LOGIN_EVENTS,
   emailCodeConfig,
+  keycloakBruteForceSettings,
   keycloakSessionSettings,
 } from "@astax/adapters/identity";
 import type { SettingKey } from "@astax/shared/settings";
@@ -13,6 +15,9 @@ export const IDENTITY_SETTING_KEYS = [
   "session.staffIdleHours",
   "otp.validityMinutes",
   "otp.maxAttempts",
+  "security.emailCodesPerAddressPerHour",
+  "security.loginMaxFailures",
+  "security.loginLockMinutes",
 ] as const satisfies readonly SettingKey[];
 
 export function isIdentitySetting(key: string): boolean {
@@ -25,9 +30,12 @@ export interface IdentitySettingValues {
   "session.staffIdleHours": number;
   "otp.validityMinutes": number;
   "otp.maxAttempts": number;
+  "security.emailCodesPerAddressPerHour": number;
+  "security.loginMaxFailures": number;
+  "security.loginLockMinutes": number;
 }
 
-/** Pushes the session durations and the email-code limits to Keycloak. */
+/** Pushes the session durations, the login lock and the email-code limits to Keycloak. */
 export async function applyIdentitySettings(
   admin: Pick<
     IdentityAdmin,
@@ -40,7 +48,14 @@ export async function applyIdentitySettings(
     professionalIdleHours: values["session.professionalIdleHours"],
     staffIdleHours: values["session.staffIdleHours"],
   });
-  await admin.updateRealm(sessions.realm);
+  await admin.updateRealm({
+    ...sessions.realm,
+    ...KEYCLOAK_LOGIN_EVENTS.realm,
+    ...keycloakBruteForceSettings({
+      maxFailures: values["security.loginMaxFailures"],
+      lockMinutes: values["security.loginLockMinutes"],
+    }),
+  });
   for (const [clientId, attributes] of Object.entries(sessions.clients)) {
     await admin.updateClientAttributes(clientId, attributes);
   }
@@ -50,6 +65,7 @@ export async function applyIdentitySettings(
     emailCodeConfig({
       validityMinutes: values["otp.validityMinutes"],
       maxAttempts: values["otp.maxAttempts"],
+      maxCodesPerHour: values["security.emailCodesPerAddressPerHour"],
     }),
   );
 }

@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import type { Server as HttpServer } from "node:http";
 import type { Clock } from "@astax/adapters/clock";
 import { withContext, type DbClient, type DbContext } from "@astax/db";
@@ -41,7 +41,13 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnApplicationShu
   #io: Server | null = null;
   /** The Redis connections to close at shutdown. */
   #redis: { quit(): Promise<unknown> }[] = [];
+  /** Without Redis (tests): the tickets of this process. */
   readonly #tickets = new Map<string, Ticket>();
+  /** Phase 8: with Redis the tickets are shared, so any instance may redeem them. */
+  #ticketStore: {
+    set(key: string, value: string, options: { PX: number }): Promise<unknown>;
+    getDel(key: string): Promise<string | null>;
+  } | null = null;
   #stopListening: (() => void) | null = null;
 
   constructor(
@@ -53,24 +59,42 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnApplicationShu
     @Inject(RealtimeHub) private readonly hub: RealtimeHub,
   ) {}
 
+  /** The Redis key of a ticket: its hash, so a copy of Redis holds no usable ticket. */
+  private static ticketKey(ticket: string): string {
+    return `astax:rt-ticket:${createHash("sha256").update(ticket).digest("base64url")}`;
+  }
+
   /** A one-time ticket for the browser of this user. */
-  issueTicket(auth: AuthContext): { ticket: string; expiresInMs: number } {
+  async issueTicket(auth: AuthContext): Promise<{ ticket: string; expiresInMs: number }> {
     const now = this.clock.now().getTime();
-    for (const [key, t] of this.#tickets) if (t.expiresAt <= now) this.#tickets.delete(key);
     const ticket = randomBytes(24).toString("base64url");
-    this.#tickets.set(ticket, {
+    const value: Ticket = {
       userId: auth.userId,
       db: auth.db,
       isStaff: auth.membership?.organizationType === "ASTAX",
       expiresAt: now + TICKET_TTL_MS,
-    });
+    };
+    if (this.#ticketStore) {
+      await this.#ticketStore.set(RealtimeGateway.ticketKey(ticket), JSON.stringify(value), {
+        PX: TICKET_TTL_MS,
+      });
+    } else {
+      for (const [key, t] of this.#tickets) if (t.expiresAt <= now) this.#tickets.delete(key);
+      this.#tickets.set(ticket, value);
+    }
     return { ticket, expiresInMs: TICKET_TTL_MS };
   }
 
-  private redeem(ticket: unknown, now: number): Ticket | null {
+  private async redeem(ticket: unknown, now: number): Promise<Ticket | null> {
     if (typeof ticket !== "string") return null;
-    const found = this.#tickets.get(ticket);
-    this.#tickets.delete(ticket);
+    let found: Ticket | undefined;
+    if (this.#ticketStore) {
+      const raw = await this.#ticketStore.getDel(RealtimeGateway.ticketKey(ticket));
+      found = raw ? (JSON.parse(raw) as Ticket) : undefined;
+    } else {
+      found = this.#tickets.get(ticket);
+      this.#tickets.delete(ticket);
+    }
     return found && found.expiresAt > now ? found : null;
   }
 
@@ -78,7 +102,7 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnApplicationShu
     const httpServer = this.adapterHost.httpAdapter?.getHttpServer() as HttpServer | undefined;
     if (!httpServer) return;
     const io = new Server(httpServer, {
-      path: "/realtime",
+      path: "/realtime/socket",
       serveClient: false,
       cors: { origin: [this.config.WEB_URL, this.config.ADMIN_URL] },
     });
@@ -104,19 +128,23 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnApplicationShu
           }
         });
         this.#redis = [pub, sub, events];
+        this.#ticketStore = pub;
       } catch (error) {
         this.logger.warn({ err: errorForLog(error) }, "realtime without Redis");
       }
     }
 
     io.use((socket, next) => {
-      const ticket = this.redeem(socket.handshake.auth?.ticket, this.clock.now().getTime());
-      if (!ticket) {
-        next(new Error("UNAUTHENTICATED"));
-        return;
-      }
-      socket.data.ticket = ticket;
-      next();
+      this.redeem(socket.handshake.auth?.ticket, this.clock.now().getTime())
+        .then((ticket) => {
+          if (!ticket) {
+            next(new Error("UNAUTHENTICATED"));
+            return;
+          }
+          socket.data.ticket = ticket;
+          next();
+        })
+        .catch(() => next(new Error("UNAUTHENTICATED")));
     });
     io.on("connection", (socket) => this.onConnection(socket));
     this.#stopListening = this.hub.listen((event) => {

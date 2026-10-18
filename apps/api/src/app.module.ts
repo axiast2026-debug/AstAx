@@ -3,6 +3,8 @@ import { APP_FILTER, APP_GUARD } from "@nestjs/core";
 import { AuditController } from "./audit/audit.controller.js";
 import { AuditService } from "./audit/audit.service.js";
 import { AuthGuard } from "./auth/auth.guard.js";
+import { RateLimitGuard } from "./security/rate-limit.guard.js";
+import { RateLimiter } from "./security/rate-limiter.js";
 import { UserResolver } from "./auth/user-resolver.js";
 import type { ApiConfig } from "./config/config.js";
 import { HealthController } from "./health/health.controller.js";
@@ -215,6 +217,9 @@ export class AppModule {
         RealtimeGateway,
         DevToolsService,
         IdentitySync,
+        RateLimiter,
+        // Phase 8: the limits per IP run first, then the only door (SIC-01).
+        { provide: APP_GUARD, useClass: RateLimitGuard },
         { provide: APP_GUARD, useClass: AuthGuard },
         { provide: APP_FILTER, useClass: ProblemFilter },
       ],

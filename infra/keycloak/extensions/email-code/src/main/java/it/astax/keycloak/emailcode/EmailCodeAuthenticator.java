@@ -24,6 +24,7 @@ import org.keycloak.models.AuthenticatorConfigModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.RoleModel;
+import org.keycloak.models.SingleUseObjectProvider;
 import org.keycloak.models.UserModel;
 import org.keycloak.sessions.AuthenticationSessionModel;
 import org.keycloak.theme.Theme;
@@ -96,10 +97,16 @@ public class EmailCodeAuthenticator implements Authenticator {
 
     KeycloakSession session = context.getSession();
     RealmModel realm = context.getRealm();
+    Settings settings = Settings.of(context.getAuthenticatorConfig());
+    // Phase 8: a limit per address across login attempts (security.emailCodesPerAddressPerHour).
+    // Counted for every address, so the answer says nothing about who has an account.
+    if (!withinHourlyLimit(session, email, settings.maxCodesPerHour())) {
+      emailError(context, "astaxEmailCodeTooManySends");
+      return;
+    }
     UserModel existing = session.users().getUserByEmail(realm, email);
     boolean allowed = existing == null || isPrivate(realm, existing);
 
-    Settings settings = Settings.of(context.getAuthenticatorConfig());
     String code = newCode(settings.codeLength());
     auth.setAuthNote(NOTE_EMAIL, email);
     auth.setAuthNote(NOTE_BLOCKED, Boolean.toString(!allowed));
@@ -121,6 +128,23 @@ public class EmailCodeAuthenticator implements Authenticator {
       }
     }
     context.challenge(context.form().setAttribute("email", email).createForm(CODE_FORM));
+  }
+
+  /**
+   * Codes sent to one address in the current hour, kept in Keycloak's cluster-wide
+   * store under a hash of the address (no address in the key, SIC-06).
+   */
+  private static boolean withinHourlyLimit(KeycloakSession session, String email, int maxPerHour) {
+    SingleUseObjectProvider store = session.singleUseObjects();
+    long hour = Time.currentTimeMillis() / 3_600_000L;
+    String key = "astax-email-code:" + sha256(email) + ":" + hour;
+    Map<String, String> current = store.get(key);
+    int count = current == null ? 0 : parseOr(current.get("count"), 0);
+    if (count >= maxPerHour) return false;
+    Map<String, String> next = Map.of("count", Integer.toString(count + 1));
+    if (current == null) store.put(key, 3_600L, next);
+    else store.replace(key, next);
+    return true;
   }
 
   /** Texts come from the email theme (messages_it.properties), never from the code. */
@@ -256,16 +280,17 @@ public class EmailCodeAuthenticator implements Authenticator {
 
   /**
    * Values written by the API from the AstAx parameters otp.validityMinutes and
-   * otp.maxAttempts (keycloak:sync and every parameter change). The fallbacks are
+   * otp.maxAttempts and security.emailCodesPerAddressPerHour (keycloak:sync and every parameter change). The fallbacks are
    * the seed values, used only if the configuration were missing.
    */
-  record Settings(int ttlMinutes, int maxAttempts, int codeLength) {
+  record Settings(int ttlMinutes, int maxAttempts, int codeLength, int maxCodesPerHour) {
     static Settings of(AuthenticatorConfigModel config) {
       Map<String, String> values = config == null ? Map.of() : config.getConfig();
       return new Settings(
           intOr(values, EmailCodeAuthenticatorFactory.TTL_MINUTES, 10),
           intOr(values, EmailCodeAuthenticatorFactory.MAX_ATTEMPTS, 5),
-          intOr(values, EmailCodeAuthenticatorFactory.CODE_LENGTH, 6));
+          intOr(values, EmailCodeAuthenticatorFactory.CODE_LENGTH, 6),
+          intOr(values, EmailCodeAuthenticatorFactory.MAX_CODES_PER_HOUR, 10));
     }
 
     private static int intOr(Map<String, String> values, String key, int fallback) {

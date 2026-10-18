@@ -19,6 +19,7 @@ import { z } from "zod";
 import type { AuthContext } from "../auth/auth-context.js";
 import { CurrentAuth, RequirePermission } from "../auth/decorators.js";
 import { Public } from "../http/public.decorator.js";
+import { RateLimiter } from "../security/rate-limiter.js";
 import { ProblemError } from "../http/problem.js";
 import { parseInput } from "../http/validation.js";
 import { sendFile } from "../requests/requests.controller.js";
@@ -86,7 +87,10 @@ function parsed(body: unknown) {
 @ApiTags("onboarding")
 @Controller("onboarding")
 export class OnboardingController {
-  constructor(@Inject(OnboardingService) private readonly onboarding: OnboardingService) {}
+  constructor(
+    @Inject(OnboardingService) private readonly onboarding: OnboardingService,
+    @Inject(RateLimiter) private readonly limiter: RateLimiter,
+  ) {}
 
   @Get("options")
   @Public()
@@ -96,7 +100,9 @@ export class OnboardingController {
 
   @Post()
   @Public()
-  start(@Body() body: unknown, @Req() request: Request) {
+  async start(@Body() body: unknown, @Req() request: Request) {
+    // Phase 8: each entry costs an SMS and a check; a limit per IP address.
+    await this.limiter.consume("application", request.ip ?? "unknown");
     return this.onboarding.start(parsed(body), clientOf(request));
   }
 

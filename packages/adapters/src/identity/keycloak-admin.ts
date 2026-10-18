@@ -30,6 +30,16 @@ export interface KeycloakSession {
   clients: Record<string, string>;
 }
 
+/** A login event kept by Keycloak (phase 8: imported into the audit log). */
+export interface KeycloakEvent {
+  time: number;
+  type: string;
+  clientId?: string;
+  userId?: string;
+  ipAddress?: string;
+  error?: string;
+}
+
 export class KeycloakAdminError extends Error {
   constructor(
     readonly status: number,
@@ -221,6 +231,21 @@ export class KeycloakAdmin {
     await this.call("updateClient", "PUT", `/clients/${client.id}`, {
       attributes: { ...client.attributes, ...attributes },
     });
+  }
+
+  /**
+   * Login events from `sinceMs` on, oldest first. Keycloak filters by day, so
+   * the time is checked here too.
+   */
+  async listEvents(types: string[], sinceMs: number, max = 500): Promise<KeycloakEvent[]> {
+    const query = new URLSearchParams({
+      dateFrom: new Date(sinceMs).toISOString().slice(0, 10),
+      first: "0",
+      max: String(max),
+    });
+    for (const type of types) query.append("type", type);
+    const events = await this.call<KeycloakEvent[]>("listEvents", "GET", `/events?${query}`);
+    return events.filter((e) => e.time > sinceMs).sort((a, b) => a.time - b.time);
   }
 
   async updateRealm(settings: Record<string, unknown>): Promise<void> {

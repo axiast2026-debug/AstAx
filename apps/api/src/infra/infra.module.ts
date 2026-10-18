@@ -52,7 +52,13 @@ import {
   PAYMENTS,
   AI_EXPLAINER,
   E_INVOICING,
+  RATE_LIMIT_STORE,
 } from "./tokens.js";
+import {
+  MemoryRateLimitStore,
+  RedisRateLimitStore,
+  type RateLimitStore,
+} from "../security/rate-limit-store.js";
 
 export interface InfraOverrides {
   clock?: Clock;
@@ -71,6 +77,7 @@ export interface InfraOverrides {
   payments?: PaymentsPort;
   aiExplainer?: AiExplainerPort;
   eInvoicing?: EInvoicingPort;
+  rateLimitStore?: RateLimitStore;
 }
 
 /**
@@ -242,6 +249,16 @@ export class InfraModule {
               config.TEMPORAL_NAMESPACE,
             ),
         },
+        {
+          // Phase 8: the counters of the limits, shared in Redis by every instance.
+          provide: RATE_LIMIT_STORE,
+          inject: [LOGGER],
+          useFactory: (logger: Logger) =>
+            overrides.rateLimitStore ??
+            (config.REDIS_URL
+              ? new RedisRateLimitStore(config.REDIS_URL, logger)
+              : new MemoryRateLimitStore(clock)),
+        },
         DbLifecycle,
       ],
       exports: [
@@ -265,6 +282,7 @@ export class InfraModule {
         PAYMENTS,
         AI_EXPLAINER,
         E_INVOICING,
+        RATE_LIMIT_STORE,
       ],
     };
   }

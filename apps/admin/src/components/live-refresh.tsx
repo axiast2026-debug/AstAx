@@ -24,7 +24,7 @@ export function LiveRefresh({
     void ticket().then((t) => {
       if (!t || closed) return;
       socket = io(t.url, {
-        path: "/realtime",
+        path: "/realtime/socket",
         auth: { ticket: t.ticket },
         transports: ["websocket"],
       });

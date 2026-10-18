@@ -3,6 +3,7 @@ import type { DbClient } from "@astax/db";
 import { Controller, Get, Inject } from "@nestjs/common";
 import { ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import { Public } from "../http/public.decorator.js";
+import { SkipRateLimit } from "../security/rate-limit.guard.js";
 import { CLOCK, DB } from "../infra/tokens.js";
 
 export interface HealthStatus {
@@ -12,6 +13,7 @@ export interface HealthStatus {
 }
 
 @ApiTags("health")
+@SkipRateLimit()
 @Controller("health")
 export class HealthController {
   constructor(

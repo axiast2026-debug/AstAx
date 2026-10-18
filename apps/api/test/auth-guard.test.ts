@@ -7,6 +7,7 @@ import { Test } from "@nestjs/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AuditService, type AuditEvent } from "../src/audit/audit.service.js";
 import { AuthGuard } from "../src/auth/auth.guard.js";
+import { RateLimiter } from "../src/security/rate-limiter.js";
 import { NoContext, RequirePermission } from "../src/auth/decorators.js";
 import type { TokenVerifier } from "../src/auth/token-verifier.js";
 import { UserResolver } from "../src/auth/user-resolver.js";
@@ -79,6 +80,11 @@ describe("SIC-01 AuthGuard default deny", () => {
           },
         },
         { provide: LegalGate, useValue: { hasPending: async () => false } },
+        // Phase 8: the limits are tested in rate-limits.int.test.ts.
+        {
+          provide: RateLimiter,
+          useValue: { assertNotBlocked: async () => {}, record: async () => {} },
+        },
         { provide: APP_GUARD, useClass: AuthGuard },
         { provide: APP_FILTER, useClass: ProblemFilter },
       ],

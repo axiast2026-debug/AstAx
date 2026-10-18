@@ -20,6 +20,7 @@ import type { AuthContext } from "../auth/auth-context.js";
 import type { ApiConfig } from "../config/config.js";
 import { ProblemError } from "../http/problem.js";
 import { CLOCK, CONFIG, DB, FIELD_CIPHER, LOGGER } from "../infra/tokens.js";
+import { RateLimiter } from "../security/rate-limiter.js";
 import labels from "../notifications/labels.it.json" with { type: "json" };
 import { NotificationService } from "../notifications/notification.service.js";
 import {
@@ -58,6 +59,7 @@ export class ConsentService {
     @Inject(NotificationService) private readonly notifications: NotificationService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(LOGGER) private readonly logger: Logger,
+    @Inject(RateLimiter) private readonly limiter: RateLimiter,
   ) {}
 
   private codeHash(challengeId: string, code: string): string {
@@ -229,6 +231,12 @@ export class ConsentService {
     minutes: number,
     ids: Record<string, string>,
   ) {
+    // Phase 8: at most security.codesPerDestinationPerHour codes to the same
+    // number or address, whatever asks for them (the counter holds a blind index).
+    if (contacts.email)
+      await this.limiter.consume("code", this.cipher.blindIndex("email", contacts.email));
+    if (contacts.phone)
+      await this.limiter.consume("code", this.cipher.blindIndex("phone", contacts.phone));
     const variables = {
       codice_otp: code,
       scopo: labels.otpPurpose[purpose],

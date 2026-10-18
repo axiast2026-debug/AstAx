@@ -1904,6 +1904,13 @@ model RuiRecord {
 }
 
 /// One import of the registry per day (Rome), with the counts.
+/// Phase 8: where a periodic job of the worker has got to.
+model JobCursor {
+  key       String   @id
+  value     String
+  updatedAt DateTime @db.Timestamptz(3)
+}
+
 model RuiImport {
   id         String    @id @default(uuid(7)) @db.Uuid
   runDate    String    @unique

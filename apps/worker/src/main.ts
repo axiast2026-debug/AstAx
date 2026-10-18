@@ -24,6 +24,7 @@ import { WorkerNotifier } from "./notifier.js";
 import { outboxHandler } from "./outbox.js";
 import { startSchedules } from "./schedules.js";
 import { FakeRuiRegistry } from "@astax/adapters/rui-registry";
+import { KeycloakAdmin } from "@astax/adapters/identity";
 
 /** The channel the API listens to for the changes it forwards to the browsers (ADR 0008). */
 export const REALTIME_CHANNEL = "astax:realtime";
@@ -141,6 +142,17 @@ const stopSchedules = startSchedules(
     rui: new FakeRuiRegistry(),
     notifier,
     adminUrl: config.ADMIN_URL,
+    ...(config.KEYCLOAK_URL && config.KEYCLOAK_API_ADMIN_SECRET
+      ? {
+          identity: new KeycloakAdmin({
+            baseUrl: config.KEYCLOAK_URL,
+            realm: config.KEYCLOAK_REALM,
+            clientId: "astax-api-admin",
+            clientSecret: config.KEYCLOAK_API_ADMIN_SECRET,
+            now: () => clock.now().getTime(),
+          }),
+        }
+      : {}),
     deleteObject: async (key) => {
       try {
         await storage.delete(key);

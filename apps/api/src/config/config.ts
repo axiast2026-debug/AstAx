@@ -40,6 +40,11 @@ const configSchema = z
     TEMPORAL_ADDRESS: z.string().min(1).optional(),
     TEMPORAL_PORT: z.coerce.number().int().min(1).max(65535).default(7233),
     TEMPORAL_NAMESPACE: z.string().min(1).default("astax"),
+    /**
+     * Who may write X-Forwarded-For (Express "trust proxy"): the web apps on the same
+     * machine in development; in the cloud the private network of the services (phase 8).
+     */
+    API_TRUST_PROXY: z.string().min(1).default("loopback"),
     /** Redis, for the realtime events published by the worker (ADR 0008). */
     REDIS_URL: z.string().min(1).optional(),
     REDIS_PORT: z.coerce.number().int().min(1).max(65535).default(6380),

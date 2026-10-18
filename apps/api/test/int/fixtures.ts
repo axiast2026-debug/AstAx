@@ -13,6 +13,7 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT, type JWK } from "jose";
 import { inject } from "vitest";
 import { createApp } from "../../src/app.js";
+import { MemoryRateLimitStore } from "../../src/security/rate-limit-store.js";
 import { RecordingWorkflowSignals } from "../../src/auctions/workflow-signals.js";
 import { JwtTokenVerifier } from "../../src/auth/token-verifier.js";
 import { loadConfig } from "../../src/config/config.js";
@@ -149,7 +150,12 @@ export interface Harness {
 }
 
 export async function startHarness(
-  options: { env?: Record<string, string>; aiExplainer?: AiExplainerPort } = {},
+  options: {
+    env?: Record<string, string>;
+    aiExplainer?: AiExplainerPort;
+    /** Phase 8: the real counters of the limits; off elsewhere, as the test clock stands still. */
+    rateLimits?: boolean;
+  } = {},
 ): Promise<Harness> {
   const clock = new ManualClock("2026-11-16T09:00:00.000Z");
   const { privateKey, publicKey } = await generateKeyPair("RS256");
@@ -184,6 +190,9 @@ export async function startHarness(
     workflowSignals: signals,
     objectStorage: storage,
     tokenVerifier: verifier,
+    rateLimitStore: options.rateLimits
+      ? new MemoryRateLimitStore(clock)
+      : { hit: async () => 0, peek: async () => 0 },
     ...(options.aiExplainer ? { aiExplainer: options.aiExplainer } : {}),
     // API_TEST_LOGS=1 shows the (redacted) API logs while debugging a test.
     logger: process.env.API_TEST_LOGS

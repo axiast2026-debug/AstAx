@@ -7,6 +7,7 @@ import { ProblemError } from "../http/problem.js";
 import { IS_PUBLIC } from "../http/public.decorator.js";
 import { LOGGER, TOKEN_VERIFIER } from "../infra/tokens.js";
 import { LegalGate } from "../legal/legal-gate.js";
+import { RateLimiter } from "../security/rate-limiter.js";
 import {
   CONTEXT_HEADER,
   kindFromToken,
@@ -52,6 +53,7 @@ export class AuthGuard implements CanActivate {
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(LegalGate) private readonly legal: LegalGate,
     @Inject(LOGGER) private readonly logger: Logger,
+    @Inject(RateLimiter) private readonly limiter: RateLimiter,
   ) {}
 
   private meta<T>(key: string, context: ExecutionContext): T | undefined {
@@ -68,11 +70,14 @@ export class AuthGuard implements CanActivate {
     const header = request.header("authorization");
     const raw = header?.startsWith("Bearer ") ? header.slice(7) : null;
     if (!raw) throw new ProblemError("UNAUTHENTICATED");
+    // Phase 8: an address that sent too many invalid tokens waits (security.failedAuthPerMinute).
+    await this.limiter.assertNotBlocked("failedAuth", ip ?? "unknown");
     let token;
     try {
       token = await this.verifier.verify(raw);
     } catch (error) {
       if (error instanceof InvalidTokenError) {
+        await this.limiter.record("failedAuth", ip ?? "unknown");
         // Anonymous failures are not chained in the audit log (they could flood it): one log line.
         this.logger.warn({ route }, "invalid access token");
         throw new ProblemError("UNAUTHENTICATED");

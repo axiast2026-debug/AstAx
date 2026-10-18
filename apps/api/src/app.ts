@@ -5,7 +5,8 @@ import type { INestApplication } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule, type OpenAPIObject } from "@nestjs/swagger";
-import { raw, text } from "express";
+import { apiSecurityHeaders } from "@astax/shared/http";
+import { raw, text, type NextFunction, type Request, type Response } from "express";
 import { AppModule } from "./app.module.js";
 import type { ApiConfig } from "./config/config.js";
 import { requestLogger } from "./http/request-logger.js";
@@ -37,8 +38,19 @@ export async function createApp(
   const logger = app.get<Logger>(LOGGER);
   app.useLogger(new NestPinoLogger(logger));
   app.disable("x-powered-by");
-  app.set("trust proxy", "loopback");
+  app.set(
+    "trust proxy",
+    config.API_TRUST_PROXY.split(",").map((p) => p.trim()),
+  );
   app.use(requestLogger(logger, app.get<Clock>(CLOCK)));
+  // Phase 8: nothing the API answers may run or be framed (the Swagger page of development aside).
+  const securityHeaders = Object.entries(apiSecurityHeaders(config.NODE_ENV === "production"));
+  app.use((request: Request, response: Response, next: NextFunction) => {
+    if (!request.path.startsWith("/docs")) {
+      for (const [key, value] of securityHeaders) response.setHeader(key, value);
+    }
+    next();
+  });
   // Document uploads send the file itself as the body. The technical cap is
   // generous; the business limit is documents.maxUploadMb, checked by the use case.
   app.use(/^\/requests\/[^/]+\/documents$/, raw({ type: () => true, limit: "60mb" }));

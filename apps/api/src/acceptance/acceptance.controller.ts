@@ -24,6 +24,7 @@ import { CurrentAuth, RequirePermission } from "../auth/decorators.js";
 import type { ApiConfig } from "../config/config.js";
 import { ProblemError } from "../http/problem.js";
 import { Public } from "../http/public.decorator.js";
+import { SkipRateLimit } from "../security/rate-limit.guard.js";
 import { parseInput } from "../http/validation.js";
 import { CONFIG, LOGGER, PAYMENTS, SIGNATURE } from "../infra/tokens.js";
 import { sendFile } from "../requests/requests.controller.js";
@@ -243,6 +244,7 @@ export class CustomerLinksController {
 
 /** The providers' webhooks: no account, the provider's signature is the proof. */
 @ApiTags("webhooks")
+@SkipRateLimit()
 @Controller("webhooks")
 export class WebhooksController {
   constructor(@Inject(AcceptanceEventsService) private readonly events: AcceptanceEventsService) {}
@@ -278,6 +280,7 @@ const payFakeSchema = z.union([
  * handling as a real one, signed and checked.
  */
 @ApiTags("fake-providers")
+@SkipRateLimit()
 @Controller("fake-providers")
 export class FakeProvidersController {
   constructor(

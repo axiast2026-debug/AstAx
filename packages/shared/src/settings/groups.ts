@@ -39,6 +39,7 @@ const PAGE_OF_PREFIX: Record<string, SettingsPage> = {
   ai: "economy",
   session: "system",
   otp: "system",
+  security: "system",
   retention: "system",
   complaints: "system",
   privacy: "system",

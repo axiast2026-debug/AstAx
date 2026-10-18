@@ -48,14 +48,46 @@ export function keycloakSessionSettings(p: SessionParameters): KeycloakSessionSe
   };
 }
 
-/** Translates otp.validityMinutes and otp.maxAttempts into the email-code authenticator config. */
+/**
+ * Translates otp.validityMinutes, otp.maxAttempts and
+ * security.emailCodesPerAddressPerHour into the email-code authenticator config.
+ */
 export function emailCodeConfig(p: {
   validityMinutes: number;
   maxAttempts: number;
+  maxCodesPerHour: number;
 }): Record<string, string> {
   return {
     codeTtlMinutes: String(p.validityMinutes),
     maxAttempts: String(p.maxAttempts),
     codeLength: "6",
+    maxCodesPerHour: String(p.maxCodesPerHour),
+  };
+}
+
+/**
+ * Phase 8: security.loginMaxFailures and security.loginLockMinutes become the
+ * realm's brute force protection (the wait grows by a minute per failure, up to the maximum).
+ */
+/**
+ * Phase 8: Keycloak keeps the login events for a week; the worker copies them
+ * into the audit log every few minutes (the failures, and logins made outside our apps).
+ */
+export const KEYCLOAK_LOGIN_EVENTS = {
+  types: ["LOGIN", "LOGIN_ERROR"],
+  realm: {
+    eventsEnabled: true,
+    eventsExpiration: 7 * DAY,
+    enabledEventTypes: ["LOGIN", "LOGIN_ERROR"],
+  },
+} as const;
+
+export function keycloakBruteForceSettings(p: { maxFailures: number; lockMinutes: number }) {
+  return {
+    bruteForceProtected: true,
+    permanentLockout: false,
+    failureFactor: p.maxFailures,
+    waitIncrementSeconds: 60,
+    maxFailureWaitSeconds: p.lockMinutes * 60,
   };
 }

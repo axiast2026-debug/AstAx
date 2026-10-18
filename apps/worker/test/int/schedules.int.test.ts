@@ -3,7 +3,9 @@ import { registerComplaint, SYSTEM_CONTEXT, withContext } from "@astax/db";
 import { createLogger } from "@astax/shared/logging";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { FakeRuiRegistry } from "@astax/adapters/rui-registry";
+import type { KeycloakEvent } from "@astax/adapters/identity";
 import {
+  importLoginEventsIfDue,
   importRuiIfDue,
   remindComplaintsIfDue,
   issueBrokerInvoicesIfDue,
@@ -151,5 +153,64 @@ describe("ADR 0010 the schedules", () => {
     expect(await remindComplaintsIfDue(deps, new Date("2026-11-23T09:00:00.000Z"))).toEqual({
       reminded: 0,
     });
+  });
+
+  it("phase 8 Keycloak's login events reach the audit log, once; our apps' logins and unknown users do not", async () => {
+    const keycloakId = randomUUID();
+    const user = userId("bo-supervisor");
+    await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.user.update({ where: { id: user }, data: { keycloakId } }),
+    );
+    const t0 = new Date("2026-11-18T08:00:00.000Z").getTime();
+    const events: KeycloakEvent[] = [
+      {
+        time: t0 + 1000,
+        type: "LOGIN_ERROR",
+        userId: keycloakId,
+        clientId: "astax-admin",
+        ipAddress: "203.0.113.7",
+        error: "invalid_user_credentials",
+      },
+      {
+        time: t0 + 2000,
+        type: "LOGIN",
+        userId: keycloakId,
+        clientId: "astax-admin",
+        ipAddress: "203.0.113.7",
+      },
+      {
+        time: t0 + 3000,
+        type: "LOGIN",
+        userId: keycloakId,
+        clientId: "account-console",
+        ipAddress: "203.0.113.8",
+      },
+      {
+        time: t0 + 4000,
+        type: "LOGIN_ERROR",
+        clientId: "astax-web-pro",
+        ipAddress: "198.51.100.1",
+        error: "user_not_found",
+      },
+    ];
+    const identity = {
+      listEvents: async (_types: string[], sinceMs: number) =>
+        events.filter((e) => e.time > sinceMs),
+    };
+    const at = new Date("2026-11-18T09:00:00.000Z");
+    expect(await importLoginEventsIfDue(h.db, identity, at)).toEqual({ imported: 2, anonymous: 1 });
+    const rows = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.auditLog.findMany({
+        where: { targetId: user, action: { in: ["LOGIN", "LOGIN_FAILED"] } },
+        orderBy: { seq: "asc" },
+      }),
+    );
+    expect(rows.map((r) => [r.action, r.ip])).toEqual([
+      ["LOGIN_FAILED", "203.0.113.7"],
+      ["LOGIN", "203.0.113.8"],
+    ]);
+    expect(rows[0]?.after).toMatchObject({ source: "keycloak", error: "invalid_user_credentials" });
+    // The cursor: nothing twice.
+    expect(await importLoginEventsIfDue(h.db, identity, at)).toEqual({ imported: 0, anonymous: 0 });
   });
 });

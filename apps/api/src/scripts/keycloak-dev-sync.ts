@@ -32,6 +32,48 @@ const admin = new KeycloakAdmin({
   now: () => clock.now().getTime(),
 });
 const db = createDbClient(env("DATABASE_URL"));
+
+/**
+ * Development only: a realm imported before phase 8 lacks the role view-events
+ * for astax-api-admin. A service account may not grant itself a role, so the
+ * local bootstrap administrator of Keycloak does it (in the cloud the realm file has it).
+ */
+async function grantViewEvents(): Promise<void> {
+  const base = env("KEYCLOAK_URL");
+  const tokenResponse = await fetch(`${base}/realms/master/protocol/openid-connect/token`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "password",
+      client_id: "admin-cli",
+      username: env("KEYCLOAK_ADMIN_USER"),
+      password: env("KEYCLOAK_ADMIN_PASSWORD"),
+    }),
+  });
+  if (!tokenResponse.ok) throw new Error(`Keycloak bootstrap admin login: ${tokenResponse.status}`);
+  const { access_token: token } = (await tokenResponse.json()) as { access_token: string };
+  const realm = `${base}/admin/realms/${env("KEYCLOAK_REALM")}`;
+  const get = async <T>(path: string): Promise<T> => {
+    const response = await fetch(`${realm}${path}`, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) throw new Error(`Keycloak ${path.split("?")[0]}: ${response.status}`);
+    return (await response.json()) as T;
+  };
+  const [api] = await get<{ id: string }[]>("/clients?clientId=astax-api-admin");
+  const [management] = await get<{ id: string }[]>("/clients?clientId=realm-management");
+  if (!api || !management) throw new Error("Keycloak clients not found");
+  const user = await get<{ id: string }>(`/clients/${api.id}/service-account-user`);
+  const role = await get<{ id: string; name: string }>(
+    `/clients/${management.id}/roles/view-events`,
+  );
+  const response = await fetch(`${realm}/users/${user.id}/role-mappings/clients/${management.id}`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify([role]),
+  });
+  if (!response.ok) throw new Error(`Keycloak grant view-events: ${response.status}`);
+}
 const seed = process.env.SYNTHETIC_SEED ?? DEFAULT_SYNTHETIC_SEED;
 const devPassword = env("DEV_USERS_PASSWORD");
 
@@ -77,6 +119,8 @@ try {
       requireSettingAt(versions as unknown as SettingVersion[], key, at),
     ]),
   ) as unknown as IdentitySettingValues;
+  // Phase 8: the worker reads the login events with this account (realms imported before).
+  await grantViewEvents();
   await applyIdentitySettings(admin, values);
 
   console.log(

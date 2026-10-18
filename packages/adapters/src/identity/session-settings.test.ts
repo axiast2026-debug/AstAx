@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { emailCodeConfig, keycloakSessionSettings } from "./session-settings.js";
+import {
+  emailCodeConfig,
+  keycloakBruteForceSettings,
+  keycloakSessionSettings,
+} from "./session-settings.js";
 
 describe("SIC-05 session durations from the parameters", () => {
   const settings = keycloakSessionSettings({
@@ -32,10 +36,19 @@ describe("SIC-05 session durations from the parameters", () => {
   });
 
   it("email code validity and attempts follow otp.*", () => {
-    expect(emailCodeConfig({ validityMinutes: 10, maxAttempts: 5 })).toEqual({
+    expect(emailCodeConfig({ validityMinutes: 10, maxAttempts: 5, maxCodesPerHour: 10 })).toEqual({
       codeTtlMinutes: "10",
       maxAttempts: "5",
       codeLength: "6",
+      maxCodesPerHour: "10",
+    });
+  });
+
+  it("phase 8 the login lock follows security.loginMaxFailures and security.loginLockMinutes", () => {
+    expect(keycloakBruteForceSettings({ maxFailures: 10, lockMinutes: 15 })).toMatchObject({
+      bruteForceProtected: true,
+      failureFactor: 10,
+      maxFailureWaitSeconds: 900,
     });
   });
 });

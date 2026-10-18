@@ -286,7 +286,8 @@
           "manage-realm",
           "view-realm",
           "view-clients",
-          "manage-clients"
+          "manage-clients",
+          "view-events"
         ]
       }
     }

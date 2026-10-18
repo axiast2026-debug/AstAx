@@ -26,6 +26,8 @@ export class ProblemError extends Error {
     readonly code: ErrorCode,
     readonly detail?: string,
     readonly errors?: Problem["errors"],
+    /** RATE_LIMITED: seconds to wait, sent as the Retry-After header. */
+    readonly retryAfterSeconds?: number,
   ) {
     super(code);
     this.name = "ProblemError";

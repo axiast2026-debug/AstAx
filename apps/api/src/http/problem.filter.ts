@@ -48,6 +48,9 @@ export class ProblemFilter implements ExceptionFilter {
       );
       problem = toProblem("INTERNAL", instance);
     }
+    if (exception instanceof ProblemError && exception.retryAfterSeconds !== undefined) {
+      response.setHeader("retry-after", String(exception.retryAfterSeconds));
+    }
     response.status(problem.status).type(PROBLEM_CONTENT_TYPE).send(JSON.stringify(problem));
   }
 }
