@@ -81,6 +81,40 @@ const ENDPOINTS: Endpoint[] = [
   { action: "team.manage", method: "DELETE", path: () => `/team/members/${randomUUID()}` },
   { action: "admin.settings.manage", method: "GET", path: () => "/admin/settings" },
   {
+    action: "admin.notifications.manage",
+    method: "GET",
+    path: () => "/admin/notification-templates",
+  },
+  {
+    action: "admin.notifications.manage",
+    method: "GET",
+    path: () => "/admin/notification-templates/auth.otp/history",
+  },
+  {
+    action: "admin.notifications.manage",
+    method: "PUT",
+    path: () => "/admin/notification-templates/auth.otp",
+    body: {},
+  },
+  {
+    action: "admin.notifications.manage",
+    method: "POST",
+    path: () => "/admin/notification-templates/auth.otp/preview",
+    body: {},
+  },
+  {
+    action: "admin.notifications.manage",
+    method: "POST",
+    path: () => "/admin/notification-templates/auth.otp/test",
+    body: {},
+  },
+  {
+    action: "admin.notifications.manage",
+    method: "POST",
+    path: () => "/admin/communications",
+    body: {},
+  },
+  {
     action: "admin.settings.manage",
     method: "GET",
     path: () => "/admin/settings/invitations.max/history",
@@ -838,7 +872,8 @@ describe("SIC-01 every API route is in the table", () => {
               .replace("/draft/vehicle", "/draft/{section}")
               .replace("/checklist/DOCUMENTS", "/checklist/{code}")
               .replace("/documents/none/", "/documents/{key}/")
-              .replace("/settings/invitations.max", "/settings/{key}")}`,
+              .replace("/settings/invitations.max", "/settings/{key}")
+              .replace("/notification-templates/auth.otp", "/notification-templates/{key}")}`,
         ),
       ),
     ].sort();

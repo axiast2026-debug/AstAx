@@ -856,6 +856,24 @@ events:
         In sintesi: {{sintesi}}
         Te la mostreremo al prossimo accesso, per l'accettazione.
 
+  # Phase 7: a message of the administrator to a group of users («Comunicazioni»).
+  communication.message:
+    recipients: [affected_users]
+    channels: [in_app, email]
+    variables: [titolo, testo]
+    it:
+      title: "{{titolo}}"
+      body: "{{testo}}"
+      emailSubject: "AstAx: {{titolo}}"
+      emailBody: |
+        {{testo}}
+    sq:
+      title: "{{titolo}}"
+      body: "{{testo}}"
+      emailSubject: "AstAx: {{titolo}}"
+      emailBody: |
+        {{testo}}
+
   # ---------------------------------------------------------------- Reclami e segnalazioni
 
   complaint.received:

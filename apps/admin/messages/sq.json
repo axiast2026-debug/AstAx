@@ -695,5 +695,46 @@
       "rca_legalMinimums": "Kufijtë minimalë ligjorë të RCA (euro)",
       "requests_codePrefix": "Parashtesa e kodit të kërkesës"
     }
+  },
+  "communications": {
+    "title": "Komunikimet",
+    "intro": "Tekstet e çdo njoftimi, në italisht dhe shqip. Çdo ndryshim krijon një version të ri me arsyen dhe vlen menjëherë.",
+    "error": "Veprimi nuk u krye ({code}).",
+    "done": {
+      "saved": "Teksti u ruajt: version i ri.",
+      "test": "Prova u dërgua te ti, në kanalet e ngjarjes."
+    },
+    "sent": "{count, plural, one {Mesazhi u dërgua te # person.} other {Mesazhi u dërgua te # persona.}}",
+    "events": "Ngjarjet",
+    "meta": "versioni {version} · kanalet {channels} · variablat {variables}",
+    "mandatory": "i detyrueshëm",
+    "forcePush": "push gjithmonë aktiv",
+    "locale": {
+      "it": "Italisht",
+      "sq": "Shqip"
+    },
+    "field": {
+      "title": "Titulli (në aplikacion dhe push)",
+      "body": "Teksti (në aplikacion dhe push)",
+      "emailSubject": "Subjekti i email-it",
+      "emailBody": "Teksti i email-it",
+      "sms": "SMS"
+    },
+    "reason": "Arsyeja",
+    "save": "Ruaj një version të ri",
+    "test": "Më dërgo një provë",
+    "preview": "Parapamja",
+    "choose": "Zgjidh një ngjarje majtas për të ndryshuar tekstet.",
+    "broadcastTitle": "Mesazh për një grup",
+    "group": "Grupi",
+    "groups": {
+      "PRIVATE": "Privatët",
+      "AGENCY": "Agjencitë",
+      "BROKER": "Brokerët",
+      "STAFF": "Back office"
+    },
+    "messageTitle": "Titulli",
+    "messageText": "Teksti",
+    "send": "Dërgo mesazhin"
   }
 }

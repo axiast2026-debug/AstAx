@@ -695,5 +695,46 @@
       "rca_legalMinimums": "Massimali minimi di legge della RCA (euro)",
       "requests_codePrefix": "Prefisso del codice richiesta"
     }
+  },
+  "communications": {
+    "title": "Comunicazioni",
+    "intro": "I testi di ogni notifica, in italiano e albanese. Ogni modifica crea una nuova versione con il motivo e vale da subito.",
+    "error": "Operazione non riuscita ({code}).",
+    "done": {
+      "saved": "Testo salvato: nuova versione.",
+      "test": "Prova inviata a te, sui canali dell’evento."
+    },
+    "sent": "{count, plural, one {Messaggio inviato a # persona.} other {Messaggio inviato a # persone.}}",
+    "events": "Eventi",
+    "meta": "versione {version} · canali {channels} · variabili {variables}",
+    "mandatory": "obbligatoria",
+    "forcePush": "push sempre attiva",
+    "locale": {
+      "it": "Italiano",
+      "sq": "Albanese"
+    },
+    "field": {
+      "title": "Titolo (in app e push)",
+      "body": "Testo (in app e push)",
+      "emailSubject": "Oggetto dell’email",
+      "emailBody": "Testo dell’email",
+      "sms": "SMS"
+    },
+    "reason": "Motivo",
+    "save": "Salva una nuova versione",
+    "test": "Inviami una prova",
+    "preview": "Anteprima",
+    "choose": "Scegli un evento a sinistra per modificarne i testi.",
+    "broadcastTitle": "Messaggio a un gruppo",
+    "group": "Gruppo",
+    "groups": {
+      "PRIVATE": "Privati",
+      "AGENCY": "Agenzie",
+      "BROKER": "Broker",
+      "STAFF": "Back office"
+    },
+    "messageTitle": "Titolo",
+    "messageText": "Testo",
+    "send": "Invia il messaggio"
   }
 }
