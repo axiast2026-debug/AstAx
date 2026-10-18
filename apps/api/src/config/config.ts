@@ -25,6 +25,11 @@ const configSchema = z
     OFFER_OWNER_MASTER_KEY: hexKey.optional(),
     KEYCLOAK_URL: z.url(),
     KEYCLOAK_REALM: z.string().min(1).default("astax"),
+    /**
+     * Phase 8: where the API reaches Keycloak's administration. In AWS the private
+     * address (keycloak.astax.internal): the public one does not serve /admin.
+     */
+    KEYCLOAK_ADMIN_URL: z.url().optional(),
     KEYCLOAK_API_ADMIN_SECRET: z.string().min(16),
     /** Public address of apps/web, used in links sent by email. */
     WEB_URL: z.url().default("http://localhost:3000"),
@@ -40,6 +45,9 @@ const configSchema = z
     EMAIL_PROVIDER: z.enum(["fake", "ses"]).default("fake"),
     /** "aws": the documents' bucket with the task's role; "fake": SeaweedFS or memory. */
     STORAGE_PROVIDER: z.enum(["fake", "aws"]).default("fake"),
+    /** Namirial and Fabrick arrive in part B of phase 8: until then only the fakes. */
+    SIGNATURE_PROVIDER: z.enum(["fake"]).default("fake"),
+    PAYMENTS_PROVIDER: z.enum(["fake"]).default("fake"),
     SES_CONFIGURATION_SET: z.string().min(1).optional(),
     SMS_PROVIDER: z.enum(["fake", "aws"]).default("fake"),
     SMS_ORIGINATOR: z.string().min(1).default("AstAx"),

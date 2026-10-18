@@ -93,7 +93,8 @@ resource "aws_lb_listener_rule" "host" {
   }
 }
 
-# Keycloak's administration console never from the internet.
+# Keycloak's administration (console and REST API) and the master realm never
+# from the internet: API and worker reach them on the private network.
 resource "aws_lb_listener_rule" "no_keycloak_admin" {
   listener_arn = aws_lb_listener.https.arn
   priority     = 1
@@ -112,7 +113,7 @@ resource "aws_lb_listener_rule" "no_keycloak_admin" {
   }
   condition {
     path_pattern {
-      values = ["/admin/master/console*", "/admin/*/console*"]
+      values = ["/admin", "/admin/*", "/realms/master", "/realms/master/*"]
     }
   }
 }

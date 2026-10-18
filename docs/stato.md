@@ -216,6 +216,23 @@ A nessuna risorsa cloud e nessuna spesa senza il «crea» di Dan; B Temporal Clo
 | Lettura AI ≥ 95% sopra soglia | Strumento di misura | Gli 80 documenti di Dan e l'accesso a Bedrock |
 | La pipeline di produzione si ferma con testi legali non validati o strumenti di sviluppo | `pnpm release:check` nel rilascio di produzione | — |
 
+## Verifica indipendente (fase 8, parte A)
+
+Il revisore (agente verificatore) ha trovato 21 punti; corretti tutti quelli che riguardano il codice:
+
+- «fattura disponibile» ripetuta a ogni giro se lo SDI non risponde: ora la copia e l'avviso partono una volta, l'invio allo SDI è un passo a parte con un turno per fattura e la POST non si ripete mai da sola (prova `invoice-delivery.int.test.ts`); confronto del segreto del webhook in byte; rifiuti registrati nel log;
+- il blocco della produzione non vedeva firma, pagamenti e RUI finti: ora ogni fornitore deve essere nominato e vero (`REQUIRED_PROVIDERS`), con prova Terraform che API e worker hanno gli stessi fornitori controllati;
+- amministrazione di Keycloak raggiungibile da internet: chiusa sul bilanciatore, API e worker usano il nome privato;
+- la policy della chiave delle buste si poteva riscrivere (`kms:Put*`): ora no, con prova; ruolo di rilascio ristretto (solo il compito «tools», solo ruoli passati a ECS) e rilascio solo da `main` con CI verde;
+- le immagini di API e worker non trovavano i testi delle notifiche: corretto e provato (l'immagine parte e risponde);
+- telemetria: escono solo metodo, stato e percorso con identificativi mascherati; nessun IP, user agent, token o chiamata in uscita (prova `telemetry.test.ts`);
+- lavori del worker doppi con due istanze: ora sotto un turno (`withLease`, prova); finestra di CloudTrail con 30 minuti di ritardo; eventi di Keycloak letti pagina per pagina (prova);
+- coda dei messaggi: una transazione per messaggio, tempi massimi sulle chiamate AWS;
+- iscrizioni push solo verso i servizi push dei browser (SSRF, prova); chiavi dei limiti con HMAC; un token valido non è mai bloccato per l'indirizzo, prova del proxy fidato;
+- errori di decifratura delle copie delle offerte registrati (`OFFER_OWNER_COPY_UNREADABLE`); `/openapi.json` solo fuori produzione; Gitleaks esclude solo i file di prova, storia pulita; il prompt non scrive la soglia (regola 7).
+
+Restano come rischi accettati, scritti in `infra/terraform/README.md`: la pipeline come via fidata per il codice, la password di Redis nello stato di Terraform. Numeri tecnici (attese della coda, durata degli eventi di Keycloak) restano nel codice: non sono regole di business.
+
 ## Verifica indipendente (fase 7)
 
 Il revisore (agente verificatore) ha trovato 14 punti. Corretti nel commit `a68835b`: la conservazione poteva cancellare richieste annullate con firma e pagamento; ricerche di clienti e utenti con nome, codice fiscale o email nell'indirizzo della pagina; mancava il test «modifica dal pannello e istantanea delle aste»; la seconda presentazione dopo un'integrazione non avvisava il back office (doppione); approvazione dell'ingresso non sicura se Keycloak cade; date delle esportazioni e scadenze di reclami e richieste sui dati in UTC invece che in giorni di Roma; CSV aperti a formule; importi contabili con decimali; permesso del caricamento in blocco; limite di righe nel codice; `fflate` non annotata nell'ADR 0001; debiti con scadenza «fase 7» senza nuova data. Restano: l'iscrizione al Web Push dal browser (fase 8, con le chiavi vere) e il significato di «primo invito» (domanda 19).

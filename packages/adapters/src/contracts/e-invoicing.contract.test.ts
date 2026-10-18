@@ -86,8 +86,17 @@ describe("e-invoicing contract — fake and Openapi SDI (simulated)", () => {
       }),
   );
 
-  it("Openapi: the XML goes as application/xml with the bearer token; temporary errors are retried", async () => {
-    const server = simulatedOpenapi({ failFirst: 1 });
+  it("Openapi: the XML goes once as application/xml with the bearer token; a busy SDI is not sent twice", async () => {
+    const busy = simulatedOpenapi({ failFirst: 1 });
+    const once = new OpenapiEInvoicing({
+      baseUrl: OPENAPI_SDI_URLS.sandbox,
+      token: "test-token",
+      fetch: busy.fetch,
+      retryDelaysMs: [1],
+    });
+    await expect(once.send(invoice)).rejects.toBeInstanceOf(EInvoicingError);
+    expect(busy.requests).toHaveLength(1);
+    const server = simulatedOpenapi();
     const sdi = new OpenapiEInvoicing({
       baseUrl: OPENAPI_SDI_URLS.sandbox,
       token: "test-token",
@@ -96,8 +105,8 @@ describe("e-invoicing contract — fake and Openapi SDI (simulated)", () => {
     });
     const sent = await sdi.send(invoice);
     expect(sent).toMatchObject({ sdiRef: "inv-0001", status: "SENT" });
-    expect(server.requests).toHaveLength(2);
-    const post = server.requests[1];
+    expect(server.requests).toHaveLength(1);
+    const post = server.requests[0];
     expect(post?.url).toBe("https://test.sdi.openapi.it/invoices");
     expect(post?.headers.get("content-type")).toBe("application/xml");
     expect(post?.headers.get("authorization")).toBe("Bearer test-token");
@@ -136,6 +145,10 @@ describe("e-invoicing contract — fake and Openapi SDI (simulated)", () => {
       status: "DELIVERED",
     });
     expect(() => sdi.parseWebhook({ authorization: "altro" }, body)).toThrow(
+      InvalidSdiWebhookError,
+    );
+    // Same length in characters, longer in bytes: refused, not a crash.
+    expect(() => sdi.parseWebhook({ authorization: "segreto-di-prova-12è" }, body)).toThrow(
       InvalidSdiWebhookError,
     );
   });

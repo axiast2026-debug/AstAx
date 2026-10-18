@@ -11,6 +11,10 @@ import { CLOCK, DB } from "../infra/tokens.js";
 import { PreferencesService } from "./preferences.service.js";
 
 /** The caller's in-app notifications (spec 01, «Centro notifiche»). */
+/** Google (Chrome, Edge on Android), Mozilla, Apple, Microsoft (Windows). */
+const PUSH_SERVICE_HOSTS =
+  /^(fcm.googleapis.com|updates.push.services.mozilla.com|(?:[a-z0-9-]+.)?push.apple.com|[a-z0-9-]+.notify.windows.com)$/;
+
 @ApiTags("notifications")
 @ApiBearerAuth()
 @Controller("me/notifications")
@@ -69,7 +73,9 @@ export class NotificationsController {
       auth,
       parseInput(
         z.strictObject({
-          endpoint: z.url().max(2000),
+          // Phase 8: only the push services of the browsers, on https: the API and
+          // the worker never call an address chosen by a client (SSRF).
+          endpoint: z.url({ protocol: /^https$/, hostname: PUSH_SERVICE_HOSTS }).max(2000),
           keys: z.strictObject({
             p256dh: z.string().min(10).max(200),
             auth: z.string().min(8).max(100),

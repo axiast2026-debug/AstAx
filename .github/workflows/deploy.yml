@@ -19,6 +19,7 @@ on:
 permissions:
   contents: read
   id-token: write
+  checks: read
 
 concurrency:
   group: deploy-${{ inputs.environment }}
@@ -30,8 +31,31 @@ env:
   TAG: ${{ github.sha }}
 
 jobs:
+  # Only main, and only a commit whose CI is green: check, security, infra and e2e.
+  gate:
+    name: gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      checks: read
+    steps:
+      - name: The branch is main
+        run: test "${{ github.ref }}" = "refs/heads/main"
+      - name: The CI of this commit is green
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          runs=$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/check-runs" --paginate --jq '.check_runs[] | "(.name)=(.conclusion)"')
+          echo "$runs"
+          for job in check security infra e2e; do
+            echo "$runs" | grep -qx "$job=success" || { echo "CI job $job is not green"; exit 1; }
+          done
+
   images:
     name: images
+    needs: gate
     runs-on: ubuntu-24.04-arm
     environment: ${{ inputs.environment }}
     timeout-minutes: 60

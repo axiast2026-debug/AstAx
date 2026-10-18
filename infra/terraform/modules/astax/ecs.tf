@@ -38,6 +38,18 @@ resource "aws_service_discovery_private_dns_namespace" "main" {
   tags = local.tags
 }
 
+resource "aws_service_discovery_service" "keycloak" {
+  name = "keycloak"
+  dns_config {
+    namespace_id = aws_service_discovery_private_dns_namespace.main.id
+    dns_records {
+      ttl  = 10
+      type = "A"
+    }
+  }
+  health_check_custom_config {}
+}
+
 resource "aws_service_discovery_service" "api" {
   name = "api"
   dns_config {
@@ -61,29 +73,33 @@ locals {
 
   # Common settings of API and worker (docs/adattatori.md: the real providers).
   backend_env = {
-    NODE_ENV                    = "production"
-    DEV_TOOLS                   = "false"
-    LOG_LEVEL                   = "info"
-    AWS_REGION                  = local.region
-    WEB_URL                     = local.urls.web
-    ADMIN_URL                   = local.urls.admin
-    KEYCLOAK_URL                = local.urls.login
-    KEYCLOAK_REALM              = "astax"
-    EMAIL_FROM                  = "noreply@${var.domain}"
-    EMAIL_PROVIDER              = "ses"
-    SES_CONFIGURATION_SET       = aws_sesv2_configuration_set.main.configuration_set_name
-    SMS_PROVIDER                = "aws"
-    SMS_ORIGINATOR              = "AstAx"
-    PUSH_PROVIDER               = "vapid"
-    VAPID_SUBJECT               = "mailto:sicurezza@${var.domain}"
-    KMS_PROVIDER                = "aws"
-    AI_PROVIDER                 = "bedrock"
-    BEDROCK_MODEL_ID            = var.bedrock_model_id
-    PLATE_PROVIDER              = "openapi"
-    OPENAPI_AUTOMOTIVE_URL      = local.production ? "https://automotive.openapi.com" : "https://test.automotive.openapi.com"
-    SDI_PROVIDER                = "openapi"
-    OPENAPI_SDI_URL             = local.production ? "https://sdi.openapi.it" : "https://test.sdi.openapi.it"
-    STORAGE_PROVIDER            = "aws"
+    NODE_ENV               = "production"
+    DEV_TOOLS              = "false"
+    LOG_LEVEL              = "info"
+    AWS_REGION             = local.region
+    WEB_URL                = local.urls.web
+    ADMIN_URL              = local.urls.admin
+    KEYCLOAK_URL           = local.urls.login
+    KEYCLOAK_REALM         = "astax"
+    KEYCLOAK_ADMIN_URL     = "http://keycloak.astax.internal:8080"
+    EMAIL_FROM             = "noreply@${var.domain}"
+    EMAIL_PROVIDER         = "ses"
+    SES_CONFIGURATION_SET  = aws_sesv2_configuration_set.main.configuration_set_name
+    SMS_PROVIDER           = "aws"
+    SMS_ORIGINATOR         = "AstAx"
+    PUSH_PROVIDER          = "vapid"
+    VAPID_SUBJECT          = "mailto:sicurezza@${var.domain}"
+    KMS_PROVIDER           = "aws"
+    AI_PROVIDER            = "bedrock"
+    BEDROCK_MODEL_ID       = var.bedrock_model_id
+    PLATE_PROVIDER         = "openapi"
+    OPENAPI_AUTOMOTIVE_URL = local.production ? "https://automotive.openapi.com" : "https://test.automotive.openapi.com"
+    SDI_PROVIDER           = "openapi"
+    OPENAPI_SDI_URL        = local.production ? "https://sdi.openapi.it" : "https://test.sdi.openapi.it"
+    STORAGE_PROVIDER       = "aws"
+    # SIGNATURE_PROVIDER, PAYMENTS_PROVIDER and RUI_PROVIDER are missing on purpose:
+    # Namirial, Fabrick and the IVASS register come in part B. Missing means fake,
+    # so pnpm release:check stops a production release until they are set.
     S3_REGION                   = local.region
     S3_BUCKET                   = aws_s3_bucket.this["documents"].bucket
     TEMPORAL_ADDRESS            = var.temporal_address
@@ -157,14 +173,16 @@ locals {
     keycloak = {
       port = 8080
       env = {
-        KC_DB                       = "postgres"
-        KC_DB_URL                   = "jdbc:postgresql://${aws_db_instance.main.address}:5432/keycloak?sslmode=require"
-        KC_DB_USERNAME              = "keycloak"
-        KC_HOSTNAME                 = local.urls.login
-        KC_HTTP_ENABLED             = "true"
-        KC_PROXY_HEADERS            = "xforwarded"
-        KC_HEALTH_ENABLED           = "true"
-        KC_BOOTSTRAP_ADMIN_USERNAME = "astax-bootstrap"
+        KC_DB            = "postgres"
+        KC_DB_URL        = "jdbc:postgresql://${aws_db_instance.main.address}:5432/keycloak?sslmode=require"
+        KC_DB_USERNAME   = "keycloak"
+        KC_HOSTNAME      = local.urls.login
+        KC_HTTP_ENABLED  = "true"
+        KC_PROXY_HEADERS = "xforwarded"
+        # API and worker call the administration on the private name.
+        KC_HOSTNAME_BACKCHANNEL_DYNAMIC = "true"
+        KC_HEALTH_ENABLED               = "true"
+        KC_BOOTSTRAP_ADMIN_USERNAME     = "astax-bootstrap"
       }
       secrets = {
         KC_DB_PASSWORD              = "KEYCLOAK_DB_PASSWORD"
@@ -233,9 +251,9 @@ resource "aws_ecs_service" "service" {
     }
   }
   dynamic "service_registries" {
-    for_each = each.key == "api" ? [1] : []
+    for_each = contains(["api", "keycloak"], each.key) ? [each.key] : []
     content {
-      registry_arn = aws_service_discovery_service.api.arn
+      registry_arn = service_registries.value == "api" ? aws_service_discovery_service.api.arn : aws_service_discovery_service.keycloak.arn
     }
   }
   deployment_circuit_breaker {

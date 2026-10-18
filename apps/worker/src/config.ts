@@ -23,6 +23,8 @@ const configSchema = z
     AWS_REGION: z.string().min(1).default("eu-south-1"),
     EMAIL_PROVIDER: z.enum(["fake", "ses"]).default("fake"),
     STORAGE_PROVIDER: z.enum(["fake", "aws"]).default("fake"),
+    /** The real IVASS register arrives in part B of phase 8: until then only the fake. */
+    RUI_PROVIDER: z.enum(["fake"]).default("fake"),
     /** SIC-04: the bucket of the audit log copies (Object Lock in AWS). */
     AUDIT_ARCHIVE_BUCKET: z.string().min(3).default("astax-audit"),
     SES_CONFIGURATION_SET: z.string().min(1).optional(),
@@ -55,6 +57,8 @@ const configSchema = z
     /** Phase 8: read Keycloak's login events with the API's service account (optional). */
     KEYCLOAK_URL: z.url().optional(),
     KEYCLOAK_REALM: z.string().min(1).default("astax"),
+    /** Phase 8: the private address of Keycloak's administration in AWS. */
+    KEYCLOAK_ADMIN_URL: z.url().optional(),
     KEYCLOAK_API_ADMIN_SECRET: z.string().min(16).optional(),
     MAILPIT_URL: z.url().default("http://127.0.0.1:8025"),
     EMAIL_FROM: z.email().default("noreply@astax.test"),

@@ -1,10 +1,62 @@
 import * as Sentry from "@sentry/node";
-import { NodeSDK } from "@opentelemetry/sdk-node";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
+import { NodeSDK, type api, type core, type tracing } from "@opentelemetry/sdk-node";
 
-/** The URL without its query string: it can hold codes or tokens (rule 8). */
-const pathOnly = (url: string) => url.split("?")[0] ?? "";
+/**
+ * A path as it may leave: no query string, and every segment that may be an
+ * identifier, a token or a code («/customer-links/<token>») becomes «:id».
+ */
+export function maskedPath(url: string): string {
+  const path = url.split("?")[0] ?? "";
+  return path
+    .split("/")
+    .map((segment) => (/^[a-z-]{1,40}$/.test(segment) || segment === "" ? segment : ":id"))
+    .join("/");
+}
+
+/** The only span attributes that leave the process (rule 8): no IP, user agent or host. */
+const ALLOWED_ATTRIBUTES = new Set([
+  "http.method",
+  "http.request.method",
+  "http.status_code",
+  "http.response.status_code",
+  "http.route",
+  "http.flavor",
+  "network.protocol.version",
+]);
+
+/** Keeps only the allowed attributes and masks the paths, then exports. */
+export class SanitizingExporter implements tracing.SpanExporter {
+  constructor(private readonly next: tracing.SpanExporter) {}
+
+  export(spans: tracing.ReadableSpan[], done: (result: core.ExportResult) => void): void {
+    this.next.export(spans.map(sanitizedSpan), done);
+  }
+
+  shutdown(): Promise<void> {
+    return this.next.shutdown();
+  }
+}
+
+export function sanitizedSpan(span: tracing.ReadableSpan): tracing.ReadableSpan {
+  const attributes: api.Attributes = {};
+  for (const [key, value] of Object.entries(span.attributes)) {
+    if (ALLOWED_ATTRIBUTES.has(key)) attributes[key] = value;
+  }
+  const path = span.attributes["url.path"] ?? span.attributes["http.target"];
+  if (typeof path === "string") attributes["url.path"] = maskedPath(path);
+  // Same span, other attributes and a name without identifiers.
+  return Object.assign(
+    Object.create(Object.getPrototypeOf(span) as object) as tracing.ReadableSpan,
+    span,
+    {
+      attributes,
+      // «GET /path»: the method stays, the path is masked.
+      name: span.name.replace(/\/\S*/, (path) => maskedPath(path)),
+    },
+  );
+}
 
 /**
  * Phase 8, proposal D (docs/sorveglianza.md): errors to Sentry (EU), timings
@@ -60,21 +112,13 @@ export function startTelemetry(service: "api" | "worker"): void {
     // Endpoint, headers (the Grafana token) from the standard OTEL_* variables.
     new NodeSDK({
       serviceName: `astax-${service}`,
-      traceExporter: new OTLPTraceExporter(),
-      // Only HTTP in and out: method, route and status; no header or body;
-      // the health checks are not traced.
+      traceExporter: new SanitizingExporter(new OTLPTraceExporter()),
+      // Only the calls received, never the calls made (their addresses can be
+      // personal: Web Push endpoints); the health checks are not traced.
       instrumentations: [
         new HttpInstrumentation({
           ignoreIncomingRequestHook: (request) => (request.url ?? "").startsWith("/health"),
-          requestHook: (span, request) => {
-            const url = "url" in request ? request.url : undefined;
-            if (typeof url !== "string") return;
-            span.setAttribute("http.target", pathOnly(url));
-            span.setAttribute("url.path", pathOnly(url));
-            span.setAttribute("url.query", "");
-            span.setAttribute("http.url", pathOnly(url));
-            span.setAttribute("url.full", pathOnly(url));
-          },
+          ignoreOutgoingRequestHook: () => true,
         }),
       ],
     }).start();

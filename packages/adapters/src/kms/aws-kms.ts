@@ -36,7 +36,12 @@ export class AwsKms implements KmsPort {
   readonly #client: NonNullable<AwsKmsOptions["client"]>;
 
   constructor(private readonly options: AwsKmsOptions) {
-    this.#client = options.client ?? new KMSClient({ region: options.region });
+    this.#client =
+      options.client ??
+      new KMSClient({
+        region: options.region,
+        requestHandler: { connectionTimeout: 5_000, requestTimeout: 15_000 },
+      });
   }
 
   #key(keyId: KmsKeyId): string {

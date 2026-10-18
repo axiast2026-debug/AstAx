@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { Clock } from "@astax/adapters/clock";
 import type { FieldCipher } from "@astax/adapters/crypto";
 import type { EInvoicingPort } from "@astax/adapters/e-invoicing";
@@ -15,6 +15,7 @@ import {
   type InvoiceRecipient,
   type NewInvoice,
   type StoredAddress,
+  withLease,
 } from "@astax/db";
 import { type InvoiceLine, type InvoiceSeries } from "@astax/shared/domain";
 import { formatEuroCents } from "@astax/shared/format";
@@ -159,89 +160,124 @@ export class InvoicingService implements OnApplicationBootstrap, OnApplicationSh
   }
 
   /**
-   * After the commit: the XML to SDI (checked against the schema by the
-   * adapter) and the courtesy PDF. An incomplete recipient stays «da
-   * completare»; a failure is logged and retried by the next delivery.
+   * After the commit: the courtesy PDF and the XML to SDI (checked against the
+   * schema by the adapter). Phase 8, in three steps so that a failure never
+   * repeats a message nor sends an invoice twice:
+   *  1. the PDF and the «fattura disponibile» notice, committed, then sent;
+   *  2. the XML to SDI, holding the turn «invoice.<id>» (one sender at a time);
+   *  3. the reference of SDI saved at once, then the copy of the XML.
+   * An incomplete recipient stays «da completare»; a failure before SDI
+   * answers is logged and retried by the next delivery.
    */
   async deliver(invoiceId: string): Promise<void> {
-    const outbound: Outbound[] = [];
-    try {
-      await withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
-        // Phase 8: one delivery at a time, also with several API instances.
-        const locked = await tx.$queryRaw<{ id: string }[]>`
-          SELECT "id" FROM "Invoice" WHERE "id" = ${invoiceId}::uuid FOR UPDATE SKIP LOCKED`;
-        if (locked.length === 0) return;
-        const invoice = await tx.invoice.findUniqueOrThrow({ where: { id: invoiceId } });
-        if (invoice.sdiStatus !== "TO_SEND") return;
-        const recipient = decryptJson(this.cipher, invoice.recipientEnc) as InvoiceRecipient;
-        const firstDelivery = invoice.pdfDocumentId === null;
-        const astax = await tx.organization.findFirstOrThrow({ where: { type: "ASTAX" } });
-        const astaxAddress = astax.address as {
-          street: string;
-          postalCode: string;
-          municipalityIstat: string;
-          province: string;
-        } | null;
-        const lines = invoice.lines as unknown as InvoiceLine[];
-        await this.courtesyPdf(tx, invoice, recipient, lines);
-        // The courtesy copy exists from now on: its recipient is told, once.
-        if (firstDelivery) outbound.push(...(await this.tellAvailable(tx, invoice, lines)));
-        if (!recipientComplete(recipient) || !astax.vatNumber || !astaxAddress) return;
-        const credited = invoice.creditedInvoiceId
-          ? await tx.invoice.findUnique({ where: { id: invoice.creditedInvoiceId } })
-          : null;
-        const date = invoice.issuedOn.toISOString().slice(0, 10);
-        const sent = await this.sdi.send({
-          // Ten characters at most: the series and the number, never personal data.
-          progressive: `${invoice.series}${String(invoice.year).slice(2)}${String(invoice.number).padStart(7, "0")}`,
-          documentType: invoice.series === "N" ? "TD04" : "TD01",
-          number: invoice.code,
-          date,
-          supplier: {
-            vatNumber: astax.vatNumber,
-            name: astax.legalName,
-            address: (await this.addressOf(tx, astaxAddress)) ?? {
-              street: "",
-              postalCode: "",
-              city: "",
-            },
-          },
-          customer: {
-            name: recipient.name,
-            givenName: recipient.givenName ?? null,
-            surname: recipient.surname ?? null,
-            fiscalCode: recipient.fiscalCode ?? null,
-            vatNumber: recipient.vatNumber ?? null,
-            address: recipient.address ?? { street: "", postalCode: "", city: "" },
-          },
-          recipientCode: recipient.sdiCode ?? "0000000",
-          recipientPec: recipient.pec ?? null,
-          lines,
-          vatNature: invoice.vatNature,
-          legalReference: invoice.legalReference,
-          stampDutyCents: invoice.stampDutyCents,
-          stampDutyCharged: invoice.totalCents > invoice.exemptCents,
-          totalCents: invoice.totalCents,
-          dueDate: invoice.dueOn ? invoice.dueOn.toISOString().slice(0, 10) : null,
-          correctedInvoice: credited
-            ? { number: credited.code, date: credited.issuedOn.toISOString().slice(0, 10) }
-            : null,
+    const holder = randomUUID();
+    const now = this.clock.now();
+    await withLease(this.db, `invoice.${invoiceId}`, holder, now, 10 * 60_000, async () => {
+      let input: Parameters<EInvoicingPort["send"]>[0] | null;
+      const outbound: Outbound[] = [];
+      try {
+        input = await withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
+          const invoice = await tx.invoice.findUniqueOrThrow({ where: { id: invoiceId } });
+          if (invoice.sdiStatus !== "TO_SEND") return null;
+          const recipient = decryptJson(this.cipher, invoice.recipientEnc) as InvoiceRecipient;
+          const lines = invoice.lines as unknown as InvoiceLine[];
+          if (invoice.pdfDocumentId === null) {
+            await this.courtesyPdf(tx, invoice, recipient, lines);
+            // The courtesy copy exists from now on: its recipient is told, once.
+            outbound.push(...(await this.tellAvailable(tx, invoice, lines)));
+          }
+          return this.sdiInput(tx, invoice, recipient, lines);
         });
-        const xmlKey = `invoices/${invoice.id}.xml`;
+      } catch (error) {
+        this.logger.error({ invoiceId, err: errorForLog(error) }, "invoice copy not prepared");
+        return;
+      }
+      await this.notifications.send(outbound);
+      if (!input) return;
+      let sent;
+      try {
+        sent = await this.sdi.send(input);
+      } catch (error) {
+        this.logger.error({ invoiceId, err: errorForLog(error) }, "invoice not delivered");
+        return;
+      }
+      await withContext(this.db, SYSTEM_CONTEXT, (tx) =>
+        tx.invoice.update({
+          where: { id: invoiceId },
+          data: { sdiStatus: sent.status, sdiRef: sent.sdiRef },
+        }),
+      );
+      try {
+        const xmlKey = `invoices/${invoiceId}.xml`;
         await this.storage.put({
           key: xmlKey,
           body: new TextEncoder().encode(sent.xml),
           contentType: "application/xml",
         });
-        await tx.invoice.update({
-          where: { id: invoice.id },
-          data: { sdiStatus: sent.status, sdiRef: sent.sdiRef, xmlKey },
-        });
-      });
-    } catch (error) {
-      this.logger.error({ invoiceId, err: errorForLog(error) }, "invoice not delivered");
-    }
-    await this.notifications.send(outbound);
+        await withContext(this.db, SYSTEM_CONTEXT, (tx) =>
+          tx.invoice.update({ where: { id: invoiceId }, data: { xmlKey } }),
+        );
+      } catch (error) {
+        // Delivered to SDI: only the local copy of the XML is missing.
+        this.logger.error({ invoiceId, err: errorForLog(error) }, "invoice XML copy not saved");
+      }
+    });
+  }
+
+  /** The data of the FatturaPA, or null while the recipient or AstAx's data are incomplete. */
+  private async sdiInput(
+    tx: DbTransaction,
+    invoice: Invoice,
+    recipient: InvoiceRecipient,
+    lines: InvoiceLine[],
+  ): Promise<Parameters<EInvoicingPort["send"]>[0] | null> {
+    const astax = await tx.organization.findFirstOrThrow({ where: { type: "ASTAX" } });
+    const astaxAddress = astax.address as {
+      street: string;
+      postalCode: string;
+      municipalityIstat: string;
+      province: string;
+    } | null;
+    if (!recipientComplete(recipient) || !astax.vatNumber || !astaxAddress) return null;
+    const credited = invoice.creditedInvoiceId
+      ? await tx.invoice.findUnique({ where: { id: invoice.creditedInvoiceId } })
+      : null;
+    return {
+      // Ten characters at most: the series and the number, never personal data.
+      progressive: `${invoice.series}${String(invoice.year).slice(2)}${String(invoice.number).padStart(7, "0")}`,
+      documentType: invoice.series === "N" ? "TD04" : "TD01",
+      number: invoice.code,
+      date: invoice.issuedOn.toISOString().slice(0, 10),
+      supplier: {
+        vatNumber: astax.vatNumber,
+        name: astax.legalName,
+        address: (await this.addressOf(tx, astaxAddress)) ?? {
+          street: "",
+          postalCode: "",
+          city: "",
+        },
+      },
+      customer: {
+        name: recipient.name,
+        givenName: recipient.givenName ?? null,
+        surname: recipient.surname ?? null,
+        fiscalCode: recipient.fiscalCode ?? null,
+        vatNumber: recipient.vatNumber ?? null,
+        address: recipient.address ?? { street: "", postalCode: "", city: "" },
+      },
+      recipientCode: recipient.sdiCode ?? "0000000",
+      recipientPec: recipient.pec ?? null,
+      lines,
+      vatNature: invoice.vatNature,
+      legalReference: invoice.legalReference,
+      stampDutyCents: invoice.stampDutyCents,
+      stampDutyCharged: invoice.totalCents > invoice.exemptCents,
+      totalCents: invoice.totalCents,
+      dueDate: invoice.dueOn ? invoice.dueOn.toISOString().slice(0, 10) : null,
+      correctedInvoice: credited
+        ? { number: credited.code, date: credited.issuedOn.toISOString().slice(0, 10) }
+        : null,
+    };
   }
 
   /**
@@ -316,6 +352,8 @@ export class InvoicingService implements OnApplicationBootstrap, OnApplicationSh
     try {
       event = this.sdi.parseWebhook(headers, body);
     } catch {
+      // A refused receipt leaves a trace (identifiers only): a wrong secret or an attempt.
+      this.logger.warn({ provider: this.sdi.provider }, "SDI webhook refused");
       throw new ProblemError("UNAUTHENTICATED");
     }
     if (event.status === "SENT") return;

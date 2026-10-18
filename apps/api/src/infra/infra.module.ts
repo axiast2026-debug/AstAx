@@ -232,7 +232,7 @@ export class InfraModule {
           useValue:
             overrides.identityAdmin ??
             new KeycloakAdmin({
-              baseUrl: config.KEYCLOAK_URL,
+              baseUrl: config.KEYCLOAK_ADMIN_URL ?? config.KEYCLOAK_URL,
               realm: config.KEYCLOAK_REALM,
               clientId: "astax-api-admin",
               clientSecret: config.KEYCLOAK_API_ADMIN_SECRET,

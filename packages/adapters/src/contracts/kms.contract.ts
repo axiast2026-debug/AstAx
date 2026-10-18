@@ -24,7 +24,10 @@ export function kmsContract(make: () => { worker: KmsPort; api: KmsPort }) {
     ).rejects.toBeInstanceOf(KmsDecryptFailed);
   });
 
-  it("contract: BC-03 the API cannot use the sealed bids' key", async () => {
+  // What the adapter guarantees: a process configured without the sealed bids' key
+  // cannot use it. That AWS refuses the API's role is proven by the Terraform
+  // test (bc03_…) and, in collaudo, by the live IAM check (docs/go-live.md).
+  it("contract: BC-03 a process without the sealed bids' key cannot use it", async () => {
     const { worker, api } = make();
     const wrapped = await worker.encrypt(KMS_KEYS.sealedBids, bytes("x"), { auctionId: "a" });
     await expect(

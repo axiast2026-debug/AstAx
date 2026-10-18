@@ -1,5 +1,7 @@
 # Keys (docs/busta-chiusa.md, ADR 0005). The account root may manage the keys
-# but not use them: so no IAM policy can ever give the API the sealed bids.
+# but not use them. For the sealed bids' key it may not even rewrite the
+# policy (no kms:PutKeyPolicy): the policy written at creation stays, so no
+# IAM grant can ever give the API the sealed bids. Changing it means a new key.
 locals {
   key_admin_actions = [
     "kms:Create*", "kms:Describe*", "kms:Enable*", "kms:List*", "kms:Put*", "kms:Update*",
@@ -13,6 +15,8 @@ locals {
 resource "aws_kms_key" "sealed_bids" {
   description         = "${local.name} sealed bids (worker only)"
   enable_key_rotation = true
+  # Nobody may rewrite this policy, the creator included: AWS asks to confirm it.
+  bypass_policy_lockout_safety_check = true
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -20,7 +24,7 @@ resource "aws_kms_key" "sealed_bids" {
         Sid       = "KeyAdministration"
         Effect    = "Allow"
         Principal = { AWS = local.root }
-        Action    = local.key_admin_actions
+        Action    = [for a in local.key_admin_actions : a if a != "kms:Put*"]
         Resource  = "*"
       },
       {

@@ -18,6 +18,10 @@ ARG APP
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build --chown=node:node /out .
+# The texts of the notifications and the other reference files (seed/), found
+# from the «repository root» that pnpm-workspace.yaml marks.
+COPY --from=build --chown=node:node /repo/seed ./seed
+COPY --from=build --chown=node:node /repo/pnpm-workspace.yaml ./pnpm-workspace.yaml
 USER node
 EXPOSE 4000 4100
 CMD ["node", "--enable-source-maps", "dist/main.js"]

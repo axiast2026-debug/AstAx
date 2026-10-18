@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { Clock } from "@astax/adapters/clock";
 import type { FieldCipher } from "@astax/adapters/crypto";
 import type { RuiRegistryPort } from "@astax/adapters/rui-registry";
@@ -10,6 +11,7 @@ import type { KeyEventsSource } from "@astax/adapters/kms";
 import {
   appendAudit,
   archiveAuditLog,
+  withLease,
   checkSealedBidDecryptions,
   complaintsToRemind,
   importRuiRecords,
@@ -215,18 +217,25 @@ export async function importLoginEventsIfDue(
  */
 export async function checkKeysIfDue(
   deps: { db: DbClient; cipher: FieldCipher; notifier: WorkerNotifier; adminUrl: string },
-  sources: readonly { name: string; source: KeyEventsSource; principals: readonly string[] }[],
+  sources: readonly {
+    name: string;
+    source: KeyEventsSource;
+    principals: readonly string[];
+    /** CloudTrail delivers its events minutes late: the window stops this much before now. */
+    lagMs?: number;
+  }[],
   now: Date,
 ): Promise<{ checked: number; anomalies: number }> {
   let checked = 0;
   let anomalies = 0;
-  for (const { name, source, principals } of sources) {
+  for (const { name, source, principals, lagMs = 0 } of sources) {
+    const to = new Date(now.getTime() - lagMs);
     const key = `kms.check.${name}`;
     const cursor = await withContext(deps.db, SYSTEM_CONTEXT, (tx) =>
       tx.jobCursor.findUnique({ where: { key } }),
     );
-    const from = cursor ? new Date(cursor.value) : new Date(now.getTime() - 86_400_000);
-    const result = await checkSealedBidDecryptions(deps.db, source, { from, to: now }, principals);
+    const from = cursor ? new Date(cursor.value) : new Date(to.getTime() - 86_400_000);
+    const result = await checkSealedBidDecryptions(deps.db, source, { from, to }, principals);
     checked += result.checked;
     anomalies += result.anomalies.length;
     const pending: PendingEmail[] = [];
@@ -257,8 +266,8 @@ export async function checkKeysIfDue(
       }
       await tx.jobCursor.upsert({
         where: { key },
-        create: { key, value: now.toISOString(), updatedAt: now },
-        update: { value: now.toISOString(), updatedAt: now },
+        create: { key, value: to.toISOString(), updatedAt: now },
+        update: { value: to.toISOString(), updatedAt: now },
       });
     });
     await deps.notifier.flush(pending);
@@ -285,6 +294,7 @@ export function startSchedules(
       name: string;
       source: KeyEventsSource;
       principals: readonly string[];
+      lagMs?: number;
     }[];
     /** SIC-04: writes a copy of the audit log into the archive with Object Lock. */
     archiveAudit?: (key: string, body: Uint8Array) => Promise<void>;
@@ -297,10 +307,24 @@ export function startSchedules(
   let keysDay = "";
   const brokerLine = label(loadNotificationLabels(), "invoice.brokerLine", "it");
   let running = false;
+  // Phase 8: with two workers the jobs run once per tick, by whoever takes the turn.
+  const holder = randomUUID();
   const tick = () => {
     if (running) return;
     running = true;
     const now = clock.now();
+    withLease(db, "worker.schedules", holder, now, Math.max(intervalMs * 2, 600_000), () =>
+      runJobs(now),
+    )
+      .catch((error: unknown) => {
+        logger.error({ err: errorForLog(error) }, "scheduled job failed");
+        reportError(error);
+      })
+      .finally(() => {
+        running = false;
+      });
+  };
+  const runJobs = (now: Date) =>
     Promise.all([
       prepareRemittancesIfDue(db, now).then((result) => {
         if (result.created > 0) logger.info(result, "remittances prepared");
@@ -351,15 +375,7 @@ export function startSchedules(
         retentionDay = romeCalendarDate(now);
         if (result.requests > 0) logger.info(result, "retention purged");
       }),
-    ])
-      .catch((error: unknown) => {
-        logger.error({ err: errorForLog(error) }, "scheduled job failed");
-        reportError(error);
-      })
-      .finally(() => {
-        running = false;
-      });
-  };
+    ]);
   // At once, then every interval: what fell due while the worker was stopped is not left waiting.
   tick();
   const timer = setInterval(tick, intervalMs);

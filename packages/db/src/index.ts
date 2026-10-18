@@ -90,3 +90,5 @@ export {
   type KeyAnomalyKind,
 } from "./kms-check.js";
 export { archiveAuditLog } from "./audit-archive.js";
+export { acquireLease, releaseLease, withLease } from "./lease.js";
+export { configurationBlockers, REQUIRED_PROVIDERS } from "./release-gate.js";

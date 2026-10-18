@@ -70,16 +70,16 @@ export class AuthGuard implements CanActivate {
     const header = request.header("authorization");
     const raw = header?.startsWith("Bearer ") ? header.slice(7) : null;
     if (!raw) throw new ProblemError("UNAUTHENTICATED");
-    // Phase 8: an address that sent too many invalid tokens waits (security.failedAuthPerMinute).
-    await this.limiter.assertNotBlocked("failedAuth", ip ?? "unknown");
     let token;
     try {
       token = await this.verifier.verify(raw);
     } catch (error) {
       if (error instanceof InvalidTokenError) {
-        await this.limiter.record("failedAuth", ip ?? "unknown");
         // Anonymous failures are not chained in the audit log (they could flood it): one log line.
         this.logger.warn({ route }, "invalid access token");
+        // Phase 8: past security.failedAuthPerMinute invalid tokens from an address, 429.
+        // A valid token is never refused: many users may share one address (mobile NAT).
+        await this.limiter.consume("failedAuth", ip ?? "unknown");
         throw new ProblemError("UNAUTHENTICATED");
       }
       throw error;

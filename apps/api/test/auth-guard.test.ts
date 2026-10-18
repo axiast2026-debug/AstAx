@@ -83,7 +83,7 @@ describe("SIC-01 AuthGuard default deny", () => {
         // Phase 8: the limits are tested in rate-limits.int.test.ts.
         {
           provide: RateLimiter,
-          useValue: { assertNotBlocked: async () => {}, record: async () => {} },
+          useValue: { consume: async () => {} },
         },
         { provide: APP_GUARD, useClass: AuthGuard },
         { provide: APP_FILTER, useClass: ProblemFilter },

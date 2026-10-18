@@ -36,7 +36,12 @@ export class AwsSmsSender implements SmsPort {
   readonly #client: NonNullable<AwsSmsOptions["client"]>;
 
   constructor(private readonly options: AwsSmsOptions) {
-    this.#client = options.client ?? new PinpointSMSVoiceV2Client({ region: options.region });
+    this.#client =
+      options.client ??
+      new PinpointSMSVoiceV2Client({
+        region: options.region,
+        requestHandler: { connectionTimeout: 5_000, requestTimeout: 15_000 },
+      });
   }
 
   async send(message: SmsMessage): Promise<void> {

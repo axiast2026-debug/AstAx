@@ -131,7 +131,12 @@ export class BedrockDocumentReader implements DocumentReaderPort {
     private readonly options: BedrockOptions,
     private readonly load: (key: string) => Promise<Uint8Array>,
   ) {
-    this.#client = options.client ?? new BedrockRuntimeClient({ region: options.region });
+    this.#client =
+      options.client ??
+      new BedrockRuntimeClient({
+        region: options.region,
+        requestHandler: { connectionTimeout: 5_000, requestTimeout: 120_000 },
+      });
   }
 
   private async block(file: StoredFileRef, index: number): Promise<ContentBlock> {

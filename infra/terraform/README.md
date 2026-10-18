@@ -19,6 +19,13 @@ La CI (`.github/workflows/ci.yml`, job «infra») controlla formato, validità e
 - `offer-owner`: la usa solo il ruolo dell'API (copie delle offerte per le agenzie, BC-04).
 - `data`: tutto il resto a riposo (documenti, database, Redis, log, segreti, backup).
 
+## Rischi noti, accettati
+
+- **Policy della chiave delle buste immutabile.** Nessuno, nemmeno l'amministratore dell'account, può riscriverla (manca `kms:PutKeyPolicy`): per cambiarla serve una chiave nuova. È voluto (BC-03).
+- **La pipeline di rilascio è la via fidata per portare codice.** Può registrare nuove versioni dei servizi, anche del worker. È protetta dall'approvazione di Dan per la produzione, dal solo ramo `main` e dalla CI verde (`deploy.yml`, job «gate»). Un uso anticipato della chiave delle buste, da qualsiasi ruolo, lo trova il controllo notturno (`docs/sorveglianza.md`).
+- **Password di Redis nello stato di Terraform.** Lo stato è in un bucket cifrato con accesso solo agli amministratori; la password ha senso solo dentro la rete privata.
+- **L'amministrazione di Keycloak** è chiusa su internet (`/admin`, `/realms/master`): API e worker la raggiungono sul nome privato `keycloak.astax.internal`. La console si usa con un tunnel dalla rete AWS (Session Manager).
+
 ## Ordine delle operazioni (parte B)
 
 1. **Account e stato.** Con un utente amministratore: `cd bootstrap && terraform init && terraform apply`. Annota `state_bucket` e `github_oidc_provider_arn`.

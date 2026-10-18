@@ -11,7 +11,8 @@ description = "Placeholders and synthetic keys of the tests"
 paths = [
   '''(^|/)\.env\.example$''',
   '''(^|/)pnpm-lock\.yaml$''',
-  '''(^|/)tests?/''',
+  '''(^|/)test/int/''',
+  '''(^|/)tests/e2e/(specs|support)/''',
   '''\.test\.ts$''',
   '''(^|/)demo-documenti/''',
 ]

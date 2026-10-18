@@ -1,11 +1,12 @@
-import { createHash } from "node:crypto";
+import { createHmac } from "node:crypto";
 import type { Clock } from "@astax/adapters/clock";
 import { settingsAt, SYSTEM_CONTEXT, withContext, type DbClient } from "@astax/db";
 import type { Logger } from "@astax/shared/logging";
 import type { SettingKey } from "@astax/shared/settings";
 import { Inject, Injectable, type OnApplicationShutdown } from "@nestjs/common";
 import { ProblemError } from "../http/problem.js";
-import { CLOCK, DB, LOGGER, RATE_LIMIT_STORE } from "../infra/tokens.js";
+import type { ApiConfig } from "../config/config.js";
+import { CLOCK, CONFIG, DB, LOGGER, RATE_LIMIT_STORE } from "../infra/tokens.js";
 import type { RateLimitStore } from "./rate-limit-store.js";
 
 const MINUTE = 60_000;
@@ -39,6 +40,7 @@ export class RateLimiter implements OnApplicationShutdown {
     @Inject(DB) private readonly db: DbClient,
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(RATE_LIMIT_STORE) private readonly store: RateLimitStore,
+    @Inject(CONFIG) private readonly config: ApiConfig,
     @Inject(LOGGER) private readonly logger: Logger,
   ) {}
 
@@ -53,11 +55,16 @@ export class RateLimiter implements OnApplicationShutdown {
     return this.#limits.values[BUCKETS[bucket].key] ?? Number.POSITIVE_INFINITY;
   }
 
-  /** The counter's key: a hash, so no address or number sits in Redis (SIC-06). */
+  /**
+   * The counter's key: an HMAC with the blind index key, so an address or a
+   * number in Redis cannot be recovered by trying them all (SIC-06).
+   */
   private keyOf(bucket: RateBucket, subject: string): string {
     const { windowMs } = BUCKETS[bucket];
     const window = Math.floor(this.clock.now().getTime() / windowMs);
-    const hash = createHash("sha256").update(`${bucket}:${subject}`).digest("base64url");
+    const hash = createHmac("sha256", this.config.BLIND_INDEX_KEY)
+      .update(`${bucket}:${subject}`)
+      .digest("base64url");
     return `astax:rl:${bucket}:${hash}:${window}`;
   }
 
@@ -79,16 +86,5 @@ export class RateLimiter implements OnApplicationShutdown {
     const limit = await this.limitOf(bucket);
     const count = await this.store.hit(this.keyOf(bucket, subject), BUCKETS[bucket].windowMs);
     if (count > limit) this.refuse(bucket);
-  }
-
-  /** 429 if `subject` is already past the limit, without counting this call. */
-  async assertNotBlocked(bucket: RateBucket, subject: string): Promise<void> {
-    const limit = await this.limitOf(bucket);
-    if ((await this.store.peek(this.keyOf(bucket, subject))) >= limit) this.refuse(bucket);
-  }
-
-  /** Counts a failure for `subject` (the next calls are refused past the limit). */
-  async record(bucket: RateBucket, subject: string): Promise<void> {
-    await this.store.hit(this.keyOf(bucket, subject), BUCKETS[bucket].windowMs);
   }
 }

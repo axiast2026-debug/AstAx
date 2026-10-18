@@ -1,3 +1,4 @@
+import { errorForLog, type Logger } from "@astax/shared/logging";
 import { randomUUID } from "node:crypto";
 import type { Clock } from "@astax/adapters/clock";
 import { decryptFile, encryptFile, KMS_KEYS, seal, wipe, type KmsPort } from "@astax/adapters/kms";
@@ -32,7 +33,7 @@ import { z } from "zod";
 import { actorOf, AuditService } from "../audit/audit.service.js";
 import type { AuthContext } from "../auth/auth-context.js";
 import { ProblemError } from "../http/problem.js";
-import { CLOCK, DB, KMS, OBJECT_STORAGE } from "../infra/tokens.js";
+import { CLOCK, DB, KMS, OBJECT_STORAGE, LOGGER } from "../infra/tokens.js";
 import { RealtimeHub } from "../realtime/realtime-hub.js";
 
 /** OFF-04: the content plus the explicit confirmation that the offer is binding. */
@@ -83,6 +84,7 @@ export class OffersService {
     @Inject(OBJECT_STORAGE) private readonly storage: ObjectStoragePort,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(RealtimeHub) private readonly realtime: RealtimeHub,
+    @Inject(LOGGER) private readonly logger: Logger,
   ) {}
 
   private agency(auth: AuthContext) {
@@ -769,9 +771,19 @@ export class OffersService {
       (o) => m && o.organizationId === m.organizationId && (o.userId === auth.userId || colleagues),
     );
     const out = new Map<string, OwnerCopy["payload"]>();
+    const unreadable: string[] = [];
     for (let i = 0; i < allowed.length; i += OWNER_COPY_PARALLEL) {
       const batch = allowed.slice(i, i + OWNER_COPY_PARALLEL);
-      const copies = await Promise.all(batch.map((o) => this.readCopy(o).catch(() => null)));
+      const copies = await Promise.all(
+        batch.map((o) =>
+          this.readCopy(o).catch((error: unknown) => {
+            // A copy that does not open may be altered: never silent (rule 4).
+            unreadable.push(o.id);
+            this.logger.error({ offerId: o.id, err: errorForLog(error) }, "owner copy not opened");
+            return null;
+          }),
+        ),
+      );
       batch.forEach((o, j) => {
         const copy = copies[j];
         if (copy) out.set(o.id, copy.payload);
@@ -783,6 +795,14 @@ export class OffersService {
         targetType: "Organization",
         targetId: m.organizationId,
         after: { offerIds: [...out.keys()] },
+      });
+    }
+    if (m && unreadable.length > 0) {
+      await this.audit.inTransaction(tx, actorOf(auth), {
+        action: "OFFER_OWNER_COPY_UNREADABLE",
+        targetType: "Organization",
+        targetId: m.organizationId,
+        after: { offerIds: unreadable },
       });
     }
     return out;

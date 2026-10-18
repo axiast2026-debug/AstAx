@@ -66,8 +66,17 @@ export class OpenapiEInvoicing implements EInvoicingPort {
     this.#fetch = options.fetch ?? fetch;
   }
 
-  private async call<T>(operation: string, path: string, init: RequestInit): Promise<T> {
-    const delays = this.options.retryDelaysMs ?? [500, 2000, 5000];
+  /**
+   * `retry`: only for reads. A POST is never sent again: after a timeout SDI may
+   * have received it, and a second invoice with the same number is refused (NS).
+   */
+  private async call<T>(
+    operation: string,
+    path: string,
+    init: RequestInit,
+    retry = true,
+  ): Promise<T> {
+    const delays = retry ? (this.options.retryDelaysMs ?? [500, 2000, 5000]) : [];
     for (let attempt = 0; ; attempt += 1) {
       let status: number;
       try {
@@ -92,11 +101,16 @@ export class OpenapiEInvoicing implements EInvoicingPort {
     const xml = buildFatturaPa(invoice);
     const check = await validateXml("FATTURA_PA", xml);
     if (!check.valid) throw new InvalidInvoiceXmlError(check.errors);
-    const out = await this.call<{ data?: { uuid?: string } }>("send", "/invoices", {
-      method: "POST",
-      headers: { "content-type": "application/xml" },
-      body: xml,
-    });
+    const out = await this.call<{ data?: { uuid?: string } }>(
+      "send",
+      "/invoices",
+      {
+        method: "POST",
+        headers: { "content-type": "application/xml" },
+        body: xml,
+      },
+      false,
+    );
     const sdiRef = out.data?.uuid;
     if (!sdiRef) throw new EInvoicingError(200, "send");
     return { sdiRef, status: "SENT" as const, xml };
@@ -120,12 +134,10 @@ export class OpenapiEInvoicing implements EInvoicingPort {
    */
   parseWebhook(headers: Record<string, string | undefined>, body: string): SdiEvent {
     const secret = this.options.webhookSecret;
-    const given = headers.authorization ?? "";
-    if (
-      !secret ||
-      given.length !== secret.length ||
-      !timingSafeEqual(Buffer.from(given), Buffer.from(secret))
-    ) {
+    const given = Buffer.from(headers.authorization ?? "", "utf8");
+    const expected = Buffer.from(secret ?? "", "utf8");
+    // Lengths in bytes: a header with multibyte characters is refused, not an error.
+    if (!secret || given.length !== expected.length || !timingSafeEqual(given, expected)) {
       throw new InvalidSdiWebhookError();
     }
     const parsed = JSON.parse(body) as {

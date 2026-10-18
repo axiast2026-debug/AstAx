@@ -101,17 +101,27 @@ export async function dispatchMessages(
   const maxAttempts = options.maxAttempts ?? 8;
   const result: MessageDispatchResult = { sent: 0, retried: 0, failed: 0 };
   const before = new Date(options.now.getTime() - graceMs);
-  await withContext(
+  const due = await withContext(
     db,
     SYSTEM_CONTEXT,
-    async (tx) => {
-      const due = await tx.$queryRaw<{ id: string }[]>`
-        SELECT "id" FROM "MessageOutbox"
-        WHERE "status" = 'PENDING' AND "nextAttemptAt" <= ${options.now} AND "createdAt" <= ${before}
-        ORDER BY "nextAttemptAt", "createdAt"
-        LIMIT ${options.batchSize ?? 50}
-        FOR UPDATE SKIP LOCKED`;
-      for (const { id } of due) {
+    (tx) =>
+      tx.$queryRaw<{ id: string }[]>`
+      SELECT "id" FROM "MessageOutbox"
+      WHERE "status" = 'PENDING' AND "nextAttemptAt" <= ${options.now} AND "createdAt" <= ${before}
+      ORDER BY "nextAttemptAt", "createdAt"
+      LIMIT ${options.batchSize ?? 50}`,
+  );
+  // One message per transaction: a slow or failed one never undoes the others.
+  for (const { id } of due) {
+    await withContext(
+      db,
+      SYSTEM_CONTEXT,
+      async (tx) => {
+        const locked = await tx.$queryRaw<{ id: string }[]>`
+          SELECT "id" FROM "MessageOutbox"
+          WHERE "id" = ${id}::uuid AND "status" = 'PENDING'
+          FOR UPDATE SKIP LOCKED`;
+        if (locked.length === 0) return;
         const row = await tx.messageOutbox.findUniqueOrThrow({ where: { id } });
         const attempts = row.attempts + 1;
         try {
@@ -136,9 +146,9 @@ export async function dispatchMessages(
           if (failed) result.failed += 1;
           else result.retried += 1;
         }
-      }
-    },
-    { timeoutMs: 120_000 },
-  );
+      },
+      { timeoutMs: 60_000 },
+    );
+  }
   return result;
 }

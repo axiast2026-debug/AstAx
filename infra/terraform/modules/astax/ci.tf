@@ -38,16 +38,35 @@ resource "aws_iam_role_policy" "deploy" {
         Resource = [for r in aws_ecr_repository.app : r.arn]
       },
       {
-        Sid      = "RunToolsAndDeploy"
+        # New revisions of our task definitions (they cannot be limited by resource).
+        Sid      = "RegisterTasks"
         Effect   = "Allow"
-        Action   = ["ecs:RunTask", "ecs:DescribeTasks", "ecs:RegisterTaskDefinition", "ecs:UpdateService", "ecs:DescribeServices", "ecs:DescribeTaskDefinition"]
+        Action   = ["ecs:RegisterTaskDefinition", "ecs:DescribeTaskDefinition", "ecs:DescribeTasks"]
         Resource = "*"
       },
       {
-        Sid      = "PassOnlyOurRoles"
+        # One-off tasks: only the tools, only in this cluster.
+        Sid       = "RunOnlyTools"
+        Effect    = "Allow"
+        Action    = "ecs:RunTask"
+        Resource  = "arn:aws:ecs:${local.region}:${local.account_id}:task-definition/${local.name}-tools:*"
+        Condition = { ArnEquals = { "ecs:cluster" = aws_ecs_cluster.main.arn } }
+      },
+      {
+        Sid      = "UpdateOurServices"
         Effect   = "Allow"
-        Action   = "iam:PassRole"
-        Resource = concat([for r in aws_iam_role.task : r.arn], [for r in aws_iam_role.execution : r.arn])
+        Action   = ["ecs:UpdateService", "ecs:DescribeServices"]
+        Resource = "arn:aws:ecs:${local.region}:${local.account_id}:service/${local.name}/*"
+      },
+      {
+        # The pipeline is the trusted path that ships code, protected by Dan's
+        # approval, the branch main and a green CI (deploy.yml); an early use of
+        # the sealed bids' key by any role is caught by the nightly check (BC-03).
+        Sid       = "PassOnlyOurRolesToEcs"
+        Effect    = "Allow"
+        Action    = "iam:PassRole"
+        Resource  = concat([for r in aws_iam_role.task : r.arn], [for r in aws_iam_role.execution : r.arn])
+        Condition = { StringEquals = { "iam:PassedToService" = "ecs-tasks.amazonaws.com" } }
       },
       {
         Sid      = "ReadToolsLogs"

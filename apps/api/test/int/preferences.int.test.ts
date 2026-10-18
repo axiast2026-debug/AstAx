@@ -57,12 +57,29 @@ describe("phase 7 the notification preferences", () => {
     await r.json(
       await r.call(customer, "/me/notifications/push-subscriptions", {
         body: {
-          endpoint: "https://push.example.test/sub/preferences-test",
+          endpoint: "https://fcm.googleapis.com/fcm/send/preferences-test",
           keys: { p256dh: "BPreferencesTestKey0001", auth: "AuthPreferences1" },
         },
       }),
       201,
     );
+    // Phase 8 (SSRF): an address that is not a browser's push service is refused.
+    for (const endpoint of [
+      "http://fcm.googleapis.com/x",
+      "https://10.0.0.5/x",
+      "https://api.astax.internal:4000/x",
+    ]) {
+      expect(
+        (
+          await r.call(customer, "/me/notifications/push-subscriptions", {
+            body: {
+              endpoint,
+              keys: { p256dh: "BPreferencesTestKey0001", auth: "AuthPreferences1" },
+            },
+          })
+        ).status,
+      ).toBe(400);
+    }
     const request = await r.submittedPrivateRequest(customer, EMAIL);
     const verifier = {
       token: await h.tokenFor("bo-verifier"),
@@ -89,7 +106,9 @@ describe("phase 7 the notification preferences", () => {
     expect(h.email.sent.filter((m) => m.to === EMAIL).length).toBe(emailsBefore);
     const pushes = h.push.sent.slice(pushesBefore);
     expect(pushes).toHaveLength(1);
-    expect(pushes[0]?.subscription.endpoint).toBe("https://push.example.test/sub/preferences-test");
+    expect(pushes[0]?.subscription.endpoint).toBe(
+      "https://fcm.googleapis.com/fcm/send/preferences-test",
+    );
     expect(pushes[0]?.message.url).toBe(`/preventivi/${request.id}`);
   });
 

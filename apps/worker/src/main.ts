@@ -213,6 +213,8 @@ const stopSchedules = startSchedules(
               name: "cloudtrail",
               source: new CloudTrailKmsEvents(config.AWS_REGION, config.KMS_SEALED_BIDS_KEY_ID),
               principals: [config.KMS_WORKER_ROLE_ARN],
+              // CloudTrail delivers events up to about 15 minutes late.
+              lagMs: 30 * 60_000,
             },
           ]
         : []),
@@ -220,7 +222,7 @@ const stopSchedules = startSchedules(
     ...(config.KEYCLOAK_URL && config.KEYCLOAK_API_ADMIN_SECRET
       ? {
           identity: new KeycloakAdmin({
-            baseUrl: config.KEYCLOAK_URL,
+            baseUrl: config.KEYCLOAK_ADMIN_URL ?? config.KEYCLOAK_URL,
             realm: config.KEYCLOAK_REALM,
             clientId: "astax-api-admin",
             clientSecret: config.KEYCLOAK_API_ADMIN_SECRET,

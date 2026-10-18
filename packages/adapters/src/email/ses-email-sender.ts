@@ -18,7 +18,12 @@ export class SesEmailSender implements EmailSender {
   readonly #client: NonNullable<SesOptions["client"]>;
 
   constructor(private readonly options: SesOptions) {
-    this.#client = options.client ?? new SESv2Client({ region: options.region });
+    this.#client =
+      options.client ??
+      new SESv2Client({
+        region: options.region,
+        requestHandler: { connectionTimeout: 5_000, requestTimeout: 15_000 },
+      });
   }
 
   async send(message: EmailMessage): Promise<void> {

@@ -77,10 +77,13 @@ export async function createApp(
   app.use("/webhooks", text({ type: () => true, limit: "1mb" }));
   app.enableShutdownHooks();
 
-  const document = buildOpenApi(app);
-  app.getHttpAdapter().get("/openapi.json", (_request, response) => {
-    (response as { json(body: unknown): void }).json(document);
-  });
-  if (config.NODE_ENV !== "production") SwaggerModule.setup("docs", app, document);
+  // The description of the API only outside production (phase 8, ASVS V14).
+  if (config.NODE_ENV !== "production") {
+    const document = buildOpenApi(app);
+    app.getHttpAdapter().get("/openapi.json", (_request, response) => {
+      (response as { json(body: unknown): void }).json(document);
+    });
+    SwaggerModule.setup("docs", app, document);
+  }
   return app;
 }

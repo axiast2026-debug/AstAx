@@ -35,17 +35,29 @@ describe("phase 8 rate limits", () => {
     expect((await h.call("/onboarding/options?type=AGENCY")).status).toBe(200);
   });
 
-  it("after security.failedAuthPerMinute invalid tokens the address waits, even with a valid one", async () => {
+  it("after security.failedAuthPerMinute invalid tokens the address gets 429; a valid token still passes", async () => {
     minuteLater();
     const bad = await h.token(
       { sub: "kc-private-giulia-neri", azp: "astax-web-private", roles: ["astax-private"] },
       true,
     );
     for (let i = 0; i < 30; i += 1) expect((await h.call("/me", { token: bad })).status).toBe(401);
+    expect((await h.call("/me", { token: bad })).status).toBe(429);
+    // Many people may share one address (a mobile operator's NAT): a valid token is never refused.
     const good = await h.tokenFor("private-giulia-neri");
-    expect((await h.call("/me", { token: good })).status).toBe(429);
-    minuteLater();
     expect((await h.call("/me", { token: good })).status).toBe(200);
+    minuteLater();
+    expect((await h.call("/me", { token: bad })).status).toBe(401);
+  });
+
+  it("behind the trusted proxy (API_TRUST_PROXY) each browser address has its own counter", async () => {
+    minuteLater();
+    const from = (ip: string) =>
+      h.call("/onboarding/options?type=AGENCY", { headers: { "x-forwarded-for": ip } });
+    for (let i = 0; i < 120; i += 1) expect((await from("198.51.100.1")).status).toBe(200);
+    expect((await from("198.51.100.1")).status).toBe(429);
+    // Another browser behind the same proxy is not affected.
+    expect((await from("198.51.100.2")).status).toBe(200);
   });
 
   it("at most security.publicApplicationsPerHour entries from one address", async () => {

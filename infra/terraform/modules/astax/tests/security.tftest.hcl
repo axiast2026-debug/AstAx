@@ -110,14 +110,16 @@ run "bc03_only_the_worker_decrypts_the_sealed_bids" {
     error_message = "Only the worker may be allowed to decrypt the sealed bids' key."
   }
 
-  # The account root administers the key but cannot use it, so no IAM policy can open it.
+  # The account root administers the key but can neither use it nor rewrite its
+  # policy, so no IAM grant can ever open it.
   assert {
     condition = alltrue([
       for s in jsondecode(aws_kms_key.sealed_bids.policy).Statement :
-      !contains(flatten([s.Action]), "kms:*") && !contains(flatten([s.Action]), "kms:Decrypt")
+      !contains(flatten([s.Action]), "kms:*") && !contains(flatten([s.Action]), "kms:Decrypt") &&
+      !contains(flatten([s.Action]), "kms:Put*") && !contains(flatten([s.Action]), "kms:PutKeyPolicy")
       if s.Effect == "Allow" && s.Principal.AWS == "arn:aws:iam::111122223333:root"
     ])
-    error_message = "The root of the account must not be able to use the sealed bids' key."
+    error_message = "The root of the account must neither use the sealed bids' key nor rewrite its policy."
   }
 
   # And an explicit deny for every other principal, the API's role included.
@@ -193,6 +195,17 @@ run "rule13_no_development_tools_or_fake_providers_in_the_containers" {
       ]
     ]))
     error_message = "No container may use a fake provider."
+  }
+  # API and worker carry every provider of the common settings, the ones the
+  # release gate reads in the tools task.
+  assert {
+    condition = alltrue(flatten([
+      for svc in ["api", "worker"] : [
+        for name, value in local.backend_env : lookup(local.containers[svc].env, name, "") == value
+        if endswith(name, "_PROVIDER")
+      ]
+    ]))
+    error_message = "API and worker must run with the providers the release gate checked."
   }
 }
 

@@ -234,18 +234,26 @@ export class KeycloakAdmin {
   }
 
   /**
-   * Login events from `sinceMs` on, oldest first. Keycloak filters by day, so
-   * the time is checked here too.
+   * Login events from `sinceMs` on, oldest first. Keycloak filters by day and
+   * returns the newest first, a page at a time: the pages are read until one
+   * reaches back to `sinceMs` (or is the last), so a burst of events (a brute
+   * force attack) is never cut.
    */
-  async listEvents(types: string[], sinceMs: number, max = 500): Promise<KeycloakEvent[]> {
-    const query = new URLSearchParams({
-      dateFrom: new Date(sinceMs).toISOString().slice(0, 10),
-      first: "0",
-      max: String(max),
-    });
-    for (const type of types) query.append("type", type);
-    const events = await this.call<KeycloakEvent[]>("listEvents", "GET", `/events?${query}`);
-    return events.filter((e) => e.time > sinceMs).sort((a, b) => a.time - b.time);
+  async listEvents(types: string[], sinceMs: number, pageSize = 500): Promise<KeycloakEvent[]> {
+    const out: KeycloakEvent[] = [];
+    for (let first = 0; ; first += pageSize) {
+      const query = new URLSearchParams({
+        dateFrom: new Date(sinceMs).toISOString().slice(0, 10),
+        first: String(first),
+        max: String(pageSize),
+      });
+      for (const type of types) query.append("type", type);
+      const page = await this.call<KeycloakEvent[]>("listEvents", "GET", `/events?${query}`);
+      out.push(...page.filter((e) => e.time > sinceMs));
+      const oldest = Math.min(...page.map((e) => e.time));
+      if (page.length < pageSize || oldest <= sinceMs) break;
+    }
+    return out.sort((a, b) => a.time - b.time);
   }
 
   async updateRealm(settings: Record<string, unknown>): Promise<void> {

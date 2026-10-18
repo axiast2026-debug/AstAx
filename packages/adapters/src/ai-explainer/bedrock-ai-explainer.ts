@@ -20,7 +20,12 @@ export class BedrockAiExplainer implements AiExplainerPort {
   readonly #prompt = loadPrompt("ai-explainer/v1");
 
   constructor(private readonly options: BedrockOptions) {
-    this.#client = options.client ?? new BedrockRuntimeClient({ region: options.region });
+    this.#client =
+      options.client ??
+      new BedrockRuntimeClient({
+        region: options.region,
+        requestHandler: { connectionTimeout: 5_000, requestTimeout: 60_000 },
+      });
   }
 
   async explain(input: {
