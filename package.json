@@ -27,7 +27,8 @@
     "db:seed": "pnpm --filter @astax/db seed && pnpm --filter @astax/api keycloak:sync",
     "keycloak:sync": "pnpm --filter @astax/api keycloak:sync",
     "legal:check": "pnpm --filter @astax/db legal:check",
-    "reference:municipalities": "pnpm --filter @astax/db reference:municipalities"
+    "reference:municipalities": "pnpm --filter @astax/db reference:municipalities",
+    "release:check": "pnpm --filter @astax/db release:check"
   },
   "devDependencies": {
     "prettier": "3.9.10",

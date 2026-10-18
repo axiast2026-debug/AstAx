@@ -39,7 +39,7 @@ export async function NotificationPreferences() {
                     title={c.locked ? t("locked") : undefined}
                     className={`rounded-full border px-3 py-1 text-xs ${
                       c.enabled
-                        ? "border-green-600 bg-green-600/10 text-green-700"
+                        ? "border-green-600 bg-green-600/10 text-green-800"
                         : "border-warm-200 text-warm-600"
                     } disabled:opacity-70`}
                   >

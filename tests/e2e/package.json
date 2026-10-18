@@ -13,6 +13,7 @@
     "@astax/config": "workspace:*",
     "@astax/db": "workspace:*",
     "@astax/shared": "workspace:*",
+    "@axe-core/playwright": "4.13.0",
     "@playwright/test": "1.64.1",
     "@types/node": "24.19.2",
     "eslint": "10.12.0",
