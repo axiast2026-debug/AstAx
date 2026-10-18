@@ -12,7 +12,10 @@ export const EMAIL_CODE_CONFIG = {
 };
 
 export interface SessionParameters {
+  /** Days without using the app after which the private customer logs in again. */
   privateDays: number;
+  /** The longest a private session may last, however often it is used. */
+  privateMaxDays: number;
   professionalIdleHours: number;
   staffIdleHours: number;
 }
@@ -28,17 +31,23 @@ const HOUR = 3_600;
 /**
  * Translates the AstAx parameters session.* into Keycloak settings (SIC-05).
  * Client values can only shorten the realm ones, so the realm takes the longest.
- * Private customers: the session lasts N days from login (domanda aperta 2).
+ * Private customers (question 2, Dan 2026-10-18): N days from the last use, so
+ * who uses the app stays in, up to session.privateMaxDays.
  */
 export function keycloakSessionSettings(p: SessionParameters): KeycloakSessionSettings {
   const privateSeconds = p.privateDays * DAY;
-  const longest = Math.max(privateSeconds, p.professionalIdleHours * HOUR, p.staffIdleHours * HOUR);
+  const privateMaxSeconds = Math.max(p.privateMaxDays, p.privateDays) * DAY;
+  const otherIdle = Math.max(p.professionalIdleHours * HOUR, p.staffIdleHours * HOUR);
   return {
-    realm: { ssoSessionIdleTimeout: longest, ssoSessionMaxLifespan: longest },
+    // The realm keeps the longest values: clients can only shorten them.
+    realm: {
+      ssoSessionIdleTimeout: Math.max(privateSeconds, otherIdle),
+      ssoSessionMaxLifespan: Math.max(privateMaxSeconds, otherIdle),
+    },
     clients: {
       [KEYCLOAK_CLIENTS.private]: {
         "client.session.idle.timeout": String(privateSeconds),
-        "client.session.max.lifespan": String(privateSeconds),
+        "client.session.max.lifespan": String(privateMaxSeconds),
       },
       [KEYCLOAK_CLIENTS.professional]: {
         "client.session.idle.timeout": String(p.professionalIdleHours * HOUR),

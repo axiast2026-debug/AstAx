@@ -11,6 +11,7 @@ import type { IdentityAdmin } from "./identity-admin.js";
 /** Parameters that live in Keycloak too: changing one re-applies them (fase 1, passo 6). */
 export const IDENTITY_SETTING_KEYS = [
   "session.privateDays",
+  "session.privateMaxDays",
   "session.professionalIdleHours",
   "session.staffIdleHours",
   "otp.validityMinutes",
@@ -26,6 +27,7 @@ export function isIdentitySetting(key: string): boolean {
 
 export interface IdentitySettingValues {
   "session.privateDays": number;
+  "session.privateMaxDays": number;
   "session.professionalIdleHours": number;
   "session.staffIdleHours": number;
   "otp.validityMinutes": number;
@@ -45,6 +47,7 @@ export async function applyIdentitySettings(
 ): Promise<void> {
   const sessions = keycloakSessionSettings({
     privateDays: values["session.privateDays"],
+    privateMaxDays: values["session.privateMaxDays"],
     professionalIdleHours: values["session.professionalIdleHours"],
     staffIdleHours: values["session.staffIdleHours"],
   });

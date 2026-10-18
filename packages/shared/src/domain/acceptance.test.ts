@@ -49,10 +49,10 @@ describe("fee of the customer (FEE-01…03)", () => {
     expect(fee(18000, true).rule).toBe("PRIVATE_LOW_AI");
   });
 
-  it("FEE-02 S09 exactly 200,00 € is the full fee (question 3)", () => {
-    expect(fee(20000, false).feeCents).toBe(3000);
-    expect(fee(20000, true).feeCents).toBe(3500);
-    expect(fee(19999, false).feeCents).toBe(1500);
+  it("FEE-02 S09 exactly 200,00 € is still the reduced fee (question 3); 200,01 € the full one", () => {
+    expect(fee(20000, false).feeCents).toBe(1500);
+    expect(fee(20000, true).feeCents).toBe(2000);
+    expect(fee(20001, false).feeCents).toBe(3000);
   });
 
   it("FEE-03 S09 the broker's customer pays no fee; the broker owes 30,00 €, never reduced", () => {

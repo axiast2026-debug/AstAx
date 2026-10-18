@@ -54,7 +54,8 @@ export function customerFee(
   if (input.channel === "BROKER") {
     return { feeCents: 0, rule: "BROKER_CLIENT", brokerFeeCents: settings.brokerCents };
   }
-  const low = input.premiumCents < settings.lowPremiumThresholdCents;
+  // FEE-02, question 3 (Dan, 2026-10-18): up to the threshold included.
+  const low = input.premiumCents <= settings.lowPremiumThresholdCents;
   const base = low ? settings.lowPremiumCents : settings.privateCents;
   const ai = input.aiUsed ? settings.aiSupplementCents : 0;
   const rule: FeeRule = low

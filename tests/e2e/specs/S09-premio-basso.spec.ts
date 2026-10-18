@@ -14,8 +14,8 @@ import { inviteByHand, openIncoming, professional, sendOffer } from "../support/
 /**
  * S09 (FEE-01, FEE-02): offers of Alfa 180,00 € and Beta 195,00 €; the
  * customer buys Alfa without the AI comparison and pays 195,00 € (fee 15,00 €
- * under the 200,00 € threshold). The variants (20,00 € with the AI, the full
- * fee at exactly 200,00 €, 30,00 € owed by a broker) are in the unit tests of
+ * up to the 200,00 € threshold). The variants (20,00 € with the AI, still the
+ * reduced fee at exactly 200,00 €, 30,00 € owed by a broker) are in the unit tests of
  * the fee and in the broker's monthly invoice.
  */
 test.describe.serial("S09 — premio sotto i 200 €", () => {

@@ -8,14 +8,15 @@ import {
 describe("SIC-05 session durations from the parameters", () => {
   const settings = keycloakSessionSettings({
     privateDays: 30,
+    privateMaxDays: 365,
     professionalIdleHours: 8,
     staffIdleHours: 1,
   });
 
-  it("privates: 30 days from login", () => {
+  it("privates (question 2): 30 days from the last use, at most 365 days", () => {
     expect(settings.clients["astax-web-private"]).toEqual({
       "client.session.idle.timeout": "2592000",
-      "client.session.max.lifespan": "2592000",
+      "client.session.max.lifespan": "31536000",
     });
   });
 
@@ -27,11 +28,15 @@ describe("SIC-05 session durations from the parameters", () => {
   it("the realm keeps the longest value, because clients can only shorten it", () => {
     expect(settings.realm).toEqual({
       ssoSessionIdleTimeout: 2592000,
-      ssoSessionMaxLifespan: 2592000,
+      ssoSessionMaxLifespan: 31536000,
     });
     expect(
-      keycloakSessionSettings({ privateDays: 1, professionalIdleHours: 48, staffIdleHours: 1 })
-        .realm.ssoSessionIdleTimeout,
+      keycloakSessionSettings({
+        privateDays: 1,
+        privateMaxDays: 1,
+        professionalIdleHours: 48,
+        staffIdleHours: 1,
+      }).realm.ssoSessionIdleTimeout,
     ).toBe(172800);
   });
 
