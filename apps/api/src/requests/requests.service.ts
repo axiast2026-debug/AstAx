@@ -321,6 +321,8 @@ export class RequestsService {
           requesterMembershipId: auth.membership?.id ?? null,
           customerId,
           draftEnc: encryptJson(this.cipher, {}),
+          // Rule 6: the time from Clock, not from the database.
+          createdAt: now,
         },
       });
       await addRequestEvent(tx, request, {

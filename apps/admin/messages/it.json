@@ -1343,5 +1343,112 @@
     "lastActivity": "ultima attività {at}",
     "run": "Cancella ora",
     "last": "Ultime cancellazioni"
+  },
+  "adminDashboard": {
+    "title": "Cruscotto",
+    "from": "Dal",
+    "to": "Al",
+    "channel": "Canale",
+    "allChannels": "Tutti",
+    "channels": {
+      "PRIVATE": "Privati",
+      "BROKER": "Broker"
+    },
+    "province": "Provincia",
+    "apply": "Aggiorna",
+    "funnel": "Passaggi",
+    "steps": {
+      "submitted": "Richieste inviate",
+      "auctions": "Aste aperte",
+      "accepted": "Offerte accettate e pagate",
+      "issued": "Polizze emesse"
+    },
+    "funnelNotes": "Bozze create {created}, deserte {deserted}, offerte per asta {offers}, accettate sulle inviate {conversion}.",
+    "percent": "{value}%",
+    "quality": "Qualità",
+    "verifications": "Verifiche decise",
+    "averageVerification": "Tempo medio di verifica",
+    "automaticShare": "Approvate in automatico",
+    "integrationShare": "Con integrazione chiesta",
+    "minutes": "{count, plural, one {# minuto} other {# minuti}}",
+    "agencies": "Agenzie",
+    "invitations": "Inviti",
+    "offers": "Offerte",
+    "participation": "Partecipazione (offerte sugli inviti)",
+    "issuanceTime": "Tempo medio di emissione",
+    "hours": "{count, plural, one {# ora} other {# ore}}",
+    "economy": "Economia",
+    "privateFees": "Fee dei privati (fatture P)",
+    "brokerFees": "Fee dei broker (fatture B)",
+    "agencyFees": "Fee delle agenzie (fatture A)",
+    "creditNotes": "Note di credito",
+    "premiums": "Premi incassati",
+    "risk": "Rischio",
+    "riskItems": {
+      "complaints": "Reclami",
+      "flags": "Segnalazioni",
+      "penalties": "Penali",
+      "activeSuspensions": "Sospensioni attive"
+    }
+  },
+  "integrations": {
+    "title": "Integrazioni",
+    "intro": "Per ogni fornitore: l'adattatore in uso (in sviluppo e collaudo solo quelli finti, regola 9), l'ultimo segnale e i problemi recenti. I fornitori veri arrivano con la fase 8.",
+    "names": {
+      "vehicleData": "Dati del veicolo (ANIA)",
+      "payments": "Pagamenti",
+      "signature": "Firma FEA",
+      "eInvoicing": "Fatture allo SDI",
+      "rui": "Elenchi RUI (IVASS)",
+      "documentReader": "Lettura dei documenti",
+      "whatsapp": "WhatsApp"
+    },
+    "adapters": {
+      "FAKE": "finto",
+      "REAL": "vero",
+      "OFF": "spento (fase 2)"
+    },
+    "lastActivity": "Ultimo segnale: {at}",
+    "noActivity": "Nessun segnale registrato.",
+    "problems": {
+      "vehicleData": "{count} problemi",
+      "payments": "{count, plural, one {# pagamento fallito negli ultimi 7 giorni} other {# pagamenti falliti negli ultimi 7 giorni}}",
+      "signature": "{count} problemi",
+      "eInvoicing": "{count, plural, one {# fattura scartata dallo SDI} other {# fatture scartate dallo SDI}}",
+      "rui": "L'ultimo import non è finito",
+      "documentReader": "{count} problemi",
+      "whatsapp": "{count} problemi"
+    }
+  },
+  "reports": {
+    "title": "Report ed esportazioni",
+    "intro": "File CSV semplici, da confermare con il legale e il commercialista. Ogni esportazione finisce a sua volta nel registro attività.",
+    "from": "Dal",
+    "to": "Al",
+    "download": "Scarica il CSV",
+    "items": {
+      "requests": {
+        "title": "Richieste",
+        "text": "Codice, canale, stato, provincia, veicolo, pacchetto e date, senza dati personali."
+      },
+      "accounting": {
+        "title": "Contabilità",
+        "text": "Le fatture del periodo: numero, serie, data, importi, natura IVA e stato SDI."
+      },
+      "audit": {
+        "title": "Registro attività",
+        "text": "Le righe del registro con gli identificativi e l'impronta della catena, per i revisori."
+      },
+      "complaints": {
+        "title": "Reclami per IVASS",
+        "text": "L'esportazione è nella pagina dei reclami."
+      },
+      "privacy": {
+        "title": "Estratti per il Garante",
+        "text": "La copia dei dati di una persona si scarica dalla sua scheda cliente."
+      }
+    },
+    "toComplaints": "Vai ai reclami",
+    "toCustomers": "Vai ai clienti"
   }
 }

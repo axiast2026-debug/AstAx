@@ -329,6 +329,27 @@ const ENDPOINTS: Endpoint[] = [
   { action: "admin.settings.manage", method: "GET", path: () => "/admin/retention" },
   { action: "admin.settings.manage", method: "POST", path: () => "/admin/retention/run", body: {} },
   { action: "auditLog.viewAll", method: "GET", path: () => "/admin/audit" },
+  {
+    action: "auditLog.viewAll",
+    method: "GET",
+    path: () => "/admin/audit/export?from=2026-10-01&to=2026-10-31",
+  },
+  {
+    action: "admin.reports.view",
+    method: "GET",
+    path: () => "/admin/dashboard?from=2026-10-01&to=2026-10-31",
+  },
+  { action: "admin.reports.view", method: "GET", path: () => "/admin/integrations" },
+  {
+    action: "admin.reports.view",
+    method: "GET",
+    path: () => "/admin/reports/requests?from=2026-10-01&to=2026-10-31",
+  },
+  {
+    action: "admin.reports.view",
+    method: "GET",
+    path: () => "/admin/reports/accounting?from=2026-10-01&to=2026-10-31",
+  },
   // Fase 2: requests, customers, consent
   { action: "request.create", method: "GET", path: () => "/reference/request-options" },
   { action: "profile.view", method: "GET", path: () => "/reference/municipalities?q=Mi" },

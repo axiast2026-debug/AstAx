@@ -1343,5 +1343,112 @@
     "lastActivity": "aktiviteti i fundit {at}",
     "run": "Fshi tani",
     "last": "Fshirjet e fundit"
+  },
+  "adminDashboard": {
+    "title": "Paneli",
+    "from": "Nga",
+    "to": "Deri",
+    "channel": "Kanali",
+    "allChannels": "Të gjithë",
+    "channels": {
+      "PRIVATE": "Privatët",
+      "BROKER": "Brokerët"
+    },
+    "province": "Provinca",
+    "apply": "Përditëso",
+    "funnel": "Hapat",
+    "steps": {
+      "submitted": "Kërkesa të dërguara",
+      "auctions": "Ankande të hapura",
+      "accepted": "Oferta të pranuara dhe paguara",
+      "issued": "Polica të lëshuara"
+    },
+    "funnelNotes": "Drafte të krijuara {created}, pa oferta {deserted}, oferta për ankand {offers}, të pranuara mbi të dërguarat {conversion}.",
+    "percent": "{value}%",
+    "quality": "Cilësia",
+    "verifications": "Verifikime të vendosura",
+    "averageVerification": "Koha mesatare e verifikimit",
+    "automaticShare": "Të miratuara automatikisht",
+    "integrationShare": "Me plotësim të kërkuar",
+    "minutes": "{count, plural, one {# minutë} other {# minuta}}",
+    "agencies": "Agjencitë",
+    "invitations": "Ftesa",
+    "offers": "Oferta",
+    "participation": "Pjesëmarrja (oferta mbi ftesa)",
+    "issuanceTime": "Koha mesatare e lëshimit",
+    "hours": "{count, plural, one {# orë} other {# orë}}",
+    "economy": "Ekonomia",
+    "privateFees": "Tarifat e privatëve (fatura P)",
+    "brokerFees": "Tarifat e brokerëve (fatura B)",
+    "agencyFees": "Tarifat e agjencive (fatura A)",
+    "creditNotes": "Nota krediti",
+    "premiums": "Primet e arkëtuara",
+    "risk": "Rreziku",
+    "riskItems": {
+      "complaints": "Ankesa",
+      "flags": "Sinjalizime",
+      "penalties": "Penalitete",
+      "activeSuspensions": "Pezullime aktive"
+    }
+  },
+  "integrations": {
+    "title": "Integrimet",
+    "intro": "Për çdo ofrues: adaptuesi në përdorim (në zhvillim dhe testim vetëm ata të rremë, rregulli 9), sinjali i fundit dhe problemet e fundit. Ofruesit e vërtetë vijnë me fazën 8.",
+    "names": {
+      "vehicleData": "Të dhënat e automjetit (ANIA)",
+      "payments": "Pagesat",
+      "signature": "Nënshkrimi FEA",
+      "eInvoicing": "Faturat te SDI",
+      "rui": "Listat RUI (IVASS)",
+      "documentReader": "Leximi i dokumenteve",
+      "whatsapp": "WhatsApp"
+    },
+    "adapters": {
+      "FAKE": "i rremë",
+      "REAL": "i vërtetë",
+      "OFF": "i fikur (faza 2)"
+    },
+    "lastActivity": "Sinjali i fundit: {at}",
+    "noActivity": "Asnjë sinjal i regjistruar.",
+    "problems": {
+      "vehicleData": "{count} probleme",
+      "payments": "{count, plural, one {# pagesë e dështuar në 7 ditët e fundit} other {# pagesa të dështuara në 7 ditët e fundit}}",
+      "signature": "{count} probleme",
+      "eInvoicing": "{count, plural, one {# faturë e refuzuar nga SDI} other {# fatura të refuzuara nga SDI}}",
+      "rui": "Importi i fundit nuk përfundoi",
+      "documentReader": "{count} probleme",
+      "whatsapp": "{count} probleme"
+    }
+  },
+  "reports": {
+    "title": "Raporte dhe eksportime",
+    "intro": "Skedarë CSV të thjeshtë, për t'u konfirmuar me juristin dhe kontabilistin. Çdo eksportim shkon edhe vetë në regjistrin e aktivitetit.",
+    "from": "Nga",
+    "to": "Deri",
+    "download": "Shkarko CSV-në",
+    "items": {
+      "requests": {
+        "title": "Kërkesat",
+        "text": "Kodi, kanali, gjendja, provinca, automjeti, paketa dhe datat, pa të dhëna personale."
+      },
+      "accounting": {
+        "title": "Kontabiliteti",
+        "text": "Faturat e periudhës: numri, seria, data, shumat, natyra e TVSH-së dhe gjendja SDI."
+      },
+      "audit": {
+        "title": "Regjistri i aktivitetit",
+        "text": "Rreshtat e regjistrit me identifikuesit dhe gjurmën e zinxhirit, për auditorët."
+      },
+      "complaints": {
+        "title": "Ankesat për IVASS",
+        "text": "Eksportimi është në faqen e ankesave."
+      },
+      "privacy": {
+        "title": "Ekstrakte për Garantin",
+        "text": "Kopja e të dhënave të një personi shkarkohet nga kartela e klientit."
+      }
+    },
+    "toComplaints": "Shko te ankesat",
+    "toCustomers": "Shko te klientët"
   }
 }

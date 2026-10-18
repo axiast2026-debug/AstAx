@@ -4,15 +4,23 @@ import { AppShell } from "@/components/app-shell";
 import { sessionId, webAuth } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
 import { can } from "@astax/shared/permissions";
+import { AdminDashboard } from "@/components/admin-dashboard";
 import { OperationsDashboard } from "@/components/operations-dashboard";
 
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ scaduta?: string }>;
+  searchParams: Promise<{
+    scaduta?: string;
+    da?: string;
+    a?: string;
+    canale?: string;
+    provincia?: string;
+  }>;
 }) {
   const session = await webAuth().session(await sessionId());
-  if (!session) return <Login expired={(await searchParams).scaduta === "1"} />;
+  const query = await searchParams;
+  if (!session) return <Login expired={query.scaduta === "1"} />;
 
   const viewer = await requireViewer();
   const t = await getTranslations("home");
@@ -22,6 +30,7 @@ export default async function HomePage({
         <CardTitle>{t("welcome", { name: viewer.me.firstName })}</CardTitle>
         <p className="mt-2 text-warm-600">{t("intro")}</p>
       </Card>
+      {can(viewer.actor, "admin.reports.view") ? <AdminDashboard query={query} /> : null}
       {can(viewer.actor, "backOffice.dashboard") ? <OperationsDashboard /> : null}
     </AppShell>
   );
