@@ -1,5 +1,6 @@
 import type { KeycloakSession } from "@astax/adapters/identity";
 import { SYSTEM_CONTEXT, withContext } from "@astax/db";
+import { SETTING_KEYS } from "@astax/shared/settings";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { acceptAllLegal, membershipId, startHarness, type Harness } from "./fixtures.js";
 
@@ -162,6 +163,50 @@ describe("fase 1 passo 10: parameters with history", () => {
       body: { value: 5, reason: "tentativo" },
     });
     expect(response.status).toBe(403);
+  });
+});
+
+describe("phase 7: every parameter from the panel", () => {
+  it("rule 7 every key of the catalogue changes with a reason (new version) and refuses a wrong type", async () => {
+    // Past every version written or scheduled by the tests above.
+    const saved = h.clock.now();
+    h.clock.set(new Date("2027-06-01T08:00:00.000Z"));
+    const savedToken = admin;
+    admin = await h.tokenFor("admin");
+    try {
+      const list = (await (
+        await h.call("/admin/settings", { token: admin, context: adminContext() })
+      ).json()) as { key: string; value: unknown; version: number }[];
+      expect(list.map((r) => r.key).sort()).toEqual([...SETTING_KEYS].sort());
+      for (const row of list) {
+        const same = await h.call(`/admin/settings/${row.key}`, {
+          token: admin,
+          context: adminContext(),
+          method: "PUT",
+          body: { value: row.value, reason: "Prova di tutte le chiavi" },
+        });
+        expect(same.status, row.key).toBe(200);
+        expect(((await same.json()) as { version: number }).version, row.key).toBe(row.version + 1);
+        // A value of another type is refused, and nothing changes.
+        const wrong = typeof row.value === "object" && row.value !== null ? "x" : { wrong: true };
+        const refused = await h.call(`/admin/settings/${row.key}`, {
+          token: admin,
+          context: adminContext(),
+          method: "PUT",
+          body: { value: wrong, reason: "Prova di tutte le chiavi" },
+        });
+        expect(refused.status, row.key).toBe(400);
+      }
+      const versions = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+        tx.auditLog.count({
+          where: { action: "SETTING_CHANGED", reason: "Prova di tutte le chiavi" },
+        }),
+      );
+      expect(versions).toBe(list.length);
+    } finally {
+      h.clock.set(saved);
+      admin = savedToken;
+    }
   });
 });
 

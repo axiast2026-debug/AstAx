@@ -7,7 +7,11 @@ import {
   planSettingChange,
   requireSettingAt,
   resolveSettingAt,
+  SETTING_KEYS,
   SettingNotFoundError,
+  settingInputOf,
+  settingsOfPage,
+  settingsPageOf,
   snapshotSettingsAt,
   type SettingValues,
   type SettingVersion,
@@ -168,5 +172,23 @@ describe("changing a parameter", () => {
 
   it("FEE-07 refuses decimal money", () => {
     expect(() => planSettingChange(current, { ...change, value: 15.5 })).toThrow();
+  });
+});
+
+describe("phase 7 the panel pages of the parameters", () => {
+  it("every parameter is on exactly one page of the administrator's panel", () => {
+    for (const key of SETTING_KEYS) expect(settingsPageOf(key), key).toBeDefined();
+    const all = (["auctionRules", "economy", "system"] as const).flatMap((p) =>
+      settingsOfPage(p).flatMap((g) => g.keys),
+    );
+    expect([...all].sort()).toEqual([...SETTING_KEYS].sort());
+  });
+
+  it("FEE-07 amounts in cents are edited as money; the rest by the type of the value", () => {
+    expect(settingInputOf("fees.private.amountCents", 3000)).toBe("money");
+    expect(settingInputOf("invitations.max", 8)).toBe("number");
+    expect(settingInputOf("brokerCommission.enabled", false)).toBe("boolean");
+    expect(settingInputOf("remittance.runDay", "MONDAY")).toBe("text");
+    expect(settingInputOf("ai.weights", { price: 0.6 })).toBe("json");
   });
 });

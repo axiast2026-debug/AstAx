@@ -71,7 +71,8 @@
     "communications": "Comunicazioni",
     "integrations": "Integrazioni",
     "reports": "Report ed esportazioni",
-    "complaintsIndex": "Indice reclami"
+    "complaintsIndex": "Indice reclami",
+    "systemSettings": "Sicurezza e dati"
   },
   "home": {
     "welcome": "Ciao {name}",
