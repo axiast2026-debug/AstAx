@@ -272,4 +272,26 @@ describe("phase 7 entry of a new agency", () => {
     );
     expect(refused.errors.map((e) => e.issue)).toContain("RUI_IN_USE");
   });
+
+  it("ADR 0002 a private customer's address cannot become an agency owner", async () => {
+    const email = "gia.privato@example.test";
+    h.identity.users.set(email, "kc-gia-privato");
+    h.identity.roles.set("kc-gia-privato", ["astax-private"]);
+    const { token, options } = await applicationFor("A000000103", "Agenzia Tredici", email);
+    const versionIds = await complete(token, options);
+    await r.json(await h.call(`/onboarding/${token}/submit`, { body: { versionIds } }), 200);
+    const entry = (
+      await r.json<{ id: string; legalName: string }[]>(
+        await r.call(supervisor, "/back-office/onboarding"),
+        200,
+      )
+    ).find((q) => q.legalName === "Agenzia Tredici");
+    const refused = await r.json<{ errors: { issue: string }[] }>(
+      await r.call(supervisor, `/back-office/onboarding/${entry?.id}/approve`, {
+        body: { reason: "Tutto in ordine" },
+      }),
+      409,
+    );
+    expect(refused.errors[0]?.issue).toBe("EMAIL_NOT_PROFESSIONAL");
+  });
 });

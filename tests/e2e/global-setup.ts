@@ -104,6 +104,17 @@ const E2E_USERS = [
   },
 ];
 
+/**
+ * Phase 7: the agency that enters in fase7-pannelli.spec.ts, from the fake RUI.
+ * Each run starts again from the form: what the last run created is removed.
+ */
+export const E2E_ONBOARDING = {
+  ruiNumber: "A000000103",
+  legalName: "Agenzia Tredici",
+  ownerEmail: "e2e.titolare@agenzia-tredici.test",
+  ownerPhone: "+393330009103",
+};
+
 const emailOf = (key: string): string => {
   const user = E2E_USERS.find((u) => u.key === key);
   if (!user) throw new Error(`No E2E user ${key}`);
@@ -177,6 +188,27 @@ export default async function globalSetup(): Promise<void> {
         }
       });
     }
+    await withContext(db, SYSTEM_CONTEXT, async (tx) => {
+      const organizations = await tx.organization.findMany({
+        where: { ruiNumber: E2E_ONBOARDING.ruiNumber },
+        select: { id: true },
+      });
+      const ids = organizations.map((o) => o.id);
+      await tx.agencyMandate.deleteMany({ where: { organizationId: { in: ids } } });
+      await tx.teamInvite.deleteMany({ where: { organizationId: { in: ids } } });
+      await tx.membership.deleteMany({ where: { organizationId: { in: ids } } });
+      await tx.organization.deleteMany({ where: { id: { in: ids } } });
+      const applications = await tx.onboardingApplication.findMany({
+        where: { ruiNumber: E2E_ONBOARDING.ruiNumber },
+        select: { id: true },
+      });
+      await tx.otpChallenge.deleteMany({
+        where: { subjectId: { in: applications.map((a) => a.id) } },
+      });
+      await tx.onboardingApplication.deleteMany({
+        where: { ruiNumber: E2E_ONBOARDING.ruiNumber },
+      });
+    });
   } finally {
     await db.$disconnect();
   }

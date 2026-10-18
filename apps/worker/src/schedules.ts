@@ -179,6 +179,8 @@ export function startSchedules(
         running = false;
       });
   };
+  // At once, then every interval: what fell due while the worker was stopped is not left waiting.
+  tick();
   const timer = setInterval(tick, intervalMs);
   return () => clearInterval(timer);
 }

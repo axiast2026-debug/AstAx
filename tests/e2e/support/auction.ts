@@ -59,7 +59,7 @@ export async function submittedRequest(
 
 export async function backOffice(
   page: Page,
-  as: "verifier" | "supervisor" = "verifier",
+  as: "verifier" | "supervisor" | "admin" = "verifier",
 ): Promise<void> {
   const { users, password } = e2eState();
   const email = users[as];

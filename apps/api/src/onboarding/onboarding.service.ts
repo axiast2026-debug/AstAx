@@ -605,6 +605,20 @@ export class OnboardingService {
    */
   async approve(auth: AuthContext, id: string, reason: string) {
     const now = this.clock.now();
+    // An address with a Keycloak account already: reused if professional; a
+    // private customer's or AstAx's account never becomes an agency's (ADR 0002).
+    const ownerEmail = await withContext(this.db, auth.db, async (tx) =>
+      this.cipher.decrypt((await this.submitted(tx, id)).ownerEmailEnc),
+    );
+    const keycloakUser = await this.identity.findUserByEmail(ownerEmail);
+    if (
+      keycloakUser &&
+      !(await this.identity.realmRoles(keycloakUser.id)).includes("astax-professional")
+    ) {
+      throw new ProblemError("CONFLICT", "The owner's address belongs to another kind of account", [
+        { path: "owner.email", issue: "EMAIL_NOT_PROFESSIONAL" },
+      ]);
+    }
     const done = await withContext(this.db, auth.db, async (tx) => {
       const a = await this.submitted(tx, id);
       const check = a.ruiCheck as RuiCheck | null;
@@ -724,7 +738,7 @@ export class OnboardingService {
         validityDays: days,
       };
     });
-    if (!done.existing) {
+    if (!done.existing && !keycloakUser) {
       const keycloakId = await this.identity.createUser({
         email: done.email,
         firstName: done.name,
@@ -744,9 +758,10 @@ export class OnboardingService {
       {
         nome: done.name,
         organizzazione: done.legalName,
-        prossimo_passo: done.existing
-          ? { label: "onboarding.nextStep.existing" }
-          : { label: "onboarding.nextStep.new" },
+        prossimo_passo:
+          done.existing || keycloakUser
+            ? { label: "onboarding.nextStep.existing" }
+            : { label: "onboarding.nextStep.new" },
         link: this.config.WEB_URL,
       },
       { onboardingId: id, organizationId: done.organizationId },
