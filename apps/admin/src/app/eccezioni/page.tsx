@@ -3,6 +3,7 @@ import { Badge, Button, Card } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { OtherExceptions } from "@/components/other-exceptions";
 import { PenaltiesList } from "@/components/penalties-list";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
@@ -124,6 +125,7 @@ export default async function ExceptionsPage({
           ))}
         </ul>
       )}
+      <OtherExceptions actor={viewer.actor} />
       <PenaltiesList mode="backOffice" />
     </AppShell>
   );

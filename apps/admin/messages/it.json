@@ -1207,5 +1207,25 @@
       "WAITING_CUSTOMER": "In attesa del cliente",
       "CLOSED": "Chiudi"
     }
+  },
+  "otherExceptions": {
+    "deserted": "Richieste deserte",
+    "desertedHint": "La riapertura automatica è già stata fatta (ASTA-08) e il richiedente è stato avvisato. Il collocamento diretto o con filtri più ampi si decide fuori dalla piattaforma.",
+    "reconfirmations": "Riconferme in corso",
+    "withdrawals": "Recessi",
+    "none": "Nessuna.",
+    "channels": {
+      "PRIVATE": "privato",
+      "BROKER": "broker"
+    },
+    "since": "dal {at}",
+    "closesAt": "chiude il {at}",
+    "withdrawalStatus": {
+      "REQUESTED": "chiesto, in attesa dell'agenzia",
+      "PRICED": "rimborso indicato dall'agenzia",
+      "APPROVED": "rimborso approvato",
+      "REJECTED": "respinto"
+    },
+    "refundable": "rimborsabile {amount}"
   }
 }

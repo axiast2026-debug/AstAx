@@ -1,5 +1,7 @@
+import { randomUUID } from "node:crypto";
+import { SYSTEM_CONTEXT, withContext } from "@astax/db";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { acceptAllLegal, membershipId, startHarness, type Harness } from "./fixtures.js";
+import { acceptAllLegal, membershipId, startHarness, userId, type Harness } from "./fixtures.js";
 import { requestHelpers, type Who } from "./request-helpers.js";
 
 // Phase 7, spec 06 «Dashboard operativa»: each role sees only the queues it
@@ -72,5 +74,29 @@ describe("phase 7 operations dashboard", () => {
       context: membershipId("agenzia-uno-owner", "agenzia-uno"),
     };
     expect((await r.call(agency, "/back-office/dashboard")).status).toBe(403);
+  });
+
+  it("spec 06 «Eccezioni» lists the deserted requests for the back office", async () => {
+    const code = `AX-D-${randomUUID().slice(0, 8)}`;
+    await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.quoteRequest.create({
+        data: {
+          code,
+          channel: "PRIVATE",
+          status: "DESERTED",
+          requesterUserId: userId("private-giulia-neri"),
+          ownerUserId: userId("private-giulia-neri"),
+        },
+      }),
+    );
+    const supervisor = await staff("bo-supervisor");
+    const overview = await r.json<{ deserted: { code: string }[]; reconfirmations: unknown[] }>(
+      await r.call(supervisor, "/back-office/exceptions"),
+      200,
+    );
+    expect(overview.deserted.map((d) => d.code)).toContain(code);
+    // Accounting has no exceptions to decide (issuance.decideMissed).
+    const accounting = await staff("bo-accounting");
+    expect((await r.call(accounting, "/back-office/exceptions")).status).toBe(403);
   });
 });

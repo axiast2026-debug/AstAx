@@ -65,6 +65,7 @@ import { ResultsController } from "./results/results.controller.js";
 import { PreferencesService } from "./notifications/preferences.service.js";
 import { CommunicationsController } from "./notifications/communications.controller.js";
 import { CatalogAdminController } from "./admin/catalog-admin.controller.js";
+import { ExceptionsOverviewService } from "./admin/exceptions-overview.service.js";
 import { SupportController } from "./admin/support.controller.js";
 import { SupportService } from "./admin/support.service.js";
 import { CustomersBackOfficeController } from "./admin/customers-bo.controller.js";
@@ -182,6 +183,7 @@ export class AppModule {
         CommunicationsService,
         UsersAdminService,
         CatalogAdminService,
+        ExceptionsOverviewService,
         SupportService,
         CustomersBackOfficeService,
         OrganizationsBackOfficeService,

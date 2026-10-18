@@ -275,6 +275,7 @@ const ENDPOINTS: Endpoint[] = [
     path: () => `/back-office/tickets/${randomUUID()}/${step}`,
     body: {},
   })),
+  { action: "issuance.decideMissed", method: "GET", path: () => "/back-office/exceptions" },
   { action: "auditLog.viewAll", method: "GET", path: () => "/admin/audit" },
   // Fase 2: requests, customers, consent
   { action: "request.create", method: "GET", path: () => "/reference/request-options" },

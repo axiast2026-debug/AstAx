@@ -1,4 +1,5 @@
 import { Body, Controller, Get, HttpCode, Inject, Param, Post } from "@nestjs/common";
+import { ExceptionsOverviewService } from "../admin/exceptions-overview.service.js";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { z } from "zod";
 import type { AuthContext } from "../auth/auth-context.js";
@@ -31,7 +32,15 @@ export class ExceptionsController {
   constructor(
     @Inject(ExceptionsService) private readonly exceptions: ExceptionsService,
     @Inject(RefundsService) private readonly refunds: RefundsService,
+    @Inject(ExceptionsOverviewService) private readonly overviewService: ExceptionsOverviewService,
   ) {}
+
+  /** Spec 06 «Eccezioni»: deserted requests and reconfirmations in progress. */
+  @Get("exceptions")
+  @RequirePermission("issuance.decideMissed")
+  overview(@CurrentAuth() auth: AuthContext) {
+    return this.overviewService.overview(auth);
+  }
 
   @Get("issuance-problems")
   @RequirePermission("issuance.decideMissed")

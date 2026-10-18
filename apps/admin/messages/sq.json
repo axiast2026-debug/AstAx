@@ -1207,5 +1207,25 @@
       "WAITING_CUSTOMER": "Në pritje të klientit",
       "CLOSED": "Mbyll"
     }
+  },
+  "otherExceptions": {
+    "deserted": "Kërkesa pa oferta",
+    "desertedHint": "Rihapja automatike është bërë tashmë (ASTA-08) dhe kërkuesi u njoftua. Vendosja direkte ose me filtra më të gjerë vendoset jashtë platformës.",
+    "reconfirmations": "Rikonfirmime në vazhdim",
+    "withdrawals": "Tërheqjet",
+    "none": "Asnjë.",
+    "channels": {
+      "PRIVATE": "privat",
+      "BROKER": "broker"
+    },
+    "since": "nga {at}",
+    "closesAt": "mbyllet më {at}",
+    "withdrawalStatus": {
+      "REQUESTED": "e kërkuar, në pritje të agjencisë",
+      "PRICED": "rimbursim i treguar nga agjencia",
+      "APPROVED": "rimbursim i miratuar",
+      "REJECTED": "e refuzuar"
+    },
+    "refundable": "e rimbursueshme {amount}"
   }
 }
