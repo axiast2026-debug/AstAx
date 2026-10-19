@@ -68,12 +68,13 @@ test.describe.serial("S02 — broker: il cliente compra dal link", () => {
     await paolo.getByRole("button", { name: "Invia al cliente" }).click();
     await expect(paolo.getByText(/Link inviato: vale fino al/)).toBeVisible();
 
-    // Rule 8: the email names company and product, never the price.
+    // Question 15A: the email names company, product and the premium.
     const mail = await latestMail(email, /la tua offerta RC auto/, sentAt);
-    expect(mail.text).not.toMatch(/610,00|€/);
+    expect(mail.text).toContain("610,00");
     const link = /http:\/\/localhost:3000\/offerta\/[A-Za-z0-9_-]+/.exec(mail.text)?.[0] ?? "";
     const anna = await browser.newPage();
     await anna.goto(link);
+    // Before the code the page shows no price.
     await expect(anna.getByText("610,00")).toHaveCount(0);
     const codeAt = clock.now().getTime() - 1000;
     await anna.getByRole("button", { name: "Mandami il codice" }).click();

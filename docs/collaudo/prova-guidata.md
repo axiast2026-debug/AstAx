@@ -25,6 +25,7 @@ Un passo alla volta: Dan prova, dice cosa vede, si corregge un errore alla volta
 | 1 | 1 | «connect ECONNREFUSED 127.0.0.1:4000»: l'API si riavviava da sola a ogni modifica di file (modalità sviluppo) e la pagina l'ha chiamata durante un riavvio | Risolto: API e worker avviati senza riavvio automatico per le prove |
 | 2 | 1 | «Codice fiscale non valido» con un codice inventato | Non è un errore: il controllo verifica forma e carattere di controllo come l'Agenzia delle Entrate. Usare i codici qui sotto |
 | 3 | 1 | Chiede il codice fiscale dell'altro conducente senza la spunta: la casella «Il conducente abituale è il contraente» tornava non spuntata dopo un salvataggio a metà, e senza quella il programma chiedeva i dati di un altro conducente | Corretto: casella spuntata di base, dati dell'altro conducente letti solo con la sua spunta, messaggio chiaro se manca il conducente |
+| 4 | 4 | Nella pagina «Aste» del back office non si trova l'asta: la pagina mostra fino a 200 aste in ordine di chiusura, e nel database locale ci sono 58 aste aperte lasciate dalle prove automatiche | Per ora: Ctrl+F con il codice. Da migliorare: ricerca per codice e prove automatiche su un database separato |
 
 ## Persone inventate con codice fiscale valido
 
