@@ -86,9 +86,41 @@ describe("wizard forms", () => {
         "request.packageVersion": "1",
         "request.startDate": "2026-11-30",
       }),
-      { auctionDurationHours: 2, minValidityDays: 15 },
+      { auctionDurationHours: 2, minValidityDays: 15, today: "2026-10-19" },
     );
-    expect(terms).toMatchObject({ auctionDurationHours: 2, minValidityDays: 15, blackBox: false });
+    expect(terms).toMatchObject({
+      auctionDurationHours: 2,
+      minValidityDays: 15,
+      blackBox: false,
+      startDate: "2026-11-30",
+      startMode: "DATE",
+    });
+  });
+
+  it("question 1: with the start set by the payment the date is the day of the request", () => {
+    for (const mode of ["ON_ISSUANCE", "MIDNIGHT_AFTER_DEADLINE"]) {
+      const terms = requestTermsFromForm(
+        form({
+          "request.packageCode": "BASE",
+          "request.packageVersion": "1",
+          "request.startMode": mode,
+          "request.startDate": "2026-11-30",
+        }),
+        { auctionDurationHours: 2, minValidityDays: 15, today: "2026-10-19" },
+      );
+      expect(terms).toMatchObject({ startMode: mode, startDate: "2026-10-19" });
+    }
+    // An unknown value is a chosen date.
+    expect(
+      requestTermsFromForm(
+        form({ "request.startMode": "YESTERDAY", "request.startDate": "2026-11-30" }),
+        {
+          auctionDurationHours: 2,
+          minValidityDays: 15,
+          today: "2026-10-19",
+        },
+      ),
+    ).toMatchObject({ startMode: "DATE", startDate: "2026-11-30" });
   });
 });
 

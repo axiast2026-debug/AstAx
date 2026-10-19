@@ -16,6 +16,7 @@ export interface IncomingRow {
   packageCode: string | null;
   packageName: string | null;
   startDate: string | null;
+  startMode?: string;
   minValidityDays: number | null;
   minGuaranteeDate: string;
   auctionStatus: string;

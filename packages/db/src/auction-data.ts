@@ -118,7 +118,11 @@ export function filterableRequest(request: QuoteRequest, openedAt: Date): Filter
     claimsLast5y: request.claimsLast5y,
     youngestDriverAge: request.youngestDriverAge,
     packageCode: request.packageCode,
-    startInDays: Math.round((request.startDate.getTime() - today.getTime()) / 86_400_000),
+    // Question 1: a start set by the payment is as soon as possible.
+    startInDays:
+      request.startMode === "DATE"
+        ? Math.round((request.startDate.getTime() - today.getTime()) / 86_400_000)
+        : 0,
     minValidityDays: request.minValidityDays,
   };
 }
@@ -193,4 +197,13 @@ export async function loadAgencyCandidates(
       lastInvitedAt: invitations.find((i) => i.organizationId === a.id)?._max.invitedAt ?? null,
     };
   });
+}
+
+/**
+ * EMI-01, question 1: the calendar of the issuance deadline, the issuance
+ * hours (issuance.workingHours, Monday to Friday 9-19) with the holidays.
+ */
+export async function loadIssuanceCalendar(tx: DbTransaction, at: Date): Promise<WorkingCalendar> {
+  const { "issuance.workingHours": hours } = await settingsAt(tx, ["issuance.workingHours"], at);
+  return loadWorkingCalendar(tx, hours);
 }

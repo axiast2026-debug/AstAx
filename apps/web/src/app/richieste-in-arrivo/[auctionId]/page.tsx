@@ -1,3 +1,4 @@
+import { startTexts } from "@/lib/start";
 import { formatDate, formatDateTime } from "@astax/shared/format";
 import { Badge, Button, Card, CardTitle } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
@@ -56,6 +57,7 @@ export default async function IncomingRequestPage({
   const { status, body: detail } = await api<AgencyRequestDetail>(`/agency/requests/${auctionId}`);
   if (status !== 200) notFound();
   const t = await getTranslations("agency.detail");
+  const startText = await startTexts();
   const ta = await getTranslations("agency");
   const tc = await getTranslations("agency.coverage");
   const tk = await getTranslations("wizard.documentKinds");
@@ -281,7 +283,7 @@ export default async function IncomingRequestPage({
           <CardTitle>{t("requestTitle")}</CardTitle>
           <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-[14rem_1fr]">
             <Row label={t("package")} value={detail.package?.name ?? q.request.packageCode} />
-            <Row label={t("startDate")} value={formatDate(q.request.startDate)} />
+            <Row label={t("startDate")} value={startText(q.request)} />
             <Row label={t("blackBox")} value={yesNo(q.request.blackBox)} />
             <Row label={t("minValidity")} value={ta("days", { days: q.request.minValidityDays })} />
           </dl>

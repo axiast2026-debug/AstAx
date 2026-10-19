@@ -46,6 +46,7 @@ import {
   formatDateTime,
   formatEuroCents,
 } from "@astax/shared/format";
+import { startForNotice } from "@astax/shared/notifications";
 import { errorForLog } from "@astax/shared/logging";
 import { ApplicationFailure } from "@temporalio/activity";
 import type { PendingEmail } from "../notifier.js";
@@ -154,12 +155,17 @@ export function auctionActivities(
       pending,
       await agencyRecipients(tx, cipher, organizationIds),
       "auction.invited",
-      () => ({
+      (locale) => ({
         codice: request.code,
         veicolo: vehicleForAgency(quoteData),
         provincia: request.province ?? "",
         pacchetto: pkg?.name ?? request.packageCode ?? "",
-        decorrenza: request.startDate ? formatDate(dbDateToCalendarDate(request.startDate)) : "",
+        decorrenza: request.startDate
+          ? startForNotice(
+              { startMode: request.startMode, startDate: dbDateToCalendarDate(request.startDate) },
+              (key) => notifier.label(key, locale),
+            )
+          : "",
         garanzia_minima: formatDate(dbDateToCalendarDate(auction.minGuaranteeDate)),
         ora_chiusura: formatDateTime(auction.scheduledCloseAt),
         link: `${urls.web}/richieste-in-arrivo`,

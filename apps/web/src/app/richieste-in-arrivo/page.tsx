@@ -1,4 +1,5 @@
-import { formatDate, formatDateTime } from "@astax/shared/format";
+import { startTexts } from "@/lib/start";
+import { formatDateTime } from "@astax/shared/format";
 import { Badge, Card } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
@@ -34,6 +35,7 @@ export default async function IncomingRequestsPage({
   const viewer = await requireViewer();
   if (viewer.activeMembership?.organization.type !== "AGENCY") notFound();
   const t = await getTranslations("agency");
+  const startText = await startTexts();
   const tv = await getTranslations("agency.vehicleTypes");
   const query = await searchParams;
   const params = new URLSearchParams();
@@ -138,9 +140,7 @@ export default async function IncomingRequestsPage({
                   <td className="px-3 py-2 tabular">{r.claimsLast5y ?? "—"}</td>
                   <td className="px-3 py-2 tabular">{r.youngestDriverAge ?? "—"}</td>
                   <td className="px-3 py-2">{r.packageName ?? "—"}</td>
-                  <td className="px-3 py-2 tabular">
-                    {r.startDate ? formatDate(r.startDate) : "—"}
-                  </td>
+                  <td className="px-3 py-2 tabular">{startText(r) || "—"}</td>
                   <td className="px-3 py-2 tabular">
                     {t("days", { days: r.minValidityDays ?? 0 })}
                   </td>

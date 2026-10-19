@@ -285,6 +285,27 @@ describe("fase 5: the private customer's acceptance (S01)", () => {
     );
   });
 
+  it("question 1: with the start set by the payment there is no last moment, the offers stay acceptable", async () => {
+    await system((tx) =>
+      tx.quoteRequest.update({
+        where: { id: requestId },
+        data: { startDate: new Date("2026-11-16"), startMode: "ON_ISSUANCE" },
+      }),
+    );
+    try {
+      const p = await presentation();
+      expect(p.offers.length).toBeGreaterThan(0);
+      expect(p.offers.every((o) => o.block === null)).toBe(true);
+    } finally {
+      await system((tx) =>
+        tx.quoteRequest.update({
+          where: { id: requestId },
+          data: { startDate: new Date("2026-11-20"), startMode: "DATE" },
+        }),
+      );
+    }
+  });
+
   let signingRef: string;
 
   it("PRES-05 LEG-05 FEE-01 S01 Alfa 520,00 € (not the cheapest): 555,00 € to pay, MUP and letter to sign", async () => {
@@ -678,6 +699,8 @@ describe("fase 6: the issuance of S01 (EMI-01, EMI-02, CONT-03)", () => {
     expect(offer.status).toBe("ISSUED");
     expect(policy).toMatchObject({ policyNumber: "ALFA-2026-0001", premiumCents: 52000 });
     expect(policy.endDate.toISOString().slice(0, 10)).toBe("2027-11-19");
+    // Question 1: a chosen date starts at 00:00 in Rome.
+    expect(policy.startsAt?.toISOString()).toBe("2026-11-19T23:00:00.000Z");
     // CONT-03 S01: 35,00 € exempt, no stamp duty under 77,47 €.
     expect(invoice).toMatchObject({
       exemptCents: 3500,

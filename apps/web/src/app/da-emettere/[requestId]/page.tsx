@@ -1,4 +1,5 @@
-import { formatDate, formatDateTime, formatEuroCents } from "@astax/shared/format";
+import { startTexts } from "@/lib/start";
+import { formatDateTime, formatEuroCents } from "@astax/shared/format";
 import { Badge, Button, Card, CardTitle } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
@@ -30,6 +31,7 @@ export default async function IssuancePage({
   if (!/^[0-9a-f-]{36}$/i.test(requestId)) notFound();
   const query = await searchParams;
   const t = await getTranslations("issuance");
+  const startText = await startTexts();
   const tk = await getTranslations("wizard.documentKinds");
   const { status, body: d } = await api<IssuanceDetail>(`/agency/issuance/${requestId}`);
   if (status !== 200) notFound();
@@ -67,7 +69,7 @@ export default async function IssuancePage({
             <dt className="text-warm-600">{t("premium")}</dt>
             <dd className="tabular">{formatEuroCents(d.premiumCents)}</dd>
             <dt className="text-warm-600">{t("start")}</dt>
-            <dd>{d.startDate ? formatDate(d.startDate) : ""}</dd>
+            <dd>{startText(d)}</dd>
             <dt className="text-warm-600">{t("email")}</dt>
             <dd>
               {d.email ? (

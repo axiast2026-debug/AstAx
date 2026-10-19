@@ -122,10 +122,20 @@ export const HistorySchema = z.strictObject({
 export const PACKAGE_CODES = ["BASE", "PLUS", "COMPLETE"] as const;
 export type PackageCode = (typeof PACKAGE_CODES)[number];
 
+/**
+ * Question 1 (Dan, 2026-10-18/19, docs/piano-decorrenza.md): the start of
+ * cover is a chosen date, the moment of the issuance, or 24:00 of the day of
+ * the issuance deadline. Missing in data saved before: a chosen date.
+ */
+export const START_MODES = ["DATE", "ON_ISSUANCE", "MIDNIGHT_AFTER_DEADLINE"] as const;
+export type StartMode = (typeof START_MODES)[number];
+
 export const RequestTermsSchema = z.strictObject({
   packageCode: z.enum(PACKAGE_CODES),
   packageVersion: z.int().min(1),
+  /** The chosen start date; for the other modes, the day of the request (ages, licence). */
   startDate: calendarDate,
+  startMode: z.enum(START_MODES).optional(),
   blackBox: z.boolean(),
   paymentFrequency: z.literal("ANNUAL"),
   auctionDurationHours: z.int().min(1),
@@ -206,4 +216,16 @@ export function quoteDataFromDraft(draft: QuoteDraft): QuoteData | null {
     history,
     request,
   });
+}
+
+/**
+ * Question 1, answer 3A: with the start set by the payment, ages, licence and
+ * vehicle years are counted on the day of the request, so `startDate` is that
+ * day (`today`, from `Clock`). A chosen date stays as it is.
+ */
+export function withRequestDay<T extends { startDate: string; startMode?: StartMode }>(
+  terms: T,
+  today: string,
+): T {
+  return (terms.startMode ?? "DATE") === "DATE" ? terms : { ...terms, startDate: today };
 }

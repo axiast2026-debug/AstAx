@@ -36,6 +36,7 @@ export async function CoverageStep({
   const terms = detail.draft?.request;
   const chosen = terms?.packageCode ?? "BASE";
   const proposedStart = terms?.startDate ?? detail.draft?.history?.currentExpiryDate;
+  const startMode = terms?.startMode ?? "DATE";
   return (
     <form action={saveCoverageStep} className="space-y-6">
       <Hidden detail={detail} base={base} step="copertura" />
@@ -85,14 +86,38 @@ export async function CoverageStep({
           />
         ))}
       </fieldset>
+      {/* Question 1: three ways to start the cover; the date only for the first. */}
+      <fieldset className="space-y-2 rounded-xl border border-warm-200 bg-white p-4 sm:p-6">
+        <legend className="px-1 text-base font-semibold text-night-900">{t("startMode")}</legend>
+        {(["DATE", "ON_ISSUANCE", "MIDNIGHT_AFTER_DEADLINE"] as const).map((mode) => (
+          <div key={mode} className="flex items-start gap-2">
+            <input
+              id={`start-${mode}`}
+              type="radio"
+              name="request.startMode"
+              value={mode}
+              defaultChecked={startMode === mode}
+              className="mt-1 h-4 w-4 accent-orange-500"
+              aria-describedby={`start-${mode}-text`}
+            />
+            <div>
+              <label htmlFor={`start-${mode}`} className="text-sm font-semibold">
+                {t(`startModes.${mode}.label`)}
+              </label>
+              <p id={`start-${mode}-text`} className="text-sm text-warm-600">
+                {t(`startModes.${mode}.text`)}
+              </p>
+            </div>
+          </div>
+        ))}
+      </fieldset>
       <div className="grid gap-4 rounded-xl border border-warm-200 bg-white p-4 sm:grid-cols-2 sm:p-6">
         <Field
           label={t("startDate")}
           name="request.startDate"
           type="date"
           hint={t("startDateHint")}
-          defaultValue={proposedStart}
-          required
+          defaultValue={startMode === "DATE" ? proposedStart : undefined}
           invalid={hasError(errors, "request.startDate")}
         />
         <Field
@@ -142,6 +167,7 @@ export async function AuctionStep({
       <input type="hidden" name="request.packageCode" value={terms.packageCode} />
       <input type="hidden" name="request.packageVersion" value={terms.packageVersion} />
       <input type="hidden" name="request.startDate" value={terms.startDate} />
+      <input type="hidden" name="request.startMode" value={terms.startMode ?? "DATE"} />
       {terms.blackBox ? <input type="hidden" name="request.blackBox" value="on" /> : null}
       <input
         type="hidden"

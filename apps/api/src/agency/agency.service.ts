@@ -200,6 +200,7 @@ export class AgencyService {
             packageCode: r.packageCode,
             packageName: packages.find((p) => p.code === r.packageCode)?.name ?? r.packageCode,
             startDate: r.startDate ? dbDateToCalendarDate(r.startDate) : null,
+            startMode: r.startMode,
             minValidityDays: r.minValidityDays,
             minGuaranteeDate: dbDateToCalendarDate(i.auction.minGuaranteeDate),
             auctionStatus: i.auction.status,

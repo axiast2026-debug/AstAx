@@ -375,6 +375,7 @@ export class VerificationService {
           youngestDriverAge: derived.youngestDriverAge,
           packageCode: derived.packageCode,
           startDate: calendarDateToDbDate(derived.startDate),
+          startMode: derived.startMode,
           minValidityDays: derived.minValidityDays,
           auctionDurationHours: after.request.auctionDurationHours,
           autoOutcome: outcome,

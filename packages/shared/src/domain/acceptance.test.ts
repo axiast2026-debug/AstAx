@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   acceptanceBlock,
+  coverStartAt,
   customerFee,
   guaranteeDaysLeft,
   issuanceDeadline,
   lastAcceptanceMoment,
+  missedIssuanceAt,
   savingCents,
   type FeeSettings,
 } from "./acceptance.js";
@@ -103,6 +105,87 @@ describe("last useful moment and issuance deadline (GAR-04, EMI-01)", () => {
     expect(
       issuanceDeadline(calendar, new Date("2026-11-19T16:00:00Z"), "2026-11-20", 4).toISOString(),
     ).toBe("2026-11-19T23:00:00.000Z");
+  });
+});
+
+describe("question 1: start of cover set by the payment (docs/piano-decorrenza.md)", () => {
+  // issuance.workingHours (Dan, 2026-10-19): Monday to Friday 9-19, no Saturday.
+  const issuance: WorkingCalendar = {
+    hours: { ...calendar.hours, sat: [] },
+    holidays: calendar.holidays,
+  };
+  // Friday 20/11/2026 at 18:00 in Rome.
+  const fridayAt18 = new Date("2026-11-20T17:00:00Z");
+
+  it("EMI-01 paid Friday at 18: the agency has until Monday at 12 (one hour Friday, three Monday)", () => {
+    for (const mode of ["ON_ISSUANCE", "MIDNIGHT_AFTER_DEADLINE"] as const) {
+      expect(issuanceDeadline(issuance, fridayAt18, "2026-11-18", 4, mode).toISOString()).toBe(
+        "2026-11-23T11:00:00.000Z",
+      );
+    }
+  });
+
+  it("EMI-01 paid on Saturday or Sunday: the deadline is Monday at 13", () => {
+    const sunday = new Date("2026-11-22T10:00:00Z");
+    expect(issuanceDeadline(issuance, sunday, "2026-11-18", 4, "ON_ISSUANCE").toISOString()).toBe(
+      "2026-11-23T12:00:00.000Z",
+    );
+  });
+
+  it("GAR-04 with the start set by the payment only the guarantee counts", () => {
+    const input = { guaranteeUntil: "2026-12-05", startDate: "2026-11-18" };
+    const now = new Date("2026-11-30T10:00:00Z");
+    expect(acceptanceBlock({ ...input, now }, calendar, 4)).toBe("TOO_LATE");
+    expect(acceptanceBlock({ ...input, now, startMode: "ON_ISSUANCE" }, calendar, 4)).toBeNull();
+    expect(
+      acceptanceBlock({ ...input, now, startMode: "MIDNIGHT_AFTER_DEADLINE" }, calendar, 4),
+    ).toBeNull();
+    expect(
+      acceptanceBlock(
+        { ...input, now: new Date("2026-12-06T10:00:00Z"), startMode: "ON_ISSUANCE" },
+        calendar,
+        4,
+      ),
+    ).toBe("EXPIRED");
+  });
+
+  it("«immediata»: the cover starts at the issuance, never before; the deadline until then", () => {
+    const deadline = new Date("2026-11-23T11:00:00Z");
+    const issuedAt = new Date("2026-11-23T08:30:00Z");
+    const base = {
+      startMode: "ON_ISSUANCE" as const,
+      startDate: "2026-11-18",
+      issuanceDeadlineAt: deadline,
+    };
+    expect(coverStartAt({ ...base, issuedAt })).toEqual(issuedAt);
+    expect(coverStartAt(base)).toEqual(deadline);
+    // EMI-04: not issued by the deadline is a missed issuance.
+    expect(missedIssuanceAt(base)).toEqual(deadline);
+  });
+
+  it("«dalle 24:00»: from 24:00 of the day of the deadline (Dan: paid Friday at 18, from 24:00 on Monday)", () => {
+    const base = { startMode: "MIDNIGHT_AFTER_DEADLINE" as const, startDate: "2026-11-18" };
+    // Deadline Monday 23/11 at 12: cover from 00:00 of Tuesday 24/11 in Rome.
+    const monday = { ...base, issuanceDeadlineAt: new Date("2026-11-23T11:00:00Z") };
+    expect(coverStartAt(monday).toISOString()).toBe("2026-11-23T23:00:00.000Z");
+    expect(missedIssuanceAt(monday).toISOString()).toBe("2026-11-23T23:00:00.000Z");
+    // Paid Tuesday at 10, deadline Tuesday at 14: from 24:00 of that Tuesday.
+    const sameDay = { ...base, issuanceDeadlineAt: new Date("2026-11-24T13:00:00Z") };
+    expect(coverStartAt(sameDay).toISOString()).toBe("2026-11-24T23:00:00.000Z");
+  });
+
+  it("a chosen date keeps its rules, also for data saved before the modes", () => {
+    const deadline = new Date("2026-11-19T16:00:00Z");
+    expect(
+      coverStartAt({ startDate: "2026-11-20", issuanceDeadlineAt: deadline }).toISOString(),
+    ).toBe("2026-11-19T23:00:00.000Z");
+    expect(
+      missedIssuanceAt({
+        startMode: "DATE",
+        startDate: "2026-11-20",
+        issuanceDeadlineAt: deadline,
+      }),
+    ).toEqual(new Date("2026-11-19T23:00:00.000Z"));
   });
 });
 

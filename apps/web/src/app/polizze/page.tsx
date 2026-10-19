@@ -1,3 +1,4 @@
+import { startTexts } from "@/lib/start";
 import { formatDate, formatEuroCents } from "@astax/shared/format";
 import { Badge, Button, Card } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
@@ -40,6 +41,7 @@ export default async function PoliciesPage({
   const query = await searchParams;
   const viewer = await requireViewer();
   const t = await getTranslations("policies");
+  const startText = await startTexts();
   const tk = await getTranslations("wizard.documentKinds");
   const isAgency = viewer.activeMembership?.organization.type === "AGENCY";
   // The documents through the requester's own routes (the API logs each opening).
@@ -119,7 +121,8 @@ export default async function PoliciesPage({
                   <dd>{p.plate}</dd>
                   <dt className="text-warm-600">{t("period")}</dt>
                   <dd>
-                    {formatDate(p.startDate)} – {formatDate(p.endDate)}
+                    {startText({ startDate: p.startDate, startsAt: p.startsAt })} –{" "}
+                    {formatDate(p.endDate)}
                   </dd>
                   <dt className="text-warm-600">{t("premium")}</dt>
                   <dd className="tabular">{formatEuroCents(p.premiumCents)}</dd>

@@ -39,19 +39,23 @@ const aiWeights = z
     "weights must add up to 1",
   );
 
+const weeklyHours = z
+  .object({
+    mon: dayIntervals,
+    tue: dayIntervals,
+    wed: dayIntervals,
+    thu: dayIntervals,
+    fri: dayIntervals,
+    sat: dayIntervals,
+    sun: dayIntervals,
+  })
+  .strict();
+
 export const settingSchemas = {
   "calendar.timeZone": z.literal("Europe/Rome"),
-  "calendar.workingHours": z
-    .object({
-      mon: dayIntervals,
-      tue: dayIntervals,
-      wed: dayIntervals,
-      thu: dayIntervals,
-      fri: dayIntervals,
-      sat: dayIntervals,
-      sun: dayIntervals,
-    })
-    .strict(),
+  "calendar.workingHours": weeklyHours,
+  /** Question 1 (Dan, 2026-10-19): the hours in which issuance time runs (EMI-01). */
+  "issuance.workingHours": weeklyHours,
   "auction.durationsWorkingHours": z.array(positiveInt).nonempty(),
   "auction.defaultDurationWorkingHours": positiveInt,
   "auction.closingReminderMinutes": positiveInt,

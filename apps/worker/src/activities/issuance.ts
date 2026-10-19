@@ -5,13 +5,14 @@ import {
   withContext,
   type DbTransaction,
 } from "@astax/db";
-import { romeInstant, transitionOffer, transitionRequest } from "@astax/shared/domain";
 import {
-  dbDateToCalendarDate,
-  formatDate,
-  formatDateTime,
-  formatEuroCents,
-} from "@astax/shared/format";
+  coverStartAt,
+  missedIssuanceAt,
+  transitionOffer,
+  transitionRequest,
+} from "@astax/shared/domain";
+import { dbDateToCalendarDate, formatDateTime, formatEuroCents } from "@astax/shared/format";
+import { startForNotice } from "@astax/shared/notifications";
 import type { PendingEmail } from "../notifier.js";
 import { agencyRecipients, staffRecipients, type ActivityDeps } from "./support.js";
 import type { AuctionActivities, IssuanceSchedule, IssuanceSteps } from "./types.js";
@@ -126,9 +127,14 @@ export function issuanceActivities(
     const steps = [
       { kind: "REMINDER" as const, at: new Date(deadline.getTime() - minutes * 60_000) },
       { kind: "DEADLINE" as const, at: deadline },
+      // EMI-04, question 1: at the start of cover; with «immediata», at the deadline.
       {
         kind: "MISSED" as const,
-        at: romeInstant(dbDateToCalendarDate(request.startDate), "00:00"),
+        at: missedIssuanceAt({
+          startMode: request.startMode,
+          startDate: dbDateToCalendarDate(request.startDate),
+          issuanceDeadlineAt: deadline,
+        }),
       },
     ].map((s) => ({ ...s, done: done(s.kind) }));
     return { request, paid, proposal, stage: true, steps };
@@ -163,7 +169,23 @@ export function issuanceActivities(
         where: { id: offer.organizationId },
       });
       const term = paid.issuanceDeadlineAt ? formatDateTime(paid.issuanceDeadlineAt) : "";
-      const start = request.startDate ? formatDate(dbDateToCalendarDate(request.startDate)) : "";
+      const start = request.startDate
+        ? startForNotice(
+            {
+              startMode: request.startMode,
+              startDate: dbDateToCalendarDate(request.startDate),
+              coverStartsAt:
+                request.startMode === "MIDNIGHT_AFTER_DEADLINE" && paid.issuanceDeadlineAt
+                  ? coverStartAt({
+                      startMode: request.startMode,
+                      startDate: dbDateToCalendarDate(request.startDate),
+                      issuanceDeadlineAt: paid.issuanceDeadlineAt,
+                    })
+                  : null,
+            },
+            (key) => notifier.label(key, "it"),
+          )
+        : "";
       const toIssue = `${urls.web}/da-emettere/${request.id}`;
       const exceptions = `${urls.admin}/eccezioni`;
       const settings = await settingsAt(

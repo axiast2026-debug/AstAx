@@ -648,6 +648,7 @@
       "reconfirmation_maxPerRequest": "Rikonfirmime më së shumti për kërkesë",
       "requests_autoCancelExpiredDays": "Ditë pas të cilave një kërkesë «E skaduar» anulohet vetë",
       "issuance_deadlineWorkingHours": "Afati i lëshimit nga pagesa (orë pune)",
+      "issuance_workingHours": "Oraret kur rrjedh afati i lëshimit",
       "issuance_reminderMinutesBefore": "Njoftim para afatit të lëshimit (minuta)",
       "secondOffer_customerConfirmHours": "Orët e klientit për të konfirmuar ofertën e dytë",
       "renewal_daysBefore": "Propozimi i rinovimit, ditë para skadimit",

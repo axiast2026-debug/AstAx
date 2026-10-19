@@ -41,6 +41,20 @@
     { "key": "reconfirmation.workingHours", "value": 24, "description": "Tempo delle agenzie per rispondere alla riconferma", "rule": "GAR-07" },
     { "key": "reconfirmation.maxPerRequest", "value": 2, "description": "Riconferme al massimo per richiesta", "rule": "GAR-06" },
     { "key": "requests.autoCancelExpiredDays", "value": 30, "description": "Giorni dopo cui una richiesta «Scaduta» senza azioni si annulla da sola (e si pubblica la classifica)", "rule": "GAR-06" },
+    {
+      "key": "issuance.workingHours",
+      "value": {
+        "mon": [["09:00", "19:00"]],
+        "tue": [["09:00", "19:00"]],
+        "wed": [["09:00", "19:00"]],
+        "thu": [["09:00", "19:00"]],
+        "fri": [["09:00", "19:00"]],
+        "sat": [],
+        "sun": []
+      },
+      "description": "Orari in cui scorre il termine di emissione (lunedì-venerdì 9-19, domanda 1: Dan, 2026-10-19)",
+      "rule": "EMI-01"
+    },
     { "key": "issuance.deadlineWorkingHours", "value": 4, "description": "Termine di emissione dalla conferma del pagamento, comunque prima della decorrenza", "rule": "EMI-01" },
     { "key": "issuance.reminderMinutesBefore", "value": 60, "description": "Avviso all'agenzia e al back office prima del termine di emissione", "rule": "EMI-01" },
     { "key": "secondOffer.customerConfirmHours", "value": 24, "description": "Tempo del cliente per confermare la seconda offerta", "rule": "EMI-04" },

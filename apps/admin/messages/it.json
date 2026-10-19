@@ -648,6 +648,7 @@
       "reconfirmation_maxPerRequest": "Riconferme al massimo per richiesta",
       "requests_autoCancelExpiredDays": "Giorni dopo cui una richiesta «Scaduta» si annulla da sola",
       "issuance_deadlineWorkingHours": "Termine di emissione dal pagamento (ore lavorative)",
+      "issuance_workingHours": "Orari in cui scorre il termine di emissione",
       "issuance_reminderMinutesBefore": "Avviso prima del termine di emissione (minuti)",
       "secondOffer_customerConfirmHours": "Ore del cliente per confermare la seconda offerta",
       "renewal_daysBefore": "Proposta di rinnovo, giorni prima della scadenza",

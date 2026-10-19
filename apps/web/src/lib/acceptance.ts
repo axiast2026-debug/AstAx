@@ -56,6 +56,7 @@ export interface ToIssueRow {
   holder: string;
   vehicle: string;
   startDate: string | null;
+  startMode?: string;
   premiumCents: number;
   paidAt: string | null;
   issuanceDeadlineAt: string | null;
@@ -70,6 +71,7 @@ export interface IssuanceDetail {
   holder: string;
   vehicle: string;
   startDate: string | null;
+  startMode?: string;
   company: string;
   product: string;
   premiumCents: number;
@@ -92,6 +94,7 @@ export interface PolicyRow {
   company: string;
   agency?: { name: string; pec: string | null };
   startDate: string;
+  startsAt?: string | null;
   endDate: string;
   premiumCents: number;
   status: string;

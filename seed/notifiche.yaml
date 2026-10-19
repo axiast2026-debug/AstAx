@@ -15,6 +15,13 @@ labels:
     sq: "Mbulimet ose të dhënat e deklaruara nuk përputhen me kërkesën."
   offerExclusion.none: { it: "", sq: "" }
   guarantee.none: { it: "—", sq: "—" }
+  # Domanda 1: la decorrenza quando non è una data scelta (prima del pagamento o dell'emissione).
+  startMode.ON_ISSUANCE:
+    it: "immediata, dal momento dell'emissione"
+    sq: "menjëherë, nga momenti i lëshimit"
+  startMode.MIDNIGHT_AFTER_DEADLINE:
+    it: "dalle 24:00 del giorno del termine di emissione"
+    sq: "nga ora 24:00 e ditës së afatit të lëshimit"
   offerQuote.fileName: { it: "preventivo.pdf", sq: "oferta.pdf" }
   renewal.autoDraftReady:
     it: "Rinnovo automatico attivo: la bozza è pronta, manca solo il nuovo attestato."
@@ -447,7 +454,7 @@ events:
       emailSubject: "Polizza da emettere entro {{termine_emissione}}: {{codice}}"
       emailBody: |
         Il cliente ha accettato e pagato la vostra offerta di {{premio}} ({{compagnia}}) per {{veicolo}}.
-        Termine di emissione: {{termine_emissione}}, comunque prima della decorrenza del {{decorrenza}}.
+        Termine di emissione: {{termine_emissione}}. Decorrenza: {{decorrenza}}.
         Nell'area «Da emettere» trovate i dati completi, i contatti del cliente, i documenti firmati e la ricevuta di pagamento: {{link}}
 
   offer.won.bo:
@@ -520,11 +527,11 @@ events:
     variables: [codice, decorrenza, link]
     it:
       title: "Termine di emissione superato: {{codice}}"
-      body: "Emettete subito: la decorrenza è il {{decorrenza}}. È stata proposta la penale per ritardo."
+      body: "Emettete subito. Decorrenza: {{decorrenza}}. È stata proposta la penale per ritardo."
       emailSubject: "Termine superato: {{codice}}"
       emailBody: |
         Il termine di emissione della richiesta {{codice}} è scaduto ed è stata proposta la penale per ritardo.
-        Emettete subito: la decorrenza è il {{decorrenza}}. Se non potete emettere, segnalatelo dall'area «Da emettere»: {{link}}
+        Emettete subito. Decorrenza: {{decorrenza}}. Se non potete emettere, segnalatelo dall'area «Da emettere»: {{link}}
 
   issuance.deadline_passed.bo:
     recipients: [bo_verifiers, bo_supervisors]
@@ -622,7 +629,7 @@ events:
     variables: [nome, veicolo, numero_polizza, agenzia, compagnia, decorrenza, scadenza, contatti_agenzia, link]
     it:
       title: "La tua polizza è pronta"
-      body: "{{veicolo}} è assicurato dal {{decorrenza}} con {{compagnia}}. I documenti sono nell'app."
+      body: "{{veicolo}} è assicurato con {{compagnia}}, decorrenza {{decorrenza}}. I documenti sono nell'app."
       emailSubject: "La tua polizza per {{veicolo}} è pronta"
       emailBody: |
         Ciao {{nome}},

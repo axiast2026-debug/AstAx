@@ -1,3 +1,4 @@
+import { startTexts } from "@/lib/start";
 import { formatDate, formatDateTime } from "@astax/shared/format";
 import { Button } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
@@ -24,6 +25,7 @@ export async function SummaryStep({
   steps: readonly WizardStep[];
 }) {
   const t = await getTranslations("wizard.summary");
+  const startText = await startTexts();
   const ts = await getTranslations("wizard.steps");
   const draft = detail.draft ?? {};
   const label = (list: string, code: string | undefined) =>
@@ -44,7 +46,14 @@ export async function SummaryStep({
     [t("formula"), label("drivingFormula", draft.driving?.drivingFormula)],
     [t("provenance"), label("provenance", draft.history?.provenance)],
     [t("package"), pkg?.name ?? ""],
-    [t("startDate"), draft.request ? formatDate(`${draft.request.startDate}T12:00:00Z`) : ""],
+    [
+      t("startDate"),
+      draft.request
+        ? draft.request.startMode && draft.request.startMode !== "DATE"
+          ? startText({ startMode: draft.request.startMode, startDate: null })
+          : formatDate(`${draft.request.startDate}T12:00:00Z`)
+        : "",
+    ],
     [t("duration"), draft.request ? t("hours", { hours: draft.request.auctionDurationHours }) : ""],
     [
       t("closeIfApprovedNow"),

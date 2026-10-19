@@ -1,9 +1,11 @@
-import { compareCalendarDates } from "./calendar-date.js";
+import { addCalendarDays, compareCalendarDates } from "./calendar-date.js";
+import type { StartMode } from "./quote-data.js";
 import { isGuaranteed } from "./auction-rules.js";
 import {
   addWorkingMinutes,
   endOfRomeDay,
   romeInstant,
+  romeLocal,
   subtractWorkingMinutes,
   type WorkingCalendar,
 } from "./working-calendar.js";
@@ -90,13 +92,17 @@ export function lastAcceptanceMoment(
 
 export type AcceptanceBlock = "EXPIRED" | "TOO_LATE" | null;
 
-/** GAR-04: whether an offer may be accepted now, and why not. */
+/**
+ * GAR-04: whether an offer may be accepted now, and why not. A start of cover
+ * set by the payment (question 1) has no last moment: the guarantee is enough.
+ */
 export function acceptanceBlock(
-  input: { guaranteeUntil: string; startDate: string; now: Date },
+  input: { guaranteeUntil: string; startDate: string; now: Date; startMode?: StartMode },
   calendar: WorkingCalendar,
   issuanceWorkingHours: number,
 ): AcceptanceBlock {
   if (!isGuaranteed(input.guaranteeUntil, input.now)) return "EXPIRED";
+  if ((input.startMode ?? "DATE") !== "DATE") return null;
   if (input.now >= lastAcceptanceMoment(calendar, input.startDate, issuanceWorkingHours)) {
     return "TOO_LATE";
   }
@@ -105,17 +111,54 @@ export function acceptanceBlock(
 
 /**
  * EMI-01: the issuance deadline, issuance.deadlineWorkingHours from the
- * payment, and in any case before the start of cover.
+ * payment on the issuance hours (issuance.workingHours), and for a chosen
+ * date in any case before the start of cover. With the start set by the
+ * payment (question 1) the cover follows the issuance: no other limit.
  */
 export function issuanceDeadline(
   calendar: WorkingCalendar,
   paidAt: Date,
   startDate: string,
   issuanceWorkingHours: number,
+  startMode: StartMode = "DATE",
 ): Date {
   const byHours = addWorkingMinutes(calendar, paidAt, issuanceWorkingHours * 60);
+  if (startMode !== "DATE") return byHours;
   const start = coverStart(startDate);
   return byHours < start ? byHours : start;
+}
+
+/**
+ * Question 1 (docs/piano-decorrenza.md): when the cover starts. A chosen
+ * date at 00:00; «immediata» at the issuance, never before (no retroactive
+ * cover), the deadline until the agency issues; «dalle 24:00» at 24:00 of the
+ * day of the issuance deadline (paid Friday at 18, deadline Monday at 12:
+ * from 24:00 on Monday).
+ */
+export function coverStartAt(input: {
+  startMode?: StartMode;
+  startDate: string;
+  issuanceDeadlineAt: Date;
+  issuedAt?: Date | null;
+}): Date {
+  const mode = input.startMode ?? "DATE";
+  if (mode === "DATE") return coverStart(input.startDate);
+  if (mode === "ON_ISSUANCE") return input.issuedAt ?? input.issuanceDeadlineAt;
+  const day = romeLocal(input.issuanceDeadlineAt).date;
+  return romeInstant(addCalendarDays(day, 1), "00:00");
+}
+
+/**
+ * EMI-04: when an issuance not done is a missed issuance. At the start of
+ * cover; with «immediata» the cover waits for the issuance, so at the deadline.
+ */
+export function missedIssuanceAt(input: {
+  startMode?: StartMode;
+  startDate: string;
+  issuanceDeadlineAt: Date;
+}): Date {
+  if ((input.startMode ?? "DATE") === "ON_ISSUANCE") return input.issuanceDeadlineAt;
+  return coverStartAt(input);
 }
 
 /** PRES-03: the saving on the current premium, when the requester gave one and it is lower. */

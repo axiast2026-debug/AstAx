@@ -372,6 +372,7 @@ export async function saveCoverageStep(formData: FormData): Promise<void> {
   const terms = requestTermsFromForm(formData, {
     auctionDurationHours: options.defaultAuctionDurationHours,
     minValidityDays: options.defaultMinValidityDays,
+    today: today(),
   });
   const saved = await saveSection(id, "request", terms);
   if (!saved.ok) back(`${base}/${id}/${step}`, saved.codes);

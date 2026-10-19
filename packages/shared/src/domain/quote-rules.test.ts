@@ -277,6 +277,8 @@ describe("derived columns", () => {
       youngestDriverAge: 36,
       packageCode: "BASE",
       startDate: "2026-11-30",
+      // Question 1: data saved before the modes have a chosen date.
+      startMode: "DATE",
       minValidityDays: 15,
     });
   });

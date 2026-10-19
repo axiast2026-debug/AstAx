@@ -578,8 +578,23 @@
     },
     "coverage": {
       "package": "Scegli il pacchetto",
-      "startDate": "Decorrenza",
-      "startDateHint": "Te la proponiamo dalla scadenza della polizza attuale",
+      "startMode": "Da quando vuoi essere assicurato",
+      "startModes": {
+        "DATE": {
+          "label": "Da una data che scelgo",
+          "text": "La copertura parte alle 00:00 della data indicata qui sotto."
+        },
+        "ON_ISSUANCE": {
+          "label": "Subito, appena l'agenzia emette la polizza",
+          "text": "La polizza parte nel momento in cui l'agenzia la emette, entro 4 ore lavorative dal pagamento (lunedì-venerdì 9-19). Se paghi nel fine settimana, entro le 13 del lunedì."
+        },
+        "MIDNIGHT_AFTER_DEADLINE": {
+          "label": "Dalle 24:00 del giorno del pagamento",
+          "text": "Se l'agenzia ha tempo fino al giorno dopo per emettere (per esempio paghi il venerdì sera), la copertura parte dalle 24:00 di quel giorno."
+        }
+      },
+      "startDate": "Data di decorrenza",
+      "startDateHint": "Solo se scegli una data. Te la proponiamo dalla scadenza della polizza attuale",
       "currentPremium": "Premio che paghi oggi (euro)",
       "currentPremiumHint": "Facoltativo: serve a mostrarti quanto risparmi",
       "blackBox": "Accetto la scatola nera",
@@ -1077,6 +1092,10 @@
     "seeAcceptance": "Vedi pagamento ed emissione",
     "feeVaries": "Il nostro compenso dipende dal premio (più basso sotto i 200,00 €): lo trovi su ogni offerta e lo paghi solo se ne scegli una.",
     "rowFee": "Nostro compenso: {fee}"
+  },
+  "startModeShort": {
+    "ON_ISSUANCE": "Immediata, dall'emissione",
+    "MIDNIGHT_AFTER_DEADLINE": "Dalle 24:00 del giorno del termine di emissione"
   },
   "aiCompare": {
     "title": "Confronto con AI",

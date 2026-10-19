@@ -7,7 +7,7 @@ import type { SignaturePort } from "@astax/adapters/signature";
 import type { ObjectStoragePort } from "@astax/adapters/storage";
 import {
   asSystem,
-  loadWorkingCalendar,
+  loadIssuanceCalendar,
   settingsAt,
   withContext,
   type DbClient,
@@ -137,11 +137,11 @@ export class AcceptanceService {
     };
   }
 
-  /** GAR-04 and EMI-01: the working calendar and the issuance time in force. */
+  /** GAR-04 and EMI-01: the issuance hours (question 1) and the issuance time in force. */
   async issuanceRules(tx: DbTransaction, now: Date) {
-    const s = await settingsAt(tx, ["calendar.workingHours", "issuance.deadlineWorkingHours"], now);
+    const s = await settingsAt(tx, ["issuance.deadlineWorkingHours"], now);
     return {
-      calendar: await loadWorkingCalendar(tx, s["calendar.workingHours"]),
+      calendar: await loadIssuanceCalendar(tx, now),
       hours: s["issuance.deadlineWorkingHours"],
     };
   }
@@ -234,7 +234,7 @@ export class AcceptanceService {
         notes: offer.offer.notes,
         pdfDocumentId: offer.offer.pdfDocumentId,
         block: acceptanceBlock(
-          { guaranteeUntil: offer.guaranteeUntil, startDate, now },
+          { guaranteeUntil: offer.guaranteeUntil, startDate, now, startMode: request.startMode },
           rules.calendar,
           rules.hours,
         ),

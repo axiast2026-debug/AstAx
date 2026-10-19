@@ -516,6 +516,13 @@ model Vehicle {
   @@unique([customerId, plate])
 }
 
+/// Question 1 (docs/piano-decorrenza.md): how the start of cover is set.
+enum StartMode {
+  DATE
+  ON_ISSUANCE
+  MIDNIGHT_AFTER_DEADLINE
+}
+
 enum RequestChannel {
   PRIVATE
   BROKER
@@ -566,6 +573,7 @@ model QuoteRequest {
   youngestDriverAge     Int?
   packageCode           String?
   startDate             DateTime?          @db.Date
+  startMode             StartMode          @default(DATE)
   minValidityDays       Int?
   auctionDurationHours  Int?
   autoOutcome           CheckOutcome?
@@ -1396,6 +1404,8 @@ model Policy {
   ownerOrganizationId String?      @db.Uuid
   policyNumber        String
   startDate           DateTime     @db.Date
+  /// Question 1: the exact start of cover (00:00 of startDate for a chosen date).
+  startsAt            DateTime?    @db.Timestamptz(3)
   endDate             DateTime     @db.Date
   premiumCents        Int
   issuedAt            DateTime     @db.Timestamptz(3)

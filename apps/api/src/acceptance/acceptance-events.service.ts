@@ -20,7 +20,7 @@ import {
   type Acceptance,
   type QuoteRequest,
 } from "@astax/db";
-import { issuanceDeadline, transitionOffer } from "@astax/shared/domain";
+import { coverStartAt, issuanceDeadline, transitionOffer } from "@astax/shared/domain";
 import {
   dbDateToCalendarDate,
   formatDate,
@@ -45,7 +45,10 @@ import {
 import labels from "../notifications/labels.it.json" with { type: "json" };
 import { NotificationService, type Outbound } from "../notifications/notification.service.js";
 import {
+  label,
+  loadNotificationLabels,
   rankingVariables,
+  startForNotice,
   vehicleForAgency,
   vehicleForRequester,
   type TemplateVariables,
@@ -75,6 +78,8 @@ export type Email = Outbound;
  *   agency (VIS-02), the workflow told through the outbox;
  * - failed (PAG-03): back to «Offerte disponibili», the customer may retry.
  */
+
+const NOTIFICATION_LABELS = loadNotificationLabels();
 @Injectable()
 export class AcceptanceEventsService {
   constructor(
@@ -447,11 +452,29 @@ export class AcceptanceEventsService {
   ) {
     if (!request.startDate) throw new Error("A paid request has a start date");
     const rules = await this.acceptance.issuanceRules(tx, now);
+    const startDate = dbDateToCalendarDate(request.startDate);
     const deadline = issuanceDeadline(
       rules.calendar,
       now,
-      dbDateToCalendarDate(request.startDate),
+      startDate,
       rules.hours,
+      request.startMode,
+    );
+    // Question 1: «dalle 24:00» is known now; «immediata» waits for the issuance.
+    const decorrenza = startForNotice(
+      {
+        startMode: request.startMode,
+        startDate,
+        coverStartsAt:
+          request.startMode === "MIDNIGHT_AFTER_DEADLINE"
+            ? coverStartAt({
+                startMode: request.startMode,
+                startDate,
+                issuanceDeadlineAt: deadline,
+              })
+            : null,
+      },
+      (key) => label(NOTIFICATION_LABELS, key, "it"),
     );
     await tx.acceptance.update({
       where: { id: a.id },
@@ -559,7 +582,7 @@ export class AcceptanceEventsService {
         premio: amounts.premio,
         compagnia: company,
         termine_emissione: term,
-        decorrenza: formatDate(dbDateToCalendarDate(request.startDate)),
+        decorrenza,
         link: toIssue,
       },
       toIssue,

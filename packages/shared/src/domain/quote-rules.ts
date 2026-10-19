@@ -1,7 +1,13 @@
 import { completedYears, compareCalendarDates, parseCalendarDate } from "./calendar-date.js";
 import { decodeFiscalCode } from "./fiscal-code.js";
 import { isItalianPlate } from "./plates.js";
-import type { DrivingFormula, NaturalPerson, QuoteData, QuoteDraft } from "./quote-data.js";
+import type {
+  DrivingFormula,
+  NaturalPerson,
+  QuoteData,
+  QuoteDraft,
+  StartMode,
+} from "./quote-data.js";
 
 /** An excluded case of `seed/elenchi.json` (`exclusionCase`), ASTA-10. */
 export interface ExclusionCase {
@@ -180,6 +186,7 @@ export interface DerivedColumns {
   youngestDriverAge: number;
   packageCode: string;
   startDate: string;
+  startMode: StartMode;
   minValidityDays: number;
 }
 
@@ -199,6 +206,7 @@ export function derivedColumns(quoteData: QuoteData): DerivedColumns {
     youngestDriverAge: Math.min(...driverAgesAtStart(quoteData)),
     packageCode: quoteData.request.packageCode,
     startDate: quoteData.request.startDate,
+    startMode: quoteData.request.startMode ?? "DATE",
     minValidityDays: quoteData.request.minValidityDays,
   };
 }

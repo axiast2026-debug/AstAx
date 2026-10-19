@@ -1,6 +1,6 @@
 # Piano: tre tipi di decorrenza (domanda 1)
 
-**Stato:** risposte di Dan del 2026-10-18 qui sotto (A, nuova regola, A, A, A). Restano da chiarire i punti 6 e 7; il codice parte dopo.
+**Stato:** completo (risposte di Dan del 18 e 19 ottobre); fatto nel codice il 2026-10-19.
 
 ## Cosa ha deciso Dan (2026-10-18)
 
@@ -61,3 +61,15 @@ Da chiarire ancora:
 9. **Orario dell'emissione.** Oggi le ore lavorative sono quelle delle aste (`calendar.workingHours`: lunedì-venerdì 9-19, sabato 9-13): con un pagamento venerdì alle 18 il termine cadrebbe sabato alle 12. «Lunedì alle 12» vuol dire un orario solo per l'emissione, senza il sabato e da un'ora diversa: nuovo parametro `issuance.workingHours`, da fissare con Dan.
 
 Risposta di Dan (2026-10-19) al punto 9: orario delle emissioni dal lunedì al venerdì, 9-19 (nuovo parametro `issuance.workingHours`, sabato e domenica esclusi). Esempi: pagamento venerdì alle 18, termine lunedì alle 12; pagamento di sabato o domenica, termine lunedì alle 13. Resta il punto 8.
+
+Risposta di Dan (2026-10-19) al punto 8: **B**, la copertura parte dalle 24:00 del giorno in cui cade il termine di emissione (pagamento venerdì alle 18, termine lunedì alle 12: decorrenza dalle 24:00 di lunedì).
+
+## Regole finali
+
+| Tipo | Decorrenza | Termine di emissione | Ultimo momento per accettare (GAR-04) | Mancata emissione (EMI-04) |
+| --- | --- | --- | --- | --- |
+| 1. Data futura | 00:00 della data scelta | 4 ore lavorative di emissione dal pagamento, comunque prima della decorrenza | Decorrenza meno 4 ore lavorative di emissione | Alla decorrenza |
+| 2. Immediata | Il momento dell'emissione (mai prima, niente retroattività) | 4 ore lavorative di emissione dal pagamento | Basta la garanzia dell'offerta | Al termine di emissione |
+| 3. Dalle 24:00 | Le 24:00 del giorno in cui cade il termine di emissione | 4 ore lavorative di emissione dal pagamento | Basta la garanzia dell'offerta | Alla decorrenza |
+
+Le ore lavorative di emissione sono quelle del nuovo parametro `issuance.workingHours` (lunedì-venerdì 9-19), con le festività. Per i tipi 2 e 3 età, patente e anni del veicolo si calcolano al giorno della richiesta: la `startDate` dei dati del preventivo è quel giorno. La decorrenza vera si scrive sulla polizza (`startsAt`).

@@ -27,6 +27,7 @@ import {
   QuoteDraftSchema,
   submissionProblems,
   wizardBlockingExclusions,
+  withRequestDay,
   worstOutcome,
   type ChecklistItem,
   type QuoteData,
@@ -409,7 +410,11 @@ export class RequestsService {
           ]);
         }
       }
-      const draft = { ...this.draftOf(request), [section]: parsed.data[section] };
+      const value =
+        section === "request" && parsed.data.request
+          ? withRequestDay(parsed.data.request, romeCalendarDate(this.clock.now()))
+          : parsed.data[section];
+      const draft = { ...this.draftOf(request), [section]: value };
       await tx.quoteRequest.update({
         where: { id },
         data: {
@@ -602,7 +607,8 @@ export class RequestsService {
           missing.map((s) => ({ path: s, issue: "missing_section" })),
         );
       }
-      const quoteData = quoteDataFromDraft(draft) as QuoteData;
+      const fromDraft = quoteDataFromDraft(draft) as QuoteData;
+      const quoteData = { ...fromDraft, request: withRequestDay(fromDraft.request, today) };
       const settings = await settingsAt(
         tx,
         [
@@ -701,6 +707,7 @@ export class RequestsService {
           youngestDriverAge: derived.youngestDriverAge,
           packageCode: derived.packageCode,
           startDate: calendarDateToDbDate(derived.startDate),
+          startMode: derived.startMode,
           minValidityDays: derived.minValidityDays,
           auctionDurationHours: quoteData.request.auctionDurationHours,
           autoOutcome: check.outcome,

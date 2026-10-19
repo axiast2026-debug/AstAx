@@ -16,6 +16,7 @@ import {
 } from "@astax/db";
 import {
   addCalendarDays,
+  coverStartAt,
   noteProblems,
   policyEndDate,
   renewalNoticeDate,
@@ -29,6 +30,7 @@ import {
   formatEuroCents,
   romeCalendarDate,
 } from "@astax/shared/format";
+import { vehicleForRequester } from "@astax/shared/notifications";
 import { Inject, Injectable } from "@nestjs/common";
 import { AcceptanceService } from "../acceptance/acceptance.service.js";
 import { acceptancePdf } from "../acceptance/documents-pdf.js";
@@ -161,6 +163,7 @@ export class IssuanceService {
           holder.kind === "COMPANY" ? holder.companyName : `${holder.givenName} ${holder.surname}`,
         vehicle: `${data.vehicle.make} ${data.vehicle.model} ${data.vehicle.plate}`,
         startDate: request.startDate ? dbDateToCalendarDate(request.startDate) : null,
+        startMode: request.startMode,
         company: company?.name ?? "",
         product: product?.name ?? "",
         premiumCents: acceptance.premiumCents,
@@ -322,8 +325,17 @@ export class IssuanceService {
         );
       }
       const offer: Offer = found.offer;
-      const startDate = dbDateToCalendarDate(request.startDate);
+      // Question 1: the cover starts at the chosen date, at this issuance, or at
+      // 24:00 of the day of the issuance deadline; the policy runs one year from it.
+      const startsAt = coverStartAt({
+        startMode: request.startMode,
+        startDate: dbDateToCalendarDate(request.startDate),
+        issuanceDeadlineAt: found.acceptance.issuanceDeadlineAt ?? now,
+        issuedAt: now,
+      });
+      const startDate = romeCalendarDate(startsAt);
       const endDate = policyEndDate(startDate);
+      const start = request.startMode === "DATE" ? formatDate(startDate) : formatDateTime(startsAt);
       const policy = await asSystem(tx, async () => {
         transitionOffer("WINNING", "ISSUED");
         await tx.offer.update({ where: { id: offer.id }, data: { status: "ISSUED" } });
@@ -340,6 +352,7 @@ export class IssuanceService {
             ownerOrganizationId: request.ownerOrganizationId,
             policyNumber,
             startDate: new Date(startDate),
+            startsAt,
             endDate: new Date(endDate),
             premiumCents: found.acceptance.premiumCents,
             issuedAt: now,
@@ -377,7 +390,7 @@ export class IssuanceService {
         request.channel === "PRIVATE" && found.acceptance.feeCents > 0
           ? (await this.privateInvoice(tx, request, found.acceptance.feeCents)).id
           : null;
-      await this.tell(tx, postbox, request, policy.policyNumber, offer, startDate, endDate);
+      await this.tell(tx, postbox, request, policy.policyNumber, offer, start, endDate);
       return { policyId: policy.id, invoiceId };
     });
     await postbox.flush();
@@ -439,11 +452,11 @@ export class IssuanceService {
     request: QuoteRequest,
     policyNumber: string,
     offer: Offer,
-    startDate: string,
+    start: string,
     endDate: string,
   ) {
     const data = await this.acceptance.quoteDataOf(tx, request);
-    const vehicle = `${data.vehicle.make} ${data.vehicle.model}`;
+    const vehicle = vehicleForRequester(data.vehicle);
     const [agency, company, requester] = await asSystem(tx, () =>
       Promise.all([
         tx.organization.findUniqueOrThrow({ where: { id: offer.organizationId } }),
@@ -464,7 +477,7 @@ export class IssuanceService {
           numero_polizza: policyNumber,
           agenzia: agency.legalName,
           compagnia: company?.name ?? "",
-          decorrenza: formatDate(startDate),
+          decorrenza: start,
           scadenza: formatDate(endDate),
           contatti_agenzia: agency.pec ?? agency.legalName,
           link,
@@ -496,7 +509,7 @@ export class IssuanceService {
           numero_polizza: policyNumber,
           agenzia: agency.legalName,
           compagnia: company?.name ?? "",
-          decorrenza: formatDate(startDate),
+          decorrenza: start,
           link,
         },
         link,
@@ -529,7 +542,7 @@ export class IssuanceService {
             veicolo: vehicle,
             numero_polizza: policyNumber,
             compagnia: company?.name ?? "",
-            decorrenza: formatDate(startDate),
+            decorrenza: start,
             broker: broker.legalName,
             link: `${this.config.WEB_URL}/offerta/${token}`,
           },
@@ -693,6 +706,7 @@ export class IssuanceService {
           company: companies.find((c) => c.id === p.companyId)?.name ?? "",
           agency: { name: agency.legalName, pec: agency.pec },
           startDate: dbDateToCalendarDate(p.startDate),
+          startsAt: p.startsAt?.toISOString() ?? null,
           endDate: dbDateToCalendarDate(p.endDate),
           premiumCents: p.premiumCents,
           status: p.status,
