@@ -368,6 +368,7 @@
     "PLATE_PROVIDER_ERROR": "La ricerca della targa non risponde: inserisci i dati a mano o carica il libretto.",
     "PLATE_INVALID_PLATE": "La targa non è valida.",
     "NO_MAIN_DRIVER": "Indica il conducente abituale.",
+    "NO_MAIN_DRIVER_CHOICE": "Chi guida di solito? Spunta «Il conducente abituale è il contraente» oppure «Guida anche un'altra persona» e inserisci i suoi dati.",
     "MORE_THAN_ONE_MAIN_DRIVER": "Il conducente abituale è uno solo.",
     "START_DATE_IN_THE_PAST": "La decorrenza non può essere nel passato.",
     "CU_CLASS_REQUIRED": "Indica la classe CU dell'attestato di rischio.",

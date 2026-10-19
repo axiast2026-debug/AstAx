@@ -11,6 +11,7 @@ import { claimYears, requestOptions } from "@/lib/requests";
 import { SEARCH_SCOPES, writeSearch, type SearchScope } from "@/lib/search";
 import {
   checked,
+  driversChoice,
   historyFromForm,
   licenceFromForm,
   personFieldsFromForm,
@@ -328,10 +329,14 @@ export async function saveDriversStep(formData: FormData): Promise<void> {
   }
 
   const drivers: object[] = [];
-  const holderIsDriver = holderKind === "PERSON" && checked(formData, "holderDrives");
+  const { holderIsDriver, otherDriver, missingMainDriver } = driversChoice(
+    formData,
+    holderKind === "PERSON",
+  );
+  if (missingMainDriver) codes.push("holderDrives:NO_MAIN_DRIVER_CHOICE");
   if (holderIsDriver && holder)
     drivers.push({ person: holder, isMain: true, licence: licenceFromForm(formData, "driver0") });
-  if (checked(formData, "otherDriver") || !holderIsDriver) {
+  if (otherDriver) {
     const result = await personFrom(personFieldsFromForm(formData, "driver1"), "driver1");
     codes.push(...result.codes);
     if (result.person) {

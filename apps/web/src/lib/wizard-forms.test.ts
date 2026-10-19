@@ -4,6 +4,8 @@ import {
   claimsFromForm,
   eurosToCents,
   historyFromForm,
+  holderDrivesByDefault,
+  driversChoice,
   requestTermsFromForm,
   vehicleFromForm,
 } from "./wizard-forms";
@@ -87,5 +89,35 @@ describe("wizard forms", () => {
       { auctionDurationHours: 2, minValidityDays: 15 },
     );
     expect(terms).toMatchObject({ auctionDurationHours: 2, minValidityDays: 15, blackBox: false });
+  });
+});
+
+describe("step 2 «Chi guida»", () => {
+  const giulia = { isMain: true, person: { fiscalCode: "NREGLI90E52F205X" } };
+
+  it("the holder drives by default, also with the holder saved and no driver yet", () => {
+    expect(holderDrivesByDefault(undefined, [])).toBe(true);
+    expect(holderDrivesByDefault("NREGLI90E52F205X", [])).toBe(true);
+    expect(holderDrivesByDefault("NREGLI90E52F205X", [giulia])).toBe(true);
+    expect(holderDrivesByDefault("BNCMRA80C15F205V", [giulia])).toBe(false);
+  });
+
+  it("the other driver's details are read only with its box ticked", () => {
+    expect(driversChoice(form({ holderDrives: "on" }), true)).toEqual({
+      holderIsDriver: true,
+      otherDriver: false,
+      missingMainDriver: false,
+    });
+    expect(driversChoice(form({}), true).missingMainDriver).toBe(true);
+    expect(driversChoice(form({ otherDriver: "on" }), true)).toMatchObject({
+      holderIsDriver: false,
+      missingMainDriver: false,
+    });
+    // A company never drives: the other person's details are always read.
+    expect(driversChoice(form({}), false)).toEqual({
+      holderIsDriver: false,
+      otherDriver: true,
+      missingMainDriver: false,
+    });
   });
 });

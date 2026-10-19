@@ -154,3 +154,30 @@ export function requestTermsFromForm(
     currentPremiumCents: eurosToCents(text(form, "request.currentPremium")),
   });
 }
+
+/**
+ * Step 2 «Chi guida»: whose details the drivers' part asks for. The holder is
+ * the usual driver by default, also when the holder was saved before the
+ * drivers (a step left half way). The other person's details are read only
+ * when «Guida anche un'altra persona» is ticked, or always when the holder is a
+ * company (a company never drives). With a person as holder who does not
+ * drive and no other person, the step asks to say who the usual driver is.
+ */
+export function holderDrivesByDefault(
+  holderFiscalCode: string | null | undefined,
+  drivers: readonly { isMain: boolean; person: { fiscalCode: string } }[],
+): boolean {
+  const main = drivers.find((d) => d.isMain);
+  if (!main) return true;
+  return holderFiscalCode !== null && main.person.fiscalCode === holderFiscalCode;
+}
+
+export function driversChoice(form: FormReader, holderIsPerson: boolean) {
+  const holderIsDriver = holderIsPerson && checked(form, "holderDrives");
+  const otherDriver = checked(form, "otherDriver") || !holderIsPerson;
+  return {
+    holderIsDriver,
+    otherDriver,
+    missingMainDriver: holderIsPerson && !holderIsDriver && !otherDriver,
+  };
+}

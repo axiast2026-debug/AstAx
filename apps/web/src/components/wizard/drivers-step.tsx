@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { saveDriversStep, uploadDocument } from "@/app/request-actions";
 import { CheckField, Field, Fieldset, SelectField, hasError } from "@/components/form";
 import { extracted, latestDocument, type RequestDetail, type RequestOptions } from "@/lib/requests";
+import { holderDrivesByDefault } from "@/lib/wizard-forms";
 import { DocumentUpload } from "./document-upload";
 
 interface Municipality {
@@ -40,7 +41,7 @@ export async function DriversStep({
   const drivers = draft.driving?.drivers ?? [];
   const main = drivers.find((d) => d.isMain);
   const holderDrives =
-    !holder || (holder.kind === "PERSON" && main?.person.fiscalCode === holder.fiscalCode);
+    !holder || (holder.kind === "PERSON" && holderDrivesByDefault(holder.fiscalCode, drivers));
   const other = drivers.find(
     (d) => d.person.fiscalCode !== (holder?.kind === "PERSON" ? holder.fiscalCode : ""),
   );
