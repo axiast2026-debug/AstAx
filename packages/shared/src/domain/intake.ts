@@ -32,7 +32,8 @@ export const IntakeSchema = z
     plate,
     ownerBirthDate: calendarDate,
     residence: AddressSchema,
-    drivingFormula: z.enum(DRIVING_FORMULAS),
+    /** Chosen on its own screen, required at the submission (Dan: «obbligatorio»). */
+    drivingFormula: z.enum(DRIVING_FORMULAS).optional(),
     /** Only for a new vehicle. */
     classSource: z
       .strictObject({
@@ -102,7 +103,7 @@ export interface IntakeCandidate {
   policyHolder: Record<string, unknown>;
   vehicleOwner: "SAME_AS_POLICY_HOLDER";
   drivers: Record<string, unknown>[];
-  drivingFormula: QuoteData["drivingFormula"];
+  drivingFormula: QuoteData["drivingFormula"] | undefined;
   vehicle: Record<string, unknown>;
   history: Record<string, unknown>;
   request: z.infer<typeof RequestTermsSchema>;
@@ -202,6 +203,7 @@ export function quoteDataFromIntake(
       .map((key) => `vehicle.${key}`),
     // Never on a document: the purchase date is asked to the customer by phone (answer 6B).
     "vehicle.purchaseDate",
+    ...(intake.drivingFormula ? [] : ["drivingFormula"]),
     ...(provenance ? [] : ["history.provenance"]),
     ...(history.claims ? [] : ["history.claims"]),
     // The other vehicle's plate (own, sold, relative's) is for the back office to check.

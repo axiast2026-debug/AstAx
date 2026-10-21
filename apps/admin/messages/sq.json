@@ -193,6 +193,7 @@
     "consent": "Pëlqimi: {method}, {at}",
     "consentMethods": {
       "OTP_PRIVATE": "kodi i klientit privat",
+      "CHECKBOX_PRIVATE": "shenjë e klientit privat, i hyrë me kodin e emailit",
       "OTP_LINK": "lidhja dhe kodi i klientit",
       "UPLOADED_BY_BROKER": "ngarkuar nga brokeri, për t'u kontrolluar"
     },

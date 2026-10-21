@@ -101,14 +101,11 @@ export function extracted(
 }
 
 /** The wizard steps; the broker's customer step comes before the draft exists. */
-export const PRIVATE_STEPS = [
-  "veicolo",
-  "conducenti",
-  "copertura",
-  "asta",
-  "consensi",
-  "riepilogo",
-] as const;
+/**
+ * Dan, 2026-10-21 (docs/piano-flusso-semplificato.md, ADR 0013): five short
+ * screens for the private customer; the back office completes the rest.
+ */
+export const PRIVATE_STEPS = ["tipo", "dati", "guida", "copertura", "conferma"] as const;
 export const BROKER_STEPS = [
   "veicolo",
   "conducenti",
@@ -125,9 +122,12 @@ export const STEP_SECTIONS: Record<WizardStep, QuoteDraftSection[]> = {
   conducenti: ["policyHolder", "vehicleOwner", "driving"],
   copertura: ["request"],
   asta: ["request"],
-  consensi: [],
   consenso: [],
   riepilogo: [],
+  tipo: [],
+  dati: ["intake"],
+  guida: ["intake"],
+  conferma: [],
 };
 
 /** Five past years and the current one, for the claims table of the risk certificate. */

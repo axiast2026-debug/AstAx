@@ -835,6 +835,11 @@ export class RequestsService {
   ) {
     const intake = IntakeSchema.safeParse(draft.intake);
     if (!intake.success) throw ProblemError.fromZod(intake.error);
+    if (!intake.data.drivingFormula) {
+      throw new ProblemError("VALIDATION_FAILED", undefined, [
+        { path: "drivingFormula", issue: "REQUIRED" },
+      ]);
+    }
     if (!draft.request) {
       throw new ProblemError("VALIDATION_FAILED", undefined, [
         { path: "request", issue: "missing_section" },

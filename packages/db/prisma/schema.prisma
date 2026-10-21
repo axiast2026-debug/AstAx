@@ -641,6 +641,8 @@ enum ConsentType {
 
 enum ConsentMethod {
   OTP_PRIVATE
+  /// Dan, 2026-10-21 (answer 5B): one tick of the private customer, signed in with the email code.
+  CHECKBOX_PRIVATE
   OTP_LINK
   UPLOADED_BY_BROKER
 }

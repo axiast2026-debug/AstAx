@@ -107,13 +107,12 @@ describe("ADR 0013: the request in two stages", () => {
       await r.upload(customer, requestId, "REGISTRATION_CERTIFICATE", "libretto-giulia-neri.jpg"),
       201,
     );
-    await r.json(await r.call(customer, `/requests/${requestId}/consent/code`, { body: {} }), 204);
-    await r.json(
-      await r.call(customer, `/requests/${requestId}/consent/confirm`, {
-        body: { code: r.lastCode(EMAIL) },
-      }),
+    // Answer 5B: one tick for the consents, recorded with its method.
+    const consent = await r.json<{ method: string }>(
+      await r.call(customer, `/requests/${requestId}/consent/accept`, { body: {} }),
       200,
     );
+    expect(consent.method).toBe("CHECKBOX_PRIVATE");
     const refused = await r.json<{ errors: { path: string; issue: string }[] }>(
       await r.call(customer, `/requests/${requestId}/submit`, { body: {} }),
       400,

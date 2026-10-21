@@ -232,6 +232,14 @@ export class RequestsController {
     return this.consents.confirmPrivate(auth, idOf(id), parseInput(codeSchema, body).code);
   }
 
+  /** Dan, 2026-10-21: the private customer's consents with one tick. */
+  @Post("requests/:id/consent/accept")
+  @HttpCode(200)
+  @RequirePermission("request.create")
+  accept(@CurrentAuth() auth: AuthContext, @Param("id") id: string) {
+    return this.consents.acceptPrivate(auth, idOf(id));
+  }
+
   @Post("requests/:id/consent/link")
   @HttpCode(200)
   @RequirePermission("customerLink.send")

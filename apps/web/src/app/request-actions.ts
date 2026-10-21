@@ -46,7 +46,8 @@ function problemCodes(body: unknown): string {
 }
 
 function back(path: string, codes: string): never {
-  redirect(`${path}?errore=${encodeURIComponent(codes)}`);
+  const join = path.includes("?") ? "&" : "?";
+  redirect(`${path}${join}errore=${encodeURIComponent(codes)}`);
 }
 
 function requestId(value: FormDataEntryValue | null): string {
@@ -93,8 +94,13 @@ async function uploadFile(
     },
     await browserClient(),
   );
-  const body = response.status === 201 ? null : await response.json().catch(() => null);
-  return { ok: response.status === 201, codes: response.status === 201 ? "" : problemCodes(body) };
+  const body = (await response.json().catch(() => null)) as { readable?: boolean } | null;
+  return {
+    ok: response.status === 201,
+    codes: response.status === 201 ? "" : problemCodes(body),
+    // ADR 0013: whether the photo can be read, said at once.
+    readable: response.status !== 201 || body?.readable !== false,
+  };
 }
 
 // -------------------------------------------------------------- creation
@@ -102,7 +108,7 @@ async function uploadFile(
 export async function createPrivateRequest(): Promise<void> {
   const { status, body } = await api<{ id: string }>("/requests", { method: "POST", body: "{}" });
   if (status !== 201) back("/preventivi", problemCodes(body));
-  redirect(`/preventivi/${body.id}/veicolo`);
+  redirect(`/preventivi/${body.id}/tipo`);
 }
 
 export async function createBrokerRequest(formData: FormData): Promise<void> {
@@ -196,7 +202,8 @@ export async function readPlateHint(id: string): Promise<Record<string, string> 
 export async function uploadDocument(formData: FormData): Promise<void> {
   const id = requestId(formData.get("requestId"));
   const base = basePath(formData.get("base"));
-  const step = text(formData, "step") ?? "veicolo";
+  // The step may carry its query (the simplified request: «dati?stato=NEW»).
+  const step = (text(formData, "step") ?? "veicolo").replace(/[^a-z?=A-Z_]/g, "");
   const kind = text(formData, "kind") ?? "OTHER";
   const driver = text(formData, "driverIndex");
   const result = await uploadFile(
@@ -207,7 +214,8 @@ export async function uploadDocument(formData: FormData): Promise<void> {
   );
   const target = `${base}/${id}/${step}`;
   if (!result.ok) back(target, result.codes);
-  redirect(target);
+  const join = target.includes("?") ? "&" : "?";
+  redirect(result.readable ? target : `${target}${join}illeggibile=${encodeURIComponent(kind)}`);
 }
 
 export async function saveVehicleStep(formData: FormData): Promise<void> {
@@ -376,9 +384,9 @@ export async function saveCoverageStep(formData: FormData): Promise<void> {
   });
   const saved = await saveSection(id, "request", terms);
   if (!saved.ok) back(`${base}/${id}/${step}`, saved.codes);
-  redirect(
-    `${base}/${id}/${step === "copertura" ? "asta" : base === "/richieste" ? "consenso" : "consensi"}`,
-  );
+  // The private customer goes from the coverages to the confirmation (Dan, 2026-10-21).
+  if (base === "/preventivi") redirect(`${base}/${id}/conferma`);
+  redirect(`${base}/${id}/${step === "copertura" ? "asta" : "consenso"}`);
 }
 
 // -------------------------------------------------------------- consent
@@ -440,6 +448,94 @@ export async function uploadConsent(formData: FormData): Promise<void> {
   });
   if (status !== 200) back(here, problemCodes(body));
   redirect(`/richieste/${id}/riepilogo`);
+}
+
+// -------------------------------------------------------------- the simplified request (ADR 0013)
+
+/** The draft's essential data, to change one part of it. */
+async function currentIntake(id: string): Promise<Record<string, unknown>> {
+  const { body } = await api<{ draft: { intake?: Record<string, unknown> } | null }>(
+    `/requests/${id}`,
+  );
+  return body.draft?.intake ?? {};
+}
+
+/** Screen 2: plate, owner's birth date, residence, and for a new vehicle the class. */
+export async function saveIntakeStep(formData: FormData): Promise<void> {
+  const id = requestId(formData.get("requestId"));
+  const base = basePath(formData.get("base"));
+  const status = text(formData, "intake.vehicleStatus") === "NEW" ? "NEW" : "INSURED";
+  const here = `${base}/${id}/dati?stato=${status}`;
+  const name = text(formData, "intake.municipality") ?? "";
+  const province = text(formData, "intake.province")?.toUpperCase();
+  const candidates = name
+    ? (await api<Municipality[]>(`/reference/municipalities?q=${encodeURIComponent(name)}`)).body
+    : [];
+  const municipality = candidates.find(
+    (m) => m.name.toLowerCase() === name.toLowerCase() && (!province || m.province === province),
+  );
+  if (!municipality) back(here, "intake.municipality:MUNICIPALITY_NOT_FOUND");
+  const previous = await currentIntake(id);
+  const source = text(formData, "intake.classSource");
+  const intake = {
+    vehicleStatus: status,
+    plate: text(formData, "intake.plate"),
+    ownerBirthDate: text(formData, "intake.ownerBirthDate"),
+    residence: {
+      street: text(formData, "intake.street"),
+      postalCode: text(formData, "intake.postalCode"),
+      municipalityIstat: municipality.istatCode,
+      province: municipality.province,
+    },
+    ...(previous.drivingFormula ? { drivingFormula: previous.drivingFormula } : {}),
+    ...(status === "NEW"
+      ? {
+          classSource: {
+            kind: source ?? "OWN_VEHICLE",
+            ...(source !== "FIRST_POLICY" && text(formData, "intake.otherPlate")
+              ? { plate: text(formData, "intake.otherPlate") }
+              : {}),
+            ...(source === "FAMILY" && text(formData, "intake.relativeBirthDate")
+              ? { relativeBirthDate: text(formData, "intake.relativeBirthDate") }
+              : {}),
+          },
+        }
+      : {}),
+  };
+  const saved = await saveSection(id, "intake", intake);
+  if (!saved.ok) back(here, saved.codes);
+  redirect(`${base}/${id}/guida`);
+}
+
+/** Screen 3: the type of driving. */
+export async function saveDrivingStep(formData: FormData): Promise<void> {
+  const id = requestId(formData.get("requestId"));
+  const base = basePath(formData.get("base"));
+  const formula = text(formData, "intake.drivingFormula");
+  if (!formula) back(`${base}/${id}/guida`, "drivingFormula:REQUIRED");
+  const saved = await saveSection(id, "intake", {
+    ...(await currentIntake(id)),
+    drivingFormula: formula,
+  });
+  if (!saved.ok) back(`${base}/${id}/guida`, saved.codes);
+  redirect(`${base}/${id}/copertura`);
+}
+
+/** Screen 5: one tick for the consents (Dan, answer 5B), then the submission. */
+export async function confirmAndSubmit(formData: FormData): Promise<void> {
+  const id = requestId(formData.get("requestId"));
+  const base = basePath(formData.get("base"));
+  const here = `${base}/${id}/conferma`;
+  if (!checked(formData, "consent")) back(here, "consent:CONSENT_REQUIRED");
+  // Once only: a second try after an error keeps the consent already given.
+  const given = await api<{ consent: unknown }>(`/requests/${id}/consent`);
+  if (!given.body.consent) {
+    const accepted = await api(`/requests/${id}/consent/accept`, { method: "POST", body: "{}" });
+    if (accepted.status !== 200) back(here, problemCodes(accepted.body));
+  }
+  const { status, body } = await api(`/requests/${id}/submit`, { method: "POST", body: "{}" });
+  if (status !== 200) back(here, problemCodes(body));
+  redirect(`${base}/${id}?inviata=1`);
 }
 
 // -------------------------------------------------------------- submission

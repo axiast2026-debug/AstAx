@@ -16,8 +16,9 @@ import {
   requestOptions,
   type WizardStep,
 } from "@/lib/requests";
-import { BrokerConsentStep, PrivateConsentStep } from "./consent-steps";
+import { BrokerConsentStep } from "./consent-steps";
 import { DriversStep } from "./drivers-step";
+import { ConfirmStep, DrivingStep, IntakeDataStep, VehicleTypeStep } from "./intake-steps";
 import { SummaryStep } from "./summary-step";
 import { AuctionStep, CoverageStep } from "./terms-steps";
 import { VehicleStep } from "./vehicle-step";
@@ -53,7 +54,29 @@ export async function WizardPage({
   const errors = typeof query.errore === "string" ? query.errore : undefined;
 
   let body;
-  if (step === "veicolo") {
+  // Dan, 2026-10-21 (ADR 0013): the five screens of the private customer.
+  const intakeStatus =
+    query.stato === "NEW" || query.stato === "INSURED"
+      ? query.stato
+      : (((detail.draft?.intake ?? {}) as { vehicleStatus?: "INSURED" | "NEW" }).vehicleStatus ??
+        "INSURED");
+  if (step === "tipo") {
+    body = <VehicleTypeStep detail={detail} base={base} />;
+  } else if (step === "dati") {
+    body = (
+      <IntakeDataStep
+        detail={detail}
+        base={base}
+        errors={errors}
+        status={intakeStatus}
+        unreadable={typeof query.illeggibile === "string" ? query.illeggibile : undefined}
+      />
+    );
+  } else if (step === "guida") {
+    body = <DrivingStep detail={detail} options={options} base={base} errors={errors} />;
+  } else if (step === "conferma") {
+    body = <ConfirmStep detail={detail} options={options} base={base} />;
+  } else if (step === "veicolo") {
     body = (
       <VehicleStep
         detail={detail}
@@ -99,8 +122,6 @@ export async function WizardPage({
     body = <CoverageStep detail={detail} options={options} base={base} errors={errors} />;
   } else if (step === "asta") {
     body = <AuctionStep detail={detail} options={options} base={base} />;
-  } else if (step === "consensi") {
-    body = <PrivateConsentStep detail={detail} codeSent={query.codice === "inviato"} />;
   } else if (step === "consenso") {
     body = <BrokerConsentStep detail={detail} linkSent={query.link === "inviato"} />;
   } else {

@@ -193,6 +193,7 @@
     "consent": "Consenso: {method}, {at}",
     "consentMethods": {
       "OTP_PRIVATE": "codice del privato",
+      "CHECKBOX_PRIVATE": "spunta del privato, entrato con il codice email",
       "OTP_LINK": "link e codice del cliente",
       "UPLOADED_BY_BROKER": "caricato dal broker, da controllare"
     },

@@ -413,6 +413,12 @@ const ENDPOINTS: Endpoint[] = [
     body: {},
   },
   {
+    action: "request.create",
+    method: "POST",
+    path: () => `/requests/${randomUUID()}/consent/accept`,
+    body: {},
+  },
+  {
     action: "customerLink.send",
     method: "POST",
     path: () => `/requests/${randomUUID()}/consent/link`,

@@ -375,6 +375,8 @@
     "CONFLICT": "Questa operazione non è più possibile.",
     "FORBIDDEN": "Non hai il permesso per questa operazione.",
     "VALIDATION_FAILED": "Alcuni dati non sono validi.",
+    "DOCUMENT_UNREADABLE": "Una foto non si legge: rifalla.",
+    "DOCUMENT_MISSING": "Manca la foto di un documento.",
     "CONSENT_REQUIRED": "Prima dell'invio serve il consenso alla condivisione dei dati con le agenzie.",
     "EXCLUDED_CASE": "Questo veicolo non può andare all'asta (caso escluso): {detail}.",
     "missing_section": "Manca una parte della procedura.",
@@ -462,6 +464,10 @@
     "saveAndContinue": "Salva e continua",
     "backToRequest": "Torna alla richiesta {code}",
     "titles": {
+      "tipo": "Che veicolo vuoi assicurare?",
+      "dati": "Foto dei documenti e pochi dati",
+      "guida": "Chi guida",
+      "conferma": "Controlla e invia",
       "veicolo": "Il veicolo",
       "conducenti": "Chi guida",
       "copertura": "La copertura",
@@ -473,6 +479,10 @@
     "steps": {
       "label": "Passaggi della procedura",
       "progress": "Passaggio {n} di {total}",
+      "tipo": "Veicolo",
+      "dati": "Documenti",
+      "guida": "Guida",
+      "conferma": "Invio",
       "veicolo": "Veicolo",
       "conducenti": "Conducenti",
       "copertura": "Copertura",
@@ -516,6 +526,10 @@
     },
     "upload": {
       "file": "Foto o PDF",
+      "take": "Scatta o scegli la foto",
+      "retake": "Rifai la foto",
+      "received": "Ricevuto: {name}",
+      "unreadable": "Questa foto non si legge bene: rifalla con più luce, senza riflessi, con tutto il documento nell’inquadratura.",
       "upload": "Carica",
       "replace": "Sostituisci",
       "current": "Caricato: {name}"
@@ -596,6 +610,74 @@
       "formula": "Formula di guida",
       "formulaIntro": "Con la guida esperta tutti i conducenti devono avere almeno {age} anni alla decorrenza."
     },
+    "intake": {
+      "status": {
+        "INSURED": {
+          "label": "Già assicurato",
+          "text": "Il veicolo ha già una polizza RC auto: ci servono il libretto e la patente."
+        },
+        "NEW": {
+          "label": "Nuovo da assicurare",
+          "text": "Lo assicuri per la prima volta: ci servono il libretto e la carta d'identità."
+        }
+      },
+      "photosTitle": "Fotografa i documenti",
+      "photosIntro": "Scatta una foto chiara di ogni documento, o caricane il PDF. Leggiamo noi i dati: tu controlli solo quelli qui sotto.",
+      "photos": {
+        "REGISTRATION_CERTIFICATE": {
+          "title": "Libretto di circolazione",
+          "text": "La pagina con targa e proprietario."
+        },
+        "DRIVING_LICENCE": {
+          "title": "Patente",
+          "text": "Il fronte, con nome, numero e scadenza."
+        },
+        "IDENTITY_DOCUMENT": {
+          "title": "Carta d'identità",
+          "text": "Il fronte e il retro, con codice fiscale e indirizzo."
+        },
+        "RISK_CERTIFICATE": {
+          "title": "Attestato di rischio (facoltativo)",
+          "text": "Se ce l'hai, ci dice subito la classe di merito: lo trovi nell'area clienti della tua compagnia."
+        }
+      },
+      "dataTitle": "I tuoi dati",
+      "plate": "Targa",
+      "ownerBirthDate": "Data di nascita del proprietario",
+      "street": "Indirizzo di residenza",
+      "postalCode": "CAP",
+      "municipality": "Comune",
+      "province": "Provincia (sigla)",
+      "classTitle": "Da dove prendiamo la classe di merito?",
+      "classSources": {
+        "OWN_VEHICLE": "Da un altro mio veicolo assicurato",
+        "SOLD_VEHICLE": "Da un mio veicolo venduto, demolito o rottamato",
+        "FAMILY": "Dal veicolo di un familiare che vive con me",
+        "FIRST_POLICY": "Nessuno: è la mia prima polizza"
+      },
+      "otherPlate": "Targa dell'altro veicolo",
+      "otherPlateHint": "Il tuo veicolo, quello venduto o rottamato, o quello del familiare",
+      "relativeBirthDate": "Data di nascita del familiare",
+      "relativeBirthDateHint": "Solo per il veicolo di un familiare",
+      "drivingTitle": "Tipo di guida",
+      "driving": {
+        "FREE": "Può guidare chiunque abbia la patente.",
+        "EXPERT": "Possono guidare solo persone con almeno {age} anni.",
+        "EXCLUSIVE": "Guida solo il proprietario del veicolo."
+      },
+      "drivingRequired": "Scegli il tipo di guida.",
+      "summary": {
+        "vehicle": "Veicolo",
+        "residence": "Residenza",
+        "coverages": "Garanzie",
+        "start": "Decorrenza",
+        "documents": "Documenti caricati"
+      },
+      "consentTick": "Ho letto e accetto il trattamento dei dati e la condivisione con le agenzie invitate all'asta.",
+      "afterSubmit": "Dopo l'invio controlliamo i documenti e apriamo l'asta: ti avvisiamo noi a ogni passo.",
+      "submit": "Invia la richiesta",
+      "continue": "Continua"
+    },
     "coverage": {
       "package": "Quali garanzie vuoi",
       "chooseCoverages": "Oltre alla RC auto, scegli le garanzie che vuoi:",
@@ -653,6 +735,7 @@
       "given": "Consenso registrato il {at} ({method}).",
       "method": {
         "OTP_PRIVATE": "codice del cliente",
+        "CHECKBOX_PRIVATE": "spunta del cliente",
         "OTP_LINK": "link e codice del cliente",
         "UPLOADED_BY_BROKER": "caricato dal broker"
       }

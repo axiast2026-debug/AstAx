@@ -71,7 +71,15 @@ const evidence = {
 describe("ADR 0013: the request in two stages", () => {
   it("the essential data: plate, owner's birth date, residence, type of driving", () => {
     expect(insured.plate).toBe("GN123AB");
-    expect(IntakeSchema.safeParse({ ...insured, drivingFormula: undefined }).success).toBe(false);
+    expect(IntakeSchema.safeParse({ ...insured, plate: "" }).success).toBe(false);
+    // The type of driving has its own screen: saved later, required at the submission.
+    expect(IntakeSchema.safeParse({ ...insured, drivingFormula: undefined }).success).toBe(true);
+    const candidate = quoteDataFromIntake(
+      { ...insured, drivingFormula: undefined },
+      request,
+      evidence,
+    );
+    expect(candidate.missing).toContain("drivingFormula");
   });
 
   it("a new vehicle needs where the class comes from: plate, and birth date for a relative", () => {

@@ -345,6 +345,28 @@ export class ConsentService {
     return outcome;
   }
 
+  /**
+   * Dan, 2026-10-21 (answer 5B, docs/piano-flusso-semplificato.md): the private
+   * customer, signed in with the email code, gives every consent with one tick.
+   * The text version, the time, the address and the browser are recorded;
+   * to be confirmed by the lawyer (docs/punti-aperti.md).
+   */
+  async acceptPrivate(auth: AuthContext, id: string) {
+    const now = this.clock.now();
+    return withContext(this.db, auth.db, async (tx) => {
+      const request = await this.findEditable(tx, auth, id);
+      if (request.channel !== "PRIVATE") throw await this.denied(auth, id, "FORBIDDEN");
+      return this.recordConsent(
+        tx,
+        request,
+        "CHECKBOX_PRIVATE",
+        { ip: auth.ip, userAgent: auth.userAgent },
+        actorOf(auth),
+        now,
+      );
+    });
+  }
+
   // -------------------------------------------------------------- broker
 
   /** Consent collected by the broker and uploaded as a CONSENT_FORM document. */
