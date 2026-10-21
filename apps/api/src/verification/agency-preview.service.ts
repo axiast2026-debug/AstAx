@@ -3,6 +3,7 @@ import {
   auctionSettings,
   auctionSettingsAt,
   filterableRequest,
+  conflictedAgencies,
   loadAgencyCandidates,
   loadWorkingCalendar,
   withContext,
@@ -71,7 +72,11 @@ export class AgencyPreviewService {
         minReceptionOverlapMinutes: settings.minReceptionOverlapWorkingHours * 60,
         limit: settings.invitationsMax,
         alreadyInvited: [],
-        excluded: exclusions.map((e) => e.organizationId),
+        // Answer 2A: the agency of an intermediary of section E is never invited.
+        excluded: [
+          ...exclusions.map((e) => e.organizationId),
+          ...(await conflictedAgencies(tx, request.ownerOrganizationId)),
+        ],
         rotation: true,
       });
       const orgIds = [

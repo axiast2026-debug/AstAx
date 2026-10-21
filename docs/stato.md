@@ -19,6 +19,8 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 
 ## Ultima sessione
 
+**2026-10-21 — broker, passo 3 del piano** (`docs/piano-broker.md`, proposta A, risposte 1A e 2A): intermediari di sezione E nella domanda di ingresso, con il numero RUI dell'intermediario per cui lavorano (`principalRuiNumber`, migrazione `20261027090000_section_e`, valore `E` in `RuiSection`); controllo sul RUI con `principalMatches`; organizzazione di tipo broker con sezione E. `conflictedAgencies` (`packages/db/src/auction-data.ts`) toglie dagli inviti l'agenzia per cui lavora l'E, all'apertura, nelle integrazioni di inviti e nell'anteprima del back office. Prova in `apps/api/test/int/onboarding.int.test.ts`. Dopo il pull: `pnpm db:migrate`.
+
 **2026-10-21 — broker, passo 2 del piano** (`docs/piano-broker.md`, proposta G): «Richieste» diventa la tabella di lavoro del broker con filtri (stato e «Da fare», cliente, targa, decorrenza) e la colonna «Da fare» (`apps/web/src/lib/broker-work.ts`, con prove); l'API accetta più stati, il nome del cliente e la decorrenza entro N giorni (nel corpo, mai nell'indirizzo). Menu corto del broker e link in fondo alla pagina (`linksFor` in `packages/ui`). E2E nuovo `tests/e2e/specs/broker-area.spec.ts`.
 
 **2026-10-21 — broker, passo 1 del piano** (`docs/piano-broker.md`, approvato da Dan con le risposte 1-6).

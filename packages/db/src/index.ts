@@ -17,6 +17,7 @@ export {
   auctionSettings,
   auctionSettingsAt,
   filterableRequest,
+  conflictedAgencies,
   loadAgencyCandidates,
   loadIssuanceCalendar,
   requestRequirements,

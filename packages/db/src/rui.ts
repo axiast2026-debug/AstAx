@@ -49,8 +49,13 @@ export async function importRuiRecords(
 
 export interface RuiCheck {
   found: boolean;
-  /** The section expected for the type: A for an agency, B for a broker. */
+  /** The section expected: A for an agency, B for a broker, E for an intermediary of section E. */
   sectionMatches: boolean;
+  /**
+   * Section E: the registry links the intermediary to the declared agency or
+   * broker. Null for agencies and brokers.
+   */
+  principalMatches: boolean | null;
   nameMatches: boolean;
   registeredName: string | null;
   /** Agencies: the declared companies that are in the registry, and the others. */
@@ -73,16 +78,21 @@ export async function checkOnRui(
   input: {
     type: "AGENCY" | "BROKER";
     ruiNumber: string;
+    principalRuiNumber?: string | null;
     legalName: string;
     companyNames: readonly string[];
   },
 ): Promise<RuiCheck> {
+  const expected = input.type === "AGENCY" ? "A" : input.principalRuiNumber ? "E" : "B";
   const record = await tx.ruiRecord.findUnique({ where: { number: input.ruiNumber } });
   const listed = new Set((record?.companies ?? []).map(normalized));
   const confirmed = input.companyNames.filter((c) => listed.has(normalized(c)));
   return {
     found: record !== null,
-    sectionMatches: record?.section === (input.type === "AGENCY" ? "A" : "B"),
+    sectionMatches: record?.section === expected,
+    principalMatches: input.principalRuiNumber
+      ? record !== null && record.linkedNumber === input.principalRuiNumber
+      : null,
     nameMatches: record !== null && normalized(record.name) === normalized(input.legalName),
     registeredName: record?.name ?? null,
     confirmedCompanies: confirmed,

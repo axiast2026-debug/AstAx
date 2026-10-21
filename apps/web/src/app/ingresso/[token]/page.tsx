@@ -12,7 +12,7 @@ import {
   updateOnboarding,
   uploadProfInsurance,
 } from "../actions";
-import { OnboardingForm, type OnboardingValues } from "../onboarding-form";
+import { kindOf, OnboardingForm, type OnboardingValues } from "../onboarding-form";
 
 const TOKEN = /^[A-Za-z0-9_-]{40,60}$/;
 const DONE = ["creata", "salvata", "iban", "polizza", "inviata"] as const;
@@ -86,7 +86,7 @@ export default async function OnboardingPage({
           <CardTitle>{t("editTitle")}</CardTitle>
           <div className="mt-4">
             <OnboardingForm
-              type={a.type}
+              kind={kindOf(a)}
               companies={options.status === 200 ? options.body.companies : []}
               values={a}
               token={token}

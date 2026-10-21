@@ -1,5 +1,5 @@
 import { FakeRuiRegistry } from "@astax/adapters/rui-registry";
-import { importRuiRecords, SYSTEM_CONTEXT, withContext } from "@astax/db";
+import { conflictedAgencies, importRuiRecords, SYSTEM_CONTEXT, withContext } from "@astax/db";
 import { buildSyntheticIban, buildVatNumber } from "@astax/shared/domain";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { acceptAllLegal, membershipId, startHarness, type Harness } from "./fixtures.js";
@@ -311,5 +311,92 @@ describe("phase 7 entry of a new agency", () => {
       409,
     );
     expect(refused.errors[0]?.issue).toBe("EMAIL_NOT_PROFESSIONAL");
+  });
+});
+
+describe("broker plan, step 3 (Dan, 2026-10-21): an intermediary of section E", () => {
+  const body = (principalRuiNumber: string | null) => ({
+    type: "BROKER",
+    legalName: "Marco Rossi",
+    vatNumber: buildVatNumber(1, 7),
+    fiscalCode: null,
+    ruiNumber: "E000000001",
+    principalRuiNumber,
+    pec: "marco.rossi@pec.test",
+    address: {
+      street: "Via Prova 12",
+      postalCode: "00184",
+      municipalityIstat: "058091",
+      province: "RM",
+    },
+    iban: buildSyntheticIban(7001),
+    owner: {
+      firstName: "Marco",
+      lastName: "Rossi",
+      email: "marco.rossi@intermediario-e.test",
+      phone: OWNER_PHONE,
+    },
+    companyIds: [],
+  });
+
+  it("answer 1A: enters by itself with the intermediary it works for, checked on the RUI", async () => {
+    const missing = await r.json<{ errors: { issue: string }[] }>(
+      await h.call("/onboarding", { body: body(null) }),
+      400,
+    );
+    expect(missing.errors.map((e) => e.issue)).toEqual(["PRINCIPAL_REQUIRED"]);
+    const asAgency = await r.json<{ errors: { issue: string }[] }>(
+      await h.call("/onboarding", { body: { ...body("A000000001"), type: "AGENCY" } }),
+      400,
+    );
+    expect(asAgency.errors.map((e) => e.issue)).toEqual(["WRONG_SECTION"]);
+
+    const { token } = await r.json<{ token: string }>(
+      await h.call("/onboarding", { body: body("A000000001") }),
+      201,
+    );
+    const options = (await (await h.call("/onboarding/options?type=BROKER")).json()) as Options;
+    const versionIds = await complete(token, options);
+    await r.json(await h.call(`/onboarding/${token}/submit`, { body: { versionIds } }), 200);
+    const queue = await r.json<{ id: string; legalName: string; principalRuiNumber: string }[]>(
+      await r.call(supervisor, "/back-office/onboarding"),
+      200,
+    );
+    const entry = queue.find((q) => q.legalName === "Marco Rossi");
+    expect(entry?.principalRuiNumber).toBe("A000000001");
+    const detail = await r.json<{ ruiCheck: Record<string, unknown> }>(
+      await r.call(supervisor, `/back-office/onboarding/${entry?.id}`),
+      200,
+    );
+    expect(detail.ruiCheck).toMatchObject({
+      found: true,
+      sectionMatches: true,
+      nameMatches: true,
+      principalMatches: true,
+    });
+
+    const approved = await r.json<{ organizationId: string }>(
+      await r.call(supervisor, `/back-office/onboarding/${entry?.id}/approve`, {
+        body: { reason: "RUI in ordine" },
+      }),
+      200,
+    );
+    const organization = await system((tx) =>
+      tx.organization.findUniqueOrThrow({ where: { id: approved.organizationId } }),
+    );
+    expect(organization).toMatchObject({
+      type: "BROKER",
+      ruiSection: "E",
+      principalRuiNumber: "A000000001",
+    });
+    // Answer 2A: Agenzia Uno, for which it works, is left out of its auctions.
+    const [conflicted, uno] = await system(async (tx) =>
+      Promise.all([
+        conflictedAgencies(tx, approved.organizationId),
+        tx.organization.findFirstOrThrow({ where: { ruiNumber: "A000000001" } }),
+      ]),
+    );
+    expect(conflicted).toEqual([uno.id]);
+    expect(await system((tx) => conflictedAgencies(tx, null))).toEqual([]);
   });
 });

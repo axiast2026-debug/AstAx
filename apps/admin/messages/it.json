@@ -990,7 +990,8 @@
     "empty": "Nessuna richiesta.",
     "types": {
       "AGENCY": "Agenzia",
-      "BROKER": "Broker"
+      "BROKER": "Broker",
+      "E": "Intermediario di sezione E"
     },
     "sentAt": "inviata il {at}",
     "ruiFound": "sul RUI",
@@ -1033,7 +1034,9 @@
     "ruiLabel": "RUI",
     "pec": "PEC",
     "iban": "IBAN",
-    "istat": "ISTAT {code}"
+    "istat": "ISTAT {code}",
+    "principalMatches": "Collegato all'intermediario indicato",
+    "principalLabel": "Lavora per (RUI)"
   },
   "operations": {
     "queues": "Code di lavoro",

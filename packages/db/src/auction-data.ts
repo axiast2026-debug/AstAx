@@ -134,6 +134,25 @@ export function filterableRequest(request: QuoteRequest, openedAt: Date): Filter
  * Every agency with what ASTA-05 looks at. `day` is the Rome calendar date of
  * the opening, for the daily capacity; a malformed filter counts as no filter.
  */
+/**
+ * Dan, 2026-10-21 (docs/piano-broker.md, answer 2A): an intermediary of
+ * section E may ask for quotes, but the agency it works for is never invited
+ * to its auctions. The agencies to leave out for a requester organization.
+ */
+export async function conflictedAgencies(
+  tx: DbTransaction,
+  requesterOrganizationId: string | null,
+): Promise<string[]> {
+  if (!requesterOrganizationId) return [];
+  const requester = await tx.organization.findUnique({ where: { id: requesterOrganizationId } });
+  if (!requester?.principalRuiNumber) return [];
+  const agencies = await tx.organization.findMany({
+    where: { type: "AGENCY", ruiNumber: requester.principalRuiNumber },
+    select: { id: true },
+  });
+  return agencies.map((a) => a.id);
+}
+
 export async function loadAgencyCandidates(
   tx: DbTransaction,
   day: Date,

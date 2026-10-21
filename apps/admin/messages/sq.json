@@ -990,7 +990,8 @@
     "empty": "Asnjë kërkesë.",
     "types": {
       "AGENCY": "Agjenci",
-      "BROKER": "Broker"
+      "BROKER": "Broker",
+      "E": "Ndërmjetës i seksionit E"
     },
     "sentAt": "dërguar më {at}",
     "ruiFound": "në RUI",
@@ -1033,7 +1034,9 @@
     "ruiLabel": "RUI",
     "pec": "PEC",
     "iban": "IBAN",
-    "istat": "ISTAT {code}"
+    "istat": "ISTAT {code}",
+    "principalMatches": "I lidhur me ndërmjetësin e treguar",
+    "principalLabel": "Punon për (RUI)"
   },
   "operations": {
     "queues": "Radhët e punës",

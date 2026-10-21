@@ -49,6 +49,8 @@ export interface OnboardingInput {
   vatNumber: string;
   fiscalCode: string | null;
   ruiNumber: string;
+  /** Section E: the agency or broker it works for (docs/piano-broker.md, A). */
+  principalRuiNumber: string | null;
   pec: string;
   address: { street: string; postalCode: string; municipalityIstat: string; province: string };
   iban: string;
@@ -149,6 +151,7 @@ export class OnboardingService {
       vatNumber: input.vatNumber,
       fiscalCodeEnc: input.fiscalCode ? this.cipher.encrypt(input.fiscalCode) : null,
       ruiNumber: input.ruiNumber,
+      principalRuiNumber: input.principalRuiNumber,
       pec: input.pec,
       address: input.address,
       ibanEnc: this.cipher.encrypt(input.iban),
@@ -226,6 +229,7 @@ export class OnboardingService {
         vatNumber: a.vatNumber,
         fiscalCode: a.fiscalCodeEnc ? this.cipher.decrypt(a.fiscalCodeEnc) : null,
         ruiNumber: a.ruiNumber,
+        principalRuiNumber: a.principalRuiNumber,
         pec: a.pec,
         address: a.address,
         iban: maskIban(this.cipher.decrypt(a.ibanEnc)),
@@ -431,6 +435,7 @@ export class OnboardingService {
         checkOnRui(tx, {
           type: a.type as OnboardingType,
           ruiNumber: a.ruiNumber,
+          principalRuiNumber: a.principalRuiNumber,
           legalName: a.legalName,
           companyNames: companies.map((c) => c.name),
         }),
@@ -507,6 +512,7 @@ export class OnboardingService {
         status: a.status,
         legalName: a.legalName,
         ruiNumber: a.ruiNumber,
+        principalRuiNumber: a.principalRuiNumber,
         submittedAt: a.submittedAt?.toISOString() ?? null,
         ruiFound: (a.ruiCheck as RuiCheck | null)?.found ?? null,
       })),
@@ -539,6 +545,7 @@ export class OnboardingService {
         vatNumber: a.vatNumber,
         fiscalCode: a.fiscalCodeEnc ? this.cipher.decrypt(a.fiscalCodeEnc) : null,
         ruiNumber: a.ruiNumber,
+        principalRuiNumber: a.principalRuiNumber,
         pec: a.pec,
         address: a.address,
         iban: this.cipher.decrypt(a.ibanEnc),
@@ -716,7 +723,8 @@ export class OnboardingService {
               ? this.cipher.blindIndex("fiscalCode", this.cipher.decrypt(a.fiscalCodeEnc))
               : null,
             ruiNumber: a.ruiNumber,
-            ruiSection: a.type === "AGENCY" ? "A" : "B",
+            ruiSection: a.type === "AGENCY" ? "A" : a.principalRuiNumber ? "E" : "B",
+            principalRuiNumber: a.principalRuiNumber,
             pec: a.pec,
             address: a.address as object,
             ibanEnc: a.ibanEnc,

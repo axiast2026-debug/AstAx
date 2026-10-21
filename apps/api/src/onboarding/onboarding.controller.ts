@@ -41,7 +41,15 @@ const inputSchema = z.strictObject({
     .string()
     .trim()
     .toUpperCase()
-    .regex(/^[AB]\d{9}$/),
+    .regex(/^[ABE]\d{9}$/),
+  /** Section E only: the RUI number of the agency or broker it works for. */
+  principalRuiNumber: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[AB]\d{9}$/)
+    .nullable()
+    .optional(),
   pec: z.email().max(200),
   address: z.strictObject({
     street: text(200),
@@ -71,13 +79,22 @@ function clientOf(request: Request) {
 
 function parsed(body: unknown) {
   const input = parseInput(inputSchema, body);
-  // The section of the RUI follows the type: A for agencies, B for brokers.
-  if (input.ruiNumber[0] !== (input.type === "AGENCY" ? "A" : "B")) {
+  // The section of the RUI follows the type: A for agencies, B for brokers, and
+  // E for the intermediaries who ask for quotes like a broker (Dan, 2026-10-21).
+  const section = input.ruiNumber[0];
+  const allowed = input.type === "AGENCY" ? ["A"] : ["B", "E"];
+  if (!allowed.includes(section ?? "")) {
     throw new ProblemError("VALIDATION_FAILED", undefined, [
       { path: "ruiNumber", issue: "WRONG_SECTION" },
     ]);
   }
-  return { ...input, fiscalCode: input.fiscalCode ?? null };
+  const principal = section === "E" ? (input.principalRuiNumber ?? null) : null;
+  if (section === "E" && !principal) {
+    throw new ProblemError("VALIDATION_FAILED", undefined, [
+      { path: "principalRuiNumber", issue: "PRINCIPAL_REQUIRED" },
+    ]);
+  }
+  return { ...input, fiscalCode: input.fiscalCode ?? null, principalRuiNumber: principal };
 }
 
 /**

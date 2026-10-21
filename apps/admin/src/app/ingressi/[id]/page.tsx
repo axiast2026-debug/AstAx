@@ -16,6 +16,7 @@ interface Detail {
   vatNumber: string;
   fiscalCode: string | null;
   ruiNumber: string;
+  principalRuiNumber: string | null;
   pec: string;
   address: { street: string; postalCode: string; municipalityIstat: string; province: string };
   iban: string;
@@ -30,6 +31,7 @@ interface Detail {
     found: boolean;
     sectionMatches: boolean;
     nameMatches: boolean;
+    principalMatches?: boolean | null;
     registeredName: string | null;
     confirmedCompanies: string[];
     unconfirmedCompanies: string[];
@@ -74,7 +76,7 @@ export default async function OnboardingDetailPage({
       </Link>
       <h1 className="mt-2 text-2xl font-bold">{a.legalName}</h1>
       <p className="mt-1 text-sm text-warm-600">
-        {t(`types.${a.type}`)} · {t(`status.${a.status}`)}
+        {t(`types.${a.principalRuiNumber ? "E" : a.type}`)} · {t(`status.${a.status}`)}
         {a.submittedAt ? ` · ${t("sentAt", { at: formatDateTime(a.submittedAt, locale) })}` : ""}
       </p>
       {query.errore ? (
@@ -96,6 +98,14 @@ export default async function OnboardingDetailPage({
               <dd>
                 {ok(check.nameMatches)} {check.registeredName ? `(${check.registeredName})` : ""}
               </dd>
+              {a.principalRuiNumber ? (
+                <>
+                  <dt>{t("principalMatches")}</dt>
+                  <dd>
+                    {ok(check.principalMatches === true)} ({a.principalRuiNumber})
+                  </dd>
+                </>
+              ) : null}
               {a.type === "AGENCY" ? (
                 <>
                   <dt>{t("confirmedCompanies")}</dt>
@@ -117,6 +127,12 @@ export default async function OnboardingDetailPage({
           <dl className="mt-3 grid grid-cols-[10rem_1fr] gap-1 text-sm">
             <dt className="text-warm-600">{t("ruiLabel")}</dt>
             <dd>{a.ruiNumber}</dd>
+            {a.principalRuiNumber ? (
+              <>
+                <dt className="text-warm-600">{t("principalLabel")}</dt>
+                <dd>{a.principalRuiNumber}</dd>
+              </>
+            ) : null}
             <dt className="text-warm-600">{t("vatNumber")}</dt>
             <dd>{a.vatNumber}</dd>
             {a.fiscalCode ? (

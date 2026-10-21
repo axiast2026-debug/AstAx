@@ -68,6 +68,8 @@ enum OrganizationType {
 enum RuiSection {
   A
   B
+  /// Intermediaries of section E who ask for quotes (Dan, 2026-10-21).
+  E
 }
 
 enum OrganizationStatus {
@@ -86,6 +88,9 @@ model Organization {
   fiscalCodeHash         String?
   ruiNumber              String?
   ruiSection             RuiSection?
+  /// Section E: the RUI number of its agency or broker; that agency is never
+  /// invited to this organization's auctions (Dan, 2026-10-21, answer 2A).
+  principalRuiNumber     String?
   pec                    String?
   address                Json?
   ibanEnc                String?
@@ -1993,6 +1998,9 @@ model OnboardingApplication {
   vatNumber              String
   fiscalCodeEnc          String?
   ruiNumber              String
+  /// Section E (Dan, 2026-10-21, docs/piano-broker.md A): the RUI number (A or
+  /// B) of the agency or broker the intermediary works for.
+  principalRuiNumber     String?
   pec                    String
   address                Json
   ibanEnc                String

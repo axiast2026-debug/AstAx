@@ -472,10 +472,11 @@
     "EXPIRED": "La polizza di RC professionale è scaduta.",
     "NOT_ACCEPTED": "Accetta tutti i contratti.",
     "RUI_IN_USE": "Questo numero RUI è già su AstAx o ha già una richiesta in corso.",
-    "WRONG_SECTION": "Il numero RUI non è della sezione giusta: A per le agenzie, B per i broker.",
+    "WRONG_SECTION": "Il numero RUI non è della sezione giusta: A per le agenzie, B per i broker, E per gli intermediari di sezione E.",
     "NOT_EDITABLE": "La richiesta è già al back office: aspetta l'esito.",
     "UNKNOWN_COMPANY": "Scegli almeno una compagnia mandante.",
-    "INVALID_IBAN": "L'IBAN non è valido."
+    "INVALID_IBAN": "L'IBAN non è valido.",
+    "PRINCIPAL_REQUIRED": "Indica il numero RUI dell'intermediario per cui lavori."
   },
   "wizard": {
     "choose": "Scegli",
@@ -1593,7 +1594,8 @@
     "typeChoice": "Chi sei",
     "types": {
       "AGENCY": "Sono un'agenzia",
-      "BROKER": "Sono un broker"
+      "BROKER": "Sono un broker",
+      "E": "Sono un intermediario di sezione E"
     },
     "company": "La società",
     "legalName": "Ragione sociale",
@@ -1662,7 +1664,10 @@
     "version": "versione {number}",
     "accept": "Ho letto e accetto: {title}",
     "notReady": "Prima conferma l'IBAN e carica la polizza.",
-    "submit": "Invia la richiesta"
+    "submit": "Invia la richiesta",
+    "ruiNumberE": "Numero RUI (sezione E)",
+    "principalRuiNumber": "Numero RUI dell'intermediario per cui lavori",
+    "principalRuiNumberHint": "L'agenzia (sezione A) o il broker (sezione B) per cui lavori. Se è un'agenzia, non sarà invitata alle aste dei tuoi preventivi."
   },
   "complaints": {
     "title": "Reclami",

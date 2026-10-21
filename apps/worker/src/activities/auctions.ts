@@ -11,6 +11,7 @@ import {
   auctionSettings,
   auctionSettingsAt,
   filterableRequest,
+  conflictedAgencies,
   loadAgencyCandidates,
   loadWorkingCalendar,
   reconfirmationAsked,
@@ -408,7 +409,10 @@ export function auctionActivities(
         alreadyInvited: rounds.flatMap((r) =>
           r.invitations.map((i) => ({ organizationId: i.organizationId, companies: [] })),
         ),
-        excluded: exclusions.map((e) => e.organizationId),
+        excluded: [
+          ...exclusions.map((e) => e.organizationId),
+          ...(await conflictedAgencies(tx, request.ownerOrganizationId)),
+        ],
         rotation: input.kind === "MAIN",
       });
       if (selection.selected.length === 0) return { opened: false, reason: "NO_AGENCIES" };
@@ -577,7 +581,10 @@ export function auctionActivities(
             .filter((m) => m.organizationId === i.organizationId)
             .map((m) => m.companyId),
         })),
-        excluded: exclusions.map((e) => e.organizationId),
+        excluded: [
+          ...exclusions.map((e) => e.organizationId),
+          ...(await conflictedAgencies(tx, request.ownerOrganizationId)),
+        ],
         rotation: true,
       });
       const ids = selection.selected.map((s) => s.organizationId);

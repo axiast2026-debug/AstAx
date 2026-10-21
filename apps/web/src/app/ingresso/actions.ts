@@ -28,6 +28,8 @@ function inputOf(formData: FormData) {
     vatNumber: value("vatNumber"),
     fiscalCode: value("fiscalCode") || null,
     ruiNumber: value("ruiNumber").toUpperCase(),
+    // Section E only (docs/piano-broker.md, A).
+    principalRuiNumber: value("principalRuiNumber").toUpperCase() || null,
     pec: value("pec"),
     address: {
       street: value("street"),
@@ -53,7 +55,8 @@ export async function startOnboarding(formData: FormData): Promise<void> {
     body: JSON.stringify(input),
   });
   if (status !== 201) {
-    redirect(`/ingresso?tipo=${input.type}&errore=${encodeURIComponent(codesOf(body))}`);
+    const kind = input.ruiNumber.startsWith("E") ? "E" : input.type;
+    redirect(`/ingresso?tipo=${kind}&errore=${encodeURIComponent(codesOf(body))}`);
   }
   redirect(`/ingresso/${body.token}?fatto=creata`);
 }

@@ -2,12 +2,23 @@ import { Button } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { Field, Fieldset } from "@/components/form";
 
+/**
+ * Who enters: an agency (A), a broker (B) or an intermediary of section E who
+ * asks for quotes like a broker (Dan, 2026-10-21, docs/piano-broker.md A).
+ */
+export type OnboardingKind = "AGENCY" | "BROKER" | "E";
+
+export function kindOf(values: { type: "AGENCY" | "BROKER"; ruiNumber: string }): OnboardingKind {
+  return values.type === "BROKER" && values.ruiNumber.startsWith("E") ? "E" : values.type;
+}
+
 export interface OnboardingValues {
   type: "AGENCY" | "BROKER";
   legalName: string;
   vatNumber: string;
   fiscalCode: string | null;
   ruiNumber: string;
+  principalRuiNumber: string | null;
   pec: string;
   address: { street: string; postalCode: string; municipalityIstat: string; province: string };
   owner: { firstName: string; lastName: string; email: string; phone: string };
@@ -16,19 +27,21 @@ export interface OnboardingValues {
 
 /** The data of the entry: the same form to start and to correct. */
 export async function OnboardingForm({
-  type,
+  kind,
   companies,
   values,
   token,
   action,
 }: {
-  type: "AGENCY" | "BROKER";
+  kind: OnboardingKind;
   companies: { id: string; name: string }[];
   values?: OnboardingValues;
   token?: string;
   action: (formData: FormData) => Promise<void>;
 }) {
   const t = await getTranslations("onboarding");
+  const type = kind === "AGENCY" ? "AGENCY" : "BROKER";
+  const section = kind === "AGENCY" ? "A" : kind === "BROKER" ? "B" : "E";
   return (
     <form action={action} className="space-y-6">
       <input type="hidden" name="type" value={type} />
@@ -56,12 +69,22 @@ export async function OnboardingForm({
             hint={t("optional")}
           />
           <Field
-            label={t(type === "AGENCY" ? "ruiNumberA" : "ruiNumberB")}
+            label={t(`ruiNumber${section}`)}
             name="ruiNumber"
             required
-            pattern={type === "AGENCY" ? "[Aa]\\d{9}" : "[Bb]\\d{9}"}
+            pattern={`[${section}${section.toLowerCase()}]\\d{9}`}
             defaultValue={values?.ruiNumber}
           />
+          {kind === "E" ? (
+            <Field
+              label={t("principalRuiNumber")}
+              name="principalRuiNumber"
+              required
+              pattern="[AaBb]\d{9}"
+              hint={t("principalRuiNumberHint")}
+              defaultValue={values?.principalRuiNumber ?? ""}
+            />
+          ) : null}
           <Field label={t("pec")} name="pec" type="email" required defaultValue={values?.pec} />
         </div>
       </Fieldset>
