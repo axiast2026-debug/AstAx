@@ -941,6 +941,7 @@
         "rcaLegal": "i massimali minimi di legge",
         "rcaSingle": "massimale unico di almeno {eur} €",
         "capital": "capitale di almeno {eur} €",
+        "capitalFree": "inclusa, capitale a scelta dell’agenzia",
         "coinsurance": "scoperto al massimo {pct}% con minimo al massimo {eur} €",
         "deductible": "franchigia al massimo {eur} €",
         "cases": "{count, plural, one {# caso di rivalsa} other {# casi di rivalsa}}"

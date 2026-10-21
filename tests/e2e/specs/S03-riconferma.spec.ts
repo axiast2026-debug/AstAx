@@ -73,7 +73,7 @@ test.describe.serial("S03 — garanzie scadute e riconferma", () => {
       await expect(async () => {
         await customer.goto(url);
         if (await customer.getByRole("button", { name: "Chiedi riconferma" }).isVisible()) return;
-        await operator.goto(`${ADMIN}/aste`);
+        await operator.goto(`${ADMIN}/aste?codice=${code}`);
         const fire = operator
           .getByRole("region", { name: code })
           .last()

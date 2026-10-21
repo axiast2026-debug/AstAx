@@ -39,6 +39,7 @@ export interface VerificationCard {
   customer: string | null;
   quoteData: QuoteData | null;
   quoteDataVersion: number | null;
+  completion: Completion | null;
   versions: {
     version: number;
     source: string;
@@ -184,4 +185,27 @@ export function differs(row: ComparisonRow): boolean {
   if (row.document === null) return false;
   const norm = (v: string) => v.replace(/\s/g, "").toUpperCase();
   return norm(row.document) !== norm(row.declared);
+}
+
+/** ADR 0013: the starting data of a request with the essential data only. */
+export interface Completion {
+  intake: {
+    vehicleStatus: "INSURED" | "NEW";
+    plate: string;
+    ownerBirthDate: string;
+    residence: { street: string; postalCode: string; municipalityIstat: string; province: string };
+    drivingFormula?: "FREE" | "EXPERT" | "EXCLUSIVE";
+    classSource?: { kind: string; plate?: string; relativeBirthDate?: string };
+  };
+  candidate: {
+    policyHolder: Record<string, unknown>;
+    drivers: { licence?: Record<string, unknown> }[];
+    drivingFormula?: "FREE" | "EXPERT" | "EXCLUSIVE";
+    vehicle: Record<string, unknown>;
+    history: Record<string, unknown>;
+    request: QuoteData["request"];
+    missing: string[];
+  };
+  phone: string | null;
+  lists: Record<string, { code: string; it: string; sq: string | null }[]>;
 }

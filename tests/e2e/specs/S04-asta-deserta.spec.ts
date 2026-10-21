@@ -26,7 +26,7 @@ test.describe.serial("S04 — asta deserta", () => {
     await expect(async () => {
       await customer.goto(url);
       if (await customer.getByText("Deserta").first().isVisible()) return;
-      await operator.goto(`${ADMIN}/aste`);
+      await operator.goto(`${ADMIN}/aste?codice=${code}`);
       const fire = operator
         .getByRole("region", { name: code })
         .last()

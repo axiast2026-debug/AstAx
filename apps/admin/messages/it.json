@@ -177,7 +177,8 @@
       "approvata": "Richiesta approvata: l'asta parte con la fase 3.",
       "integrazione": "Integrazione chiesta: il richiedente è stato avvisato.",
       "esclusa": "Richiesta esclusa: il richiedente è stato avvisato.",
-      "corretta": "Correzione salvata in una nuova versione dei dati."
+      "corretta": "Correzione salvata in una nuova versione dei dati.",
+      "completata": "Dati completati: ora controlla i semafori e approva."
     },
     "cardTitle": "Verifica {code}",
     "error": "Operazione non riuscita: {codes}",
@@ -323,6 +324,56 @@
       "FISCAL_CODE_CARD": "Codice fiscale",
       "CONSENT_FORM": "Consenso firmato",
       "OTHER": "Altro"
+    },
+    "completion": {
+      "title": "Completa i dati",
+      "intro": "Il cliente ha dato solo i dati essenziali e le foto. Qui sotto c'è quello che ha letto il bot: controlla, completa i campi in rosso, poi salva.",
+      "call": "Se manca qualcosa, chiama il cliente:",
+      "essential": "Targa {plate} · {status} · classe da: {source}",
+      "missing": "da completare",
+      "status": {
+        "INSURED": "già assicurato",
+        "NEW": "nuovo da assicurare"
+      },
+      "classSources": {
+        "OWN_VEHICLE": "un altro suo veicolo",
+        "SOLD_VEHICLE": "un suo veicolo venduto, demolito o rottamato",
+        "FAMILY": "il veicolo di un familiare convivente",
+        "FIRST_POLICY": "prima polizza"
+      },
+      "holder": "Contraente e proprietario",
+      "licence": "Patente",
+      "vehicle": "Veicolo",
+      "history": "Storico assicurativo",
+      "fields": {
+        "surname": "Cognome",
+        "givenName": "Nome",
+        "fiscalCode": "Codice fiscale",
+        "birthDate": "Data di nascita",
+        "birthPlace": "Luogo di nascita (codice ISTAT o estero Z…)",
+        "sex": "Sesso (M o F)",
+        "licenceCategory": "Categoria",
+        "licenceNumber": "Numero",
+        "licenceIssuedOn": "Rilasciata il",
+        "licenceExpiresOn": "Scade il",
+        "vehicleType": "Tipo di veicolo",
+        "vehicleUse": "Uso",
+        "make": "Marca",
+        "model": "Modello",
+        "fuel": "Alimentazione",
+        "powerKw": "Potenza (kW)",
+        "firstRegistrationDate": "Prima immatricolazione",
+        "purchaseDate": "Data di acquisto",
+        "provenance": "Provenienza",
+        "cuClass": "Classe di merito CU",
+        "claimsMain": "Sinistri con responsabilità principale (5 anni)",
+        "claimsShared": "Sinistri con responsabilità paritaria (5 anni)",
+        "currentInsurer": "Compagnia attuale",
+        "currentExpiryDate": "Scadenza attuale",
+        "riskUniqueId": "Identificativo univoco del rischio (IUR)",
+        "relativeFiscalCode": "Codice fiscale del familiare"
+      },
+      "save": "Salva i dati completati"
     }
   },
   "auctions": {
@@ -381,7 +432,10 @@
         "EXCLUDED": "Esclusa",
         "KEPT": "Tenuta"
       }
-    }
+    },
+    "search": "Cerca per codice",
+    "searchAction": "Cerca",
+    "searchPlaceholder": "AX-2026-000123"
   },
   "complaintsIndex": {
     "title": "Indice reclami delle compagnie",

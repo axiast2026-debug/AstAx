@@ -196,7 +196,34 @@ export class VerificationService {
       istatOfCadastral: (code) => (code === cadastral ? (municipality?.istatCode ?? null) : null),
       today: romeCalendarDate(this.clock.now()),
     });
-    return { intake: intake.data, candidate };
+    // Answer 6B: what the bot did not read, the back office asks the customer by phone.
+    const [customer, requester, lists] = await Promise.all([
+      request.customerId
+        ? tx.customer.findUnique({ where: { id: request.customerId } })
+        : Promise.resolve(null),
+      tx.user.findUnique({ where: { id: request.requesterUserId } }),
+      tx.listValue.findMany({
+        where: {
+          listKey: { in: ["vehicleType", "vehicleUse", "fuel", "provenance", "licenceCategory"] },
+          active: true,
+        },
+        orderBy: { sortOrder: "asc" },
+      }),
+    ]);
+    const phoneEnc = customer?.phoneEnc ?? requester?.phoneEnc ?? null;
+    return {
+      intake: intake.data,
+      candidate,
+      phone: phoneEnc ? this.cipher.decrypt(phoneEnc) : null,
+      lists: Object.fromEntries(
+        ["vehicleType", "vehicleUse", "fuel", "provenance", "licenceCategory"].map((key) => [
+          key,
+          lists
+            .filter((l) => l.listKey === key)
+            .map((l) => ({ code: l.code, it: l.labelIt, sq: l.labelSq })),
+        ]),
+      ),
+    };
   }
 
   /** The verification card; reading it is logged (QUOTE_DATA_VIEWED). */

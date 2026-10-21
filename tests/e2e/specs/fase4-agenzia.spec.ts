@@ -62,6 +62,8 @@ test.describe.serial("fase 4 — area agenzia", () => {
     const alfa = product.locator('optgroup[label="Compagnia Alfa"] option').first();
     await product.selectOption((await alfa.getAttribute("value")) ?? "");
     await agency.getByLabel("Massimale unico (€)").fill("10000000");
+    // «Consigliato» (Dan, 2026-10-21) asks for the driver accident cover: the agency sets the capital.
+    await agency.getByLabel("Capitale (€)").fill("50000");
     await agency.getByLabel("PDF del preventivo").setInputFiles({
       name: "preventivo.pdf",
       mimeType: "application/pdf",

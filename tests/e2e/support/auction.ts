@@ -1,5 +1,4 @@
 import { randomBytes } from "node:crypto";
-import { SystemClock } from "@astax/adapters/clock";
 import { expect, type Page } from "@playwright/test";
 import {
   acceptLegalIfAsked,
@@ -10,17 +9,10 @@ import {
   savedSecret,
   saveSecret,
 } from "./auth.js";
-import {
-  codeFromMail,
-  coverageAndAuctionSteps,
-  driversStep,
-  requestCode,
-  vehicleStep,
-} from "./requests.js";
+import { privateRequestSteps, requestCode } from "./requests.js";
 
 export const WEB = "http://localhost:3000";
 export const ADMIN = "http://localhost:3001";
-const clock = new SystemClock();
 
 /**
  * Fase 3: the auction from the approval to the closing, with the worker
@@ -41,18 +33,10 @@ export async function submittedRequest(
   page: Page,
   email: string,
 ): Promise<{ code: string; url: string }> {
+  // Dan, 2026-10-21: the five screens; the consents with one tick (no code).
+  void email;
   await page.getByRole("button", { name: "Nuovo preventivo" }).click();
-  await vehicleStep(page, {
-    libretto: "libretto-giulia-neri.jpg",
-    attestato: "attestato-giulia-neri.pdf",
-  });
-  await driversStep(page, "patente-giulia-neri.jpg");
-  await coverageAndAuctionSteps(page);
-  const sentAt = clock.now().getTime() - 1000;
-  await page.getByRole("button", { name: "Mandami il codice" }).click();
-  await page.getByLabel("Codice ricevuto").fill(await codeFromMail(email, sentAt));
-  await page.getByRole("button", { name: "Confermo" }).click();
-  await page.getByRole("button", { name: "Invia la richiesta" }).click();
+  await privateRequestSteps(page);
   await expect(page.getByText("Richiesta inviata. La verifichiamo")).toBeVisible();
   return { code: await requestCode(page), url: page.url().split("?")[0] ?? "" };
 }
@@ -75,6 +59,15 @@ export async function backOffice(
 export async function approve(page: Page, code: string): Promise<void> {
   await page.goto(`${ADMIN}/verifiche`);
   await page.getByRole("link", { name: code }).click();
+  // ADR 0013: a private request with the essential data only is completed first:
+  // the bot's reading is there, the purchase date is never on a document.
+  await expect(page.getByRole("heading", { name: `Verifica ${code}` })).toBeVisible();
+  const completion = page.getByRole("heading", { name: "Completa i dati" });
+  if (await completion.isVisible()) {
+    await page.getByLabel(/Data di acquisto/).fill("2020-04-01");
+    await page.getByRole("button", { name: "Salva i dati completati" }).click();
+    await expect(page.getByText("Dati completati")).toBeVisible();
+  }
   // Fase 3: the card previews the agencies the approval invites.
   await expect(page.getByRole("heading", { name: "Agenzie da invitare" })).toBeVisible();
   await page.getByRole("button", { name: "Approva e apri l'asta" }).click();
@@ -88,7 +81,7 @@ export async function approve(page: Page, code: string): Promise<void> {
 export async function auctionCard(page: Page, code: string) {
   const card = page.getByRole("region", { name: code }).last();
   await expect(async () => {
-    await page.goto(`${ADMIN}/aste`);
+    await page.goto(`${ADMIN}/aste?codice=${code}`);
     await expect(card).toBeVisible({ timeout: 1000 });
   }).toPass({ timeout: 60_000 });
   return card;
@@ -100,7 +93,7 @@ export async function fireUntil(page: Page, code: string, status: string): Promi
     if (!(await card.getByText(status, { exact: true }).isVisible())) {
       const fire = card.getByRole("button", { name: "Fai scattare il prossimo passo" });
       if (await fire.isVisible()) await fire.click();
-      await page.goto(`${ADMIN}/aste`);
+      await page.goto(`${ADMIN}/aste?codice=${code}`);
     }
     await expect(card.getByText(status, { exact: true })).toBeVisible({ timeout: 2000 });
   }).toPass({ timeout: 120_000, intervals: [1000, 2000, 3000] });

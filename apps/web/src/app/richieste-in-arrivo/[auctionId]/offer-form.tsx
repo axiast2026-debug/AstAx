@@ -27,7 +27,10 @@ async function requirementText(item: string, r: Requirement | undefined): Promis
   if (!r.required) return t("none");
   switch (item) {
     case "driverAccident":
-      return t("capital", { eur: Number(r.minCapitalEur) });
+      // «Consigliato» (Dan, 2026-10-21): no minimum, the agency proposes the capital.
+      return Number(r.minCapitalEur) > 0
+        ? t("capital", { eur: Number(r.minCapitalEur) })
+        : t("capitalFree");
     case "theftFire":
     case "naturalEventsVandalism":
       return t("coinsurance", {

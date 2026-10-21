@@ -273,27 +273,32 @@ export class AuctionsService {
   }
 
   /** The back office list in real time: counters and times, no price (BC-01). */
-  async forBackOffice(auth: AuthContext) {
+  async forBackOffice(auth: AuthContext, code?: string) {
     if (auth.membership?.organizationType !== "ASTAX") throw new ProblemError("NOT_FOUND");
     return withContext(this.db, auth.db, async (tx) => {
       const recentDays = (
         await settingsAt(tx, ["backOffice.recentAuctionsDays"], this.clock.now())
       )["backOffice.recentAuctionsDays"];
       const auctions = await tx.auction.findMany({
-        where: {
-          OR: [
-            { status: { in: ["OPEN", "CLOSING"] } },
-            { closedAt: { gte: new Date(this.clock.now().getTime() - recentDays * 86_400_000) } },
-            // Requests still waiting on their offers (guarantees, «Scaduta», reconfirmation):
-            // their last rounds stay in the list, however long ago they closed.
-            {
-              status: "CLOSED",
-              quoteRequest: {
-                status: { in: ["OFFERS_AVAILABLE", "EXPIRED", "IN_RECONFIRMATION"] },
-              },
+        // With a code, every round of that request, whatever its age.
+        where: code
+          ? { quoteRequest: { code } }
+          : {
+              OR: [
+                { status: { in: ["OPEN", "CLOSING"] } },
+                {
+                  closedAt: { gte: new Date(this.clock.now().getTime() - recentDays * 86_400_000) },
+                },
+                // Requests still waiting on their offers (guarantees, «Scaduta», reconfirmation):
+                // their last rounds stay in the list, however long ago they closed.
+                {
+                  status: "CLOSED",
+                  quoteRequest: {
+                    status: { in: ["OFFERS_AVAILABLE", "EXPIRED", "IN_RECONFIRMATION"] },
+                  },
+                },
+              ],
             },
-          ],
-        },
         orderBy: { scheduledCloseAt: "asc" },
         take: 200,
         include: { quoteRequest: true },

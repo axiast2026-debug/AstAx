@@ -1,6 +1,7 @@
 "use server";
 
 import type { QuoteData } from "@astax/shared/domain";
+import type { Completion } from "@/lib/verification";
 import { redirect } from "next/navigation";
 import { api } from "@/lib/auth";
 
@@ -140,4 +141,100 @@ export async function includeAgency(formData: FormData): Promise<void> {
   const organizationId = organizationOf(formData, id);
   await post(id, `agencies/${organizationId}/include`, {});
   redirect(`/verifiche/${id}#agenzie`);
+}
+
+/**
+ * ADR 0013 (Dan, 2026-10-21): the back office completes a request with the
+ * essential data only. The essential data (residence, driving, other plate)
+ * and the coverages come from the card; the rest from the form, prefilled
+ * with what the bot read. The API checks it like a submission.
+ */
+export async function completeRequest(formData: FormData): Promise<void> {
+  const id = idOf(formData);
+  const { body: card } = await api<{ completion: Completion | null }>(
+    `/verification/requests/${id}`,
+  );
+  const completion = card.completion;
+  if (!completion) redirect(`/verifiche/${id}?errore=CONFLICT`);
+  const { intake, candidate } = completion;
+  const number = (name: string) => {
+    const v = value(formData, name);
+    return v === undefined ? undefined : Number(v);
+  };
+  const holder = {
+    kind: "PERSON" as const,
+    surname: value(formData, "surname") ?? "",
+    givenName: value(formData, "givenName") ?? "",
+    fiscalCode: value(formData, "fiscalCode") ?? "",
+    birthDate: value(formData, "birthDate") ?? "",
+    birthPlace: value(formData, "birthPlace") ?? "",
+    sex: (value(formData, "sex")?.toUpperCase() === "F" ? "F" : "M") as "M" | "F",
+    residence: intake.residence,
+  };
+  const startYear = Number(candidate.request.startDate.slice(0, 4));
+  const claimsMain = number("claimsMain") ?? 0;
+  const claimsShared = number("claimsShared") ?? 0;
+  const quoteData: QuoteData = {
+    schemaVersion: 1,
+    policyHolder: holder,
+    vehicleOwner: "SAME_AS_POLICY_HOLDER",
+    drivers: [
+      {
+        person: holder,
+        isMain: true,
+        licence: {
+          category: value(formData, "licenceCategory") ?? "",
+          number: value(formData, "licenceNumber") ?? "",
+          issuedOn: value(formData, "licenceIssuedOn") ?? "",
+          expiresOn: value(formData, "licenceExpiresOn") ?? "",
+        },
+      },
+    ],
+    drivingFormula: intake.drivingFormula ?? candidate.drivingFormula ?? "FREE",
+    vehicle: {
+      plate: intake.plate,
+      type: value(formData, "vehicleType") ?? "",
+      use: value(formData, "vehicleUse") ?? "",
+      make: value(formData, "make") ?? "",
+      model: value(formData, "model") ?? "",
+      fuel: value(formData, "fuel") ?? "",
+      powerKw: number("powerKw") ?? 0,
+      firstRegistrationDate: value(formData, "firstRegistrationDate") ?? "",
+      purchaseDate: value(formData, "purchaseDate") ?? "",
+      isNew: false,
+    },
+    history: {
+      provenance: value(formData, "provenance") ?? "",
+      ...(number("cuClass") === undefined ? {} : { cuClass: number("cuClass") }),
+      // The counts of the risk certificate, booked in the year of the start.
+      claims:
+        claimsMain + claimsShared > 0
+          ? [
+              {
+                year: startYear,
+                mainResponsibility: claimsMain,
+                sharedResponsibility: claimsShared,
+              },
+            ]
+          : [],
+      ...(value(formData, "currentInsurer")
+        ? { currentInsurer: value(formData, "currentInsurer") }
+        : {}),
+      ...(value(formData, "currentExpiryDate")
+        ? { currentExpiryDate: value(formData, "currentExpiryDate") }
+        : {}),
+      ...(value(formData, "riskUniqueId") ? { riskUniqueId: value(formData, "riskUniqueId") } : {}),
+      ...(intake.classSource?.kind === "FAMILY" && intake.classSource.plate
+        ? {
+            familyRc: {
+              plate: intake.classSource.plate,
+              relativeFiscalCode: value(formData, "relativeFiscalCode") ?? "",
+            },
+          }
+        : {}),
+    },
+    request: candidate.request,
+  };
+  await post(id, "corrections", { quoteData, reason: "Completamento dai documenti (ADR 0013)" });
+  redirect(`/verifiche/${id}?fatto=completata`);
 }

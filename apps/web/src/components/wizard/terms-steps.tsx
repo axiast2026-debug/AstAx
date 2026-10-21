@@ -3,7 +3,7 @@ import { Button } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { saveCoverageStep } from "@/app/request-actions";
 import { CheckField, Field, hasError } from "@/components/form";
-import type { RequestDetail, RequestOptions } from "@/lib/requests";
+import { extracted, latestDocument, type RequestDetail, type RequestOptions } from "@/lib/requests";
 import { centsToEuros, PRIVATE_PACKAGES } from "@/lib/wizard-forms";
 
 function Hidden({ detail, base, step }: { detail: RequestDetail; base: string; step: string }) {
@@ -44,7 +44,11 @@ export async function CoverageStep({
   );
   const chosen = terms?.packageCode ?? shown[0]?.code ?? "BASE";
   const chosenCoverages: readonly string[] = terms?.coverages ?? [];
-  const proposedStart = terms?.startDate ?? detail.draft?.history?.currentExpiryDate;
+  // Proposed from the current policy: the history, or the risk certificate read by the bot.
+  const proposedStart =
+    terms?.startDate ??
+    detail.draft?.history?.currentExpiryDate ??
+    extracted(latestDocument(detail, "RISK_CERTIFICATE"), "expiryDate");
   const startMode = terms?.startMode ?? "DATE";
   return (
     <form action={saveCoverageStep} className="space-y-6">

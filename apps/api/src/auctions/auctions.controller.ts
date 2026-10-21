@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Query,
   Get,
   Headers,
   HttpCode,
@@ -209,8 +210,10 @@ export class AuctionsController {
 
   @Get("auctions")
   @RequirePermission("auction.viewStatus")
-  backOffice(@CurrentAuth() auth: AuthContext) {
-    return this.auctions.forBackOffice(auth);
+  backOffice(@CurrentAuth() auth: AuthContext, @Query("codice") code?: string) {
+    // The back office finds a request by its code (guided test with Dan, error 4).
+    const exact = code && /^[A-Z]{2,5}-\d{4}-\d{6}$/.test(code.trim().toUpperCase());
+    return this.auctions.forBackOffice(auth, exact ? code.trim().toUpperCase() : undefined);
   }
 
   @Post("auctions/:id/extend")

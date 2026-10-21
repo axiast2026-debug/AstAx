@@ -37,7 +37,7 @@ test.describe("fase 1: accessi", () => {
     await expect(page.getByText("Accessi attivi")).toBeVisible();
 
     // «Assistenza» in the top bar: the page arrives in a later phase, it is not a 404.
-    await page.getByRole("link", { name: "Assistenza" }).click();
+    await page.getByRole("link", { name: "Assistenza" }).first().click();
     await expect(page.getByRole("heading", { name: "Assistenza" })).toBeVisible();
   });
 

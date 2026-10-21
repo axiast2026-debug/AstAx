@@ -133,7 +133,7 @@ const INPUT = "rounded-lg border border-warm-200 bg-white px-2 py-1 text-sm";
 export default async function AuctionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ errore?: string; fatto?: string }>;
+  searchParams: Promise<{ errore?: string; fatto?: string; codice?: string }>;
 }) {
   const viewer = await requireViewer();
   const t = await getTranslations("auctions");
@@ -141,7 +141,7 @@ export default async function AuctionsPage({
   const { status, body } = await api<{
     auctions: AuctionRow[];
     agencies: { id: string; name: string }[];
-  }>("/auctions");
+  }>(query.codice ? `/auctions?codice=${encodeURIComponent(query.codice)}` : "/auctions");
   if (status === 403 || status === 404) notFound();
   if (status !== 200) {
     // An error of the API (for example a timeout): a message, never a broken page.
@@ -160,6 +160,20 @@ export default async function AuctionsPage({
       <LiveRefresh ticket={realtimeTicket} follow="auctions" />
       <h1 className="text-2xl font-bold">{t("title")}</h1>
       <p className="mt-1 text-sm text-warm-600">{t("intro")}</p>
+      <form method="get" action="/aste" className="mt-4 flex flex-wrap items-end gap-2">
+        <label className="text-sm">
+          {t("search")}
+          <input
+            name="codice"
+            defaultValue={query.codice ?? ""}
+            placeholder={t("searchPlaceholder")}
+            className={`${INPUT} ml-2 w-48`}
+          />
+        </label>
+        <Button type="submit" size="sm" variant="outline">
+          {t("searchAction")}
+        </Button>
+      </form>
       {query.fatto ? (
         <p role="status" className="mt-4 rounded-lg bg-green-50 p-3 text-sm">
           {t("done")}

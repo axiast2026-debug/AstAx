@@ -50,6 +50,10 @@ export async function sendOffer(
   const first = product.locator(`optgroup[label="${company}"] option`).first();
   await product.selectOption((await first.getAttribute("value")) ?? "");
   await page.getByLabel("Massimale unico (€)").fill("10000000");
+  // «Consigliato» asks for the driver accident cover: the agency sets the capital.
+  const capital = page.getByLabel("Capitale (€)");
+  if ((await capital.isVisible()) && (await capital.inputValue()) === "")
+    await capital.fill("50000");
   if (guaranteeDays > 0) {
     const field = page.getByLabel("Prezzo garantito fino al");
     const minimum = await field.inputValue();

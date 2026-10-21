@@ -24,6 +24,54 @@ export async function upload(page: Page, title: string, fileName: string): Promi
   await expect(form.getByText(`Caricato: ${fileName}`)).toBeVisible();
 }
 
+/**
+ * The simplified request of the private customer (Dan, 2026-10-21, ADR 0013):
+ * a photo is sent as soon as it is chosen; the card turns green when received.
+ */
+export async function photo(page: Page, title: string, fileName: string): Promise<void> {
+  const form = uploadForm(page, title);
+  await form.locator('input[type="file"]').setInputFiles({
+    name: fileName,
+    mimeType: fileName.endsWith(".pdf") ? "application/pdf" : "image/jpeg",
+    buffer: fileName.endsWith(".pdf") ? PDF : JPEG,
+  });
+  await expect(uploadForm(page, title).getByText(`Ricevuto: ${fileName}`)).toBeVisible();
+}
+
+/**
+ * The five screens of the private customer: vehicle already insured, photos
+ * (registration, licence, risk certificate) and the owner's birth date, type
+ * of driving, coverages («Consigliato» by default) and start, one tick, send.
+ */
+export async function privateRequestSteps(
+  page: Page,
+  options: { libretto: string; patente: string; attestato?: string } = {
+    libretto: "libretto-giulia-neri.jpg",
+    patente: "patente-giulia-neri.jpg",
+    attestato: "attestato-giulia-neri.pdf",
+  },
+): Promise<void> {
+  await expect(page).toHaveURL(/\/tipo$/);
+  await page.getByRole("link", { name: /Già assicurato/ }).click();
+  await expect(page).toHaveURL(/\/dati\?stato=INSURED/);
+  await photo(page, "Libretto di circolazione", options.libretto);
+  await photo(page, "Patente", options.patente);
+  if (options.attestato) await photo(page, "Attestato di rischio (facoltativo)", options.attestato);
+  // The bot proposes plate and address from the registration.
+  await expect(page.getByLabel("Targa")).not.toHaveValue("");
+  await page.getByLabel("Data di nascita del proprietario").fill("1990-05-12");
+  await page.getByRole("button", { name: "Continua" }).click();
+  await expect(page).toHaveURL(/\/guida$/);
+  await page.getByLabel(/Guida libera/).check();
+  await page.getByRole("button", { name: "Continua" }).click();
+  await expect(page).toHaveURL(/\/copertura$/);
+  await expect(page.getByLabel("Data di decorrenza")).not.toHaveValue("");
+  await saveAndContinue(page);
+  await expect(page).toHaveURL(/\/conferma$/);
+  await page.getByLabel(/Ho letto e accetto il trattamento/).check();
+  await page.getByRole("button", { name: "Invia la richiesta" }).click();
+}
+
 /** Saves the step and waits for the next page (or the same one with errors). */
 export async function saveAndContinue(page: Page): Promise<void> {
   const before = page.url();
@@ -67,7 +115,7 @@ export async function driversStep(
 
 export async function coverageAndAuctionSteps(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/copertura$/);
-  await expect(page.getByLabel("Decorrenza")).not.toHaveValue("");
+  await expect(page.getByLabel("Data di decorrenza")).not.toHaveValue("");
   await page.getByLabel("Plus").check();
   await saveAndContinue(page);
   await expect(page).toHaveURL(/\/asta$/);

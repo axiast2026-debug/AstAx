@@ -177,7 +177,8 @@
       "approvata": "Kërkesa u miratua: ankandi nis me fazën 3.",
       "integrazione": "U kërkua plotësim: kërkuesi u njoftua.",
       "esclusa": "Kërkesa u përjashtua: kërkuesi u njoftua.",
-      "corretta": "Korrigjimi u ruajt në një version të ri të të dhënave."
+      "corretta": "Korrigjimi u ruajt në një version të ri të të dhënave.",
+      "completata": "Të dhënat u plotësuan: tani kontrollo semaforët dhe mirato."
     },
     "cardTitle": "Verifikimi {code}",
     "error": "Veprimi nuk u krye: {codes}",
@@ -323,6 +324,56 @@
       "FISCAL_CODE_CARD": "Kodi fiskal",
       "CONSENT_FORM": "Pëlqimi i firmosur",
       "OTHER": "Tjetër"
+    },
+    "completion": {
+      "title": "Plotëso të dhënat",
+      "intro": "Klienti dha vetëm të dhënat thelbësore dhe fotot. Më poshtë është ajo që lexoi boti: kontrollo, plotëso fushat me të kuqe, pastaj ruaj.",
+      "call": "Nëse mungon diçka, telefono klientin:",
+      "essential": "Targa {plate} · {status} · klasa nga: {source}",
+      "missing": "për t'u plotësuar",
+      "status": {
+        "INSURED": "i siguruar",
+        "NEW": "i ri për t'u siguruar"
+      },
+      "classSources": {
+        "OWN_VEHICLE": "një mjet tjetër i tij",
+        "SOLD_VEHICLE": "një mjet i tij i shitur, i çmontuar ose i skrapuar",
+        "FAMILY": "mjeti i një familjari që jeton me të",
+        "FIRST_POLICY": "polica e parë"
+      },
+      "holder": "Kontraktuesi dhe pronari",
+      "licence": "Patenta",
+      "vehicle": "Mjeti",
+      "history": "Historiku i sigurimit",
+      "fields": {
+        "surname": "Mbiemri",
+        "givenName": "Emri",
+        "fiscalCode": "Kodi fiskal",
+        "birthDate": "Data e lindjes",
+        "birthPlace": "Vendi i lindjes (kodi ISTAT ose jashtë Z…)",
+        "sex": "Gjinia (M ose F)",
+        "licenceCategory": "Kategoria",
+        "licenceNumber": "Numri",
+        "licenceIssuedOn": "Lëshuar më",
+        "licenceExpiresOn": "Skadon më",
+        "vehicleType": "Lloji i mjetit",
+        "vehicleUse": "Përdorimi",
+        "make": "Marka",
+        "model": "Modeli",
+        "fuel": "Karburanti",
+        "powerKw": "Fuqia (kW)",
+        "firstRegistrationDate": "Regjistrimi i parë",
+        "purchaseDate": "Data e blerjes",
+        "provenance": "Prejardhja",
+        "cuClass": "Klasa e meritës CU",
+        "claimsMain": "Dëme me përgjegjësi kryesore (5 vjet)",
+        "claimsShared": "Dëme me përgjegjësi të barabartë (5 vjet)",
+        "currentInsurer": "Kompania aktuale",
+        "currentExpiryDate": "Skadenca aktuale",
+        "riskUniqueId": "Identifikuesi unik i rrezikut (IUR)",
+        "relativeFiscalCode": "Kodi fiskal i familjarit"
+      },
+      "save": "Ruaj të dhënat e plotësuara"
     }
   },
   "auctions": {
@@ -381,7 +432,10 @@
         "EXCLUDED": "E përjashtuar",
         "KEPT": "E mbajtur"
       }
-    }
+    },
+    "search": "Kërko sipas kodit",
+    "searchAction": "Kërko",
+    "searchPlaceholder": "AX-2026-000123"
   },
   "complaintsIndex": {
     "title": "Indeksi i ankesave të kompanive",

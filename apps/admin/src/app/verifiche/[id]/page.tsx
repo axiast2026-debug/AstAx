@@ -2,6 +2,7 @@ import { formatDateTime } from "@astax/shared/format";
 import { Badge, Button, Card, CardTitle, cn } from "@astax/ui";
 import { getLocale, getTranslations } from "next-intl/server";
 import { AppShell } from "@/components/app-shell";
+import { CompletionForm } from "@/components/completion-form";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
 import { comparisonRows, differs, verificationCard } from "@/lib/verification";
@@ -96,6 +97,37 @@ export default async function VerificationCardPage({
     ? comparisonRows(card.quoteData, card.documents, (c) => names.get(c) ?? c)
     : [];
 
+  // Shown also for a request still to complete (ADR 0013): it can be excluded at once.
+  const excludeCard = (
+    <Card>
+      <CardTitle>{t("excludeTitle")}</CardTitle>
+      <form action={exclude} className="mt-3 space-y-3 text-sm">
+        <input type="hidden" name="requestId" value={card.id} />
+        <div>
+          <label htmlFor="exclude-reason" className="font-medium">
+            {t("excludeReason")}
+          </label>
+          <select id="exclude-reason" name="reasonCode" required className={INPUT}>
+            {card.reasons.exclusion.map((r) => (
+              <option key={r.code} value={r.code}>
+                {r[locale]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="exclude-message" className="font-medium">
+            {t("messageToRequester")}
+          </label>
+          <textarea id="exclude-message" name="message" rows={2} className={INPUT} />
+        </div>
+        <Button type="submit" variant="danger">
+          {t("exclude")}
+        </Button>
+      </form>
+    </Card>
+  );
+
   return (
     <AppShell viewer={viewer}>
       <div className="flex flex-wrap items-center gap-3">
@@ -111,6 +143,11 @@ export default async function VerificationCardPage({
       {query.errore ? (
         <p role="alert" className="mt-4 rounded-lg border border-red-600 bg-red-50 p-3 text-sm">
           {t("error", { codes: query.errore })}
+        </p>
+      ) : null}
+      {query.fatto === "completata" ? (
+        <p role="status" className="mt-4 rounded-lg bg-green-50 p-3 text-sm">
+          {t("done.completata")}
         </p>
       ) : null}
       {query.fatto === "corretta" ? (
@@ -284,6 +321,13 @@ export default async function VerificationCardPage({
             </ul>
           </Card>
 
+          {open && !card.quoteData && card.completion ? (
+            <>
+              <CompletionForm requestId={card.id} completion={card.completion} locale={locale} />
+              {excludeCard}
+            </>
+          ) : null}
+
           {open && card.quoteData ? (
             <>
               {preview ? (
@@ -429,33 +473,7 @@ export default async function VerificationCardPage({
                 </form>
               </Card>
 
-              <Card>
-                <CardTitle>{t("excludeTitle")}</CardTitle>
-                <form action={exclude} className="mt-3 space-y-3 text-sm">
-                  <input type="hidden" name="requestId" value={card.id} />
-                  <div>
-                    <label htmlFor="exclude-reason" className="font-medium">
-                      {t("excludeReason")}
-                    </label>
-                    <select id="exclude-reason" name="reasonCode" required className={INPUT}>
-                      {card.reasons.exclusion.map((r) => (
-                        <option key={r.code} value={r.code}>
-                          {r[locale]}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="exclude-message" className="font-medium">
-                      {t("messageToRequester")}
-                    </label>
-                    <textarea id="exclude-message" name="message" rows={2} className={INPUT} />
-                  </div>
-                  <Button type="submit" variant="danger">
-                    {t("exclude")}
-                  </Button>
-                </form>
-              </Card>
+              {excludeCard}
 
               <Card>
                 <CardTitle>{t("correctTitle")}</CardTitle>
