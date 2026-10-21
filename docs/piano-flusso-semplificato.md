@@ -1,6 +1,6 @@
 # Piano: flusso semplificato del privato (idea di Dan)
 
-**Stato:** bozza da completare con Dan (2026-10-21). Sostituisce le proposte A, B e C di `docs/piano-semplificazione.md`; le proposte D-J di quel piano restano valide. Niente codice finché Dan non approva.
+**Stato:** risposte di Dan del 2026-10-21 nella sezione «Decisioni di Dan»; manca solo il via per partire. Sostituisce le proposte A, B e C di `docs/piano-semplificazione.md`; le proposte D-J di quel piano restano valide. Niente codice finché Dan non approva.
 
 **Idea di fondo (Dan):** il cliente dà pochissimi dati e le foto dei documenti; il resto lo estrae il «bot» (il lettore AI dei documenti) e lo conferma il back office prima dell'asta. Tutto pensato prima per il telefono.
 
@@ -73,3 +73,37 @@ Restano valide le proposte del piano precedente:
 8. **Tre indirizzi:** (A) tre sottodomini (`privati.`, `broker.`, `agenzie.`); (B) tre percorsi dello stesso sito.
 9. **Broker:** (A) stesso flusso semplificato per i suoi clienti; (B) il broker tiene il modulo completo, perché i professionisti spesso hanno già tutti i dati.
 10. **Il resto dell'«utenza del privato»:** cosa deve trovare nella sua area? Oggi ci sono preventivi, polizze, documenti, reclami e profilo.
+
+## Decisioni di Dan (2026-10-21)
+
+| # | Decisione |
+| --- | --- |
+| 1 | **A**: c'è l'opzione «Nessuno, è la mia prima polizza» (classe 14) |
+| 2 | Pacchetto consigliato con l'RCA ai **minimi di legge** |
+| 3 | **B**: il capitale degli infortuni del conducente lo decide l'agenzia |
+| 4 | **A**: il valore del veicolo per furto e incendio lo indica l'agenzia |
+| 5 | **B**: una spunta sola per tutti i consensi. Da far confermare al legale e al DPO (`docs/punti-aperti.md`): la privacy chiede consensi separati per gli usi facoltativi |
+| 6 | **B**: se il bot non legge un dato, il back office chiama il cliente (il telefono c'è dalla registrazione) |
+| 7 | Per ora decide sempre il back office; l'approvazione automatica dopo |
+| 8 | **A**: tre sottodomini, `privati.`, `broker.`, `agenzie.` |
+| 9 | Il broker si riprogetta da capo più avanti: per ora resta com'è |
+| 10 | L'area del privato per ora resta com'è; proposta di semplificazione qui sotto, da decidere |
+
+## Passi di lavoro
+
+Ognuno con i suoi test e il suo commit, nell'ordine:
+
+1. **Garanzie richieste al posto dei pacchetti:** il «consigliato» (RCA ai minimi di legge, assistenza stradale, infortuni del conducente, tutela legale) e le garanzie una a una diventano i requisiti della richiesta; OFF-06 controlla le offerte su quelli. Le richieste vecchie restano con il loro pacchetto.
+2. **Dati della richiesta ridotti:** veicolo già assicurato o nuovo, targa, data di nascita, residenza, provenienza della classe (veicolo proprio, venduto, demolito o rottamato, familiare convivente, prima polizza), tipo di guida. Gli altri dati diventano «da completare dal back office».
+3. **Le 5 schermate del cliente**, pensate per il telefono, con il controllo di leggibilità delle foto e la fotocamera.
+4. **La schermata unica del back office:** i dati estratti dal bot accanto alle foto, da confermare o correggere, poi «Apri l'asta». Il pulsante «Chiama il cliente» con il numero.
+5. **Tre sottodomini** per privati, broker e agenzie (locale e Terraform).
+6. **Proposte D, E, F** del piano precedente: accesso con un clic dall'email, offerte e confronto AI nella stessa pagina, «Firma e paga».
+7. **Scenari e prove:** S01, S09 e le prove della richiesta riscritti; una prova automatica che conta i clic (obiettivo: al massimo 15 dalla richiesta al pagamento).
+8. Demo per Dan.
+
+## Proposta per l'area del privato (da decidere più avanti)
+
+- **Home con una scheda per ogni cosa in corso:** la richiesta, il suo stato e un solo pulsante con la prossima azione («Carica di nuovo la foto», «Vedi le offerte», «Firma e paga», «Scarica la polizza»).
+- **Menu di 3 voci:** «Preventivi», «Polizze», «Profilo». I documenti stanno dentro la richiesta o la polizza a cui appartengono; assistenza e reclami stanno nel profilo e in fondo a ogni pagina.
+- **Sul telefono:** menu in basso, notifiche come elenco di eventi con il link all'azione.

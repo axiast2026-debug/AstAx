@@ -15,6 +15,7 @@ Questi punti li decidono legale, DPO, commercialista o amministrazione. Il codic
 | Penali e non aggiramento | Importi, clausole, procedura di contestazione | Parametri `penalties.*`; contestazione entro 10 giorni |
 | Testi legali | Tutti i documenti della scheda 09, §7 | Segnaposto «[DA VALIDARE — LEGALE]»; il rilascio in produzione si blocca (LEG-03) |
 | Firma FEA | Obblighi di AstAx come soggetto che eroga la FEA (DPCM 22/02/2013) | Adattatore Namirial in fase 8 |
+| Consensi con una spunta sola (Dan, 2026-10-21) | Se i consensi facoltativi (per esempio marketing) possono stare nella stessa spunta di quelli obbligatori, o vanno separati (GDPR, consenso specifico) | Una spunta sola nel nuovo flusso del privato (`docs/piano-flusso-semplificato.md`); si separa con un parametro se il legale lo chiede |
 | Rapporti con GD Brokers | Uso della piattaforma a condizioni di mercato, legame dichiarato | Nessun trattamento speciale nel codice |
 
 ## DPO e privacy
