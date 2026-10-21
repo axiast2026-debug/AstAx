@@ -610,6 +610,8 @@ enum QuoteDataSource {
   SUBMISSION
   INTEGRATION
   BACK_OFFICE_CORRECTION
+  /// ADR 0013: the back office completes the essential data of the private customer.
+  BACK_OFFICE_COMPLETION
 }
 
 /// Append only (ADR 0007): every change of quoteData is a new version.
@@ -723,6 +725,8 @@ enum DocumentKind {
   DRIVING_LICENCE
   RISK_CERTIFICATE
   FISCAL_CODE_CARD
+  /// ADR 0013: ID card of the owner of a new vehicle.
+  IDENTITY_DOCUMENT
   CONSENT_FORM
   /// The PDF quote of an offer, stored after the closing (docs/busta-chiusa.md, step 5).
   OFFER_QUOTE
@@ -793,7 +797,8 @@ model Verification {
   ownerUserId         String?               @db.Uuid
   ownerOrganizationId String?               @db.Uuid
   round               Int
-  quoteDataVersion    Int
+  /// Empty while the back office completes the essential data (ADR 0013).
+  quoteDataVersion    Int?
   autoOutcome         CheckOutcome
   /// Items: code, automatic outcome, reasons, fields, correction, note.
   checklist           Json

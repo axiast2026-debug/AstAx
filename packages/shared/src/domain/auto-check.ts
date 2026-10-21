@@ -37,7 +37,9 @@ export type ChecklistItemCode =
   | "RESIDENCE"
   | "HISTORY"
   | "DOCUMENTS"
-  | "CONSENT";
+  | "CONSENT"
+  // ADR 0013: a request with the essential data only, for the back office to complete.
+  | "TO_COMPLETE";
 
 export interface ChecklistItem {
   code: ChecklistItemCode;

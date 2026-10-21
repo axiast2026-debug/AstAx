@@ -22,7 +22,9 @@ import {
 } from "@astax/db";
 import {
   derivedColumns,
+  documentReadable,
   IntakeSchema,
+  intakeDocuments,
   missingDraftSections,
   quoteDataFromDraft,
   QuoteDraftSchema,
@@ -95,6 +97,12 @@ export interface IntegrationScope {
 }
 
 /** The requester's side of a request: draft, documents, submission (fase 2). */
+
+/** The vehicle in the back office notice: make, model and plate. */
+function vehicleText(quoteData: QuoteData): string {
+  return `${quoteData.vehicle.make} ${quoteData.vehicle.model} ${quoteData.vehicle.plate}`;
+}
+
 @Injectable()
 export class RequestsService {
   constructor(
@@ -548,12 +556,19 @@ export class RequestsService {
         { requestId: id, documentId: document.id, kind: input.kind },
         "document uploaded",
       );
+      // ADR 0013: the customer learns at once whether the photo can be read.
+      const { "documents.confidenceThreshold": threshold } = await settingsAt(
+        tx,
+        ["documents.confidenceThreshold"],
+        now,
+      );
       return {
         id: document.id,
         kind: document.kind,
         driverIndex: document.driverIndex,
         fileName: document.fileName,
         extraction: extraction ? { fields: extraction.fields } : null,
+        readable: documentReadable(extraction, threshold),
       };
     });
   }
@@ -598,6 +613,9 @@ export class RequestsService {
     const result = await withContext(this.db, auth.db, async (tx) => {
       const { request } = await this.requireEditable(tx, auth, id);
       const draft = this.draftOf(request);
+      if (draft.intake !== undefined && request.channel === "PRIVATE") {
+        return this.submitIntake(tx, auth, request, draft, now, today);
+      }
       const rules = await tx.exclusionRule.findMany({ where: { active: true } });
       const blocking = wizardBlockingExclusions(draft, rules);
       if (blocking.length > 0) {
@@ -760,7 +778,9 @@ export class RequestsService {
       });
       const autoApprove = settings["verification.autoApproveGreen"] && check.outcome === "GREEN";
       // A request approved by the system does not wait in the back office queue.
-      if (!autoApprove) await this.notifyBackOffice(tx, request, quoteData, check.outcome);
+      if (!autoApprove) {
+        await this.notifyBackOffice(tx, request, vehicleText(quoteData), check.outcome);
+      }
       return {
         id,
         code: request.code,
@@ -774,7 +794,7 @@ export class RequestsService {
       };
     });
     this.logger.info({ requestId: id, outcome: result.autoOutcome }, "request submitted");
-    if (result.autoApprove) {
+    if (result.autoApprove && result.quoteData && result.quoteDataVersion !== null) {
       // The approval needs the system's rights, so it runs after the submission.
       // If it fails the submission stands and the request goes to the back office.
       try {
@@ -782,7 +802,12 @@ export class RequestsService {
       } catch (error) {
         this.logger.error({ requestId: id, err: errorForLog(error) }, "automatic approval failed");
         await withContext(this.db, SYSTEM_CONTEXT, (tx) =>
-          this.notifyBackOffice(tx, result.request, result.quoteData, result.autoOutcome),
+          this.notifyBackOffice(
+            tx,
+            result.request,
+            vehicleText(result.quoteData),
+            result.autoOutcome,
+          ),
         );
       }
     }
@@ -791,6 +816,132 @@ export class RequestsService {
       code: result.code,
       status: result.status,
       autoOutcome: result.autoOutcome,
+    };
+  }
+
+  /**
+   * ADR 0013, Dan 2026-10-21: the private customer submits only the essential
+   * data, the coverages and readable documents. The request goes «In verifica»
+   * without quoteData: the back office completes it from what the bot read,
+   * then approves (the approval refuses a request still to complete).
+   */
+  private async submitIntake(
+    tx: DbTransaction,
+    auth: AuthContext,
+    request: QuoteRequest,
+    draft: QuoteDraft,
+    now: Date,
+    today: string,
+  ) {
+    const intake = IntakeSchema.safeParse(draft.intake);
+    if (!intake.success) throw ProblemError.fromZod(intake.error);
+    if (!draft.request) {
+      throw new ProblemError("VALIDATION_FAILED", undefined, [
+        { path: "request", issue: "missing_section" },
+      ]);
+    }
+    const terms = withRequestDay(draft.request, today);
+    // Every required document is there and was readable at the upload.
+    const { "documents.confidenceThreshold": threshold } = await settingsAt(
+      tx,
+      ["documents.confidenceThreshold"],
+      now,
+    );
+    const documents = await tx.document.findMany({
+      where: { quoteRequestId: request.id, deletedAt: null },
+    });
+    const problems = intakeDocuments(intake.data).flatMap((kind) => {
+      const latest = documents
+        .filter((d) => d.kind === kind)
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+      if (!latest) return [{ path: `documents.${kind}`, issue: "DOCUMENT_MISSING" }];
+      const extraction = latest.extractionEnc
+        ? (decryptJson(this.cipher, latest.extractionEnc) as {
+            fields: Record<string, { confidence: number }>;
+            warnings: string[];
+          })
+        : null;
+      return documentReadable(extraction, threshold)
+        ? []
+        : [{ path: `documents.${kind}`, issue: "DOCUMENT_UNREADABLE" }];
+    });
+    if (problems.length > 0) throw new ProblemError("VALIDATION_FAILED", undefined, problems);
+    const consent = request.customerId ? await this.activeConsent(tx, request.customerId) : null;
+    if (!consent) {
+      throw new ProblemError(
+        "VALIDATION_FAILED",
+        "Consent to share the data is required (LEG-04)",
+        [{ path: "consent", issue: "CONSENT_REQUIRED" }],
+      );
+    }
+
+    const round = (await tx.verification.count({ where: { quoteRequestId: request.id } })) + 1;
+    const toComplete: ChecklistItem = {
+      code: "TO_COMPLETE",
+      outcome: "YELLOW",
+      reasons: ["ESSENTIAL_DATA_ONLY"],
+      fields: [],
+    };
+    await tx.verification.create({
+      data: {
+        quoteRequestId: request.id,
+        ownerUserId: request.ownerUserId,
+        ownerOrganizationId: request.ownerOrganizationId,
+        round,
+        quoteDataVersion: null,
+        autoOutcome: "YELLOW",
+        checklist: [{ ...toComplete, correction: null, note: null }] as never,
+      },
+    });
+    await tx.quoteRequest.update({
+      where: { id: request.id },
+      data: {
+        status: "IN_VERIFICATION",
+        // The draft stays: it holds the essential data the back office completes.
+        draftEnc: encryptJson(this.cipher, { ...draft, intake: intake.data, request: terms }),
+        plate: intake.data.plate,
+        packageCode: terms.packageCode,
+        startDate: calendarDateToDbDate(terms.startDate),
+        startMode: terms.startMode ?? "DATE",
+        chosenCoverages: terms.packageCode === "CUSTOM" ? [...(terms.coverages ?? [])] : [],
+        minValidityDays: terms.minValidityDays,
+        auctionDurationHours: terms.auctionDurationHours,
+        autoOutcome: "YELLOW",
+        submittedAt: request.submittedAt ?? now,
+      },
+    });
+    await addRequestEvent(tx, request, {
+      type: "SUBMITTED",
+      actorKind: "REQUESTER",
+      actorUserId: auth.userId,
+      at: now,
+      details: { essentialDataOnly: true },
+    });
+    await recordDomainEvent(tx, {
+      aggregateType: "QuoteRequest",
+      aggregateId: request.id,
+      type: "RequestSubmitted",
+      at: now,
+      actorUserId: auth.userId,
+      data: { outcome: "YELLOW", round, essentialDataOnly: true },
+    });
+    await this.audit.inTransaction(tx, actorOf(auth), {
+      action: "REQUEST_SUBMITTED",
+      targetType: "QuoteRequest",
+      targetId: request.id,
+      after: { essentialDataOnly: true, round },
+    });
+    await this.notifyBackOffice(tx, request, intake.data.plate, "YELLOW");
+    return {
+      id: request.id,
+      code: request.code,
+      status: "IN_VERIFICATION" as const,
+      autoOutcome: "YELLOW" as const,
+      round,
+      quoteDataVersion: null,
+      autoApprove: false,
+      request,
+      quoteData: null,
     };
   }
 
@@ -860,7 +1011,7 @@ export class RequestsService {
   private async notifyBackOffice(
     tx: DbTransaction,
     request: QuoteRequest,
-    quoteData: QuoteData,
+    vehicle: string,
     outcome: string,
   ) {
     // The requester may not read AstAx memberships (row level security): the
@@ -875,7 +1026,6 @@ export class RequestsService {
         select: { user: { select: { id: true, locale: true } } },
       }),
     );
-    const vehicle = `${quoteData.vehicle.make} ${quoteData.vehicle.model} ${quoteData.vehicle.plate}`;
     await this.notifications.inApp(
       tx,
       staff.map((m) => ({ userId: m.user.id, locale: m.user.locale })),

@@ -73,6 +73,16 @@ export const DOCUMENT_FIELDS: Record<ExtractableDocument, readonly FieldSpec[]> 
     f("birthDate", "date", "Data di nascita"),
     f("sex", "string", "Sesso: M o F"),
   ],
+  // ADR 0013: the ID card of the owner of a new vehicle.
+  IDENTITY_DOCUMENT: [
+    f("fiscalCode", "string", "Codice fiscale, 16 caratteri"),
+    f("surname", "string", "Cognome"),
+    f("givenName", "string", "Nome"),
+    f("birthDate", "date", "Data di nascita"),
+    f("sex", "string", "Sesso: M o F"),
+    f("documentNumber", "string", "Numero del documento"),
+    f("expiresOn", "date", "Data di scadenza del documento"),
+  ],
   QUOTE_PDF: [
     f("annualGrossPremiumCents", "integer", "Premio annuo lordo totale, in centesimi di euro"),
     f("companyName", "string", "Nome della compagnia assicurativa"),

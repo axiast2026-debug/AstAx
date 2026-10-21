@@ -221,3 +221,18 @@ export function quoteDataFromIntake(
     missing,
   };
 }
+
+/**
+ * ADR 0013, Dan 2026-10-21: whether a photo can be read. The bot found at
+ * least one field above `documents.confidenceThreshold` and did not flag the
+ * document as unreadable or of the wrong kind; otherwise the customer takes
+ * the photo again at once.
+ */
+export function documentReadable(
+  extraction: { fields: Record<string, { confidence: number }>; warnings: string[] } | null,
+  threshold: number,
+): boolean {
+  if (!extraction) return true;
+  if (extraction.warnings.some((w) => w === "UNREADABLE" || w === "WRONG_DOCUMENT")) return false;
+  return Object.values(extraction.fields).some((f) => f.confidence >= threshold);
+}

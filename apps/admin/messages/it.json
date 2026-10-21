@@ -220,7 +220,8 @@
       "RESIDENCE": "Residenza",
       "HISTORY": "Storia assicurativa",
       "DOCUMENTS": "Documenti",
-      "CONSENT": "Consenso"
+      "CONSENT": "Consenso",
+      "TO_COMPLETE": "Dati da completare"
     },
     "checkReasons": {
       "VINTAGE": "Possibile veicolo d'epoca o storico",
@@ -242,7 +243,8 @@
       "MISSING_RISK_CERTIFICATE": "Manca l'attestato di rischio",
       "LOW_CONFIDENCE": "Campi letti con bassa confidenza (evidenziati)",
       "OWNER_DIFFERS_FROM_REGISTRATION": "Il proprietario è diverso da quello del libretto",
-      "CONSENT_UPLOADED_TO_CHECK": "Consenso caricato dal broker: controlla firma e data"
+      "CONSENT_UPLOADED_TO_CHECK": "Consenso caricato dal broker: controlla firma e data",
+      "ESSENTIAL_DATA_ONLY": "Il cliente ha dato solo i dati essenziali: completa i dati dai documenti letti dal bot"
     },
     "correction": "Correzione",
     "note": "Nota",

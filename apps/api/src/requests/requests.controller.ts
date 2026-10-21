@@ -135,7 +135,8 @@ export class RequestsController {
     @Param("section") section: string,
     @Body() body: unknown,
   ) {
-    if (!(QUOTE_DRAFT_SECTIONS as readonly string[]).includes(section))
+    // ADR 0013: «intake», the essential data of the private customer, is a section too.
+    if (section !== "intake" && !(QUOTE_DRAFT_SECTIONS as readonly string[]).includes(section))
       throw new ProblemError("NOT_FOUND");
     return this.requests.saveSection(
       auth,

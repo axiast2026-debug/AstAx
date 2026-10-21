@@ -220,7 +220,8 @@
       "RESIDENCE": "Vendbanimi",
       "HISTORY": "Historia e sigurimit",
       "DOCUMENTS": "Dokumentet",
-      "CONSENT": "Pëlqimi"
+      "CONSENT": "Pëlqimi",
+      "TO_COMPLETE": "Të dhëna për t'u plotësuar"
     },
     "checkReasons": {
       "VINTAGE": "Automjet i mundshëm historik ose i epokës",
@@ -242,7 +243,8 @@
       "MISSING_RISK_CERTIFICATE": "Mungon dëshmia e rrezikut",
       "LOW_CONFIDENCE": "Fusha të lexuara me besueshmëri të ulët (të theksuara)",
       "OWNER_DIFFERS_FROM_REGISTRATION": "Pronari ndryshon nga ai i lejes së qarkullimit",
-      "CONSENT_UPLOADED_TO_CHECK": "Pëlqim i ngarkuar nga brokeri: kontrollo firmën dhe datën"
+      "CONSENT_UPLOADED_TO_CHECK": "Pëlqim i ngarkuar nga brokeri: kontrollo firmën dhe datën",
+      "ESSENTIAL_DATA_ONLY": "Klienti dha vetëm të dhënat thelbësore: plotëso të dhënat nga dokumentet e lexuara nga boti"
     },
     "correction": "Korrigjim",
     "note": "Shënim",

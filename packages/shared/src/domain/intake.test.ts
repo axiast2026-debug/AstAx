@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { IntakeSchema, intakeDocuments, quoteDataFromIntake, type Intake } from "./intake.js";
+import {
+  documentReadable,
+  IntakeSchema,
+  intakeDocuments,
+  quoteDataFromIntake,
+  type Intake,
+} from "./intake.js";
 
 // ADR 0013, Dan 2026-10-21: the essential data of the private customer.
 const residence = {
@@ -137,5 +143,20 @@ describe("ADR 0013: the request in two stages", () => {
         "history.classSource",
       ]),
     );
+  });
+});
+
+describe("ADR 0013: readable photos", () => {
+  it("readable when a field is above the threshold and no warning says otherwise", () => {
+    const field = (confidence: number) => ({ plate: { confidence } });
+    expect(documentReadable({ fields: field(0.95), warnings: [] }, 0.85)).toBe(true);
+    expect(documentReadable({ fields: field(0.4), warnings: [] }, 0.85)).toBe(false);
+    expect(documentReadable({ fields: {}, warnings: [] }, 0.85)).toBe(false);
+    expect(documentReadable({ fields: field(0.95), warnings: ["UNREADABLE"] }, 0.85)).toBe(false);
+    expect(documentReadable({ fields: field(0.95), warnings: ["WRONG_DOCUMENT"] }, 0.85)).toBe(
+      false,
+    );
+    // A document the bot does not read (a consent form) is never refused here.
+    expect(documentReadable(null, 0.85)).toBe(true);
   });
 });

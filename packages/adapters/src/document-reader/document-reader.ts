@@ -14,6 +14,7 @@ export type ExtractableDocument =
   | "DRIVING_LICENCE"
   | "RISK_CERTIFICATE"
   | "FISCAL_CODE_CARD"
+  | "IDENTITY_DOCUMENT"
   | "QUOTE_PDF";
 
 export const EXTRACTABLE_DOCUMENTS: readonly ExtractableDocument[] = [
@@ -21,6 +22,7 @@ export const EXTRACTABLE_DOCUMENTS: readonly ExtractableDocument[] = [
   "DRIVING_LICENCE",
   "RISK_CERTIFICATE",
   "FISCAL_CODE_CARD",
+  "IDENTITY_DOCUMENT",
   "QUOTE_PDF",
 ];
 

@@ -11,6 +11,9 @@ import {
 } from "@astax/db";
 import {
   derivedColumns,
+  IntakeSchema,
+  quoteDataFromIntake,
+  RequestTermsSchema,
   QuoteDataSchema,
   submissionProblems,
   worstOutcome,
@@ -130,6 +133,72 @@ export class VerificationService {
     return decryptJson(this.cipher, version.dataEnc) as QuoteData;
   }
 
+  /**
+   * ADR 0013: for a request with the essential data only, the data the back
+   * office starts from: the essential data, and quoteData prepared from the
+   * documents read by the bot, with the list of what is missing.
+   */
+  private async completionOf(
+    tx: DbTransaction,
+    request: QuoteRequest,
+    documents: { kind: string; createdAt: Date; extractionEnc: string | null }[],
+  ) {
+    if (!request.draftEnc) return null;
+    const draft = decryptJson(this.cipher, request.draftEnc) as {
+      intake?: unknown;
+      request?: unknown;
+    };
+    const intake = IntakeSchema.safeParse(draft.intake);
+    const terms = RequestTermsSchema.safeParse(draft.request);
+    if (!intake.success || !terms.success) return null;
+    const latest = (kind: string) => {
+      const found = documents
+        .filter((d) => d.kind === kind)
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+      const extraction = found ? extractionOf(this.cipher, found.extractionEnc) : null;
+      return extraction
+        ? Object.fromEntries(Object.entries(extraction.fields).map(([k, v]) => [k, v.value]))
+        : undefined;
+    };
+    const registration = latest("REGISTRATION_CERTIFICATE");
+    const make = typeof registration?.make === "string" ? registration.make : undefined;
+    const model = typeof registration?.model === "string" ? registration.model : undefined;
+    const fiscalCode = registration?.ownerFiscalCode ?? latest("IDENTITY_DOCUMENT")?.fiscalCode;
+    const cadastral =
+      typeof fiscalCode === "string" && fiscalCode.length === 16 ? fiscalCode.slice(11, 15) : null;
+    const municipality = cadastral
+      ? await tx.municipality.findFirst({ where: { cadastralCode: cadastral } })
+      : null;
+    const candidate = quoteDataFromIntake(intake.data, terms.data, {
+      extracted: {
+        REGISTRATION_CERTIFICATE: registration,
+        DRIVING_LICENCE: latest("DRIVING_LICENCE"),
+        RISK_CERTIFICATE: latest("RISK_CERTIFICATE"),
+        IDENTITY_DOCUMENT: latest("IDENTITY_DOCUMENT"),
+      },
+      vehicle:
+        make && model
+          ? {
+              make,
+              model,
+              fuel: typeof registration?.fuel === "string" ? registration.fuel : undefined,
+              powerKw: typeof registration?.powerKw === "number" ? registration.powerKw : undefined,
+              displacementCc:
+                typeof registration?.displacementCc === "number"
+                  ? registration.displacementCc
+                  : undefined,
+              firstRegistrationDate:
+                typeof registration?.firstRegistrationDate === "string"
+                  ? registration.firstRegistrationDate
+                  : undefined,
+            }
+          : null,
+      istatOfCadastral: (code) => (code === cadastral ? (municipality?.istatCode ?? null) : null),
+      today: romeCalendarDate(this.clock.now()),
+    });
+    return { intake: intake.data, candidate };
+  }
+
   /** The verification card; reading it is logged (QUOTE_DATA_VIEWED). */
   async card(auth: AuthContext, id: string) {
     backOfficeOnly(auth);
@@ -193,6 +262,7 @@ export class VerificationService {
         },
         quoteData,
         quoteDataVersion: request.quoteDataVersion,
+        completion: quoteData === null ? await this.completionOf(tx, request, documents) : null,
         versions: versions.map((v) => ({ ...v, createdAt: v.createdAt.toISOString() })),
         consent: consent
           ? {
@@ -330,6 +400,8 @@ export class VerificationService {
       const { request, round } = await this.openRound(tx, id);
       const before = await this.quoteDataOf(tx, request);
       const after = parsed.data;
+      // ADR 0013: with the essential data only, this is the completion: version 1.
+      const completion = before === null;
       const changed = changedPaths(before, after);
       if (changed.length === 0) throw new ProblemError("VALIDATION_FAILED", "Nothing changed");
       await this.checkLikeSubmission(tx, request, before, after, now);
@@ -342,7 +414,7 @@ export class VerificationService {
           version,
           dataEnc: encryptJson(this.cipher, after),
           dataSha256: sha256Of(after),
-          source: "BACK_OFFICE_CORRECTION",
+          source: completion ? "BACK_OFFICE_COMPLETION" : "BACK_OFFICE_CORRECTION",
           changedFields: changed,
           reason: input.reason,
           createdByUserId: auth.userId,
@@ -355,9 +427,20 @@ export class VerificationService {
         const old = previous.find((p) => p.code === i.code);
         return { ...i, correction: old?.correction ?? null, note: old?.note ?? null };
       });
-      // The consent item does not depend on the data: it is kept as it was.
+      // The consent item does not depend on the data: it is kept as it was. After
+      // a completion the private customer's consent (given in the app) is green.
       const consent = previous.find((p) => p.code === "CONSENT");
       if (consent) checklist.push(consent);
+      else if (completion) {
+        checklist.push({
+          code: "CONSENT",
+          outcome: "GREEN",
+          reasons: [],
+          fields: [],
+          correction: null,
+          note: null,
+        });
+      }
       const outcome = worstOutcome(checklist.map((i) => i.outcome));
       await tx.verification.update({
         where: { id: round.id },
@@ -380,6 +463,8 @@ export class VerificationService {
           minValidityDays: derived.minValidityDays,
           auctionDurationHours: after.request.auctionDurationHours,
           autoOutcome: outcome,
+          // The essential data has done its job once the data is complete.
+          ...(completion ? { draftEnc: null } : {}),
         },
       });
       await addRequestEvent(tx, request, {
@@ -387,7 +472,7 @@ export class VerificationService {
         actorKind: "BACK_OFFICE",
         actorUserId: auth.userId,
         at: now,
-        details: { quoteDataVersion: version, changedFields: changed },
+        details: { quoteDataVersion: version, changedFields: changed, completion },
       });
       await this.audit.inTransaction(tx, actorOf(auth), {
         action: "QUOTE_DATA_CORRECTED",
@@ -485,6 +570,12 @@ export class VerificationService {
     const now = this.clock.now();
     return withContext(this.db, auth.db, async (tx) => {
       const { request, round } = await this.openRound(tx, id);
+      // ADR 0013: a request with the essential data only is completed first.
+      if (request.quoteDataVersion === null) {
+        throw new ProblemError("CONFLICT", "Complete the data before the approval", [
+          { path: "quoteData", issue: "TO_COMPLETE" },
+        ]);
+      }
       if (!(await hasSharingConsent(tx, request.customerId))) {
         throw new ProblemError("CONFLICT", undefined, [
           { path: "consent", issue: "CONSENT_REVOKED" },
