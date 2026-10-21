@@ -70,9 +70,10 @@ test.describe("fase 1: accessi", () => {
 
     await expect(page).toHaveURL(`${WEB}/`);
     await expect(page.getByText("Agenzia Uno")).toBeVisible();
-    const menu = page.getByRole("navigation", { name: "Menu principale" });
-    await expect(menu.getByRole("link", { name: "Team" })).toBeVisible();
-    await expect(menu.getByRole("link", { name: "Contabilità" })).toBeVisible();
+    // Dan, 2026-10-21 (docs/piano-agenzie.md B): team and accounting at the bottom of the page.
+    const more = page.getByRole("navigation", { name: "Altre pagine" });
+    await expect(more.getByRole("link", { name: "Team" })).toBeVisible();
+    await expect(more.getByRole("link", { name: "Contabilità" })).toBeVisible();
 
     // Log out and back in: password alone is not enough, the TOTP code is asked again.
     await page.getByRole("button", { name: "Esci" }).click();
@@ -98,10 +99,12 @@ test.describe("fase 1: accessi", () => {
       .click();
     const current = page.getByRole("banner").locator("span", { hasText: /^Agenzia / });
     await expect(current).toHaveText("Agenzia Uno");
-    // Sub-agent menu (spec 05): no team, no accounting.
+    // Sub-agent menu (spec 05): no team, no accounting; its other pages at the bottom.
     const menu = page.getByRole("navigation", { name: "Menu principale" });
-    await expect(menu.getByRole("link", { name: "Dashboard personale" })).toBeVisible();
-    await expect(menu.getByRole("link", { name: "Team" })).toHaveCount(0);
+    const more = page.getByRole("navigation", { name: "Altre pagine" });
+    await expect(menu.getByRole("link", { name: "Partecipa all'asta" })).toBeVisible();
+    await expect(more.getByRole("link", { name: "Dashboard personale" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Team", exact: true })).toHaveCount(0);
 
     // Spec 05 «Più agenzie»: the selector at the top switches the context.
     await page.getByLabel("Passa a").selectOption({ label: "Agenzia Tre" });
