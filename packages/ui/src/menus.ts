@@ -13,14 +13,23 @@ export interface MenuItem {
 
 const item = (key: string, href: string, action: Action): MenuItem => ({ key, href, action });
 
-/** 03 — private customer. */
+/**
+ * 03 — private customer: four items, also the bar at the bottom of a phone
+ * (Dan, 2026-10-21, docs/piano-flusso-semplificato.md). Documents, help and
+ * complaints are in the profile and at the bottom of every page (PRIVATE_LINKS).
+ */
 const PRIVATE_MENU: MenuItem[] = [
   item("home", "/", "profile.view"),
   item("quotes", "/preventivi", "request.viewOwn"),
   item("policies", "/polizze", "request.viewOwn"),
-  item("documents", "/documenti", "request.viewOwn"),
-  item("complaints", "/reclami", "complaint.open"),
   item("profile", "/profilo", "profile.view"),
+];
+
+/** The other pages of the private customer, linked from the profile and the footer. */
+export const PRIVATE_LINKS: MenuItem[] = [
+  item("documents", "/documenti", "request.viewOwn"),
+  item("support", "/assistenza", "profile.view"),
+  item("complaints", "/reclami", "complaint.open"),
 ];
 
 /** 02 — broker owner and operators. */
@@ -132,8 +141,14 @@ export function menuFor(actor: Actor): MenuItem[] {
 /** Every key used by menus: the translation files must have them all. */
 export const MENU_KEYS = [
   ...new Set(
-    [PRIVATE_MENU, BROKER_MENU, AGENCY_MENU, SUB_AGENT_MENU, BACK_OFFICE_MENU, ADMIN_MENU].flatMap(
-      (m) => m.map((entry) => entry.key),
-    ),
+    [
+      PRIVATE_MENU,
+      PRIVATE_LINKS,
+      BROKER_MENU,
+      AGENCY_MENU,
+      SUB_AGENT_MENU,
+      BACK_OFFICE_MENU,
+      ADMIN_MENU,
+    ].flatMap((m) => m.map((entry) => entry.key)),
   ),
 ];

@@ -27,15 +27,10 @@ test.describe("fase 1: accessi", () => {
 
     await expect(page).toHaveURL(`${WEB}/`);
     const menu = page.getByRole("navigation", { name: "Menu principale" });
-    await expect(menu.getByRole("link")).toHaveText([
-      "Home",
-      "Preventivi",
-      "Polizze",
-      "Documenti",
-      // Phase 7: the formal complaint from the own area (spec 03).
-      "Reclami",
-      "Profilo",
-    ]);
+    // Dan, 2026-10-21: four items; documents, help and complaints at the bottom of the page.
+    await expect(menu.getByRole("link")).toHaveText(["Home", "Preventivi", "Polizze", "Profilo"]);
+    const footer = page.getByRole("navigation", { name: "Altre pagine" });
+    await expect(footer.getByRole("link")).toHaveText(["Documenti", "Assistenza", "Reclami"]);
 
     await page.getByRole("link", { name: "Profilo" }).first().click();
     await expect(page.getByText(email)).toBeVisible();

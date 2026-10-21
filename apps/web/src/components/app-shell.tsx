@@ -1,4 +1,5 @@
-import { Badge, menuFor } from "@astax/ui";
+import { Badge, menuFor, PRIVATE_LINKS } from "@astax/ui";
+import { can } from "@astax/shared/permissions";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -114,11 +115,25 @@ export async function AppShell({ viewer, children }: { viewer: Viewer; children:
         </main>
       </div>
       {isPrivate ? (
+        // Dan, 2026-10-21: the pages left out of the four-item menu, on every page.
+        <nav aria-label={t("shell.morePages")} className="mx-auto max-w-6xl px-4 pb-8">
+          <ul className="flex flex-wrap gap-x-6 gap-y-2 border-t border-warm-200 pt-4 text-sm">
+            {PRIVATE_LINKS.filter((l) => can(viewer.actor, l.action)).map((l) => (
+              <li key={l.key}>
+                <Link href={l.href} className="underline hover:text-orange-600">
+                  {t(`menu.${l.key}`)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      ) : null}
+      {isPrivate ? (
         <nav
           aria-label={t("shell.menu")}
           className="fixed inset-x-0 bottom-0 border-t border-warm-200 bg-white md:hidden"
         >
-          <ul className="grid grid-cols-5">
+          <ul className="grid grid-cols-4">
             {menu.map((entry) => (
               <li key={entry.key}>
                 <Link

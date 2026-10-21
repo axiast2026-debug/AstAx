@@ -1,12 +1,10 @@
-import { Button, buttonVariants, Card, CardTitle } from "@astax/ui";
+import { buttonVariants, Card, CardTitle } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { AppShell } from "@/components/app-shell";
+import { PrivateHome } from "@/components/private-home";
 import Link from "next/link";
-import { createPrivateRequest } from "@/app/request-actions";
-import { StatusBadge } from "@/components/request-view";
 import { api, sessionId, webAuth } from "@/lib/auth";
 import type { AgencyDashboard } from "@/lib/agency";
-import type { RequestSummary } from "@/lib/requests";
 import { requireViewer } from "@/lib/me";
 
 export default async function HomePage({
@@ -20,11 +18,13 @@ export default async function HomePage({
   const viewer = await requireViewer();
   const t = await getTranslations("home");
   const isPrivate = viewer.me.kind === "PRIVATE";
-  const current = isPrivate
-    ? (await api<RequestSummary[]>("/requests")).body.find(
-        (r) => !["CANCELLED", "EXCLUDED"].includes(r.status),
-      )
-    : undefined;
+  if (isPrivate) {
+    return (
+      <AppShell viewer={viewer}>
+        <PrivateHome firstName={viewer.me.firstName} />
+      </AppShell>
+    );
+  }
   const dashboard =
     viewer.activeMembership?.organization.type === "AGENCY"
       ? (await api<AgencyDashboard>("/agency/dashboard")).body
@@ -39,34 +39,8 @@ export default async function HomePage({
       ) : null}
       <Card>
         <CardTitle>{t("welcome", { name: viewer.me.firstName })}</CardTitle>
-        <p className="mt-2 text-warm-600">{isPrivate ? t("privateIntro") : t("proIntro")}</p>
-        {isPrivate ? (
-          <form action={createPrivateRequest} className="mt-4">
-            <Button type="submit" size="lg">
-              {t("newQuote")}
-            </Button>
-          </form>
-        ) : null}
+        <p className="mt-2 text-warm-600">{t("proIntro")}</p>
       </Card>
-      {current ? (
-        <Card className="mt-6">
-          <div className="flex flex-wrap items-center gap-3">
-            <CardTitle>{t("currentRequest", { code: current.code })}</CardTitle>
-            <StatusBadge status={current.status} />
-          </div>
-          <p className="mt-2 text-sm text-warm-600">
-            {current.status === "INTEGRATION_REQUESTED"
-              ? t("actionIntegration")
-              : t(`statusHint.${current.status}`)}
-          </p>
-          <Link
-            href={`/preventivi/${current.id}`}
-            className="mt-3 inline-block font-medium underline"
-          >
-            {t("open")}
-          </Link>
-        </Card>
-      ) : null}
     </AppShell>
   );
 }

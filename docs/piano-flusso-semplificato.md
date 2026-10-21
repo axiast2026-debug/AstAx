@@ -87,7 +87,7 @@ Restano valide le proposte del piano precedente:
 | 7 | Per ora decide sempre il back office; l'approvazione automatica dopo |
 | 8 | **A**: tre sottodomini, `privati.`, `broker.`, `agenzie.` |
 | 9 | Il broker si riprogetta da capo più avanti: per ora resta com'è |
-| 10 | L'area del privato per ora resta com'è; proposta di semplificazione qui sotto, da decidere |
+| 10 | L'area del privato si semplifica subito, come nella sezione «Area del privato» (Dan, 2026-10-21) |
 
 ## Passi di lavoro
 
@@ -102,8 +102,19 @@ Ognuno con i suoi test e il suo commit, nell'ordine:
 7. **Scenari e prove:** S01, S09 e le prove della richiesta riscritti; una prova automatica che conta i clic (obiettivo: al massimo 15 dalla richiesta al pagamento).
 8. Demo per Dan.
 
-## Proposta per l'area del privato (da decidere più avanti)
+## Area del privato (Dan, 2026-10-21: «la facciamo ora»)
 
 - **Home con una scheda per ogni cosa in corso:** la richiesta, il suo stato e un solo pulsante con la prossima azione («Carica di nuovo la foto», «Vedi le offerte», «Firma e paga», «Scarica la polizza»).
 - **Menu di 3 voci:** «Preventivi», «Polizze», «Profilo». I documenti stanno dentro la richiesta o la polizza a cui appartengono; assistenza e reclami stanno nel profilo e in fondo a ogni pagina.
 - **Sul telefono:** menu in basso, notifiche come elenco di eventi con il link all'azione.
+
+**Prossima azione per stato** (il pulsante della scheda in home):
+
+| Stato | Pulsante |
+| --- | --- |
+| Bozza | «Continua la richiesta» |
+| Integrazione richiesta | «Completa i dati richiesti» |
+| In verifica, asta aperta, in emissione, deserta | nessun pulsante: una riga che dice cosa succede ora, e «Apri» |
+| Offerte disponibili, scaduta | «Vedi le offerte» |
+| Accettata (firmata, da pagare) | «Firma e paga» |
+| Polizza attiva | «Scarica la polizza»; «Rinnova in asta» quando è il momento |

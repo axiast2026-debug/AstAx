@@ -24,6 +24,7 @@
     "menu": "Menu principale",
     "skip": "Vai al contenuto",
     "account": "Il tuo account",
+    "morePages": "Altre pagine",
     "unread": "{count} notifiche non lette",
     "switchTo": "Passa a",
     "switchAction": "Vai"
@@ -82,13 +83,31 @@
     "privateIntro": "Da qui chiederai i tuoi preventivi e seguirai le aste.",
     "proIntro": "Da qui seguirai richieste, offerte e polizze della tua organizzazione.",
     "newQuote": "Nuovo preventivo",
-    "currentRequest": "Richiesta {code}",
-    "actionIntegration": "Il back office ti chiede di completare qualcosa: apri la richiesta.",
-    "open": "Apri la richiesta",
+    "inProgress": "In corso",
+    "requestCard": "Richiesta {code}",
+    "myPolicies": "Le tue polizze",
+    "policyCard": "Polizza {number}",
+    "policyUntil": "Polizza n. {number}, valida fino al {end}.",
+    "open": "Apri",
+    "actions": {
+      "continue": "Continua la richiesta",
+      "complete": "Completa i dati richiesti",
+      "offers": "Vedi le offerte",
+      "signAndPay": "Firma e paga",
+      "renew": "Rinnova in asta",
+      "downloadPolicy": "Scarica la polizza"
+    },
     "statusHint": {
-      "DRAFT": "La procedura non è ancora finita: riprendi da dove eri rimasto.",
-      "IN_VERIFICATION": "La stiamo verificando: ti avvisiamo appena parte l'asta.",
-      "INTEGRATION_REQUESTED": "Il back office ti chiede di completare qualcosa.",
+      "DRAFT": "La richiesta non è ancora finita: riprendi da dove eri rimasto.",
+      "IN_VERIFICATION": "Stiamo controllando i documenti: ti avvisiamo appena parte l'asta.",
+      "INTEGRATION_REQUESTED": "Ci serve qualcosa in più da te per andare avanti.",
+      "AUCTION_OPEN": "L'asta è aperta: le agenzie stanno preparando le offerte.",
+      "OFFERS_AVAILABLE": "Le offerte sono pronte: confrontale e scegli.",
+      "DESERTED": "Nessuna agenzia ha offerto: ti scriviamo con le alternative.",
+      "ACCEPTED": "Hai scelto l'offerta: manca solo firma e pagamento.",
+      "IN_ISSUANCE": "Hai pagato: l'agenzia sta emettendo la polizza.",
+      "EXPIRED": "I prezzi sono scaduti: puoi chiedere alle agenzie di riconfermarli.",
+      "IN_RECONFIRMATION": "Le agenzie stanno riconfermando i prezzi.",
       "EXCLUDED": "Questa richiesta non può andare all'asta.",
       "CANCELLED": "Richiesta annullata."
     }
@@ -111,6 +130,7 @@
   },
   "profile": {
     "title": "Profilo",
+    "morePages": "Documenti, assistenza e reclami",
     "data": "Dati personali",
     "name": "Nome",
     "email": "Email",

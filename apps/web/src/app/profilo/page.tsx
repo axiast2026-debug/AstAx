@@ -1,5 +1,7 @@
 import { formatDateTime } from "@astax/shared/format";
-import { Button, Card, CardTitle } from "@astax/ui";
+import { can } from "@astax/shared/permissions";
+import { Button, buttonVariants, Card, CardTitle, PRIVATE_LINKS } from "@astax/ui";
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { logoutEverywhere, revokeConsent, revokeSession } from "@/app/actions";
 import { AppShell } from "@/components/app-shell";
@@ -35,6 +37,24 @@ export default async function ProfilePage() {
     <AppShell viewer={viewer}>
       <h1 className="text-2xl font-bold">{t("profile.title")}</h1>
       <div className="mt-6 space-y-6">
+        {me.kind === "PRIVATE" ? (
+          // Dan, 2026-10-21: the pages left out of the menu of the private customer.
+          <Card>
+            <CardTitle>{t("profile.morePages")}</CardTitle>
+            <ul className="mt-3 grid gap-2 sm:grid-cols-3">
+              {PRIVATE_LINKS.filter((l) => can(viewer.actor, l.action)).map((l) => (
+                <li key={l.key}>
+                  <Link
+                    href={l.href}
+                    className={buttonVariants({ variant: "outline", className: "w-full" })}
+                  >
+                    {t(`menu.${l.key}`)}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ) : null}
         <Card>
           <CardTitle>{t("profile.data")}</CardTitle>
           <dl className="mt-4 grid grid-cols-[8rem_1fr] gap-y-2 text-sm">
