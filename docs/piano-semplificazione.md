@@ -1,6 +1,6 @@
 # Piano: meno clic dalla richiesta al pagamento
 
-**Stato:** proposta per Dan (2026-10-19). Niente codice finché Dan non approva.
+**Stato:** proposta per Dan (2026-10-19). Le proposte A, B e C sono sostituite dal flusso di Dan in `docs/piano-flusso-semplificato.md`; D-J restano valide. Niente codice finché Dan non approva.
 
 **Obiettivo:** il privato va dalla richiesta al pagamento con meno clic e meno passaggi a vuoto, senza perdere controlli, firme e consensi che servono per legge.
 
