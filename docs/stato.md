@@ -19,7 +19,7 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 
 ## Ultima sessione
 
-**2026-10-21 — agenzie, passo 3 del piano**: `GET /agency/metrics?days=30|90|365` (tassi in punti base, premi vinti in centesimi) e pagina «Metriche»; `GET /agency/profile` e la scheda dell'agenzia in «Profilo»; voci «Metriche» e «Profilo» nei menu di agenzia e sub-agente. Corretto anche il nome vuoto di «Comunicazioni» nelle preferenze delle notifiche. Prove in `apps/api/test/int/agency.int.test.ts` e `tests/e2e/specs/agenzia-sezioni.spec.ts`.
+**2026-10-21 — agenzie, passo 3 del piano**: `GET /agency/metrics?days=30|90|365` (tassi in punti base, premi vinti in centesimi) e pagina «Metriche»; `GET /agency/profile` e la scheda dell'agenzia in «Profilo»; voci «Metriche» e «Profilo» nei menu di agenzia e sub-agente. Corretto anche il nome vuoto di «Comunicazioni» nelle preferenze delle notifiche. Prove in `apps/api/test/int/agency.int.test.ts` e `tests/e2e/specs/fase7-agenzia-sezioni.spec.ts`.
 
 **2026-10-21 — agenzie, passo 2 del piano**: «Risultati» con le schede «Non vinte», «In attesa del pagamento» (offerta scelta e firmata, non pagata) e «Vinte»; l'API dà per ogni classifica `outcome` (`NOT_WON`, `AWAITING_PAYMENT`, `WON`). Prova in `apps/api/test/int/acceptance.int.test.ts`; S01 apre la scheda «Vinte».
 

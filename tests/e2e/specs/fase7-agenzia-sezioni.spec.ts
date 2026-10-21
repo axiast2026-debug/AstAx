@@ -9,7 +9,9 @@ import {
   saveSecret,
 } from "../support/auth.js";
 
-/** The agency's sections (Dan, 2026-10-21, docs/piano-agenzie.md): Metriche and Profilo. */
+/**
+ * Named after fase 1, which needs the very first access of the agency owner.
+ * The agency's sections (Dan, 2026-10-21, docs/piano-agenzie.md): Metriche and Profilo. */
 test.describe("sezioni dell'agenzia", () => {
   test.describe.configure({ timeout: 180_000 });
 
