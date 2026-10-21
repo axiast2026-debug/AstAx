@@ -36,6 +36,8 @@ export interface VerificationCard {
   code: string;
   status: string;
   channel: "PRIVATE" | "BROKER";
+  /** ADR 0014: sent from a broker's lot without documents. */
+  withoutDocuments?: boolean;
   customer: string | null;
   quoteData: QuoteData | null;
   quoteDataVersion: number | null;

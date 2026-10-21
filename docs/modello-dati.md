@@ -82,6 +82,7 @@ Filtri (`criteria`): `vehicleTypes[]`, `provinces[]` o tutte, `cuClassMin`, `cuC
 | `Verification` | `quoteRequestId`, `autoOutcome` (`GREEN`, `YELLOW`, `RED`), `checklist` (JSON: voce, esito automatico, correzione, nota), `assignedTo`, `decision` (`APPROVED`, `INTEGRATION_REQUESTED`, `EXCLUDED`), `reason`, `decidedBy`, `decidedAt`, `excludedAgencies` (JSON con motivo) | — |
 | `ExclusionRule` | `code`, `condition` (JSON), `blockingInWizard`, `messageIt`, `active` | ASTA-10 |
 | `CoveragePackage`, `CoveragePackageVersion` | `code`, `name`; versione: `requirements` (JSON), `customerTextIt`, `validFrom` | La richiesta salva la versione usata |
+| `RequestBatch` | `code` (LT-AAAA-NNNNNN), `ownerOrganizationId`, `requesterUserId`/`requesterMembershipId`, `fileName`, `rows` | Il lotto del broker da file Excel ([ADR 0014](adr/0014-lotti-dei-broker.md)); ogni riga è una `QuoteRequest` con `batchId`, `batchLine`, `policyExpiryDate`, `scheduledSubmitAt`, `documentsDueAt`, `documentsNotifiedAt`, `withoutDocuments` |
 
 Aggiunte in fase 2 ([ADR 0007](adr/0007-dati-della-richiesta-cifrati.md)): `QuoteDataVersion` (versioni di `quoteData` cifrate, solo in aggiunta), `QuoteRequestEvent` (cronologia, solo in aggiunta), `ConsentLink` (link di consenso del broker al cliente), `OtpChallenge` (codici OTP salvati come impronta), `Notification` (avvisi in app, anticipata dalla fase 7). Ogni riga di clienti e richieste ha `ownerUserId` o `ownerOrganizationId` per la sicurezza a livello di riga.
 

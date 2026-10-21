@@ -93,6 +93,8 @@ const configSchema = z
     API_TRUST_PROXY: z.string().min(1).default("loopback"),
     /** Phase 8: how often the invoices still to deliver go to SDI (0: never, as in the tests). */
     INVOICE_DELIVERY_INTERVAL_MS: z.coerce.number().int().min(0).default(300_000),
+    /** ADR 0014: the round of the broker's lots (reminders, scheduled submissions); 0 = off. */
+    BATCH_SCHEDULE_INTERVAL_MS: z.coerce.number().int().min(0).default(300_000),
     /** Redis, for the realtime events published by the worker (ADR 0008). */
     REDIS_URL: z.string().min(1).optional(),
     REDIS_PORT: z.coerce.number().int().min(1).max(65535).default(6380),

@@ -72,6 +72,7 @@ import { AdminReportsService } from "./admin/admin-reports.service.js";
 import { RetentionController } from "./admin/retention.controller.js";
 import { RetentionService } from "./admin/retention.service.js";
 import { BatchesController } from "./requests/batches.controller.js";
+import { BatchSchedulerService } from "./requests/batch-scheduler.service.js";
 import { BatchesService } from "./requests/batches.service.js";
 import { BulkUploadController } from "./requests/bulk-upload.controller.js";
 import { BulkUploadService } from "./requests/bulk-upload.service.js";
@@ -208,6 +209,7 @@ export class AppModule {
         RetentionService,
         BulkUploadService,
         BatchesService,
+        BatchSchedulerService,
         ReconciliationService,
         ComplaintsService,
         ExceptionsOverviewService,

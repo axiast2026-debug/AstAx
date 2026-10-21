@@ -127,6 +127,7 @@ export function filterableRequest(request: QuoteRequest, openedAt: Date): Filter
         ? Math.round((request.startDate.getTime() - today.getTime()) / 86_400_000)
         : 0,
     minValidityDays: request.minValidityDays,
+    withoutDocuments: request.withoutDocuments,
   };
 }
 

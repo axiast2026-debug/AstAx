@@ -65,6 +65,16 @@ describe("agency filters (ASTA-05)", () => {
     expect(filterMismatches(open, { ...request, province: "PA", claimsLast5y: 4 })).toEqual([]);
   });
 
+  it("ADR 0014 answer 4: a request sent without documents reaches only the agencies that accept it", () => {
+    const without = { ...request, withoutDocuments: true };
+    expect(filterMismatches(criteria, without)).toEqual(["WITHOUT_DOCUMENTS"]);
+    expect(filterMismatches({ ...criteria, acceptsWithoutDocuments: true }, without)).toEqual([]);
+    expect(filterMismatches(criteria, { ...request, withoutDocuments: false })).toEqual([]);
+    expect(memberFilterProblems(criteria, { ...criteria, acceptsWithoutDocuments: true })).toEqual([
+      "WITHOUT_DOCUMENTS",
+    ]);
+  });
+
   it("a first policy without CU class fits any range of classes", () => {
     expect(filterMismatches(criteria, { ...request, cuClass: null })).toEqual([]);
   });

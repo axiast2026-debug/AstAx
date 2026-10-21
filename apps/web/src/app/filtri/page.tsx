@@ -20,6 +20,7 @@ interface Criteria {
   companies: string[];
   maxStartDateDays: number;
   maxGuaranteeDays: number;
+  acceptsWithoutDocuments?: boolean;
 }
 interface FiltersPage {
   agency: Criteria | null;
@@ -141,6 +142,14 @@ async function CriteriaFields({
         hint={t("maxGuaranteeHint")}
         defaultValue={value?.maxGuaranteeDays ?? 30}
       />
+      <div className="sm:col-span-2">
+        <CheckField
+          label={t("acceptsWithoutDocuments")}
+          name={`${prefix}.acceptsWithoutDocuments`}
+          defaultChecked={value?.acceptsWithoutDocuments === true}
+        />
+        <p className="mt-1 text-xs text-warm-600">{t("acceptsWithoutDocumentsHint")}</p>
+      </div>
     </div>
   );
 }

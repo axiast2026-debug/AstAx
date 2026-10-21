@@ -72,6 +72,8 @@ export const AGENCY_MANDATES: Record<string, readonly (typeof COMPANY_NAMES)[num
 
 /** S04: only these agencies take motorcycles and mopeds; the others cars only. */
 export const TWO_WHEELER_AGENCIES = ["uno", "tre", "quattro", "nove"] as const;
+/** ADR 0014, answer 4: the agencies that accept requests without documents. */
+const WITHOUT_DOCUMENTS_AGENCIES: readonly string[] = ["uno", "due"];
 
 /** Reception hours of the synthetic agencies: the working hours of ASTA-02. */
 const RECEPTION_HOURS = {
@@ -441,6 +443,8 @@ async function seedAgencies(tx: DbTransaction, seed: string): Promise<void> {
       companies: companyIds as [string, ...string[]],
       maxStartDateDays: 60,
       maxGuaranteeDays: 30,
+      // ADR 0014: two agencies receive the brokers' requests sent without documents.
+      ...(WITHOUT_DOCUMENTS_AGENCIES.includes(agency) ? { acceptsWithoutDocuments: true } : {}),
     };
     await tx.agencyFilter.upsert({
       where: { organizationId },

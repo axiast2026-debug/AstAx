@@ -52,6 +52,8 @@ function criteriaOf(f: FormData, p: string) {
     companies: list(f, `${p}.companies`),
     maxStartDateDays: int(f, `${p}.maxStartDateDays`) ?? 0,
     maxGuaranteeDays: int(f, `${p}.maxGuaranteeDays`) ?? 0,
+    // ADR 0014, answer 4: the requests of the brokers' lots sent without documents.
+    acceptsWithoutDocuments: f.get(`${p}.acceptsWithoutDocuments`) === "on",
   };
 }
 

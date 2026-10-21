@@ -296,6 +296,8 @@ export class VerificationService {
         code: request.code,
         status: request.status,
         channel: request.channel,
+        // ADR 0014, answer 4: a request of a broker's lot sent without documents.
+        withoutDocuments: request.withoutDocuments,
         customer: customer ? customerName(customer.person) : null,
         reasons: {
           integration: lists

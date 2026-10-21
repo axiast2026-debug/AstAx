@@ -1103,7 +1103,9 @@
       "maxClaimsHint": "Vuoto: nessun limite.",
       "maxStartDateDays": "Decorrenza al massimo tra (giorni)",
       "maxGuaranteeDays": "Validità massima che potete garantire (giorni)",
-      "maxGuaranteeHint": "Le richieste con una validità minima più lunga non vi arrivano."
+      "maxGuaranteeHint": "Le richieste con una validità minima più lunga non vi arrivano.",
+      "acceptsWithoutDocuments": "Accetto anche richieste senza documenti",
+      "acceptsWithoutDocumentsHint": "Le richieste dei lotti dei broker partono anche se il broker non ha ancora caricato libretto e patente: in quel caso arrivano solo alle agenzie con questa spunta."
     },
     "agencyTitle": "Agenzia",
     "mandates": "Compagnie mandanti",

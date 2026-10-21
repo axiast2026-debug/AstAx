@@ -2,6 +2,7 @@ import { SYSTEM_CONTEXT, withContext } from "@astax/db";
 import { addCalendarDays, BATCH_COLUMNS, buildFiscalCode, romeInstant } from "@astax/shared/domain";
 import { romeCalendarDate } from "@astax/shared/format";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { BatchSchedulerService } from "../../src/requests/batch-scheduler.service.js";
 import { readXlsx, writeXlsx } from "../../src/requests/xlsx.js";
 import { acceptAllLegal, membershipId, startHarness, type Harness } from "./fixtures.js";
 import { requestHelpers, type Who } from "./request-helpers.js";
@@ -177,6 +178,34 @@ describe("broker plan, step 4: lots from Excel (ADR 0014)", () => {
       tx.auditLog.findFirst({ where: { action: "BATCH_UPLOADED", targetId: done.id } }),
     );
     expect(logged).not.toBeNull();
+  });
+
+  it("answers 4 and 6: on its days the draft asks for the documents, then leaves without them", async () => {
+    const today = romeCalendarDate(h.clock.now());
+    const file = writeXlsx([
+      {
+        name: "Richieste",
+        rows: [[...BATCH_COLUMNS], row("LT300AA", addCalendarDays(today, 5), "Elsa")],
+      },
+    ]);
+    const done = await r.json<{ results: { requestId: string }[] }>(await send(file), 201);
+    const id = done.results[0]?.requestId ?? "";
+    const scheduler = h.app.get(BatchSchedulerService);
+    const sent = h.email.sent.length;
+    // Dora, of the lot above, is due today too.
+    expect(await scheduler.run()).toMatchObject({ reminded: 2, submitted: 2, postponed: 0 });
+    expect(h.email.sent.slice(sent).some((m) => m.subject.startsWith("Carica i documenti"))).toBe(
+      true,
+    );
+    const request = await system((tx) => tx.quoteRequest.findUniqueOrThrow({ where: { id } }));
+    expect(request).toMatchObject({ status: "IN_VERIFICATION", withoutDocuments: true });
+    expect(request.documentsNotifiedAt).not.toBeNull();
+    const logged = await system((tx) =>
+      tx.auditLog.findFirst({ where: { action: "BATCH_REQUEST_SCHEDULED_SUBMIT", targetId: id } }),
+    );
+    expect(logged?.after).toMatchObject({ outcome: "SUBMITTED" });
+    // Nothing twice.
+    expect(await scheduler.run()).toMatchObject({ reminded: 0, submitted: 0 });
   });
 
   it("only a broker uploads lots", async () => {

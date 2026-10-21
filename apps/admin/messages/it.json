@@ -376,7 +376,8 @@
         "relativeFiscalCode": "Codice fiscale del familiare"
       },
       "save": "Salva i dati completati"
-    }
+    },
+    "withoutDocuments": "Senza documenti: l'asta va solo alle agenzie che lo accettano"
   },
   "auctions": {
     "title": "Aste",

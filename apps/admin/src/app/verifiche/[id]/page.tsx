@@ -139,6 +139,7 @@ export default async function VerificationCardPage({
           {t(`channels.${card.channel}`)}
           {card.customer ? ` · ${card.customer}` : ""}
         </span>
+        {card.withoutDocuments ? <Badge tone="warning">{t("withoutDocuments")}</Badge> : null}
       </div>
       {query.errore ? (
         <p role="alert" className="mt-4 rounded-lg border border-red-600 bg-red-50 p-3 text-sm">

@@ -36,6 +36,11 @@ export const AgencyFilterCriteriaSchema = z
     maxStartDateDays: z.number().int().positive(),
     /** Longest guarantee the agency can give, in calendar days (ASTA-05). */
     maxGuaranteeDays: z.number().int().positive(),
+    /**
+     * Dan, 2026-10-21 (ADR 0014, answer 4): the requests of a broker's lot sent
+     * without documents. Off when missing.
+     */
+    acceptsWithoutDocuments: z.boolean().optional(),
   })
   .refine((c) => c.cuClassMin <= c.cuClassMax, "cuClassMin must not exceed cuClassMax")
   .refine((c) => c.driverAgeMin <= c.driverAgeMax, "driverAgeMin must not exceed driverAgeMax");
@@ -52,6 +57,8 @@ export interface FilterableRequest {
   /** Calendar days from the opening to the start date. */
   startInDays: number;
   minValidityDays: number;
+  /** ADR 0014: a request of a lot sent without the registration certificate. */
+  withoutDocuments?: boolean;
 }
 
 export type FilterMismatch =
@@ -62,7 +69,8 @@ export type FilterMismatch =
   | "DRIVER_AGE"
   | "PACKAGE"
   | "START_DATE"
-  | "GUARANTEE";
+  | "GUARANTEE"
+  | "WITHOUT_DOCUMENTS";
 
 /**
  * ASTA-05: why the request falls outside the filters (empty when it fits).
@@ -94,6 +102,10 @@ export function filterMismatches(
   if (!criteria.packages.includes(request.packageCode)) out.push("PACKAGE");
   if (request.startInDays > criteria.maxStartDateDays) out.push("START_DATE");
   if (criteria.maxGuaranteeDays < request.minValidityDays) out.push("GUARANTEE");
+  // Answer 4: without documents, only the agencies that accept it.
+  if (request.withoutDocuments && !criteria.acceptsWithoutDocuments) {
+    out.push("WITHOUT_DOCUMENTS");
+  }
   return out;
 }
 
@@ -106,7 +118,8 @@ export type MemberFilterProblem =
   | "PACKAGES"
   | "COMPANIES"
   | "START_DATE"
-  | "GUARANTEE";
+  | "GUARANTEE"
+  | "WITHOUT_DOCUMENTS";
 
 const subset = (inner: readonly string[], outer: readonly string[]) =>
   inner.every((v) => outer.includes(v));
@@ -138,6 +151,9 @@ export function memberFilterProblems(
   }
   if (!subset(member.packages, agency.packages)) out.push("PACKAGES");
   if (!subset(member.companies, agency.companies)) out.push("COMPANIES");
+  if (member.acceptsWithoutDocuments && !agency.acceptsWithoutDocuments) {
+    out.push("WITHOUT_DOCUMENTS");
+  }
   if (member.maxStartDateDays > agency.maxStartDateDays) out.push("START_DATE");
   if (member.maxGuaranteeDays > agency.maxGuaranteeDays) out.push("GUARANTEE");
   return out;

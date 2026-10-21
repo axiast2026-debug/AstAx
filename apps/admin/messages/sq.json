@@ -376,7 +376,8 @@
         "relativeFiscalCode": "Kodi fiskal i familjarit"
       },
       "save": "Ruaj të dhënat e plotësuara"
-    }
+    },
+    "withoutDocuments": "Pa dokumente: ankandi shkon vetëm te agjencitë që e pranojnë"
   },
   "auctions": {
     "title": "Ankandet",

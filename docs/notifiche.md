@@ -101,6 +101,7 @@ Ogni utente sceglie i canali per evento nel profilo. Restano sempre attivi: le n
 | `refund.executed` | Chi riceve il rimborso | In app, email |
 | `renewal.upcoming` | Privato | In app, push, email |
 | `renewal.upcoming.broker` | Utenti del broker | In app, email |
+| `batch.documents_due` | Il broker che ha caricato il lotto: libretto e patente prima dell'invio programmato (ADR 0014) | In app, email |
 | `survey.post_sale` | Privato o `broker_client` | Email |
 | `team.invitation` | La persona invitata | Email |
 | `onboarding.submitted.bo` | `bo_supervisors` | In app, email |

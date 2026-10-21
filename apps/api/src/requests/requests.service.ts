@@ -919,7 +919,12 @@ export class RequestsService {
         ? []
         : [{ path: `documents.${kind}`, issue: "DOCUMENT_UNREADABLE" }];
     });
-    if (problems.length > 0) throw new ProblemError("VALIDATION_FAILED", undefined, problems);
+    // ADR 0014, answer 4: a request of a lot leaves even without documents; its
+    // auction then invites only the agencies that accept that.
+    const withoutDocuments = request.batchId !== null && problems.length > 0;
+    if (problems.length > 0 && !withoutDocuments) {
+      throw new ProblemError("VALIDATION_FAILED", undefined, problems);
+    }
     // Broker plan, answer 3: a broker covered by its declaration needs no consent per customer.
     const consent =
       (request.customerId ? await this.activeConsent(tx, request.customerId) : null) ??
@@ -965,6 +970,7 @@ export class RequestsService {
         auctionDurationHours: terms.auctionDurationHours,
         autoOutcome: "YELLOW",
         submittedAt: request.submittedAt ?? now,
+        withoutDocuments,
       },
     });
     await addRequestEvent(tx, request, {
@@ -972,7 +978,7 @@ export class RequestsService {
       actorKind: "REQUESTER",
       actorUserId: auth.userId,
       at: now,
-      details: { essentialDataOnly: true },
+      details: { essentialDataOnly: true, ...(withoutDocuments ? { withoutDocuments } : {}) },
     });
     await recordDomainEvent(tx, {
       aggregateType: "QuoteRequest",

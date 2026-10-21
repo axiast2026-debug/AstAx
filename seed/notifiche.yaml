@@ -840,6 +840,19 @@ events:
         {{rinnovo_automatico}}
         Carica l'attestato aggiornato per mandare il rinnovo all'asta: {{link}}
 
+  batch.documents_due:
+    recipients: [requester]
+    channels: [in_app, email]
+    variables: [cliente, veicolo, data_asta, link]
+    it:
+      title: "Carica i documenti: {{cliente}}"
+      body: "La richiesta per {{veicolo}} parte il {{data_asta}}. Carica libretto e patente."
+      emailSubject: "Carica i documenti di {{cliente}}, {{veicolo}}"
+      emailBody: |
+        La richiesta del lotto per {{cliente}}, {{veicolo}}, parte verso il back office il {{data_asta}}.
+        Carica libretto e patente: con i documenti l'asta arriva a tutte le agenzie. Senza documenti partirà lo stesso, ma solo verso le agenzie che accettano richieste senza documenti.
+        Carica qui: {{link}}
+
   survey.post_sale:
     recipients: [private_or_broker_client]
     channels: [email]
