@@ -328,7 +328,12 @@ export async function search(formData: FormData): Promise<void> {
   await writeSearch(
     typed,
     typed === "richieste"
-      ? { q: (text(formData, "q") ?? "").slice(0, 20), status: text(formData, "stato") ?? "" }
+      ? {
+          q: (text(formData, "q") ?? "").slice(0, 20),
+          status: text(formData, "stato") ?? "",
+          customer: (text(formData, "cliente") ?? "").slice(0, 60),
+          days: text(formData, "giorni") ?? "",
+        }
       : { q: (text(formData, "q") ?? "").slice(0, 40) },
   );
   // The page that follows is the same one: drop its cached version so it reads the new terms.

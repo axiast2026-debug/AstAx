@@ -212,7 +212,27 @@
     "customer": "Cliente",
     "package": "Pacchetto",
     "created": "Creata",
-    "empty": "Nessuna richiesta con questi filtri."
+    "empty": "Nessuna richiesta con questi filtri.",
+    "todoCount": "{count, plural, =0 {Niente da fare adesso.} one {Una richiesta aspetta te.} other {# richieste aspettano te.}}",
+    "todoFilter": "Da fare",
+    "startWithin": "Decorrenza",
+    "anyStart": "Qualsiasi data",
+    "withinDays": "Entro {days} giorni",
+    "start": "Decorrenza",
+    "todo": "Da fare",
+    "tasks": {
+      "complete": "Completa e invia",
+      "integrate": "Integra i dati",
+      "sendToCustomer": "Manda al cliente",
+      "reconfirm": "Chiedi la riconferma"
+    },
+    "waits": {
+      "verification": "La verifica il back office",
+      "auction": "Asta in corso",
+      "customer": "Il cliente firma e paga",
+      "issuance": "L'agenzia emette",
+      "reconfirmation": "Le agenzie riconfermano"
+    }
   },
   "newBrokerRequest": {
     "title": "Nuova richiesta",

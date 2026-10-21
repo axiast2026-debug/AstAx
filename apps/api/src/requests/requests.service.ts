@@ -22,6 +22,7 @@ import {
 } from "@astax/db";
 import {
   derivedColumns,
+  addCalendarDays,
   documentReadable,
   IntakeSchema,
   intakeDocuments,
@@ -171,13 +172,49 @@ export class RequestsService {
     return scope ?? { sections: [], documents: [] };
   }
 
-  async list(auth: AuthContext, filter: { status?: string; q?: string }) {
+  async list(
+    auth: AuthContext,
+    filter: {
+      status?: string;
+      statuses?: string[];
+      q?: string;
+      customer?: string;
+      startWithinDays?: number;
+    },
+  ) {
+    const today = romeCalendarDate(this.clock.now());
+    const name = filter.customer?.trim();
     return withContext(this.db, auth.db, async (tx) => {
       const rows = await tx.quoteRequest.findMany({
         where: {
           ...requesterScope(auth),
           ...(filter.status ? { status: filter.status as QuoteRequest["status"] } : {}),
+          ...(filter.statuses
+            ? { status: { in: filter.statuses as QuoteRequest["status"][] } }
+            : {}),
           ...(filter.q ? { plate: { contains: filter.q.replace(/\s/g, "").toUpperCase() } } : {}),
+          ...(name
+            ? {
+                customer: {
+                  person: {
+                    OR: [
+                      { surname: { contains: name, mode: "insensitive" as const } },
+                      { givenName: { contains: name, mode: "insensitive" as const } },
+                      { companyName: { contains: name, mode: "insensitive" as const } },
+                    ],
+                  },
+                },
+              }
+            : {}),
+          // The start of the new policy is the expiry of the current one.
+          ...(filter.startWithinDays
+            ? {
+                startDate: {
+                  gte: calendarDateToDbDate(today),
+                  lte: calendarDateToDbDate(addCalendarDays(today, filter.startWithinDays)),
+                },
+              }
+            : {}),
         },
         orderBy: { createdAt: "desc" },
         take: 100,

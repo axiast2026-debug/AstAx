@@ -5,7 +5,7 @@ import {
   type OrganizationType,
 } from "@astax/shared/permissions";
 import { describe, expect, it } from "vitest";
-import { menuFor, PRIVATE_LINKS } from "./menus.js";
+import { linksFor, menuFor, PRIVATE_LINKS } from "./menus.js";
 
 const member = (
   role: MembershipRole,
@@ -19,6 +19,24 @@ describe("menus by role (docs/specifiche 02-07)", () => {
     // Dan, 2026-10-21: four items; documents, help and complaints in PRIVATE_LINKS.
     expect(keys({ kind: "PRIVATE" })).toEqual(["home", "quotes", "policies", "profile"]);
     expect(PRIVATE_LINKS.map((l) => l.key)).toEqual(["documents", "support", "complaints"]);
+  });
+
+  it("broker: short menu around the work table, the other pages at the bottom", () => {
+    // Dan, 2026-10-21 (docs/piano-broker.md, G).
+    expect(keys(member("OWNER", "BROKER"))).toEqual([
+      "requests",
+      "customers",
+      "policies",
+      "accounting",
+      "team",
+    ]);
+    expect(linksFor(member("OWNER", "BROKER")).map((l) => l.key)).toEqual([
+      "dashboard",
+      "renewals",
+      "settings",
+    ]);
+    expect(linksFor(member("OPERATOR", "BROKER")).map((l) => l.key)).not.toContain("settings");
+    expect(linksFor(member("OWNER", "AGENCY"))).toEqual([]);
   });
 
   it("broker: team and settings only for the owner", () => {

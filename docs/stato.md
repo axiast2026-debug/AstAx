@@ -19,6 +19,8 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 
 ## Ultima sessione
 
+**2026-10-21 — broker, passo 2 del piano** (`docs/piano-broker.md`, proposta G): «Richieste» diventa la tabella di lavoro del broker con filtri (stato e «Da fare», cliente, targa, decorrenza) e la colonna «Da fare» (`apps/web/src/lib/broker-work.ts`, con prove); l'API accetta più stati, il nome del cliente e la decorrenza entro N giorni (nel corpo, mai nell'indirizzo). Menu corto del broker e link in fondo alla pagina (`linksFor` in `packages/ui`). E2E nuovo `tests/e2e/specs/broker-area.spec.ts`.
+
 **2026-10-21 — broker, passo 1 del piano** (`docs/piano-broker.md`, approvato da Dan con le risposte 1-6).
 
 - Il broker usa le stesse 5 schermate del privato per un singolo veicolo, con i pacchetti «Consigliato» e «Su misura». Tolte le vecchie schermate del broker e il codice rimasto senza uso.

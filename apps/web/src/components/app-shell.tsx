@@ -1,5 +1,5 @@
-import { Badge, menuFor, PRIVATE_LINKS } from "@astax/ui";
-import { can } from "@astax/shared/permissions";
+import { Badge, linksFor, menuFor } from "@astax/ui";
+import { actorRoleOf } from "@astax/shared/permissions";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -15,6 +15,10 @@ import type { Viewer } from "@/lib/me";
 export async function AppShell({ viewer, children }: { viewer: Viewer; children: ReactNode }) {
   const t = await getTranslations();
   const menu = menuFor(viewer.actor);
+  const links = linksFor(viewer.actor);
+  // The broker works at the computer (docs/piano-broker.md, G): a wider page for its tables.
+  const role = actorRoleOf(viewer.actor);
+  const width = role === "BROKER_OWNER" || role === "BROKER_OPERATOR" ? "max-w-7xl" : "max-w-6xl";
   const active = viewer.activeMembership;
   const isPrivate = viewer.me.kind === "PRIVATE";
   const { body: inbox } = await api<{ unread: number }>("/me/notifications");
@@ -29,7 +33,7 @@ export async function AppShell({ viewer, children }: { viewer: Viewer; children:
         {t("shell.skip")}
       </a>
       <header className="bg-night-900 text-white">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+        <div className={`mx-auto flex ${width} flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3`}>
           <Link href="/" className="text-lg font-bold tracking-tight">
             {t("app.name")}
           </Link>
@@ -90,7 +94,9 @@ export async function AppShell({ viewer, children }: { viewer: Viewer; children:
           </nav>
         </div>
       </header>
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 md:flex-row md:gap-8 md:py-8">
+      <div
+        className={`mx-auto flex ${width} flex-col gap-6 px-4 py-6 md:flex-row md:gap-8 md:py-8`}
+      >
         <nav
           aria-label={t("shell.menu")}
           className={isPrivate ? "hidden w-56 shrink-0 md:block" : "w-full shrink-0 md:w-56"}
@@ -114,11 +120,11 @@ export async function AppShell({ viewer, children }: { viewer: Viewer; children:
           {children}
         </main>
       </div>
-      {isPrivate ? (
-        // Dan, 2026-10-21: the pages left out of the four-item menu, on every page.
-        <nav aria-label={t("shell.morePages")} className="mx-auto max-w-6xl px-4 pb-8">
+      {links.length > 0 ? (
+        // Dan, 2026-10-21: the pages left out of the short menus, on every page.
+        <nav aria-label={t("shell.morePages")} className={`mx-auto ${width} px-4 pb-8`}>
           <ul className="flex flex-wrap gap-x-6 gap-y-2 border-t border-warm-200 pt-4 text-sm">
-            {PRIVATE_LINKS.filter((l) => can(viewer.actor, l.action)).map((l) => (
+            {links.map((l) => (
               <li key={l.key}>
                 <Link href={l.href} className="underline hover:text-orange-600">
                   {t(`menu.${l.key}`)}

@@ -32,18 +32,37 @@ export const PRIVATE_LINKS: MenuItem[] = [
   item("complaints", "/reclami", "complaint.open"),
 ];
 
-/** 02 — broker owner and operators. */
+/**
+ * 02 — broker owner and operators: a short menu around the work table of
+ * «Richieste» (Dan, 2026-10-21, docs/piano-broker.md G). «Lotti» arrives with
+ * step 4; the other pages are at the bottom of every page (BROKER_LINKS).
+ */
 const BROKER_MENU: MenuItem[] = [
-  item("dashboard", "/", "request.viewOwn"),
-  item("newRequest", "/richieste/nuova", "request.create"),
   item("requests", "/richieste", "request.viewOwn"),
   item("customers", "/clienti", "brokerCustomer.manage"),
   item("policies", "/polizze", "request.viewOwn"),
-  item("renewals", "/rinnovi", "request.viewOwn"),
   item("accounting", "/contabilita", "accounting.brokerStatement"),
   item("team", "/team", "team.manage"),
+];
+
+/** The broker's other pages, at the bottom of every page. */
+export const BROKER_LINKS: MenuItem[] = [
+  item("dashboard", "/", "request.viewOwn"),
+  item("renewals", "/rinnovi", "request.viewOwn"),
   item("settings", "/impostazioni", "organization.editProfile"),
 ];
+
+/** The links at the bottom of the page for the active context, filtered by permission. */
+export function linksFor(actor: Actor): MenuItem[] {
+  const role = actorRoleOf(actor);
+  const links =
+    role === "PRIVATE"
+      ? PRIVATE_LINKS
+      : role === "BROKER_OWNER" || role === "BROKER_OPERATOR"
+        ? BROKER_LINKS
+        : [];
+  return links.filter((entry) => can(actor, entry.action));
+}
 
 /** 04 — agency owner and supervisor. */
 const AGENCY_MENU: MenuItem[] = [
@@ -145,6 +164,7 @@ export const MENU_KEYS = [
       PRIVATE_MENU,
       PRIVATE_LINKS,
       BROKER_MENU,
+      BROKER_LINKS,
       AGENCY_MENU,
       SUB_AGENT_MENU,
       BACK_OFFICE_MENU,

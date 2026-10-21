@@ -241,5 +241,16 @@ describe("broker plan (Dan, 2026-10-21): single vehicle with the essential data"
     );
     expect(consent.method).toBe("BROKER_DECLARATION");
     expect(consent.evidence).toHaveProperty("legalAcceptanceId");
+
+    // The work table (docs/piano-broker.md, G): by customer name and by several states.
+    const search = async (body: object) =>
+      (await r.json<{ id: string }[]>(await r.call(broker, "/requests/search", { body }), 200)).map(
+        (row) => row.id,
+      );
+    expect(await search({ customer: "riva", statuses: ["IN_VERIFICATION", "DRAFT"] })).toContain(
+      id,
+    );
+    expect(await search({ customer: "riva", statuses: ["DRAFT"] })).not.toContain(id);
+    expect(await search({ customer: "Nessuno Così" })).toEqual([]);
   });
 });

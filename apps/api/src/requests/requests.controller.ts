@@ -44,13 +44,23 @@ const listSchema = z.object({
     .regex(/^[A-Z_]+$/)
     .optional(),
 });
-/** The plate filter travels in the body, never in a URL (rule 8). */
+/**
+ * The plate and the customer travel in the body, never in a URL (rule 8).
+ * The broker's work table (docs/piano-broker.md, G) filters also by several
+ * states, by customer name and by start date within some days.
+ */
 const searchSchema = z.strictObject({
   status: z
     .string()
     .regex(/^[A-Z_]+$/)
     .optional(),
+  statuses: z
+    .array(z.string().regex(/^[A-Z_]+$/))
+    .max(13)
+    .optional(),
   q: z.string().max(20).optional(),
+  customer: z.string().max(60).optional(),
+  startWithinDays: z.number().int().min(1).max(366).optional(),
 });
 
 function idOf(value: string): string {
