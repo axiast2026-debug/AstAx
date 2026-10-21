@@ -26,6 +26,8 @@ export interface IncomingRow {
   /** OFF-02 OFF-03: the person already works on it for another of their agencies. */
   elsewhere: { agency: string; offered: boolean } | null;
   offer: { id: string; status: string; version: number } | null;
+  /** ADR 0014: a request of a broker's lot sent without documents. */
+  withoutDocuments?: boolean;
 }
 
 export interface Requirement {

@@ -48,7 +48,7 @@ test.describe.serial("fase 4 — area agenzia", () => {
 
     await agency
       .getByRole("navigation", { name: "Menu principale" })
-      .getByRole("link", { name: "Richieste in arrivo" })
+      .getByRole("link", { name: "Partecipa all'asta" })
       .click();
     await openIncoming(agency, code);
     // VIS-01: the customer's email never reaches the agency.

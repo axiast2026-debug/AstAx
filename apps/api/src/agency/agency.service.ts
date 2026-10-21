@@ -48,6 +48,13 @@ export interface IncomingFilters {
   vehicleType?: string;
   province?: string;
   state?: IncomingState;
+  /** «Partecipa all'asta» (docs/piano-agenzie.md B): open or closed auctions. */
+  auction?: "OPEN" | "CLOSED";
+  /** Open auctions closing within these hours. */
+  closesWithinHours?: number;
+  packageCode?: string;
+  /** ADR 0014: only the requests of the brokers' lots sent without documents. */
+  withoutDocuments?: "1";
 }
 
 /** Latin-1 only: the standard PDF fonts cannot draw other characters. */
@@ -216,13 +223,26 @@ export class AgencyService {
             claimedBy: holder ? `${holder.firstName} ${holder.lastName}`.trim() : null,
             elsewhere: elsewhere.get(i.auctionId) ?? null,
             offer: offer ? { id: offer.id, status: offer.status, version: offer.version } : null,
+            withoutDocuments: r.withoutDocuments,
           },
         ];
       });
+      const closesBy = filters.closesWithinHours
+        ? new Date(this.clock.now().getTime() + filters.closesWithinHours * 3_600_000).toISOString()
+        : null;
       return rows
         .filter((row) => !filters.vehicleType || row.vehicleType === filters.vehicleType)
         .filter((row) => !filters.province || row.province === filters.province)
         .filter((row) => !filters.state || row.state === filters.state)
+        .filter(
+          (row) =>
+            !filters.auction || (filters.auction === "OPEN") === (row.auctionStatus === "OPEN"),
+        )
+        .filter(
+          (row) => !closesBy || (row.auctionStatus === "OPEN" && row.scheduledCloseAt <= closesBy),
+        )
+        .filter((row) => !filters.packageCode || row.packageCode === filters.packageCode)
+        .filter((row) => !filters.withoutDocuments || row.withoutDocuments)
         .sort((a, b) => {
           const open = (x: typeof a) => (x.auctionStatus === "OPEN" ? 0 : 1);
           return open(a) - open(b) || a.scheduledCloseAt.localeCompare(b.scheduledCloseAt);

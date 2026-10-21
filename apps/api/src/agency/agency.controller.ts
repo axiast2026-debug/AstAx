@@ -35,6 +35,14 @@ const incomingSchema = z.object({
     .regex(/^[A-Z]{2}$/)
     .optional(),
   state: z.enum(["NEW", "CLAIMED_BY_ME", "CLAIMED_BY_COLLEAGUE", "OFFERED", "DECLINED"]).optional(),
+  // «Partecipa all'asta» (Dan, 2026-10-21, docs/piano-agenzie.md B).
+  auction: z.enum(["OPEN", "CLOSED"]).optional(),
+  closesWithinHours: z.coerce.number().int().min(1).max(168).optional(),
+  packageCode: z
+    .string()
+    .regex(/^[A-Z_]+$/)
+    .optional(),
+  withoutDocuments: z.enum(["1"]).optional(),
 });
 const assignSchema = z.strictObject({ membershipId: uuid });
 const productSchema = z.strictObject({ companyId: uuid, name: z.string().trim().min(1).max(120) });

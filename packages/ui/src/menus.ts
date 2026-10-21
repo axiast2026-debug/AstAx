@@ -61,31 +61,46 @@ export function linksFor(actor: Actor): MenuItem[] {
       ? PRIVATE_LINKS
       : role === "BROKER_OWNER" || role === "BROKER_OPERATOR"
         ? BROKER_LINKS
-        : [];
+        : role === "AGENCY_OWNER" || role === "AGENCY_SUPERVISOR"
+          ? AGENCY_LINKS
+          : role === "AGENCY_OPERATOR"
+            ? SUB_AGENT_LINKS
+            : [];
   return links.filter((entry) => can(actor, entry.action));
 }
 
-/** 04 — agency owner and supervisor. */
+/**
+ * 04 — agency owner and supervisor: the sections Dan listed (2026-10-21,
+ * docs/piano-agenzie.md B); the other pages at the bottom (AGENCY_LINKS).
+ */
 const AGENCY_MENU: MenuItem[] = [
-  item("dashboard", "/", "request.viewQuoteData"),
   item("incomingRequests", "/richieste-in-arrivo", "request.viewQuoteData"),
-  item("myOffers", "/le-mie-offerte", "offer.submit"),
+  item("results", "/risultati", "ranking.view"),
   item("toIssue", "/da-emettere", "issuance.manage"),
   item("issuedPolicies", "/polizze", "issuance.manage"),
-  item("results", "/risultati", "ranking.view"),
+];
+
+/** The agency's other pages, at the bottom of every page. */
+export const AGENCY_LINKS: MenuItem[] = [
+  item("dashboard", "/", "request.viewQuoteData"),
+  item("myOffers", "/le-mie-offerte", "offer.submit"),
   item("filters", "/filtri", "agencyFilters.manage"),
   item("accounting", "/contabilita", "accounting.agencyStatement"),
   item("team", "/team", "team.manage"),
   item("agency", "/agenzia", "organization.editProfile"),
 ];
 
-/** 05 — agency operator (sub-agent). */
+/** 05 — agency operator (sub-agent): the same sections, with its own data only. */
 const SUB_AGENT_MENU: MenuItem[] = [
-  item("personalDashboard", "/", "request.viewQuoteData"),
   item("incomingRequests", "/richieste-in-arrivo", "request.viewQuoteData"),
-  item("myOffers", "/le-mie-offerte", "offer.submit"),
-  item("toIssue", "/da-emettere", "issuance.manage"),
   item("myResults", "/risultati", "ranking.view"),
+  item("toIssue", "/da-emettere", "issuance.manage"),
+];
+
+/** The sub-agent's other pages, at the bottom of every page. */
+export const SUB_AGENT_LINKS: MenuItem[] = [
+  item("personalDashboard", "/", "request.viewQuoteData"),
+  item("myOffers", "/le-mie-offerte", "offer.submit"),
   item("myFilters", "/filtri", "memberFilters.manageOwn"),
 ];
 
@@ -167,7 +182,9 @@ export const MENU_KEYS = [
       BROKER_MENU,
       BROKER_LINKS,
       AGENCY_MENU,
+      AGENCY_LINKS,
       SUB_AGENT_MENU,
+      SUB_AGENT_LINKS,
       BACK_OFFICE_MENU,
       ADMIN_MENU,
     ].flatMap((m) => m.map((entry) => entry.key)),

@@ -25,12 +25,26 @@ const STATES: IncomingState[] = [
   "DECLINED",
 ];
 const SELECT = "mt-1 block rounded-lg border border-warm-200 bg-white px-3 py-2 text-sm";
+/** Hours for «Chiude entro». */
+const CLOSES_WITHIN = ["1", "4", "24"] as const;
 
-/** «Richieste in arrivo» (spec 04, spec 05): the requests in target, by closing. */
+/**
+ * «Partecipa all'asta» (spec 04, spec 05; Dan 2026-10-21, docs/piano-agenzie.md
+ * B): the auctions in target, by closing, with the filters to find them.
+ */
 export default async function IncomingRequestsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ stato?: string; veicolo?: string; provincia?: string; fatto?: string }>;
+  searchParams: Promise<{
+    stato?: string;
+    veicolo?: string;
+    provincia?: string;
+    asta?: string;
+    chiude?: string;
+    pacchetto?: string;
+    documenti?: string;
+    fatto?: string;
+  }>;
 }) {
   const viewer = await requireViewer();
   if (viewer.activeMembership?.organization.type !== "AGENCY") notFound();
@@ -43,7 +57,17 @@ export default async function IncomingRequestsPage({
   if (query.veicolo && /^[A-Z_]+$/.test(query.veicolo)) params.set("vehicleType", query.veicolo);
   if (query.provincia && /^[A-Z]{2}$/.test(query.provincia))
     params.set("province", query.provincia);
-  const { body: rows } = await api<IncomingRow[]>(`/agency/requests?${params.toString()}`);
+  if (query.asta === "OPEN" || query.asta === "CLOSED") params.set("auction", query.asta);
+  if (query.chiude && (CLOSES_WITHIN as readonly string[]).includes(query.chiude))
+    params.set("closesWithinHours", query.chiude);
+  if (query.pacchetto && /^[A-Z_]+$/.test(query.pacchetto))
+    params.set("packageCode", query.pacchetto);
+  if (query.documenti === "senza") params.set("withoutDocuments", "1");
+  const [{ body: rows }, options] = await Promise.all([
+    api<IncomingRow[]>(`/agency/requests?${params.toString()}`),
+    api<{ choices?: { packages: { code: string; name: string }[] } }>("/agency/filters"),
+  ]);
+  const packages = options.status === 200 ? (options.body.choices?.packages ?? []) : [];
 
   return (
     <AppShell viewer={viewer}>
@@ -85,6 +109,45 @@ export default async function IncomingRequestsPage({
             maxLength={2}
             className={`${SELECT} w-20 uppercase`}
           />
+        </label>
+        <label className="text-sm font-medium">
+          {t("incoming.auction")}
+          <select name="asta" defaultValue={query.asta ?? ""} className={SELECT}>
+            <option value="">{t("incoming.all")}</option>
+            <option value="OPEN">{t("incoming.open")}</option>
+            <option value="CLOSED">{t("incoming.closedAuctions")}</option>
+          </select>
+        </label>
+        <label className="text-sm font-medium">
+          {t("incoming.closesWithin")}
+          <select name="chiude" defaultValue={query.chiude ?? ""} className={SELECT}>
+            <option value="">{t("incoming.any")}</option>
+            {CLOSES_WITHIN.map((h) => (
+              <option key={h} value={h}>
+                {t("incoming.hours", { hours: Number(h) })}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm font-medium">
+          {t("incoming.package")}
+          <select name="pacchetto" defaultValue={query.pacchetto ?? ""} className={SELECT}>
+            <option value="">{t("incoming.all")}</option>
+            {packages.map((p) => (
+              <option key={p.code} value={p.code}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex items-center gap-2 self-center text-sm font-medium">
+          <input
+            type="checkbox"
+            name="documenti"
+            value="senza"
+            defaultChecked={query.documenti === "senza"}
+          />
+          {t("incoming.withoutDocuments")}
         </label>
         <button type="submit" className="rounded-lg border border-warm-200 px-4 py-2 text-sm">
           {t("incoming.apply")}
@@ -131,6 +194,11 @@ export default async function IncomingRequestsPage({
                     {r.kind === "RECONFIRMATION" ? (
                       <Badge tone="warning" className="ml-2">
                         {t("incoming.reconfirmation")}
+                      </Badge>
+                    ) : null}
+                    {r.withoutDocuments ? (
+                      <Badge tone="warning" className="ml-2">
+                        {t("incoming.noDocuments")}
                       </Badge>
                     ) : null}
                   </td>

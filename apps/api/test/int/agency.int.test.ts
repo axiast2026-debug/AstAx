@@ -110,6 +110,19 @@ describe("fase 4: the agency area (spec 04)", () => {
     expect(due.map((x) => x.auctionId)).not.toContain(auctionId);
   });
 
+  it("«Partecipa all'asta» (Dan, 2026-10-21): open or closed, closing within, package, without documents", async () => {
+    const uno = await who("agenzia-uno-owner", "agenzia-uno");
+    const ids = async (query: string) =>
+      (
+        await r.json<{ auctionId: string }[]>(await r.call(uno, `/agency/requests?${query}`), 200)
+      ).map((x) => x.auctionId);
+    expect(await ids("auction=OPEN")).toContain(auctionId);
+    expect(await ids("auction=CLOSED")).not.toContain(auctionId);
+    expect(await ids("closesWithinHours=168")).toContain(auctionId);
+    expect(await ids("withoutDocuments=1")).not.toContain(auctionId);
+    expect((await r.call(uno, "/agency/requests?closesWithinHours=0")).status).toBe(400);
+  });
+
   it("VIS-01 VIS-09 the detail has every datum useful to quote, no contact, and the opening is logged", async () => {
     const detail = await r.json<{
       quoteData: { vehicle: { plate: string } };
