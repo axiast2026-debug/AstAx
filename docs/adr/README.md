@@ -16,5 +16,10 @@ ADR attesi:
 | 0006 | Temporal: Cloud UE o installazione propria | 8 |
 | 0007 | Dati della richiesta cifrati, bozza a sezioni, proprietà delle righe | 2 |
 | 0008 | Worker delle aste e tempo reale | 3 |
+| 0009 | File SEPA e fatture elettroniche: formato e controllo | 6 |
+| 0010 | Pianificazioni del lunedì e del primo del mese | 6 |
+| 0011 | Web Push e app installabile senza Serwist | 8 |
+| 0012 | Temporal Cloud nella regione UE | 8 |
+| 0013 | Richiesta del privato in due tempi: dati essenziali e completamento del back office | dopo la 8 |
 
 I numeri seguono l'ordine in cui le decisioni vengono prese: la 0003 e la 0004 sono arrivate in fase 1, prima di quelle previste.
