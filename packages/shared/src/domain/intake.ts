@@ -92,6 +92,11 @@ export interface IntakeEvidence {
     powerKw?: number;
     firstRegistrationDate?: string;
   } | null;
+  /**
+   * The broker's customer (docs/piano-broker.md, B): the policy holder is the
+   * customer (LEG-04), so its name and fiscal code win over the documents.
+   */
+  customer?: { surname?: string; givenName?: string; fiscalCode?: string } | null;
   /** ISTAT code of the municipality of a cadastral code, when known. */
   istatOfCadastral: (cadastral: string) => string | null;
   /** Today in Rome, from `Clock`. */
@@ -130,7 +135,9 @@ export function quoteDataFromIntake(
   const identity = evidence.extracted.IDENTITY_DOCUMENT ?? {};
   const risk = evidence.extracted.RISK_CERTIFICATE ?? {};
 
-  const fiscalCode = str(reg.ownerFiscalCode) ?? str(identity.fiscalCode);
+  const customer = evidence.customer ?? null;
+  const fiscalCode =
+    str(customer?.fiscalCode) ?? str(reg.ownerFiscalCode) ?? str(identity.fiscalCode);
   const decoded = fiscalCode ? decodeFiscalCode(fiscalCode, evidence.today) : null;
   const birthPlace = decoded
     ? decoded.bornAbroad
@@ -139,8 +146,16 @@ export function quoteDataFromIntake(
     : undefined;
   const holder = {
     kind: "PERSON",
-    surname: str(reg.ownerSurname) ?? str(identity.surname) ?? str(licence.surname),
-    givenName: str(reg.ownerGivenName) ?? str(identity.givenName) ?? str(licence.givenName),
+    surname:
+      str(customer?.surname) ??
+      str(reg.ownerSurname) ??
+      str(identity.surname) ??
+      str(licence.surname),
+    givenName:
+      str(customer?.givenName) ??
+      str(reg.ownerGivenName) ??
+      str(identity.givenName) ??
+      str(licence.givenName),
     fiscalCode: decoded?.normalized ?? fiscalCode,
     birthDate: intake.ownerBirthDate,
     birthPlace,

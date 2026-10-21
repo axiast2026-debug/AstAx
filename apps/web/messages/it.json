@@ -376,7 +376,7 @@
     "FORBIDDEN": "Non hai il permesso per questa operazione.",
     "VALIDATION_FAILED": "Alcuni dati non sono validi.",
     "DOCUMENT_UNREADABLE": "Una foto non si legge: rifalla.",
-    "DOCUMENT_MISSING": "Manca la foto di un documento.",
+    "DOCUMENT_MISSING": "Carica polizza, quietanza e certificato prima di segnare la polizza come emessa.",
     "CONSENT_REQUIRED": "Prima dell'invio serve il consenso alla condivisione dei dati con le agenzie.",
     "EXCLUDED_CASE": "Questo veicolo non può andare all'asta (caso escluso): {detail}.",
     "missing_section": "Manca una parte della procedura.",
@@ -441,7 +441,6 @@
     "NO_OFFER_SELECTED": "Scegli almeno un'offerta da inviare.",
     "PAYMENT_IN_PROGRESS": "C'è un pagamento in arrivo: aspetta la conferma prima di cambiare offerta.",
     "PAYMENT_CLOSED": "Questo pagamento non è più aperto: torna all'offerta e riprova.",
-    "DOCUMENT_MISSING": "Carica polizza, quietanza e certificato prima di segnare la polizza come emessa.",
     "NOT_IN_ISSUANCE": "Questa polizza non è più da emettere.",
     "CASE_OPEN": "C'è già un caso aperto per questa richiesta: lo sta seguendo il back office.",
     "PROPOSAL_CLOSED": "Questa proposta non è più aperta.",
@@ -676,7 +675,8 @@
       "consentTick": "Ho letto e accetto il trattamento dei dati e la condivisione con le agenzie invitate all'asta.",
       "afterSubmit": "Dopo l'invio controlliamo i documenti e apriamo l'asta: ti avvisiamo noi a ogni passo.",
       "submit": "Invia la richiesta",
-      "continue": "Continua"
+      "continue": "Continua",
+      "brokerDeclaration": "Il consenso del cliente è coperto dalla dichiarazione che il tuo studio ha firmato all'ingresso su AstAx."
     },
     "coverage": {
       "package": "Quali garanzie vuoi",

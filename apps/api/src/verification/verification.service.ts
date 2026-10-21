@@ -163,7 +163,27 @@ export class VerificationService {
     const registration = latest("REGISTRATION_CERTIFICATE");
     const make = typeof registration?.make === "string" ? registration.make : undefined;
     const model = typeof registration?.model === "string" ? registration.model : undefined;
-    const fiscalCode = registration?.ownerFiscalCode ?? latest("IDENTITY_DOCUMENT")?.fiscalCode;
+    // A broker's request: the holder is its customer (LEG-04, docs/piano-broker.md B).
+    const customer = request.customerId
+      ? await tx.customer.findUnique({
+          where: { id: request.customerId },
+          include: { person: true },
+        })
+      : null;
+    const holder =
+      request.channel === "BROKER" && customer?.person.kind === "PERSON"
+        ? {
+            surname: customer.person.surname ?? undefined,
+            givenName: customer.person.givenName ?? undefined,
+            fiscalCode: customer.person.fiscalCodeEnc
+              ? this.cipher.decrypt(customer.person.fiscalCodeEnc)
+              : undefined,
+          }
+        : null;
+    const fiscalCode =
+      holder?.fiscalCode ??
+      registration?.ownerFiscalCode ??
+      latest("IDENTITY_DOCUMENT")?.fiscalCode;
     const cadastral =
       typeof fiscalCode === "string" && fiscalCode.length === 16 ? fiscalCode.slice(11, 15) : null;
     const municipality = cadastral
@@ -193,14 +213,12 @@ export class VerificationService {
                   : undefined,
             }
           : null,
+      customer: holder,
       istatOfCadastral: (code) => (code === cadastral ? (municipality?.istatCode ?? null) : null),
       today: romeCalendarDate(this.clock.now()),
     });
     // Answer 6B: what the bot did not read, the back office asks the customer by phone.
-    const [customer, requester, lists] = await Promise.all([
-      request.customerId
-        ? tx.customer.findUnique({ where: { id: request.customerId } })
-        : Promise.resolve(null),
+    const [requester, lists] = await Promise.all([
       tx.user.findUnique({ where: { id: request.requesterUserId } }),
       tx.listValue.findMany({
         where: {

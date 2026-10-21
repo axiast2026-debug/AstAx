@@ -1,6 +1,6 @@
 # Piano: area del broker e degli intermediari di sezione E
 
-**Stato:** proposta per Dan (2026-10-21). Niente codice finché Dan non approva.
+**Stato:** approvato da Dan il 2026-10-21 (risposte in fondo). Passo 1 fatto il 2026-10-21; gli altri da fare, nell'ordine.
 
 ## Cosa ha chiesto Dan (2026-10-21)
 
@@ -70,3 +70,18 @@
 | 4 | L'asta **può partire anche senza documenti**: in quel caso sono invitate solo le agenzie che nei loro filtri accettano richieste senza documenti (filtro nuovo) |
 | 5 | Le colonne del modello Excel vanno bene |
 | 6 | Asta **7 giorni prima della scadenza**; documenti chiesti **3 giorni prima dell'asta** (10 prima della scadenza). Il broker può **far partire l'asta in qualsiasi momento** |
+
+## Avanzamento
+
+| Passo | Stato |
+| --- | --- |
+| 1. Singolo veicolo con le 5 schermate | **Fatto (2026-10-21).** Il broker sceglie o crea il cliente, poi ha le stesse 5 schermate del privato, con «Consigliato» o «Su misura» e le tre decorrenze. Nell'ultima schermata non c'è la spunta del consenso: lo copre la dichiarazione dello studio. Il back office completa i dati come per il privato; il contraente è sempre il cliente del broker (nome e codice fiscale dalla sua scheda, LEG-04). Le vecchie schermate del broker (veicolo, conducenti, asta, consenso, riepilogo) sono state tolte |
+| 2. Area di lavoro per il computer | Da fare |
+| 3. Sezione E nella domanda di ingresso | Da fare |
+| 4. Lotti con file Excel | Da fare |
+| 5. Flotte «in arrivo» | Da fare |
+
+Da sapere sul passo 1:
+
+- La dichiarazione è un testo legale nuovo (`broker-clients-declaration`): il titolare dello studio la accetta al primo accesso dopo l'aggiornamento (`pnpm db:seed`). Vale per i suoi collaboratori.
+- Il broker non sceglie più la durata dell'asta e la validità minima: valgono i valori predefiniti dei parametri, come per il privato.

@@ -1,6 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { SystemClock } from "@astax/adapters/clock";
-import { buildFiscalCode } from "@astax/shared/domain";
+import { buildFiscalCode, decodeFiscalCode } from "@astax/shared/domain";
 import { expect, type Page } from "@playwright/test";
 import {
   acceptLegalIfAsked,
@@ -11,16 +10,7 @@ import {
   saveSecret,
 } from "./auth.js";
 import { WEB } from "./auction.js";
-import {
-  codeFromMail,
-  coverageAndAuctionSteps,
-  driversStep,
-  latestMail,
-  requestCode,
-  vehicleStep,
-} from "./requests.js";
-
-const clock = new SystemClock();
+import { privateRequestSteps, requestCode } from "./requests.js";
 
 /** Paolo Verdi of Broker Demo Srl (spec 02). */
 export async function brokerLogin(
@@ -49,14 +39,31 @@ export function newFiscalCode(surname: string, givenName: string, sex: "M" | "F"
   });
 }
 
+/** The birth date in a synthetic fiscal code, for the owner's birth date of the request. */
+export function birthDateOf(fiscalCode: string): string {
+  return decodeFiscalCode(fiscalCode, "2026-01-01")?.birthDate ?? "1980-01-01";
+}
+
 /**
- * Paolo creates the request for a new customer Anna Riva, who gives the
- * consent from her link; the request is sent to the back office.
+ * Laura, the owner of Broker Demo, signs the declaration on her customers'
+ * consent at her first access (Dan, 2026-10-21, docs/piano-broker.md answer 3).
+ */
+export async function ownerSignedDeclaration(browserPage: () => Promise<Page>): Promise<void> {
+  const owner = await browserPage();
+  await brokerLogin(owner, "brokerOwner");
+  await owner.close();
+}
+
+/**
+ * Paolo creates the request for a new customer Anna Riva with the five
+ * screens; the consent is covered by the declaration of his firm. The
+ * request is sent to the back office.
  */
 export async function submittedBrokerRequest(
   page: Page,
   browserPage: () => Promise<Page>,
 ): Promise<{ code: string; url: string; email: string }> {
+  await ownerSignedDeclaration(browserPage);
   const email = `e2e.anna.${randomBytes(4).toString("hex")}@example.test`;
   const fiscalCode = newFiscalCode("Riva", "Anna", "F");
   await page.goto(`${WEB}/richieste/nuova`);
@@ -66,31 +73,13 @@ export async function submittedBrokerRequest(
   await page.getByLabel("Codice fiscale").fill(fiscalCode);
   await page.getByLabel("Email").fill(email);
   await page.getByRole("button", { name: "Salva e inizia la richiesta" }).click();
-  await expect(page.getByRole("heading", { name: "Il veicolo" })).toBeVisible();
-  await vehicleStep(page, {
+  await privateRequestSteps(page, {
     libretto: "libretto-anna-riva.jpg",
+    patente: "patente-anna-riva.jpg",
     attestato: "attestato-anna-riva.pdf",
+    ownerBirthDate: birthDateOf(fiscalCode),
+    broker: true,
   });
-  await driversStep(page, "patente-anna-riva.jpg", { holderFiscalCode: fiscalCode });
-  await coverageAndAuctionSteps(page);
-
-  const sentAt = clock.now().getTime() - 1000;
-  await page.getByRole("button", { name: "Manda il link" }).click();
-  await expect(page.getByText("Link inviato al cliente.")).toBeVisible();
-  const mail = await latestMail(email, /ti chiede il consenso/, sentAt);
-  const link = /http:\/\/localhost:3000\/consenso\/[A-Za-z0-9_-]+/.exec(mail.text)?.[0] ?? "";
-  const customer = await browserPage();
-  await customer.goto(link);
-  const codeAt = clock.now().getTime() - 1000;
-  await customer.getByRole("button", { name: "Mandami il codice" }).click();
-  await customer.getByLabel("Codice ricevuto").fill(await codeFromMail(email, codeAt));
-  await customer.getByRole("button", { name: "Confermo il consenso" }).click();
-  await expect(customer.getByText("Grazie, consenso confermato")).toBeVisible();
-  await customer.close();
-
-  await page.reload();
-  await page.getByRole("link", { name: "Riepilogo" }).click();
-  await page.getByRole("button", { name: "Invia la richiesta" }).click();
   await expect(page.getByText("Richiesta inviata. La verifichiamo")).toBeVisible();
   return { code: await requestCode(page), url: page.url().split("?")[0] ?? "", email };
 }

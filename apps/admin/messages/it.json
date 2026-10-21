@@ -292,7 +292,8 @@
     "sources": {
       "SUBMISSION": "invio",
       "INTEGRATION": "integrazione",
-      "BACK_OFFICE_CORRECTION": "correzione del back office"
+      "BACK_OFFICE_CORRECTION": "correzione del back office",
+      "BACK_OFFICE_COMPLETION": "completamento del back office"
     },
     "timeline": "Cronologia",
     "timelineEvents": {

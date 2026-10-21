@@ -138,7 +138,7 @@ export function licenceFromForm(form: FormReader, prefix: string) {
 const START_MODES = ["DATE", "ON_ISSUANCE", "MIDNIGHT_AFTER_DEADLINE"] as const;
 
 /** The packages offered to the private customer; the others stay for the broker. */
-export const PRIVATE_PACKAGES: readonly string[] = ["RECOMMENDED", "CUSTOM"];
+export const REQUEST_PACKAGES: readonly string[] = ["RECOMMENDED", "CUSTOM"];
 
 export function requestTermsFromForm(
   form: FormReader,

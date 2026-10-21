@@ -1,5 +1,4 @@
 import { randomBytes } from "node:crypto";
-import { SystemClock } from "@astax/adapters/clock";
 import { buildFiscalCode } from "@astax/shared/domain";
 import { expect, test, type Page } from "@playwright/test";
 import {
@@ -11,21 +10,11 @@ import {
   savedSecret,
   saveSecret,
 } from "../support/auth.js";
-import {
-  codeFromMail,
-  coverageAndAuctionSteps,
-  driversStep,
-  latestMail,
-  photo,
-  privateRequestSteps,
-  requestCode,
-  vehicleStep,
-} from "../support/requests.js";
+import { birthDateOf, ownerSignedDeclaration } from "../support/broker.js";
+import { latestMail, photo, privateRequestSteps, requestCode } from "../support/requests.js";
 
 const WEB = "http://localhost:3000";
 const ADMIN = "http://localhost:3001";
-/** Real time: codes and links are compared with the emails Mailpit received. */
-const clock = new SystemClock();
 
 /**
  * Fase 2: requests from the wizard to the verification queue. Every private
@@ -150,7 +139,7 @@ test.describe.serial("fase 2: richiesta e verifica", () => {
     await page.getByLabel("Codice fiscale").fill(data.fiscalCode);
     await page.getByLabel("Email").fill(data.email);
     await page.getByRole("button", { name: "Salva e inizia la richiesta" }).click();
-    await expect(page.getByRole("heading", { name: "Il veicolo" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Che veicolo vuoi assicurare?" })).toBeVisible();
   }
 
   /**
@@ -170,48 +159,34 @@ test.describe.serial("fase 2: richiesta e verifica", () => {
     });
   }
 
-  test("Paolo crea una richiesta per Anna Riva e le manda il link di consenso; Anna conferma con il codice; il back office approva", async ({
+  test("Paolo crea una richiesta per Anna Riva con le 5 schermate; il consenso è coperto dalla dichiarazione; il back office completa e approva", async ({
     browser,
   }) => {
+    await ownerSignedDeclaration(() => browser.newPage());
     const page = await browser.newPage();
     await broker(page);
     const anna = `e2e.anna.${randomBytes(4).toString("hex")}@example.test`;
     const fiscalCode = newPerson("Riva", "Anna", "F", "H501");
     await brokerCustomer(page, { surname: "Riva", givenName: "Anna", fiscalCode, email: anna });
-    await vehicleStep(page, {
+    await privateRequestSteps(page, {
       libretto: "libretto-anna-riva.jpg",
+      patente: "patente-anna-riva.jpg",
       attestato: "attestato-anna-riva.pdf",
+      ownerBirthDate: birthDateOf(fiscalCode),
+      broker: true,
     });
-    await driversStep(page, "patente-anna-riva.jpg", { holderFiscalCode: fiscalCode });
-    await coverageAndAuctionSteps(page);
-    await expect(page.getByRole("heading", { name: "Il consenso del cliente" })).toBeVisible();
-
-    const sentAt = clock.now().getTime() - 1000;
-    await page.getByRole("button", { name: "Manda il link" }).click();
-    await expect(page.getByText("Link inviato al cliente.")).toBeVisible();
-    const mail = await latestMail(anna, /ti chiede il consenso/, sentAt);
-    const link = /http:\/\/localhost:3000\/consenso\/[A-Za-z0-9_-]+/.exec(mail.text)?.[0] ?? "";
-
-    const customer = await browser.newPage();
-    await customer.goto(link);
-    await expect(customer.getByRole("heading", { name: /ti chiede il consenso/ })).toBeVisible();
-    await expect(customer.getByText(anna)).toHaveCount(0);
-    const codeAt = clock.now().getTime() - 1000;
-    await customer.getByRole("button", { name: "Mandami il codice" }).click();
-    await customer.getByLabel("Codice ricevuto").fill(await codeFromMail(anna, codeAt));
-    await customer.getByRole("button", { name: "Confermo il consenso" }).click();
-    await expect(customer.getByText("Grazie, consenso confermato")).toBeVisible();
-
-    await page.reload();
-    await expect(page.getByText(/Consenso registrato il/)).toBeVisible();
-    await page.getByRole("link", { name: "Riepilogo" }).click();
-    await page.getByRole("button", { name: "Invia la richiesta" }).click();
     await expect(page.getByText("Richiesta inviata. La verifichiamo")).toBeVisible();
     const code = await requestCode(page);
 
     const operator = await browser.newPage();
     await backOffice(operator);
     await openCard(operator, code);
+    await expect(operator.getByRole("heading", { name: "Completa i dati" })).toBeVisible();
+    // LEG-04: the holder is the customer Anna, with her fiscal code.
+    await expect(operator.getByLabel(/Cognome/).first()).toHaveValue("Riva");
+    await operator.getByLabel(/Data di acquisto/).fill("2020-04-01");
+    await operator.getByRole("button", { name: "Salva i dati completati" }).click();
+    await expect(operator.getByText("Dati completati")).toBeVisible();
     await operator.getByRole("button", { name: "Approva e apri l'asta" }).click();
     await expect(operator.getByText("Richiesta approvata")).toBeVisible();
     await page.reload();
@@ -224,45 +199,6 @@ test.describe.serial("fase 2: richiesta e verifica", () => {
     // Waits for the results of the search: one customer, the new Anna.
     await expect(page.getByRole("link", { name: "Anna Riva" })).toHaveCount(1);
     expect(page.url()).not.toContain(fiscalCode);
-  });
-
-  test("Paolo crea un'altra richiesta caricando il consenso già raccolto: il back office lo controlla e approva", async ({
-    browser,
-  }) => {
-    const page = await browser.newPage();
-    await broker(page);
-    const fiscalCode = newPerson("Prova", "Mario", "M", "L219");
-    await brokerCustomer(page, {
-      surname: "Prova",
-      givenName: "Mario",
-      fiscalCode,
-      email: `e2e.mario.${randomBytes(4).toString("hex")}@example.test`,
-    });
-    await vehicleStep(page, { libretto: "libretto-mario.jpg", attestato: "attestato-mario.pdf" });
-    await driversStep(page, "patente-mario.jpg", { holderFiscalCode: fiscalCode });
-    await coverageAndAuctionSteps(page);
-    const form = page.locator("form", {
-      has: page.getByRole("heading", { name: "Ho già il consenso firmato" }),
-    });
-    await form.getByLabel("Consenso firmato (PDF o foto)").setInputFiles({
-      name: "consenso-firmato.pdf",
-      mimeType: "application/pdf",
-      buffer: Buffer.from("%PDF-1.4 consenso"),
-    });
-    await form.getByRole("button", { name: "Carica il consenso" }).click();
-    await expect(page.getByRole("heading", { name: "Riepilogo e invio" })).toBeVisible();
-    await page.getByRole("button", { name: "Invia la richiesta" }).click();
-    await expect(page.getByText("Richiesta inviata. La verifichiamo")).toBeVisible();
-    const code = await requestCode(page);
-
-    const operator = await browser.newPage();
-    await backOffice(operator);
-    await openCard(operator, code);
-    await expect(
-      operator.getByText("Consenso caricato dal broker: controlla firma e data"),
-    ).toBeVisible();
-    await operator.getByRole("button", { name: "Approva e apri l'asta" }).click();
-    await expect(operator.getByText("Richiesta approvata")).toBeVisible();
   });
 
   test("il back office esclude una richiesta ancora da completare e il cliente lo vede", async ({

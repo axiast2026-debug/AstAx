@@ -19,6 +19,16 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 
 ## Ultima sessione
 
+**2026-10-21 — broker, passo 1 del piano** (`docs/piano-broker.md`, approvato da Dan con le risposte 1-6).
+
+- Il broker usa le stesse 5 schermate del privato per un singolo veicolo, con i pacchetti «Consigliato» e «Su misura». Tolte le vecchie schermate del broker e il codice rimasto senza uso.
+- Dichiarazione unica del broker (risposta 3): testo legale nuovo `broker-clients-declaration` (segnaposto da validare), consenso `BROKER_DECLARATION` (migrazione `20261026090000_broker_declaration`). Vale la firma del richiedente o del titolare del suo studio. Prova di integrazione in `apps/api/test/int/intake.int.test.ts`.
+- Completamento del back office: per il broker il contraente viene dalla scheda del cliente (LEG-04), con prova in `packages/shared/src/domain/intake.test.ts`.
+- CI rossa sul commit precedente (f1e0cdb), corretta: mancava la traduzione `verification.sources.BACK_OFFICE_COMPLETION` nel back office; lo strumento «Invia 3 offerte di prova» prendeva le prime 3 agenzie invitate anche senza prodotto (ora le prime 3 che possono offrire).
+- E2E del broker riscritti (fase 2, S02). Dopo il pull: `pnpm db:migrate` e `pnpm db:seed`, poi riavviare api e worker.
+- Debito tecnico: in `apps/web/src/lib/wizard-forms.ts` restano funzioni usate solo dalle vecchie schermate (con i loro test); da togliere con il passo 2.
+- Da fare: passi 2-5 del piano del broker.
+
 **2026-10-18 — risposte di Dan alle domande aperte** (`docs/domande-aperte.md`, colonna «Risposta»).
 
 - 2B: sessione del privato di 30 giorni dall'ultimo utilizzo, al massimo `session.privateMaxDays` (365, nuovo parametro) dal login.

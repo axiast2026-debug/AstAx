@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { saveCoverageStep } from "@/app/request-actions";
 import { CheckField, Field, hasError } from "@/components/form";
 import { extracted, latestDocument, type RequestDetail, type RequestOptions } from "@/lib/requests";
-import { centsToEuros, PRIVATE_PACKAGES } from "@/lib/wizard-forms";
+import { centsToEuros, REQUEST_PACKAGES } from "@/lib/wizard-forms";
 
 function Hidden({ detail, base, step }: { detail: RequestDetail; base: string; step: string }) {
   return (
@@ -36,12 +36,8 @@ export async function CoverageStep({
   const tc = await getTranslations("wizard");
   const titem = await getTranslations("agency.coverage");
   const terms = detail.draft?.request;
-  // Dan, 2026-10-21: the private customer chooses «Consigliato» or «Su misura»;
-  // the broker keeps the packages Base, Plus and Completo for now.
-  const isPrivate = base === "/preventivi";
-  const shown = options.packages.filter((p) =>
-    isPrivate ? PRIVATE_PACKAGES.includes(p.code) : !PRIVATE_PACKAGES.includes(p.code),
-  );
+  // Dan, 2026-10-21: «Consigliato» or «Su misura», for the private customer and the broker.
+  const shown = options.packages.filter((p) => REQUEST_PACKAGES.includes(p.code));
   const chosen = terms?.packageCode ?? shown[0]?.code ?? "BASE";
   const chosenCoverages: readonly string[] = terms?.coverages ?? [];
   // Proposed from the current policy: the history, or the risk certificate read by the bot.
@@ -162,85 +158,6 @@ export async function CoverageStep({
         </div>
         <p className="text-sm text-warm-600 sm:col-span-2">{t("annualOnly")}</p>
       </div>
-      <div className="flex justify-end">
-        <Button type="submit" size="lg">
-          {tc("saveAndContinue")}
-        </Button>
-      </div>
-    </form>
-  );
-}
-
-/** Step 4: auction duration and minimum guaranteed validity, from the parameters in force (rule 7). */
-export async function AuctionStep({
-  detail,
-  options,
-  base,
-}: {
-  detail: RequestDetail;
-  options: RequestOptions;
-  base: string;
-}) {
-  const t = await getTranslations("wizard.auction");
-  const tc = await getTranslations("wizard");
-  const terms = detail.draft?.request;
-  if (!terms) {
-    return <p className="text-sm">{t("coverageFirst")}</p>;
-  }
-  return (
-    <form action={saveCoverageStep} className="space-y-6">
-      <Hidden detail={detail} base={base} step="asta" />
-      <input type="hidden" name="request.packageCode" value={terms.packageCode} />
-      <input type="hidden" name="request.packageVersion" value={terms.packageVersion} />
-      <input type="hidden" name="request.startDate" value={terms.startDate} />
-      <input type="hidden" name="request.startMode" value={terms.startMode ?? "DATE"} />
-      {(terms.coverages ?? []).map((item) => (
-        <input key={item} type="hidden" name={`request.coverages.${item}`} value="on" />
-      ))}
-      {terms.blackBox ? <input type="hidden" name="request.blackBox" value="on" /> : null}
-      <input
-        type="hidden"
-        name="request.currentPremium"
-        value={centsToEuros(terms.currentPremiumCents)}
-      />
-      <fieldset className="rounded-xl border border-warm-200 bg-white p-4 sm:p-6">
-        <legend className="px-1 text-base font-semibold">{t("duration")}</legend>
-        <p className="text-sm text-warm-600">{t("durationIntro")}</p>
-        <div className="mt-3 flex flex-wrap gap-4">
-          {options.auctionDurationsHours.map((hours) => (
-            <div key={hours} className="flex items-center gap-2">
-              <input
-                id={`duration-${hours}`}
-                type="radio"
-                name="request.auctionDurationHours"
-                value={hours}
-                defaultChecked={terms.auctionDurationHours === hours}
-                className="h-4 w-4 accent-orange-500"
-              />
-              <label htmlFor={`duration-${hours}`}>{t("hours", { hours })}</label>
-            </div>
-          ))}
-        </div>
-      </fieldset>
-      <fieldset className="rounded-xl border border-warm-200 bg-white p-4 sm:p-6">
-        <legend className="px-1 text-base font-semibold">{t("validity")}</legend>
-        <p className="text-sm text-warm-600">{t("validityIntro")}</p>
-        <div className="mt-3 flex flex-wrap gap-4">
-          {options.minValidityDaysOptions.map((days) => (
-            <div key={days} className="flex items-center gap-2">
-              <input
-                id={`validity-${days}`}
-                type="radio"
-                name="request.minValidityDays"
-                value={days}
-                defaultChecked={terms.minValidityDays === days}
-                className="h-4 w-4 accent-orange-500"
-              />
-              <label htmlFor={`validity-${days}`}>{t("days", { days })}</label>
-            </div>
-          ))}
-        </div>
-      </fieldset>
       <div className="flex justify-end">
         <Button type="submit" size="lg">
           {tc("saveAndContinue")}

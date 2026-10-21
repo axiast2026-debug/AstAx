@@ -58,7 +58,7 @@ describe("fase 1 passo 4: seed", () => {
     ]);
     expect(counts.christmas2027?.name).toBe("Natale");
     expect(counts.easterMonday2026?.name).toBe("Lunedì dell'Angelo");
-    expect(counts.legal.length).toBe(10);
+    expect(counts.legal.length).toBe(11);
     // LEG-03: every placeholder is marked and not validated.
     expect(
       counts.legal.every(

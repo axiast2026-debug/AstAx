@@ -269,7 +269,10 @@ export async function DrivingStep({
   );
 }
 
-/** Screen 5: what will be sent, one tick for the consents, «Invia». */
+/**
+ * Screen 5: what will be sent, one tick for the consents, «Invia». The broker
+ * ticks nothing: its declaration covers its customers (docs/piano-broker.md, answer 3).
+ */
 export async function ConfirmStep({
   detail,
   options,
@@ -286,11 +289,14 @@ export async function ConfirmStep({
   const terms = detail.draft?.request;
   const pkg = options.packages.find((p) => p.code === terms?.packageCode);
   const formula = options.lists.drivingFormula?.find((f) => f.code === intake.drivingFormula);
-  const consent = (
-    await api<{ text: { title: string; contentMd: string; validated: boolean } }>(
-      `/requests/${detail.id}/consent`,
-    )
-  ).body;
+  const broker = base === "/richieste";
+  const consent = broker
+    ? null
+    : (
+        await api<{ text: { title: string; contentMd: string; validated: boolean } }>(
+          `/requests/${detail.id}/consent`,
+        )
+      ).body;
   const rows: [string, string][] = [
     [t("summary.vehicle"), intake.vehicleStatus ? t(`status.${intake.vehicleStatus}.label`) : ""],
     [t("plate"), intake.plate ?? ""],
@@ -350,15 +356,21 @@ export async function ConfirmStep({
           </div>
         ))}
       </dl>
-      <section className="rounded-xl border border-warm-200 bg-white p-4 sm:p-6">
-        <h2 className="text-base font-semibold">{consent.text.title}</h2>
-        <div className="mt-2 max-h-48 overflow-y-auto whitespace-pre-line text-sm text-night-900">
-          {consent.text.contentMd}
-        </div>
-        <div className="mt-4">
-          <CheckField label={t("consentTick")} name="consent" required />
-        </div>
-      </section>
+      {consent ? (
+        <section className="rounded-xl border border-warm-200 bg-white p-4 sm:p-6">
+          <h2 className="text-base font-semibold">{consent.text.title}</h2>
+          <div className="mt-2 max-h-48 overflow-y-auto whitespace-pre-line text-sm text-night-900">
+            {consent.text.contentMd}
+          </div>
+          <div className="mt-4">
+            <CheckField label={t("consentTick")} name="consent" required />
+          </div>
+        </section>
+      ) : (
+        <p className="rounded-xl border border-warm-200 bg-white p-4 text-sm sm:p-6">
+          {t("brokerDeclaration")}
+        </p>
+      )}
       <p className="text-sm text-warm-600">{t("afterSubmit")}</p>
       <Button type="submit" size="lg" className="w-full sm:w-auto">
         {t("submit")}

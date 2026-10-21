@@ -135,9 +135,9 @@ export class DevToolsService implements OnApplicationBootstrap, OnApplicationShu
           ),
         );
         const rows = [];
-        for (const invitation of invitations
-          .filter((i) => !offered.has(i.organizationId))
-          .slice(0, count)) {
+        // The first agencies that can offer: an invited agency may have no product.
+        for (const invitation of invitations.filter((i) => !offered.has(i.organizationId))) {
+          if (rows.length >= count) break;
           const owner = await tx.membership.findFirst({
             where: { organizationId: invitation.organizationId, role: "OWNER", status: "ACTIVE" },
           });

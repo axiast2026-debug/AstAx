@@ -16,7 +16,7 @@ Questi punti li decidono legale, DPO, commercialista o amministrazione. Il codic
 | Testi legali | Tutti i documenti della scheda 09, §7 | Segnaposto «[DA VALIDARE — LEGALE]»; il rilascio in produzione si blocca (LEG-03) |
 | Firma FEA | Obblighi di AstAx come soggetto che eroga la FEA (DPCM 22/02/2013) | Adattatore Namirial in fase 8 |
 | Consensi con una spunta sola (Dan, 2026-10-21) | Se i consensi facoltativi (per esempio marketing) possono stare nella stessa spunta di quelli obbligatori, o vanno separati (GDPR, consenso specifico) | Una spunta sola nel nuovo flusso del privato (`docs/piano-flusso-semplificato.md`); si separa con un parametro se il legale lo chiede |
-| Dichiarazione unica del broker (Dan, 2026-10-21) | Se basta una dichiarazione firmata una volta dal broker («ho il permesso dei miei clienti») al posto del consenso di ogni cliente per condividere i dati con le agenzie (LEG-04) | Nel piano del broker (`docs/piano-broker.md`, risposta 3); il consenso per richiesta resta finché il legale non conferma |
+| Dichiarazione unica del broker (Dan, 2026-10-21) | Se basta una dichiarazione firmata una volta dal broker («ho il permesso dei miei clienti») al posto del consenso di ogni cliente per condividere i dati con le agenzie (LEG-04) | Fatto nel codice il 2026-10-21 (`docs/piano-broker.md`, passo 1): la firma il titolare dello studio al primo accesso e vale per tutto lo studio; ogni richiesta registra il consenso «coperto dalla dichiarazione» con il riferimento alla firma. Il testo è un segnaposto «[DA VALIDARE — LEGALE]»: la produzione non parte finché il legale non lo valida |
 | Rapporti con GD Brokers | Uso della piattaforma a condizioni di mercato, legame dichiarato | Nessun trattamento speciale nel codice |
 
 ## DPO e privacy

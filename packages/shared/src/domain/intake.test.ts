@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { buildFiscalCode } from "./fiscal-code.js";
 import {
   documentReadable,
   IntakeSchema,
@@ -131,6 +132,26 @@ describe("ADR 0013: the request in two stages", () => {
     expect(c.drivingFormula).toBe("FREE");
     // Only the purchase date is never on a document.
     expect(c.missing).toEqual(["vehicle.purchaseDate"]);
+  });
+
+  it("LEG-04 the broker's customer is the holder: its name and fiscal code win over the documents", () => {
+    const fiscalCode = buildFiscalCode({
+      surname: "Riva",
+      givenName: "Anna",
+      birthDate: "1985-09-03",
+      sex: "F",
+      birthPlaceCadastralCode: "F205",
+    });
+    const c = quoteDataFromIntake(insured, request, {
+      ...evidence,
+      customer: { surname: "Riva", givenName: "Anna", fiscalCode },
+    });
+    expect(c.policyHolder).toMatchObject({
+      surname: "Riva",
+      givenName: "Anna",
+      fiscalCode,
+      sex: "F",
+    });
   });
 
   it("nothing is invented: what the bot did not read is listed for the back office", () => {

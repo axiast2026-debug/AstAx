@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { SYSTEM_CONTEXT, withContext } from "@astax/db";
-import { sampleQuoteData, type QuoteData } from "@astax/shared/domain";
+import { buildFiscalCode, sampleQuoteData, type QuoteData } from "@astax/shared/domain";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { acceptAllLegal, membershipId, startHarness, type Harness } from "./fixtures.js";
 import { requestHelpers, type Who } from "./request-helpers.js";
@@ -46,7 +46,8 @@ let requestId: string;
 beforeAll(async () => {
   h = await startHarness();
   r = requestHelpers(h);
-  for (const key of ["bo-verifier", "broker-operator"] as const) await acceptAllLegal(h, key);
+  for (const key of ["bo-verifier", "broker-operator", "broker-owner"] as const)
+    await acceptAllLegal(h, key);
   customer = {
     token: await h.token({
       sub: "kc-private-intake-test",
@@ -82,7 +83,7 @@ const put = (who: Who, id: string, section: string, value: unknown) =>
   r.call(who, `/requests/${id}/draft/${section}`, { method: "PUT", body: { value } });
 
 describe("ADR 0013: the request in two stages", () => {
-  it("the customer saves the essential data; a broker may not use it", async () => {
+  it("the customer saves the essential data; nobody else may write it", async () => {
     requestId = (
       await r.json<{ id: string }>(await r.call(customer, "/requests", { body: {} }), 201)
     ).id;
@@ -92,8 +93,8 @@ describe("ADR 0013: the request in two stages", () => {
     expect(
       (await put(customer, requestId, "intake", { ...intake, vehicleStatus: "NEW" })).status,
     ).toBe(400);
-    // The essential data is for the private customer only.
-    expect((await put(broker, randomUUID(), "intake", intake)).status).toBe(403);
+    // A request of someone else is not found, also for the essential data.
+    expect((await put(broker, randomUUID(), "intake", intake)).status).toBe(404);
   });
 
   it("each photo says at once whether it can be read", async () => {
@@ -193,5 +194,52 @@ describe("ADR 0013: the request in two stages", () => {
       await r.call(verifier, `/verification/requests/${requestId}/approve`, { body: {} }),
       200,
     );
+  });
+});
+
+describe("broker plan (Dan, 2026-10-21): single vehicle with the essential data", () => {
+  it("answer 3: a request of the firm whose owner signed the declaration needs no consent", async () => {
+    const fiscalCode = buildFiscalCode({
+      surname: "Riva",
+      givenName: "Anna",
+      birthDate: "1987-02-14",
+      sex: "F",
+      birthPlaceCadastralCode: "H501",
+    });
+    const customer = await r.json<{ id: string }>(
+      await r.call(broker, "/customers", {
+        body: {
+          kind: "PERSON",
+          surname: "Riva",
+          givenName: "Anna",
+          fiscalCode,
+          email: "anna.essenziale@example.test",
+        },
+      }),
+      201,
+    );
+    const id = (
+      await r.json<{ id: string }>(
+        await r.call(broker, "/requests", { body: { customerId: customer.id } }),
+        201,
+      )
+    ).id;
+    await r.json(await put(broker, id, "intake", { ...intake, plate: "DC789EF" }), 200);
+    await r.json(await put(broker, id, "request", terms), 200);
+    await r.json(
+      await r.upload(broker, id, "REGISTRATION_CERTIFICATE", "libretto-anna-riva.jpg"),
+      201,
+    );
+    await r.json(await r.upload(broker, id, "DRIVING_LICENCE", "patente-anna-riva.jpg", 0), 201);
+    const submitted = await r.json<{ status: string }>(
+      await r.call(broker, `/requests/${id}/submit`, { body: {} }),
+      200,
+    );
+    expect(submitted.status).toBe("IN_VERIFICATION");
+    const consent = await system((tx) =>
+      tx.consent.findFirstOrThrow({ where: { customerId: customer.id } }),
+    );
+    expect(consent.method).toBe("BROKER_DECLARATION");
+    expect(consent.evidence).toHaveProperty("legalAcceptanceId");
   });
 });

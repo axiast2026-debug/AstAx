@@ -11,7 +11,7 @@ import { NextOfferCard } from "@/components/next-offer-card";
 import { OffersPanel } from "@/components/offers-panel";
 import { api } from "@/lib/auth";
 import { ErrorSummary } from "@/components/form";
-import { holderName } from "@/components/wizard/drivers-step";
+import { holderName } from "@/lib/requests";
 import { STEP_SECTIONS, type RequestDetail, type WizardStep } from "@/lib/requests";
 
 const STATUS_TONE: Record<string, "neutral" | "success" | "warning" | "danger" | "dark"> = {
@@ -190,8 +190,8 @@ export async function RequestView({
     detail.status === "INTEGRATION_REQUESTED"
       ? (steps.find((s) =>
           STEP_SECTIONS[s].some((sec) => detail.integration?.sections.includes(sec)),
-        ) ?? (detail.integration?.documents.includes("DRIVING_LICENCE") ? "conducenti" : "veicolo"))
-      : (steps[0] ?? "veicolo");
+        ) ?? "dati")
+      : (steps[0] ?? "tipo");
   const approved = detail.lastDecision?.decision === "APPROVED";
   const presented = ["OFFERS_AVAILABLE", "ACCEPTED", "IN_ISSUANCE"].includes(detail.status);
 

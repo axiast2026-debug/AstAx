@@ -14,7 +14,7 @@ import {
 import { AppShell } from "@/components/app-shell";
 import { Countdown } from "@/components/countdown";
 import { ErrorSummary } from "@/components/form";
-import { holderName } from "@/components/wizard/drivers-step";
+import { holderName } from "@/lib/requests";
 import { api } from "@/lib/auth";
 import type { AgencyRequestDetail, OwnOffer } from "@/lib/agency";
 import { requireViewer } from "@/lib/me";

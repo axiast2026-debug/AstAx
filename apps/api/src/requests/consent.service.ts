@@ -367,6 +367,58 @@ export class ConsentService {
     });
   }
 
+  /**
+   * Dan, 2026-10-21 (docs/piano-broker.md, answer 3): the broker signed once the
+   * declaration that it has its customers' consent. At the submission of a
+   * broker's request without a consent of the customer, the consent is
+   * recorded as covered by that declaration, with the acceptance as evidence.
+   * Returns null when neither the requester nor the owner of its broker accepted it.
+   */
+  async fromBrokerDeclaration(tx: DbTransaction, auth: AuthContext, request: QuoteRequest) {
+    if (request.channel !== "BROKER" || !request.customerId) return null;
+    const now = this.clock.now();
+    const acceptance = await asSystem(tx, () =>
+      tx.legalAcceptance.findFirst({
+        where: {
+          version: { document: { key: "broker-clients-declaration" } },
+          // Signed by the requester or by the owner of its broker: it covers the whole firm.
+          OR: [
+            { userId: auth.userId },
+            ...(request.ownerOrganizationId
+              ? [
+                  {
+                    user: {
+                      memberships: {
+                        some: {
+                          organizationId: request.ownerOrganizationId,
+                          role: "OWNER" as const,
+                          status: "ACTIVE" as const,
+                        },
+                      },
+                    },
+                  },
+                ]
+              : []),
+          ],
+        },
+        orderBy: { acceptedAt: "desc" },
+      }),
+    );
+    if (!acceptance) return null;
+    await this.recordConsent(
+      tx,
+      request,
+      "BROKER_DECLARATION",
+      { legalAcceptanceId: acceptance.id, ip: auth.ip, userAgent: auth.userAgent },
+      actorOf(auth),
+      now,
+    );
+    return tx.consent.findFirst({
+      where: { customerId: request.customerId, type: "DATA_SHARING_AGENCIES", revokedAt: null },
+      orderBy: { acceptedAt: "desc" },
+    });
+  }
+
   // -------------------------------------------------------------- broker
 
   /** Consent collected by the broker and uploaded as a CONSENT_FORM document. */

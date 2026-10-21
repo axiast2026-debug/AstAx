@@ -57,6 +57,7 @@ import {
 import labelsIt from "../notifications/labels.it.json" with { type: "json" };
 import labelsSq from "../notifications/labels.sq.json" with { type: "json" };
 import { NotificationService } from "../notifications/notification.service.js";
+import { ConsentService } from "./consent.service.js";
 import { AutoCheckService } from "./auto-check.service.js";
 import { listCodeProblems } from "./list-codes.js";
 import { ReferenceService } from "./reference.service.js";
@@ -118,6 +119,7 @@ export class RequestsService {
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(LOGGER) private readonly logger: Logger,
     @Inject(AcceptanceEventsService) private readonly acceptanceEvents: AcceptanceEventsService,
+    @Inject(ConsentService) private readonly consents: ConsentService,
   ) {}
 
   // -------------------------------------------------------------- reading
@@ -395,9 +397,9 @@ export class RequestsService {
   }
 
   async saveSection(auth: AuthContext, id: string, section: QuoteDraftSection, value: unknown) {
-    // ADR 0013: the essential data has its own rules, and only the private customer gives it.
+    // ADR 0013: the essential data has its own rules (private customer and, from the
+    // broker plan of 2026-10-21, the broker for a single vehicle).
     if (section === "intake") {
-      if (auth.kind !== "PRIVATE") throw new ProblemError("FORBIDDEN");
       const intake = IntakeSchema.safeParse(value);
       if (!intake.success) throw ProblemError.fromZod(intake.error);
       value = intake.data;
@@ -613,7 +615,7 @@ export class RequestsService {
     const result = await withContext(this.db, auth.db, async (tx) => {
       const { request } = await this.requireEditable(tx, auth, id);
       const draft = this.draftOf(request);
-      if (draft.intake !== undefined && request.channel === "PRIVATE") {
+      if (draft.intake !== undefined) {
         return this.submitIntake(tx, auth, request, draft, now, today);
       }
       const rules = await tx.exclusionRule.findMany({ where: { active: true } });
@@ -664,7 +666,10 @@ export class RequestsService {
           problems.map((p) => ({ path: "quoteData", issue: p })),
         );
       }
-      const consent = request.customerId ? await this.activeConsent(tx, request.customerId) : null;
+      // Broker plan, answer 3: a broker covered by its declaration needs no consent per customer.
+      const consent =
+        (request.customerId ? await this.activeConsent(tx, request.customerId) : null) ??
+        (await this.consents.fromBrokerDeclaration(tx, auth, request));
       if (!consent) {
         throw new ProblemError(
           "VALIDATION_FAILED",
@@ -871,7 +876,10 @@ export class RequestsService {
         : [{ path: `documents.${kind}`, issue: "DOCUMENT_UNREADABLE" }];
     });
     if (problems.length > 0) throw new ProblemError("VALIDATION_FAILED", undefined, problems);
-    const consent = request.customerId ? await this.activeConsent(tx, request.customerId) : null;
+    // Broker plan, answer 3: a broker covered by its declaration needs no consent per customer.
+    const consent =
+      (request.customerId ? await this.activeConsent(tx, request.customerId) : null) ??
+      (await this.consents.fromBrokerDeclaration(tx, auth, request));
     if (!consent) {
       throw new ProblemError(
         "VALIDATION_FAILED",

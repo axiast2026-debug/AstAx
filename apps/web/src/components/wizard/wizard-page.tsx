@@ -1,35 +1,12 @@
-import { SystemClock } from "@astax/adapters/clock";
-import { romeCalendarDate } from "@astax/shared/format";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { readPlateHint } from "@/app/request-actions";
 import { AppShell } from "@/components/app-shell";
 import { ErrorSummary, StepNav } from "@/components/form";
-import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
-import {
-  claimYears,
-  extracted,
-  latestDocument,
-  requestDetail,
-  requestOptions,
-  type WizardStep,
-} from "@/lib/requests";
-import { BrokerConsentStep } from "./consent-steps";
-import { DriversStep } from "./drivers-step";
+import { requestDetail, requestOptions, type WizardStep } from "@/lib/requests";
 import { ConfirmStep, DrivingStep, IntakeDataStep, VehicleTypeStep } from "./intake-steps";
-import { SummaryStep } from "./summary-step";
-import { AuctionStep, CoverageStep } from "./terms-steps";
-import { VehicleStep } from "./vehicle-step";
-
-interface Municipality {
-  istatCode: string;
-  name: string;
-  province: string;
-}
-
-const clock = new SystemClock();
+import { CoverageStep } from "./terms-steps";
 
 /** One page of the request wizard, for the private user or the broker. */
 export async function WizardPage({
@@ -54,7 +31,7 @@ export async function WizardPage({
   const errors = typeof query.errore === "string" ? query.errore : undefined;
 
   let body;
-  // Dan, 2026-10-21 (ADR 0013): the five screens of the private customer.
+  // Dan, 2026-10-21 (ADR 0013, docs/piano-broker.md B): the five screens, for both.
   const intakeStatus =
     query.stato === "NEW" || query.stato === "INSURED"
       ? query.stato
@@ -76,56 +53,8 @@ export async function WizardPage({
     body = <DrivingStep detail={detail} options={options} base={base} errors={errors} />;
   } else if (step === "conferma") {
     body = <ConfirmStep detail={detail} options={options} base={base} />;
-  } else if (step === "veicolo") {
-    body = (
-      <VehicleStep
-        detail={detail}
-        options={options}
-        base={base}
-        errors={errors}
-        hint={await readPlateHint(id)}
-        claimYears={claimYears(detail.draft?.request?.startDate, romeCalendarDate(clock.now()))}
-      />
-    );
-  } else if (step === "conducenti") {
-    const draft = detail.draft ?? {};
-    const codes = new Set<string>();
-    const add = (code: string | undefined) => code && codes.add(code);
-    if (draft.policyHolder?.kind === "PERSON") add(draft.policyHolder.residence.municipalityIstat);
-    if (draft.policyHolder?.kind === "COMPANY")
-      add(draft.policyHolder.registeredOffice.municipalityIstat);
-    if (
-      draft.vehicleOwner &&
-      draft.vehicleOwner !== "SAME_AS_POLICY_HOLDER" &&
-      draft.vehicleOwner.kind === "PERSON"
-    ) {
-      add(draft.vehicleOwner.residence.municipalityIstat);
-    }
-    for (const d of draft.driving?.drivers ?? []) add(d.person.residence.municipalityIstat);
-    add(extracted(latestDocument(detail, "REGISTRATION_CERTIFICATE"), "ownerMunicipalityIstat"));
-    const names = new Map<string, Municipality>();
-    for (const code of codes) {
-      const found = (await api<Municipality[]>(`/reference/municipalities?q=${code}`)).body[0];
-      if (found) names.set(code, found);
-    }
-    body = (
-      <DriversStep
-        detail={detail}
-        options={options}
-        base={base}
-        errors={errors}
-        municipalityNames={names}
-        allowCompany={base === "/richieste"}
-      />
-    );
-  } else if (step === "copertura") {
-    body = <CoverageStep detail={detail} options={options} base={base} errors={errors} />;
-  } else if (step === "asta") {
-    body = <AuctionStep detail={detail} options={options} base={base} />;
-  } else if (step === "consenso") {
-    body = <BrokerConsentStep detail={detail} linkSent={query.link === "inviato"} />;
   } else {
-    body = <SummaryStep detail={detail} options={options} base={base} steps={steps} />;
+    body = <CoverageStep detail={detail} options={options} base={base} errors={errors} />;
   }
 
   return (

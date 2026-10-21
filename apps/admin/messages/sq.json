@@ -292,7 +292,8 @@
     "sources": {
       "SUBMISSION": "dërgim",
       "INTEGRATION": "plotësim",
-      "BACK_OFFICE_CORRECTION": "korrigjim nga back office"
+      "BACK_OFFICE_CORRECTION": "korrigjim nga back office",
+      "BACK_OFFICE_COMPLETION": "plotësim nga back office"
     },
     "timeline": "Kronologjia",
     "timelineEvents": {
