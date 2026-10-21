@@ -22,6 +22,7 @@ import {
 } from "@astax/db";
 import {
   derivedColumns,
+  IntakeSchema,
   missingDraftSections,
   quoteDataFromDraft,
   QuoteDraftSchema,
@@ -386,6 +387,13 @@ export class RequestsService {
   }
 
   async saveSection(auth: AuthContext, id: string, section: QuoteDraftSection, value: unknown) {
+    // ADR 0013: the essential data has its own rules, and only the private customer gives it.
+    if (section === "intake") {
+      if (auth.kind !== "PRIVATE") throw new ProblemError("FORBIDDEN");
+      const intake = IntakeSchema.safeParse(value);
+      if (!intake.success) throw ProblemError.fromZod(intake.error);
+      value = intake.data;
+    }
     const parsed = QuoteDraftSchema.safeParse({ [section]: value });
     if (!parsed.success) throw ProblemError.fromZod(parsed.error);
     return withContext(this.db, auth.db, async (tx) => {

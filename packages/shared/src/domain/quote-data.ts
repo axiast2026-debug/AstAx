@@ -187,6 +187,8 @@ export const QuoteDraftSchema = z.strictObject({
   driving: DriversSectionSchema.optional(),
   request: RequestTermsSchema.optional(),
   specialUses: z.array(listCode).max(20).optional(),
+  /** ADR 0013: the essential data of the private customer (IntakeSchema). */
+  intake: z.unknown().optional(),
 });
 
 export type QuoteDraft = z.infer<typeof QuoteDraftSchema>;
