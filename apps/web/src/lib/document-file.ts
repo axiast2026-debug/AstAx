@@ -14,6 +14,8 @@ export async function documentFile(path: string): Promise<Response> {
     // The courtesy copies of AstAx's invoices, to their recipient.
     new RegExp(`^/invoices/${id}/pdf$`),
     new RegExp("^/broker/statement/csv$"),
+    // ADR 0014: the template of the broker's lots.
+    new RegExp("^/broker/batches/template$"),
   ];
   if (!allowed.some((pattern) => pattern.test(path))) {
     return new Response(null, { status: 404 });

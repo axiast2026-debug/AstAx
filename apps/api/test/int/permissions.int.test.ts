@@ -331,6 +331,10 @@ const ENDPOINTS: Endpoint[] = [
     path: () => "/back-office/reconciliation/daily?from=2026-10-01&to=2026-10-31",
   },
   { action: "request.bulkUpload", method: "POST", path: () => "/broker/bulk-uploads", body: {} },
+  // ADR 0014: the broker's lots from Excel.
+  { action: "request.bulkUpload", method: "GET", path: () => "/broker/batches" },
+  { action: "request.bulkUpload", method: "GET", path: () => "/broker/batches/template" },
+  { action: "request.bulkUpload", method: "POST", path: () => "/broker/batches", body: {} },
   { action: "admin.settings.manage", method: "GET", path: () => "/admin/retention" },
   { action: "admin.settings.manage", method: "POST", path: () => "/admin/retention/run", body: {} },
   { action: "auditLog.viewAll", method: "GET", path: () => "/admin/audit" },

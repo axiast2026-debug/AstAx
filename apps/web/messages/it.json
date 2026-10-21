@@ -76,7 +76,8 @@
     "complaintsIndex": "Indice reclami",
     "systemSettings": "Sicurezza e dati",
     "listsHolidays": "Elenchi e festività",
-    "onboardingQueue": "Ingressi"
+    "onboardingQueue": "Ingressi",
+    "batches": "Lotti"
   },
   "home": {
     "welcome": "Ciao {name}",
@@ -232,7 +233,8 @@
       "customer": "Il cliente firma e paga",
       "issuance": "L'agenzia emette",
       "reconfirmation": "Le agenzie riconfermano"
-    }
+    },
+    "leavesOn": "Parte da sola il {date}"
   },
   "newBrokerRequest": {
     "title": "Nuova richiesta",
@@ -1722,6 +1724,47 @@
       "ONE_CSV_IN_ZIP": "nello ZIP ci deve essere un solo file CSV",
       "TOO_LARGE": "il file è troppo grande",
       "FILE_REQUIRED": "scegli un file"
+    }
+  },
+  "batches": {
+    "title": "Lotti",
+    "intro": "Carica in una volta i rinnovi, per esempio quelli del mese, con il modello Excel di AstAx. Ogni riga diventa una richiesta: parte da sola verso il back office 7 giorni prima della scadenza della polizza, e 3 giorni prima ti chiediamo libretto e documenti. Puoi inviarla prima quando vuoi, dalla tabella «Richieste».",
+    "template": "Scarica il modello Excel",
+    "templateHint": "Una riga per veicolo, solo persone fisiche. Nel secondo foglio trovi i valori ammessi per tipo di guida, garanzie e decorrenza. Garanzie vuote = «Consigliato»; decorrenza vuota = alla scadenza.",
+    "upload": "Carica il file",
+    "file": "File Excel (.xlsx)",
+    "errorsTitle": "Il file ha degli errori: non abbiamo salvato niente",
+    "list": "I tuoi lotti",
+    "code": "Lotto",
+    "fileName": "File",
+    "rows": "Righe",
+    "progress": "Situazione",
+    "nextLeaves": "Prossima partenza",
+    "created": "Caricato",
+    "open": "Apri",
+    "empty": "Nessun lotto caricato.",
+    "back": "Torna ai lotti",
+    "detailTitle": "Lotto {code}",
+    "loaded": "{count, plural, one {Una richiesta creata.} other {# richieste create.}}",
+    "issues": {
+      "HEADER": "Le intestazioni non sono quelle del modello: scarica il modello e copia le righe lì.",
+      "EMPTY": "Il file non ha righe.",
+      "TOO_MANY_ROWS": "Troppe righe in un file.",
+      "NOT_XLSX": "Il file non è un Excel (.xlsx).",
+      "TOO_LARGE": "Il file è troppo grande.",
+      "FILE_REQUIRED": "Scegli il file.",
+      "REQUIRED": "manca",
+      "INVALID_PLATE": "targa non valida",
+      "INVALID_DATE": "data non valida",
+      "EXPIRED": "la polizza è già scaduta",
+      "INVALID_FISCAL_CODE": "codice fiscale non valido",
+      "COMPANY_NOT_YET": "per ora solo persone fisiche: per una società usa «Nuova richiesta»",
+      "INVALID_EMAIL": "email non valida",
+      "INVALID_PHONE": "cellulare non valido",
+      "INVALID_POSTAL_CODE": "CAP non valido",
+      "INVALID_PROVINCE": "provincia non valida (due lettere)",
+      "MUNICIPALITY_NOT_FOUND": "comune non trovato in quella provincia",
+      "UNKNOWN_VALUE": "valore non tra quelli ammessi (vedi il secondo foglio del modello)"
     }
   }
 }

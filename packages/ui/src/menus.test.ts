@@ -25,6 +25,7 @@ describe("menus by role (docs/specifiche 02-07)", () => {
     // Dan, 2026-10-21 (docs/piano-broker.md, G).
     expect(keys(member("OWNER", "BROKER"))).toEqual([
       "requests",
+      "batches",
       "customers",
       "policies",
       "accounting",

@@ -71,6 +71,8 @@ import { AdminReportsController } from "./admin/admin-reports.controller.js";
 import { AdminReportsService } from "./admin/admin-reports.service.js";
 import { RetentionController } from "./admin/retention.controller.js";
 import { RetentionService } from "./admin/retention.service.js";
+import { BatchesController } from "./requests/batches.controller.js";
+import { BatchesService } from "./requests/batches.service.js";
 import { BulkUploadController } from "./requests/bulk-upload.controller.js";
 import { BulkUploadService } from "./requests/bulk-upload.service.js";
 import { ReconciliationController } from "./admin/reconciliation.controller.js";
@@ -138,6 +140,7 @@ export class AppModule {
         AdminReportsController,
         RetentionController,
         BulkUploadController,
+        BatchesController,
         ReconciliationController,
         ComplaintsController,
         OwnComplaintsController,
@@ -204,6 +207,7 @@ export class AppModule {
         AdminReportsService,
         RetentionService,
         BulkUploadService,
+        BatchesService,
         ReconciliationService,
         ComplaintsService,
         ExceptionsOverviewService,

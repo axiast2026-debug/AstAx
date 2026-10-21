@@ -71,7 +71,8 @@
     "complaintsIndex": "Indeksi i ankesave",
     "systemSettings": "Siguria dhe të dhënat",
     "listsHolidays": "Listat dhe festat",
-    "onboardingQueue": "Anëtarësimet"
+    "onboardingQueue": "Anëtarësimet",
+    "batches": "Lotet"
   },
   "home": {
     "welcome": "Përshëndetje {name}",
@@ -676,7 +677,8 @@
       "rca": "RCA",
       "privacy": "Të dhënat personale",
       "support": "Asistenca",
-      "security": "Kufijtë e sigurisë"
+      "security": "Kufijtë e sigurisë",
+      "batch": "Lotet e brokerëve"
     },
     "labels": {
       "calendar_timeZone": "Zona orare e referencës",
@@ -772,7 +774,9 @@
       "security_publicRequestsPerMinute": "Kërkesa në minutë për IP te faqet publike",
       "security_publicApplicationsPerHour": "Aplikime hyrjeje për IP në një orë",
       "security_failedAuthPerMinute": "Hyrje të pavlefshme për IP në një minutë",
-      "session_privateMaxDays": "Kohëzgjatja maksimale e seancës së privatëve (ditë)"
+      "session_privateMaxDays": "Kohëzgjatja maksimale e seancës së privatëve (ditë)",
+      "batch_auctionDaysBeforeExpiry": "Lotet: ditë midis ankandit dhe skadimit të policës",
+      "batch_documentsDaysBeforeAuction": "Lotet: ditë midis kërkesës së dokumenteve dhe ankandit"
     }
   },
   "communications": {

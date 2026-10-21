@@ -34,11 +34,12 @@ export const PRIVATE_LINKS: MenuItem[] = [
 
 /**
  * 02 — broker owner and operators: a short menu around the work table of
- * «Richieste» (Dan, 2026-10-21, docs/piano-broker.md G). «Lotti» arrives with
- * step 4; the other pages are at the bottom of every page (BROKER_LINKS).
+ * «Richieste» and the lots from Excel (Dan, 2026-10-21, docs/piano-broker.md
+ * G and C-E); the other pages are at the bottom of every page (BROKER_LINKS).
  */
 const BROKER_MENU: MenuItem[] = [
   item("requests", "/richieste", "request.viewOwn"),
+  item("batches", "/lotti", "request.bulkUpload"),
   item("customers", "/clienti", "brokerCustomer.manage"),
   item("policies", "/polizze", "request.viewOwn"),
   item("accounting", "/contabilita", "accounting.brokerStatement"),

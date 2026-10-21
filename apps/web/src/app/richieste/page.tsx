@@ -1,13 +1,12 @@
-import { formatDate } from "@astax/shared/format";
 import { Button, buttonVariants } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { Field, SelectField } from "@/components/form";
-import { StatusBadge } from "@/components/request-view";
+import { RequestsTable } from "@/components/requests-table";
 import { search } from "@/app/request-actions";
 import { api } from "@/lib/auth";
-import { brokerTask, START_WITHIN_DAYS, taskHref, TODO_STATUSES } from "@/lib/broker-work";
+import { START_WITHIN_DAYS, TODO_STATUSES } from "@/lib/broker-work";
 import { readSearch } from "@/lib/search";
 import { requireViewer } from "@/lib/me";
 import type { RequestSummary } from "@/lib/requests";
@@ -102,61 +101,7 @@ export default async function BrokerRequestsPage() {
           {t("filter")}
         </Button>
       </form>
-      <div className="mt-6 overflow-x-auto">
-        <table className="w-full min-w-[56rem] text-sm">
-          <caption className="sr-only">{t("title")}</caption>
-          <thead>
-            <tr className="text-left text-warm-600">
-              <th scope="col" className="py-2">
-                {t("code")}
-              </th>
-              <th scope="col">{t("customer")}</th>
-              <th scope="col">{t("plate")}</th>
-              <th scope="col">{t("start")}</th>
-              <th scope="col">{t("status")}</th>
-              <th scope="col">{t("todo")}</th>
-              <th scope="col">{t("created")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {requests.map((r) => {
-              const task = brokerTask(r.status);
-              return (
-                <tr key={r.id} className="border-t border-warm-200 align-middle">
-                  <td className="py-2">
-                    <Link href={`/richieste/${r.id}`} className="underline">
-                      {r.code}
-                    </Link>
-                  </td>
-                  <td>{r.customer}</td>
-                  <td>{r.plate}</td>
-                  <td className="tabular">{r.startDate ? formatDate(r.startDate) : "—"}</td>
-                  <td>
-                    <StatusBadge status={r.status} />
-                  </td>
-                  <td className="py-2">
-                    {task.kind === "ACTION" ? (
-                      <Link
-                        href={taskHref(r.id, task)}
-                        className={buttonVariants({ size: "sm" })}
-                        aria-label={`${t(`tasks.${task.key}`)} ${r.code}`}
-                      >
-                        {t(`tasks.${task.key}`)}
-                      </Link>
-                    ) : task.kind === "WAIT" ? (
-                      <span className="text-warm-600">{t(`waits.${task.key}`)}</span>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="tabular">{formatDate(r.createdAt)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      {requests.length === 0 ? <p className="mt-4 text-sm">{t("empty")}</p> : null}
+      <RequestsTable requests={requests} caption={t("title")} />
     </AppShell>
   );
 }

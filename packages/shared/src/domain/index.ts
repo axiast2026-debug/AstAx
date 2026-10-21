@@ -22,5 +22,6 @@ export * from "./issuance.js";
 export * from "./ranking-view.js";
 export * from "./holidays.js";
 export * from "./reconciliation.js";
+export * from "./batch.js";
 export * from "./bulk-upload.js";
 export * from "./intake.js";

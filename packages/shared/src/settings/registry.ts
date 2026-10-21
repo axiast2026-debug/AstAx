@@ -141,6 +141,8 @@ export const settingSchemas = {
   "security.publicApplicationsPerHour": positiveInt,
   "security.failedAuthPerMinute": positiveInt,
   "requests.bulkMaxRows": positiveInt,
+  "batch.auctionDaysBeforeExpiry": positiveInt,
+  "batch.documentsDaysBeforeAuction": positiveInt,
   "organizations.profInsuranceReminderDays": positiveInt,
   "otp.validityMinutes": positiveInt,
   "otp.maxAttempts": positiveInt,

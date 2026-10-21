@@ -591,10 +591,23 @@ model QuoteRequest {
   cancelledAt           DateTime?          @db.Timestamptz(3)
   /// LEG-06, phase 7: documents and personal data deleted for retention; code, dates and log stay.
   purgedAt              DateTime?          @db.Timestamptz(3)
+  /// ADR 0014: the broker's lot the request comes from, and its row in the file.
+  batchId               String?            @db.Uuid
+  batchLine             Int?
+  /// ADR 0014: the expiry of the policy to renew; the auction and the documents follow it.
+  policyExpiryDate      DateTime?          @db.Date
+  /// ADR 0014: when the API sends the draft to the back office by itself.
+  scheduledSubmitAt     DateTime?          @db.Timestamptz(3)
+  /// ADR 0014: when the broker is asked for the documents, and when it was told.
+  documentsDueAt        DateTime?          @db.Timestamptz(3)
+  documentsNotifiedAt   DateTime?          @db.Timestamptz(3)
+  /// ADR 0014, answer 4: sent without the registration certificate.
+  withoutDocuments      Boolean            @default(false)
   createdAt             DateTime           @default(now()) @db.Timestamptz(3)
   updatedAt             DateTime           @default(now()) @db.Timestamptz(3)
 
   customer          Customer?           @relation(fields: [customerId], references: [id])
+  batch             RequestBatch?       @relation(fields: [batchId], references: [id])
   quoteDataVersions QuoteDataVersion[]
   documents         Document[]
   verifications     Verification[]
@@ -609,6 +622,25 @@ model QuoteRequest {
   @@index([ownerOrganizationId, status])
   @@index([status, submittedAt])
   @@index([status, updatedAt])
+  @@index([batchId])
+  @@index([status, scheduledSubmitAt])
+}
+
+/// ADR 0014 (Dan, 2026-10-21): a broker's lot, from one Excel file. Each row
+/// became a request of its own at the upload; the lot only groups them.
+model RequestBatch {
+  id                    String         @id @default(uuid(7)) @db.Uuid
+  /// LT-2026-000001.
+  code                  String         @unique
+  ownerOrganizationId   String         @db.Uuid
+  requesterUserId       String         @db.Uuid
+  requesterMembershipId String         @db.Uuid
+  fileName              String
+  rows                  Int
+  createdAt             DateTime       @default(now()) @db.Timestamptz(3)
+  requests              QuoteRequest[]
+
+  @@index([ownerOrganizationId, createdAt])
 }
 
 enum QuoteDataSource {

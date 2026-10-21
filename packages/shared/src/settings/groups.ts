@@ -16,6 +16,7 @@ const PAGE_OF_PREFIX: Record<string, SettingsPage> = {
   guarantee: "auctionRules",
   reconfirmation: "auctionRules",
   requests: "auctionRules",
+  batch: "auctionRules",
   verification: "auctionRules",
   documents: "auctionRules",
   notes: "auctionRules",

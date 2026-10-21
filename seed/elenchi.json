@@ -37,6 +37,20 @@
       { "code": "FAMILY_RC", "it": "RC familiare", "sq": "RC familjare" },
       { "code": "FROM_ABROAD", "it": "Veicolo proveniente dall'estero", "sq": "Automjet i ardhur nga jashtë", "phase": 2 }
     ],
+    "coverage": [
+      { "code": "recourseWaiver", "it": "Rinuncia alla rivalsa", "sq": "Heqje dorë nga regresi" },
+      { "code": "roadsideAssistance", "it": "Assistenza stradale", "sq": "Asistencë rrugore" },
+      { "code": "legalProtection", "it": "Tutela legale", "sq": "Mbrojtje ligjore" },
+      { "code": "driverAccident", "it": "Infortuni del conducente", "sq": "Aksidente të drejtuesit" },
+      { "code": "theftFire", "it": "Furto e incendio", "sq": "Vjedhje dhe zjarr" },
+      { "code": "naturalEventsVandalism", "it": "Eventi naturali e atti vandalici", "sq": "Ngjarje natyrore dhe vandalizëm" },
+      { "code": "glass", "it": "Cristalli", "sq": "Xhama" }
+    ],
+    "startMode": [
+      { "code": "DATE", "it": "Alla scadenza", "sq": "Në skadim" },
+      { "code": "ON_ISSUANCE", "it": "All'emissione", "sq": "Në lëshim" },
+      { "code": "MIDNIGHT_AFTER_DEADLINE", "it": "Dalle 24 del giorno del pagamento", "sq": "Nga ora 24 e ditës së pagesës" }
+    ],
     "paymentFrequency": [
       { "code": "ANNUAL", "it": "Annuale", "sq": "Vjetore" },
       { "code": "SEMIANNUAL", "it": "Semestrale", "sq": "Gjashtëmujore", "phase": 2 }

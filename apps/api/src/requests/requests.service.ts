@@ -180,6 +180,7 @@ export class RequestsService {
       q?: string;
       customer?: string;
       startWithinDays?: number;
+      batchId?: string;
     },
   ) {
     const today = romeCalendarDate(this.clock.now());
@@ -193,6 +194,7 @@ export class RequestsService {
             ? { status: { in: filter.statuses as QuoteRequest["status"][] } }
             : {}),
           ...(filter.q ? { plate: { contains: filter.q.replace(/\s/g, "").toUpperCase() } } : {}),
+          ...(filter.batchId ? { batchId: filter.batchId } : {}),
           ...(name
             ? {
                 customer: {
@@ -218,7 +220,7 @@ export class RequestsService {
         },
         orderBy: { createdAt: "desc" },
         take: 100,
-        include: { customer: { include: { person: true } } },
+        include: { customer: { include: { person: true } }, batch: { select: { code: true } } },
       });
       return rows.map((r) => ({
         id: r.id,
@@ -227,11 +229,16 @@ export class RequestsService {
         channel: r.channel,
         plate: r.plate,
         packageCode: r.packageCode,
-        startDate: r.startDate?.toISOString().slice(0, 10) ?? null,
+        // A draft of a lot starts, by default, at the expiry of the policy (ADR 0014).
+        startDate: (r.startDate ?? r.policyExpiryDate)?.toISOString().slice(0, 10) ?? null,
         submittedAt: r.submittedAt?.toISOString() ?? null,
         createdAt: r.createdAt.toISOString(),
         customer: r.customer ? customerName(r.customer.person) : null,
         requesterMembershipId: r.requesterMembershipId,
+        // ADR 0014: the lot and the day the draft leaves by itself.
+        batch: r.batch?.code ?? null,
+        scheduledSubmitAt:
+          r.status === "DRAFT" ? (r.scheduledSubmitAt?.toISOString() ?? null) : null,
       }));
     });
   }

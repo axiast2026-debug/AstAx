@@ -72,6 +72,9 @@ export interface RequestSummary {
   submittedAt: string | null;
   createdAt: string;
   customer: string | null;
+  /** ADR 0014: the lot's code, and the day a draft of a lot leaves by itself. */
+  batch?: string | null;
+  scheduledSubmitAt?: string | null;
 }
 
 export async function requestOptions(): Promise<RequestOptions> {

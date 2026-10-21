@@ -61,6 +61,8 @@ const searchSchema = z.strictObject({
   q: z.string().max(20).optional(),
   customer: z.string().max(60).optional(),
   startWithinDays: z.number().int().min(1).max(366).optional(),
+  /** ADR 0014: the requests of one lot. */
+  batchId: z.uuid().optional(),
 });
 
 function idOf(value: string): string {

@@ -126,6 +126,8 @@
     { "key": "consent.linkValidityDays", "value": 7, "description": "Giorni di validità del link di consenso che il broker manda al cliente (domanda 7)", "rule": "LEG-04" },
     { "key": "rca.legalMinimums", "value": { "bodilyInjuryPerClaimEur": 6450000, "propertyDamagePerClaimEur": 1300000 }, "description": "Massimali minimi di legge della RCA per sinistro, in euro (DM 31 maggio 2022): il pacchetto Base li chiede, nessuna offerta può stare sotto (OFF-06)", "rule": "OFF-06" },
     { "key": "requests.bulkMaxRows", "value": 200, "description": "Righe al massimo in un file del caricamento in blocco dei broker", "rule": "—" },
+    { "key": "batch.auctionDaysBeforeExpiry", "value": 7, "description": "Lotti dei broker: giorni prima della scadenza della polizza in cui la richiesta parte verso il back office e l'asta (Dan, 2026-10-21, ADR 0014)", "rule": "—" },
+    { "key": "batch.documentsDaysBeforeAuction", "value": 3, "description": "Lotti dei broker: giorni prima dell'asta in cui si chiedono libretto e documenti al broker (Dan, 2026-10-21, ADR 0014)", "rule": "—" },
     { "key": "requests.codePrefix", "value": "AX", "description": "Prefisso del codice richiesta (AX-AAAA-NNNNNN)", "rule": "—" }
   ]
 }
