@@ -2,6 +2,7 @@ import { formatDate, formatEuroCents } from "@astax/shared/format";
 import { formatGapPercent, type AgencyRankingView } from "@astax/shared/domain";
 import { Badge, Card, CardTitle } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { api } from "@/lib/auth";
@@ -14,6 +15,18 @@ interface Bucket {
   wins: number;
 }
 
+type Outcome = "NOT_WON" | "AWAITING_PAYMENT" | "WON";
+/**
+ * Dan, 2026-10-21 (docs/piano-agenzie.md, step 2): the rankings by outcome.
+ * «Vinte» keeps the history of the auctions won (paid), also when the
+ * customer chose an offer that was not the first.
+ */
+const TABS: { slug: string; outcome: Outcome }[] = [
+  { slug: "non-vinte", outcome: "NOT_WON" },
+  { slug: "in-attesa", outcome: "AWAITING_PAYMENT" },
+  { slug: "vinte", outcome: "WON" },
+];
+
 interface Results {
   scope: "OWN" | "AGENCY";
   published: {
@@ -21,6 +34,7 @@ interface Results {
     code: string;
     round: number;
     publishedAt: string;
+    outcome: Outcome;
     view: AgencyRankingView;
   }[];
   totals: {
@@ -41,13 +55,23 @@ interface Results {
  * CLA-03) and the statistics on its own offers. An operator sees only its
  * own (spec 05).
  */
-export default async function ResultsPage() {
+export default async function ResultsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ scheda?: string }>;
+}) {
   const viewer = await requireViewer();
+  const query = await searchParams;
+  const tab = TABS.find((x) => x.slug === query.scheda) ?? {
+    slug: "non-vinte",
+    outcome: "NOT_WON" as const,
+  };
   if (viewer.activeMembership?.organization.type !== "AGENCY") notFound();
   const t = await getTranslations("results");
   const tv = await getTranslations("agency.vehicleTypes");
   const { status, body } = await api<Results>("/agency/results");
   if (status !== 200) notFound();
+  const shown = body.published.filter((p) => p.outcome === tab.outcome);
 
   const table = (title: string, rows: Bucket[], label: (key: string) => string, invited = true) => (
     <Card className="mt-4">
@@ -91,13 +115,30 @@ export default async function ResultsPage() {
       <p className="mt-2 text-sm text-warm-600">
         {body.scope === "OWN" ? t("scopeOwn") : t("scopeAgency")}
       </p>
-      <Card className="mt-6">
-        <CardTitle>{t("rankingsTitle")}</CardTitle>
-        {body.published.length === 0 ? (
+      <nav aria-label={t("tabs.label")} className="mt-6 flex flex-wrap gap-2">
+        {TABS.map((x) => {
+          const count = body.published.filter((p) => p.outcome === x.outcome).length;
+          const current = x.slug === tab.slug;
+          return (
+            <Link
+              key={x.slug}
+              href={`/risultati?scheda=${x.slug}`}
+              aria-current={current ? "page" : undefined}
+              className={`rounded-lg border px-3 py-2 text-sm ${current ? "border-night-900 bg-night-900 text-white" : "border-warm-200 bg-white hover:bg-warm-100"}`}
+            >
+              {t(`tabs.${x.outcome}`)} ({count})
+            </Link>
+          );
+        })}
+      </nav>
+      <Card className="mt-4">
+        <CardTitle>{t(`tabs.${tab.outcome}`)}</CardTitle>
+        <p className="mt-1 text-sm text-warm-600">{t(`tabs.${tab.outcome}_hint`)}</p>
+        {shown.length === 0 ? (
           <p className="mt-2 text-sm">{t("noRankings")}</p>
         ) : (
           <ul className="mt-3 divide-y divide-warm-200 text-sm">
-            {body.published.map((p) => (
+            {shown.map((p) => (
               <li key={p.auctionId} className="py-3">
                 <section aria-label={p.code}>
                   <div className="flex flex-wrap items-baseline justify-between gap-2">

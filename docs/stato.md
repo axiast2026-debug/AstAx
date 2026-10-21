@@ -19,6 +19,8 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 
 ## Ultima sessione
 
+**2026-10-21 — agenzie, passo 2 del piano**: «Risultati» con le schede «Non vinte», «In attesa del pagamento» (offerta scelta e firmata, non pagata) e «Vinte»; l'API dà per ogni classifica `outcome` (`NOT_WON`, `AWAITING_PAYMENT`, `WON`). Prova in `apps/api/test/int/acceptance.int.test.ts`; S01 apre la scheda «Vinte».
+
 **2026-10-21 — agenzie, passo 1 del piano** (`docs/piano-agenzie.md`, risposte di Dan 1C, 2, 3B, 4, 5): menu dell'agenzia e del sub-agente con le sezioni chieste da Dan e le altre pagine in fondo (`AGENCY_LINKS`, `SUB_AGENT_LINKS`); «Partecipa all'asta» (prima «Richieste in arrivo») con i filtri asta aperta o chiusa, chiusura entro, pacchetto e senza documenti; «Polizze da emettere».
 
 **2026-10-21 — broker, passo 4 del piano** ([ADR 0014](adr/0014-lotti-dei-broker.md)): lotti dal file Excel (lettore e modello con `fflate`, senza librerie nuove), `RequestBatch` e bozze programmate (migrazione `20261028090000_request_batch`, parametri `batch.auctionDaysBeforeExpiry` 7 e `batch.documentsDaysBeforeAuction` 3, elenchi `coverage` e `startMode`); il giro dell’API `BatchSchedulerService` (ogni `BATCH_SCHEDULE_INTERVAL_MS`, sotto lease) manda l’avviso `batch.documents_due` e invia le bozze nel loro giorno, anche senza documenti (`withoutDocuments`); il filtro delle agenzie `acceptsWithoutDocuments` (Agenzia Uno e Due nei dati di prova nuovi). Prove: `packages/shared/src/domain/batch.test.ts`, `apps/api/src/requests/xlsx.test.ts`, `apps/api/test/int/batches.int.test.ts`, `tests/e2e/specs/broker-lotti.spec.ts`. Domande nuove per Dan: 25 (società nei lotti) e 26 (ora della partenza). Dopo il pull: `pnpm db:migrate` e `pnpm db:seed`.

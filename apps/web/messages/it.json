@@ -1539,7 +1539,7 @@
     "scopeAgency": "Le offerte di tutta l’agenzia.",
     "scopeOwn": "Solo le tue offerte.",
     "rankingsTitle": "Classifiche pubblicate",
-    "noRankings": "Nessuna classifica ancora: si pubblica quando il cliente accetta un’offerta o annulla la richiesta.",
+    "noRankings": "Nessuna asta qui. La classifica si vede quando il cliente firma un'offerta o annulla la richiesta.",
     "publishedOn": "pubblicata il {date}",
     "position": "{position}ª su {total}",
     "excluded": "Esclusa",
@@ -1560,7 +1560,16 @@
     "vehicleType": "Tipo di veicolo",
     "company": "Compagnia",
     "averageGap": "Scarto medio dal vincitore, quando non sei primo: {gap}",
-    "averageIssuance": "Tempo medio di emissione dal pagamento: {hours} h {minutes} min"
+    "averageIssuance": "Tempo medio di emissione dal pagamento: {hours} h {minutes} min",
+    "tabs": {
+      "label": "Scegli i risultati",
+      "NOT_WON": "Non vinte",
+      "NOT_WON_hint": "Le aste a cui avete partecipato e che non avete vinto: la vostra posizione e le prime due offerte.",
+      "AWAITING_PAYMENT": "In attesa del pagamento",
+      "AWAITING_PAYMENT_hint": "Il cliente ha scelto e firmato la vostra offerta e non ha ancora pagato. Dopo il pagamento la trovate in «Polizze da emettere».",
+      "WON": "Vinte",
+      "WON_hint": "Le aste vinte e pagate: le polizze sono in «Polizze da emettere» o in «Polizze emesse»."
+    }
   },
   "renewals": {
     "title": "Rinnovi",

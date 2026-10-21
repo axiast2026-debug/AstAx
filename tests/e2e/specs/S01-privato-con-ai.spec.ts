@@ -118,7 +118,8 @@ test.describe.serial("S01 — privato con confronto AI", () => {
     await expect(policy.getByRole("link", { name: "Polizza", exact: true })).toBeVisible();
 
     // CLA-02 CLA-03: published at the signature; Uno is third of three, 3,0 % from the first.
-    await uno.goto(`${WEB}/risultati`);
+    // Won and paid: in the tab «Vinte» (Dan, 2026-10-21).
+    await uno.goto(`${WEB}/risultati?scheda=vinte`);
     const ranking = uno.locator("li", { hasText: code });
     await expect(ranking).toContainText("3ª su 3");
     await expect(ranking).toContainText("Prima 505,00");

@@ -393,6 +393,17 @@ describe("fase 5: the private customer's acceptance (S01)", () => {
     );
     const mine = results.published.find((p) => p.code === request.code);
     expect(mine?.view).toMatchObject({ kind: "RANKED", position: 3, total: 5 });
+    // Dan, 2026-10-21 (docs/piano-agenzie.md, step 2): signed and not paid yet.
+    const chosen = await system(async (tx) => {
+      const acceptance = await tx.acceptance.findFirstOrThrow({
+        where: { quoteRequestId: requestId, status: "SIGNED" },
+      });
+      return tx.offer.findUniqueOrThrow({ where: { id: acceptance.offerId } });
+    });
+    const uno = orgId("agenzia-uno");
+    expect((mine as { outcome?: string } | undefined)?.outcome).toBe(
+      chosen.organizationId === uno ? "AWAITING_PAYMENT" : "NOT_WON",
+    );
     expect(Object.keys(mine?.view ?? {})).not.toContain("company");
     expect(JSON.stringify(mine)).not.toMatch(/agenzia|compagnia/i);
     const a = await r.json<{ acceptance: { status: string; documents: { signed: boolean }[] } }>(

@@ -23,6 +23,11 @@ export interface ResultsBucket {
  * and the supervisors see the whole agency, an operator only its own offers.
  * The statistics are on the agency's own data only: invitations, offers and
  * wins by province, CU class, vehicle type and company.
+ *
+ * Dan, 2026-10-21 (docs/piano-agenzie.md, step 2): each published ranking has
+ * its outcome for the agency: NOT_WON, AWAITING_PAYMENT (the customer chose
+ * and signed this offer and has not paid yet) or WON (paid: it is in
+ * «Polizze da emettere» or issued).
  */
 /** Whole-number average, null when there is nothing to average. */
 function average(values: readonly number[]): number | null {
@@ -52,7 +57,7 @@ export class ResultsService {
         });
         const auctionIds = offers.map((o) => o.auctionId);
         const requestIds = [...new Set(offers.map((o) => o.auction.quoteRequestId))];
-        const [rankings, requests, rounds, companies, invitations] = await Promise.all([
+        const [rankings, requests, rounds, companies, invitations, signed] = await Promise.all([
           tx.ranking.findMany({
             where: { auctionId: { in: auctionIds }, publishedAt: { not: null } },
           }),
@@ -72,7 +77,17 @@ export class ResultsService {
                 include: { auction: { select: { quoteRequestId: true } } },
                 take: 5000,
               }),
+          tx.acceptance.findMany({
+            where: { offerId: { in: offers.map((o) => o.id) }, status: "SIGNED" },
+            select: { offerId: true, signedAt: true },
+          }),
         ]);
+        const outcomeOf = (offer: (typeof offers)[number]) =>
+          (WON as readonly string[]).includes(offer.status)
+            ? ("WON" as const)
+            : signed.some((a) => a.offerId === offer.id)
+              ? ("AWAITING_PAYMENT" as const)
+              : ("NOT_WON" as const);
         const reconfirming = (requestId: string, round: number) =>
           rounds.some(
             (a) =>
@@ -98,6 +113,8 @@ export class ResultsService {
               code: requests.find((q) => q.id === offer.auction.quoteRequestId)?.code ?? "",
               round: offer.auction.round,
               publishedAt: ranking.publishedAt?.toISOString() ?? "",
+              outcome: outcomeOf(offer),
+              ownStatus: offer.status,
               view,
             },
           ];
