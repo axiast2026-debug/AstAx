@@ -376,6 +376,7 @@ export class VerificationService {
           packageCode: derived.packageCode,
           startDate: calendarDateToDbDate(derived.startDate),
           startMode: derived.startMode,
+          chosenCoverages: derived.chosenCoverages,
           minValidityDays: derived.minValidityDays,
           auctionDurationHours: after.request.auctionDurationHours,
           autoOutcome: outcome,
@@ -451,6 +452,7 @@ export class VerificationService {
         tx,
         data.request.packageCode,
         data.request.packageVersion,
+        data.request.coverages,
       ),
     });
     // A request waiting past its start date can still be corrected: the date

@@ -93,7 +93,7 @@ Restano valide le proposte del piano precedente:
 
 Ognuno con i suoi test e il suo commit, nell'ordine:
 
-1. **Garanzie richieste al posto dei pacchetti:** il «consigliato» (RCA ai minimi di legge, assistenza stradale, infortuni del conducente, tutela legale) e le garanzie una a una diventano i requisiti della richiesta; OFF-06 controlla le offerte su quelli. Le richieste vecchie restano con il loro pacchetto.
+1. ✅ **Garanzie richieste al posto dei pacchetti** (fatto il 2026-10-21): il «consigliato» (RCA ai minimi di legge, assistenza stradale, infortuni del conducente, tutela legale) e le garanzie una a una diventano i requisiti della richiesta; OFF-06 controlla le offerte su quelli. Le richieste vecchie restano con il loro pacchetto.
 2. **Dati della richiesta ridotti:** veicolo già assicurato o nuovo, targa, data di nascita, residenza, provenienza della classe (veicolo proprio, venduto, demolito o rottamato, familiare convivente, prima polizza), tipo di guida. Gli altri dati diventano «da completare dal back office».
 3. **Le 5 schermate del cliente**, pensate per il telefono, con il controllo di leggibilità delle foto e la fotocamera.
 4. **La schermata unica del back office:** i dati estratti dal bot accanto alle foto, da confermare o correggere, poi «Apri l'asta». Il pulsante «Chiama il cliente» con il numero.

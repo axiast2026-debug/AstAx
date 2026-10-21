@@ -628,6 +628,7 @@ export class RequestsService {
           tx,
           quoteData.request.packageCode,
           quoteData.request.packageVersion,
+          quoteData.request.coverages,
         ),
       });
       if (problems.length > 0) {
@@ -708,6 +709,7 @@ export class RequestsService {
           packageCode: derived.packageCode,
           startDate: calendarDateToDbDate(derived.startDate),
           startMode: derived.startMode,
+          chosenCoverages: derived.chosenCoverages,
           minValidityDays: derived.minValidityDays,
           auctionDurationHours: quoteData.request.auctionDurationHours,
           autoOutcome: check.outcome,

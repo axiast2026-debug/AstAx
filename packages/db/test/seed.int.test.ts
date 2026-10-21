@@ -171,14 +171,17 @@ describe("fase 2: reference data for requests", () => {
     expect(data.packages.map((p) => [p.packageCode, p.version])).toEqual([
       ["BASE", 1],
       ["COMPLETE", 1],
+      // Dan, 2026-10-21: the two packages of the private customer.
+      ["CUSTOM", 1],
       ["PLUS", 1],
+      ["RECOMMENDED", 1],
     ]);
   });
 
   it("the seed can run again without duplicating rows", async () => {
     await runSeed();
     const count = await withContext(db, SYSTEM_CONTEXT, (tx) => tx.coveragePackageVersion.count());
-    expect(count).toBe(3);
+    expect(count).toBe(5);
   });
 
   it("an ordinary user can read but not change reference data", async () => {

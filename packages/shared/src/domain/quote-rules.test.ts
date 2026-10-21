@@ -279,6 +279,7 @@ describe("derived columns", () => {
       startDate: "2026-11-30",
       // Question 1: data saved before the modes have a chosen date.
       startMode: "DATE",
+      chosenCoverages: [],
       minValidityDays: 15,
     });
   });

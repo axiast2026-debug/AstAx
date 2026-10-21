@@ -164,3 +164,39 @@ export function coverageShortfalls(
   }
   return short;
 }
+
+/**
+ * Dan, 2026-10-21 (docs/piano-flusso-semplificato.md): the coverages the
+ * private customer may choose one by one (package «CUSTOM»). RCA is always in.
+ */
+export const CHOOSABLE_COVERAGES = [
+  "recourseWaiver",
+  "roadsideAssistance",
+  "legalProtection",
+  "driverAccident",
+  "theftFire",
+  "naturalEventsVandalism",
+  "glass",
+] as const satisfies readonly CoverageItem[];
+export type ChoosableCoverage = (typeof CHOOSABLE_COVERAGES)[number];
+
+/** The package whose requirements are the coverages the customer chose. */
+export const CUSTOM_PACKAGE = "CUSTOM";
+
+/**
+ * OFF-06 for a request: the package's requirements, or for «CUSTOM» the
+ * template of each chosen coverage (its minimums, set by the administrator)
+ * and nothing required for the others. RCA keeps the package's rule.
+ */
+export function effectiveRequirements(
+  packageCode: string,
+  base: PackageRequirements,
+  chosen: readonly string[],
+): PackageRequirements {
+  if (packageCode !== CUSTOM_PACKAGE) return base;
+  const out = { ...base } as Record<string, unknown>;
+  for (const item of CHOOSABLE_COVERAGES) {
+    if (!chosen.includes(item)) out[item] = { required: false };
+  }
+  return PackageRequirementsSchema.parse(out);
+}

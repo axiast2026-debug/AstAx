@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "note": "Pacchetti di copertura, versione 1. Un'offerta può dare coperture uguali o migliori, mai inferiori (OFF-06). Massimali e capitali in euro interi; franchigie in euro interi. Rivalsa e franchigie vanno validate con 3-4 agenzie del pilota prima del lancio.",
+  "note": "Pacchetti di copertura, versione 1. Un'offerta può dare coperture uguali o migliori, mai inferiori (OFF-06). Massimali e capitali in euro interi; franchigie in euro interi. Rivalsa e franchigie vanno validate con 3-4 agenzie del pilota prima del lancio. RECOMMENDED e CUSTOM (Dan, 2026-10-21, docs/piano-flusso-semplificato.md) sono i due pacchetti del privato; per CUSTOM i requisiti valgono solo per le garanzie scelte dal cliente, e i valori di scoperto e franchigia molto alti vogliono dire «lo propone l'agenzia».",
   "legalMinimums": {
     "rcaBodilyInjuryPerClaimEur": 6450000,
     "rcaPropertyDamagePerClaimEur": 1300000,
@@ -12,14 +12,30 @@
       "name": "Base",
       "version": 1,
       "requirements": {
-        "rca": { "limitType": "LEGAL_MINIMUMS" },
-        "recourseWaiver": { "required": false },
-        "roadsideAssistance": { "required": false },
-        "legalProtection": { "required": false },
-        "driverAccident": { "required": false },
-        "theftFire": { "required": false },
-        "naturalEventsVandalism": { "required": false },
-        "glass": { "required": false }
+        "rca": {
+          "limitType": "LEGAL_MINIMUMS"
+        },
+        "recourseWaiver": {
+          "required": false
+        },
+        "roadsideAssistance": {
+          "required": false
+        },
+        "legalProtection": {
+          "required": false
+        },
+        "driverAccident": {
+          "required": false
+        },
+        "theftFire": {
+          "required": false
+        },
+        "naturalEventsVandalism": {
+          "required": false
+        },
+        "glass": {
+          "required": false
+        }
       },
       "customerText": {
         "it": "La responsabilità civile obbligatoria con i massimali minimi di legge. È la copertura essenziale per circolare."
@@ -30,14 +46,35 @@
       "name": "Plus",
       "version": 1,
       "requirements": {
-        "rca": { "limitType": "SINGLE_LIMIT", "minSingleLimitEur": 10000000 },
-        "recourseWaiver": { "required": true, "minCases": ["EXPIRED_LICENCE", "NON_COMPLIANT_PASSENGER_TRANSPORT"] },
-        "roadsideAssistance": { "required": true },
-        "legalProtection": { "required": true },
-        "driverAccident": { "required": false },
-        "theftFire": { "required": false },
-        "naturalEventsVandalism": { "required": false },
-        "glass": { "required": false }
+        "rca": {
+          "limitType": "SINGLE_LIMIT",
+          "minSingleLimitEur": 10000000
+        },
+        "recourseWaiver": {
+          "required": true,
+          "minCases": [
+            "EXPIRED_LICENCE",
+            "NON_COMPLIANT_PASSENGER_TRANSPORT"
+          ]
+        },
+        "roadsideAssistance": {
+          "required": true
+        },
+        "legalProtection": {
+          "required": true
+        },
+        "driverAccident": {
+          "required": false
+        },
+        "theftFire": {
+          "required": false
+        },
+        "naturalEventsVandalism": {
+          "required": false
+        },
+        "glass": {
+          "required": false
+        }
       },
       "customerText": {
         "it": "Responsabilità civile con massimale unico di 10 milioni di euro, rinuncia alla rivalsa almeno per patente scaduta e trasporto non conforme, assistenza stradale e tutela legale."
@@ -48,17 +85,122 @@
       "name": "Completo",
       "version": 1,
       "requirements": {
-        "rca": { "limitType": "SINGLE_LIMIT", "minSingleLimitEur": 10000000 },
-        "recourseWaiver": { "required": true, "minCases": ["EXPIRED_LICENCE", "NON_COMPLIANT_PASSENGER_TRANSPORT"] },
-        "roadsideAssistance": { "required": true },
-        "legalProtection": { "required": true },
-        "driverAccident": { "required": true, "minCapitalEur": 50000 },
-        "theftFire": { "required": true, "maxCoinsurancePct": 10, "maxCoinsuranceMinEur": 250, "requiresMarketValue": true },
-        "naturalEventsVandalism": { "required": true, "maxCoinsurancePct": 10, "maxCoinsuranceMinEur": 250 },
-        "glass": { "required": true, "maxDeductibleEur": 150 }
+        "rca": {
+          "limitType": "SINGLE_LIMIT",
+          "minSingleLimitEur": 10000000
+        },
+        "recourseWaiver": {
+          "required": true,
+          "minCases": [
+            "EXPIRED_LICENCE",
+            "NON_COMPLIANT_PASSENGER_TRANSPORT"
+          ]
+        },
+        "roadsideAssistance": {
+          "required": true
+        },
+        "legalProtection": {
+          "required": true
+        },
+        "driverAccident": {
+          "required": true,
+          "minCapitalEur": 50000
+        },
+        "theftFire": {
+          "required": true,
+          "maxCoinsurancePct": 10,
+          "maxCoinsuranceMinEur": 250,
+          "requiresMarketValue": true
+        },
+        "naturalEventsVandalism": {
+          "required": true,
+          "maxCoinsurancePct": 10,
+          "maxCoinsuranceMinEur": 250
+        },
+        "glass": {
+          "required": true,
+          "maxDeductibleEur": 150
+        }
       },
       "customerText": {
         "it": "Tutto il pacchetto Plus, più infortuni del conducente (capitale di almeno 50.000 euro), furto e incendio, eventi naturali e atti vandalici (scoperto al massimo del 10% con minimo non oltre 250 euro) e cristalli (franchigia al massimo di 150 euro)."
+      }
+    },
+    {
+      "code": "RECOMMENDED",
+      "name": "Consigliato",
+      "version": 1,
+      "requirements": {
+        "rca": {
+          "limitType": "LEGAL_MINIMUMS"
+        },
+        "recourseWaiver": {
+          "required": false
+        },
+        "roadsideAssistance": {
+          "required": true
+        },
+        "legalProtection": {
+          "required": true
+        },
+        "driverAccident": {
+          "required": true,
+          "minCapitalEur": 0
+        },
+        "theftFire": {
+          "required": false
+        },
+        "naturalEventsVandalism": {
+          "required": false
+        },
+        "glass": {
+          "required": false
+        }
+      },
+      "customerText": {
+        "it": "Responsabilità civile con i massimali minimi di legge, assistenza stradale, infortuni del conducente e tutela legale. Il capitale degli infortuni lo propone l'agenzia."
+      }
+    },
+    {
+      "code": "CUSTOM",
+      "name": "Su misura",
+      "version": 1,
+      "requirements": {
+        "rca": {
+          "limitType": "LEGAL_MINIMUMS"
+        },
+        "recourseWaiver": {
+          "required": true,
+          "minCases": []
+        },
+        "roadsideAssistance": {
+          "required": true
+        },
+        "legalProtection": {
+          "required": true
+        },
+        "driverAccident": {
+          "required": true,
+          "minCapitalEur": 0
+        },
+        "theftFire": {
+          "required": true,
+          "maxCoinsurancePct": 100,
+          "maxCoinsuranceMinEur": 1000000,
+          "requiresMarketValue": false
+        },
+        "naturalEventsVandalism": {
+          "required": true,
+          "maxCoinsurancePct": 100,
+          "maxCoinsuranceMinEur": 1000000
+        },
+        "glass": {
+          "required": true,
+          "maxDeductibleEur": 1000000
+        }
+      },
+      "customerText": {
+        "it": "Scegli tu le garanzie, una per una, oltre alla responsabilità civile obbligatoria. Capitali, valore del veicolo, scoperti e franchigie li propone l'agenzia."
       }
     }
   ],

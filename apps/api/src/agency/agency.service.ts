@@ -12,7 +12,14 @@ import {
   type Invitation,
   type QuoteRequest,
 } from "@astax/db";
-import { addCalendarDays, isGuaranteed, romeInstant, type QuoteData } from "@astax/shared/domain";
+import {
+  addCalendarDays,
+  effectiveRequirements,
+  isGuaranteed,
+  PackageRequirementsSchema,
+  romeInstant,
+  type QuoteData,
+} from "@astax/shared/domain";
 import { dbDateToCalendarDate, formatDateTime, romeCalendarDate } from "@astax/shared/format";
 import { can } from "@astax/shared/permissions";
 import { Inject, Injectable } from "@nestjs/common";
@@ -353,7 +360,16 @@ export class AgencyService {
         offer: offer ? { id: offer.id, status: offer.status, version: offer.version } : null,
         quoteData,
         package: pkg
-          ? { code: pkg.packageCode, name: pkg.package.name, requirements: pkg.requirements }
+          ? {
+              code: pkg.packageCode,
+              name: pkg.package.name,
+              // Dan, 2026-10-21: for «CUSTOM» only the coverages the customer chose.
+              requirements: effectiveRequirements(
+                pkg.packageCode,
+                PackageRequirementsSchema.parse(pkg.requirements),
+                request.chosenCoverages,
+              ),
+            }
           : null,
         companies: mandates.map((x) => ({ id: x.companyId, name: x.company.name })),
         products: products.map((p) => ({ id: p.id, companyId: p.companyId, name: p.name })),

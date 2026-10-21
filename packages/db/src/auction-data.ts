@@ -1,9 +1,12 @@
 import {
   AgencyFilterCriteriaSchema,
+  effectiveRequirements,
+  PackageRequirementsSchema,
   WeeklyHoursSchema,
   type AgencyCandidate,
   type AuctionSettings,
   type FilterableRequest,
+  type PackageRequirements,
   type WorkingCalendar,
 } from "@astax/shared/domain";
 import { romeCalendarDate } from "@astax/shared/format";
@@ -206,4 +209,25 @@ export async function loadAgencyCandidates(
 export async function loadIssuanceCalendar(tx: DbTransaction, at: Date): Promise<WorkingCalendar> {
   const { "issuance.workingHours": hours } = await settingsAt(tx, ["issuance.workingHours"], at);
   return loadWorkingCalendar(tx, hours);
+}
+
+/**
+ * OFF-06: the requirements an offer must meet for a request, from the version
+ * of its package in force at `at` (the opening of the auction, ASTA-09; the
+ * latest when omitted), with the coverages chosen for «CUSTOM». Null when the
+ * request has no package or the version is not readable.
+ */
+export async function requestRequirements(
+  tx: DbTransaction,
+  request: { packageCode: string | null; chosenCoverages: string[] },
+  at?: Date,
+): Promise<PackageRequirements | null> {
+  if (!request.packageCode) return null;
+  const version = await tx.coveragePackageVersion.findFirst({
+    where: { packageCode: request.packageCode, ...(at ? { validFrom: { lte: at } } : {}) },
+    orderBy: { version: "desc" },
+  });
+  const parsed = PackageRequirementsSchema.safeParse(version?.requirements);
+  if (!parsed.success) return null;
+  return effectiveRequirements(request.packageCode, parsed.data, request.chosenCoverages);
 }

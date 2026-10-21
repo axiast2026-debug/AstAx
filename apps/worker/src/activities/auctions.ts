@@ -22,6 +22,7 @@ import {
   type DbTransaction,
   type Prisma,
   type QuoteRequest,
+  requestRequirements,
 } from "@astax/db";
 import {
   addWorkingMinutes,
@@ -30,7 +31,6 @@ import {
   coverageShortfalls,
   guaranteeDateAccepted,
   OfferPayloadSchema,
-  PackageRequirementsSchema,
   rankOffers,
   selectAgencies,
   topUpSize,
@@ -703,11 +703,8 @@ export function auctionActivities(
           auctionId: auction.id,
         });
         try {
-          const version = await tx.coveragePackageVersion.findFirst({
-            where: { packageCode: request.packageCode ?? "", validFrom: { lte: auction.openedAt } },
-            orderBy: { version: "desc" },
-          });
-          const requirements = PackageRequirementsSchema.parse(version?.requirements);
+          const requirements = await requestRequirements(tx, request, auction.openedAt);
+          if (!requirements) throw new Error("The request has no readable package");
           const legal = await settingsAt(tx, ["rca.legalMinimums"], auction.openedAt);
           const minimum = dbDateToCalendarDate(auction.minGuaranteeDate);
           for (const offer of offers) {

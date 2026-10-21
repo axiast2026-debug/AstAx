@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CHOOSABLE_COVERAGES } from "./coverage.js";
 import { isCalendarDate } from "./calendar-date.js";
 import { normalizeFiscalCodeInput } from "./fiscal-code.js";
 import { isValidVatNumber } from "./italian-ids.js";
@@ -119,7 +120,7 @@ export const HistorySchema = z.strictObject({
   familyRc: z.strictObject({ plate, relativeFiscalCode: fiscalCode }).optional(),
 });
 
-export const PACKAGE_CODES = ["BASE", "PLUS", "COMPLETE"] as const;
+export const PACKAGE_CODES = ["BASE", "PLUS", "COMPLETE", "RECOMMENDED", "CUSTOM"] as const;
 export type PackageCode = (typeof PACKAGE_CODES)[number];
 
 /**
@@ -136,6 +137,8 @@ export const RequestTermsSchema = z.strictObject({
   /** The chosen start date; for the other modes, the day of the request (ages, licence). */
   startDate: calendarDate,
   startMode: z.enum(START_MODES).optional(),
+  /** Package «CUSTOM»: the coverages chosen one by one (Dan, 2026-10-21). */
+  coverages: z.array(z.enum(CHOOSABLE_COVERAGES)).max(CHOOSABLE_COVERAGES.length).optional(),
   blackBox: z.boolean(),
   paymentFrequency: z.literal("ANNUAL"),
   auctionDurationHours: z.int().min(1),

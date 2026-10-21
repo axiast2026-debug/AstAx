@@ -574,6 +574,8 @@ model QuoteRequest {
   packageCode           String?
   startDate             DateTime?          @db.Date
   startMode             StartMode          @default(DATE)
+  /// Package CUSTOM: the coverages chosen one by one (Dan, 2026-10-21).
+  chosenCoverages       String[]           @default([])
   minValidityDays       Int?
   auctionDurationHours  Int?
   autoOutcome           CheckOutcome?

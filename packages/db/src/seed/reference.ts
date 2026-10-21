@@ -1,3 +1,4 @@
+import { PACKAGE_CODES } from "@astax/shared/domain";
 import { loadNotificationTemplates } from "@astax/shared/notifications";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -31,7 +32,7 @@ const packagesFileSchema = z.object({
   schemaVersion: z.literal(1),
   packages: z.array(
     z.object({
-      code: z.enum(["BASE", "PLUS", "COMPLETE"]),
+      code: z.enum(PACKAGE_CODES),
       name: z.string(),
       version: z.number().int().min(1),
       requirements: z.record(z.string(), z.unknown()),

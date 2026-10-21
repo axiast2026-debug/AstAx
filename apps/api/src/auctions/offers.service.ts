@@ -14,11 +14,11 @@ import {
   type DbTransaction,
   type Offer,
   type QuoteRequest,
+  requestRequirements,
 } from "@astax/db";
 import {
   AgencyFilterCriteriaSchema,
   coverageShortfalls,
-  PackageRequirementsSchema,
   filterMismatches,
   guaranteeDateAccepted,
   noteProblems,
@@ -340,16 +340,12 @@ export class OffersService {
     const request = await asSystem(tx, () =>
       tx.quoteRequest.findUniqueOrThrow({ where: { id: auction.quoteRequestId } }),
     );
-    const version = await tx.coveragePackageVersion.findFirst({
-      where: { packageCode: request.packageCode ?? "", validFrom: { lte: auction.openedAt } },
-      orderBy: { version: "desc" },
-    });
-    const requirements = PackageRequirementsSchema.safeParse(version?.requirements);
-    if (!requirements.success) return [];
+    const requirements = await requestRequirements(tx, request, auction.openedAt);
+    if (!requirements) return [];
     const legal = (await settingsAt(tx, ["rca.legalMinimums"], auction.openedAt))[
       "rca.legalMinimums"
     ];
-    return coverageShortfalls(requirements.data, payload.coverage, {
+    return coverageShortfalls(requirements, payload.coverage, {
       rcaBodilyInjuryPerClaimEur: legal.bodilyInjuryPerClaimEur,
       rcaPropertyDamagePerClaimEur: legal.propertyDamagePerClaimEur,
     });

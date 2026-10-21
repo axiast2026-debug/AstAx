@@ -437,7 +437,7 @@ async function seedAgencies(tx: DbTransaction, seed: string): Promise<void> {
       maxClaimsLast5y: null,
       driverAgeMin: 18,
       driverAgeMax: 99,
-      packages: ["BASE", "PLUS", "COMPLETE"],
+      packages: ["BASE", "PLUS", "COMPLETE", "RECOMMENDED", "CUSTOM"],
       companies: companyIds as [string, ...string[]],
       maxStartDateDays: 60,
       maxGuaranteeDays: 30,

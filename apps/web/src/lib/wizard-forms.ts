@@ -1,3 +1,4 @@
+import { CHOOSABLE_COVERAGES } from "@astax/shared/domain";
 /**
  * From the wizard's HTML forms to the draft sections of `quoteData`
  * (packages/shared, QuoteDraftSchema). Pure functions: the API validates the
@@ -136,6 +137,9 @@ export function licenceFromForm(form: FormReader, prefix: string) {
 
 const START_MODES = ["DATE", "ON_ISSUANCE", "MIDNIGHT_AFTER_DEADLINE"] as const;
 
+/** The packages offered to the private customer; the others stay for the broker. */
+export const PRIVATE_PACKAGES: readonly string[] = ["RECOMMENDED", "CUSTOM"];
+
 export function requestTermsFromForm(
   form: FormReader,
   defaults: { auctionDurationHours: number; minValidityDays: number; today: string },
@@ -152,6 +156,10 @@ export function requestTermsFromForm(
       integer(form, "request.packageVersion"),
     startDate: startMode === "DATE" ? text(form, "request.startDate") : defaults.today,
     startMode,
+    coverages:
+      packageCode === "CUSTOM"
+        ? CHOOSABLE_COVERAGES.filter((item) => checked(form, `request.coverages.${item}`))
+        : undefined,
     blackBox: checked(form, "request.blackBox"),
     paymentFrequency: "ANNUAL",
     auctionDurationHours:

@@ -153,3 +153,32 @@ describe("step 2 «Chi guida»", () => {
     });
   });
 });
+
+describe("Dan, 2026-10-21: coverages of «Su misura»", () => {
+  const base = { auctionDurationHours: 2, minValidityDays: 15, today: "2026-10-21" };
+
+  it("the ticked coverages are read only for «Su misura»", () => {
+    const custom = requestTermsFromForm(
+      form({
+        "request.packageCode": "CUSTOM",
+        "request.packageVersion.CUSTOM": "1",
+        "request.startDate": "2026-11-30",
+        "request.coverages.glass": "on",
+        "request.coverages.theftFire": "on",
+        "request.coverages.unknown": "on",
+      }),
+      base,
+    );
+    expect(custom).toMatchObject({ packageCode: "CUSTOM", coverages: ["theftFire", "glass"] });
+    const recommended = requestTermsFromForm(
+      form({
+        "request.packageCode": "RECOMMENDED",
+        "request.packageVersion.RECOMMENDED": "1",
+        "request.startDate": "2026-11-30",
+        "request.coverages.glass": "on",
+      }),
+      base,
+    );
+    expect(recommended).not.toHaveProperty("coverages");
+  });
+});

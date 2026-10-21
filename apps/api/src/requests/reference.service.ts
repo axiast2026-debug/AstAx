@@ -1,6 +1,6 @@
 import type { Clock } from "@astax/adapters/clock";
 import { withContext, type DbClient, type DbTransaction } from "@astax/db";
-import type { ExclusionCase } from "@astax/shared/domain";
+import { CUSTOM_PACKAGE, PACKAGE_CODES, type ExclusionCase } from "@astax/shared/domain";
 import { Inject, Injectable } from "@nestjs/common";
 import type { AuthContext } from "../auth/auth-context.js";
 import { CLOCK, DB } from "../infra/tokens.js";
@@ -70,7 +70,7 @@ export class ReferenceService {
           versions: { where: { validFrom: { lte: now } }, orderBy: { version: "desc" }, take: 1 },
         },
       });
-      const order = ["BASE", "PLUS", "COMPLETE"];
+      const order: readonly string[] = PACKAGE_CODES;
       return {
         auctionDurationsHours: settings["auction.durationsWorkingHours"],
         defaultAuctionDurationHours: settings["auction.defaultDurationWorkingHours"],
@@ -139,12 +139,27 @@ export class ReferenceService {
     };
   }
 
-  async packageIncludesTheft(tx: DbTransaction, code: string, version: number): Promise<boolean> {
+  /**
+   * Spec 09 §3: the market value is asked when theft and fire are required with
+   * it; for «CUSTOM», only if the customer chose them (Dan, 2026-10-21).
+   */
+  async packageIncludesTheft(
+    tx: DbTransaction,
+    code: string,
+    version: number,
+    chosen: readonly string[] = [],
+  ): Promise<boolean> {
     const found = await tx.coveragePackageVersion.findUnique({
       where: { packageCode_version: { packageCode: code, version } },
     });
-    const requirements = (found?.requirements ?? {}) as { theftFire?: { required?: boolean } };
-    return requirements.theftFire?.required === true;
+    const requirements = (found?.requirements ?? {}) as {
+      theftFire?: { required?: boolean; requiresMarketValue?: boolean };
+    };
+    const theft = requirements.theftFire;
+    if (code === CUSTOM_PACKAGE) {
+      return chosen.includes("theftFire") && theft?.requiresMarketValue === true;
+    }
+    return theft?.required === true;
   }
 
   async packageExists(tx: DbTransaction, code: string, version: number): Promise<boolean> {

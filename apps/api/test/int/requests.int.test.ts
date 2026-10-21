@@ -160,7 +160,13 @@ describe("fase 2: options from the parameters", () => {
     }>(await call(asLuca(), "/reference/request-options"), 200);
     expect(options.auctionDurationsHours).toEqual([1, 2, 5, 24]);
     expect(options.minValidityDaysOptions).toEqual([7, 15, 30]);
-    expect(options.packages.map((p) => p.code)).toEqual(["BASE", "PLUS", "COMPLETE"]);
+    expect(options.packages.map((p) => p.code)).toEqual([
+      "BASE",
+      "PLUS",
+      "COMPLETE",
+      "RECOMMENDED",
+      "CUSTOM",
+    ]);
     expect(options.specialUses.map((s) => s.code)).toContain("TAXI");
   });
 

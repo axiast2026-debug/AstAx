@@ -187,6 +187,7 @@ export interface DerivedColumns {
   packageCode: string;
   startDate: string;
   startMode: StartMode;
+  chosenCoverages: string[];
   minValidityDays: number;
 }
 
@@ -207,6 +208,8 @@ export function derivedColumns(quoteData: QuoteData): DerivedColumns {
     packageCode: quoteData.request.packageCode,
     startDate: quoteData.request.startDate,
     startMode: quoteData.request.startMode ?? "DATE",
+    chosenCoverages:
+      quoteData.request.packageCode === "CUSTOM" ? [...(quoteData.request.coverages ?? [])] : [],
     minValidityDays: quoteData.request.minValidityDays,
   };
 }

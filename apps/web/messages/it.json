@@ -597,7 +597,8 @@
       "formulaIntro": "Con la guida esperta tutti i conducenti devono avere almeno {age} anni alla decorrenza."
     },
     "coverage": {
-      "package": "Scegli il pacchetto",
+      "package": "Quali garanzie vuoi",
+      "chooseCoverages": "Oltre alla RC auto, scegli le garanzie che vuoi:",
       "startMode": "Da quando vuoi essere assicurato",
       "startModes": {
         "DATE": {

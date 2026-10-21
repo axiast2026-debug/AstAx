@@ -13,6 +13,7 @@ import {
   type DbClient,
   type DbTransaction,
   type QuoteRequest,
+  requestRequirements,
 } from "@astax/db";
 import {
   acceptanceBlock,
@@ -22,7 +23,6 @@ import {
   customerFee,
   guaranteeDaysLeft,
   OfferCoverageSchema,
-  PackageRequirementsSchema,
   savingCents,
   scoreOffers,
   transitionRequest,
@@ -313,11 +313,8 @@ export class AcceptanceService {
         ]);
       }
       const settings = await settingsAt(tx, ["ai.weights", "ai.explanationMaxChars"], now);
-      const version = await tx.coveragePackageVersion.findFirst({
-        where: { packageCode: request.packageCode ?? "" },
-        orderBy: { version: "desc" },
-      });
-      const requirements = PackageRequirementsSchema.parse(version?.requirements);
+      const requirements = await requestRequirements(tx, request);
+      if (!requirements) throw new Error("The request has no readable package");
       const indexes = await tx.companyComplaintsIndex.findMany({
         where: { companyId: { in: shown.map((r) => r.companyId) } },
         orderBy: { year: "desc" },

@@ -1,9 +1,10 @@
+import { CHOOSABLE_COVERAGES } from "@astax/shared/domain";
 import { Button } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { saveCoverageStep } from "@/app/request-actions";
 import { CheckField, Field, hasError } from "@/components/form";
 import type { RequestDetail, RequestOptions } from "@/lib/requests";
-import { centsToEuros } from "@/lib/wizard-forms";
+import { centsToEuros, PRIVATE_PACKAGES } from "@/lib/wizard-forms";
 
 function Hidden({ detail, base, step }: { detail: RequestDetail; base: string; step: string }) {
   return (
@@ -33,8 +34,16 @@ export async function CoverageStep({
 }) {
   const t = await getTranslations("wizard.coverage");
   const tc = await getTranslations("wizard");
+  const titem = await getTranslations("agency.coverage");
   const terms = detail.draft?.request;
-  const chosen = terms?.packageCode ?? "BASE";
+  // Dan, 2026-10-21: the private customer chooses «Consigliato» or «Su misura»;
+  // the broker keeps the packages Base, Plus and Completo for now.
+  const isPrivate = base === "/preventivi";
+  const shown = options.packages.filter((p) =>
+    isPrivate ? PRIVATE_PACKAGES.includes(p.code) : !PRIVATE_PACKAGES.includes(p.code),
+  );
+  const chosen = terms?.packageCode ?? shown[0]?.code ?? "BASE";
+  const chosenCoverages: readonly string[] = terms?.coverages ?? [];
   const proposedStart = terms?.startDate ?? detail.draft?.history?.currentExpiryDate;
   const startMode = terms?.startMode ?? "DATE";
   return (
@@ -53,7 +62,7 @@ export async function CoverageStep({
       />
       <fieldset className="space-y-3">
         <legend className="text-base font-semibold text-night-900">{t("package")}</legend>
-        {options.packages.map((p) => (
+        {shown.map((p) => (
           <div
             key={p.code}
             className="rounded-xl border border-warm-200 bg-white p-4 has-[:checked]:border-orange-500"
@@ -75,9 +84,22 @@ export async function CoverageStep({
             <p id={`package-${p.code}-text`} className="mt-2 text-sm text-warm-600">
               {p.description}
             </p>
+            {p.code === "CUSTOM" ? (
+              <fieldset className="mt-3 grid gap-2 sm:grid-cols-2">
+                <legend className="text-sm font-semibold">{t("chooseCoverages")}</legend>
+                {CHOOSABLE_COVERAGES.map((item) => (
+                  <CheckField
+                    key={item}
+                    label={titem(item)}
+                    name={`request.coverages.${item}`}
+                    defaultChecked={chosenCoverages.includes(item)}
+                  />
+                ))}
+              </fieldset>
+            ) : null}
           </div>
         ))}
-        {options.packages.map((p) => (
+        {shown.map((p) => (
           <input
             key={p.code}
             type="hidden"
@@ -168,6 +190,9 @@ export async function AuctionStep({
       <input type="hidden" name="request.packageVersion" value={terms.packageVersion} />
       <input type="hidden" name="request.startDate" value={terms.startDate} />
       <input type="hidden" name="request.startMode" value={terms.startMode ?? "DATE"} />
+      {(terms.coverages ?? []).map((item) => (
+        <input key={item} type="hidden" name={`request.coverages.${item}`} value="on" />
+      ))}
       {terms.blackBox ? <input type="hidden" name="request.blackBox" value="on" /> : null}
       <input
         type="hidden"
