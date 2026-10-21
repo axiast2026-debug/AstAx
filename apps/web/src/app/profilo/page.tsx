@@ -1,9 +1,9 @@
 import { formatDateTime } from "@astax/shared/format";
-import { can } from "@astax/shared/permissions";
-import { Button, buttonVariants, Card, CardTitle, PRIVATE_LINKS } from "@astax/ui";
+import { Button, buttonVariants, Card, CardTitle, linksFor } from "@astax/ui";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { logoutEverywhere, revokeConsent, revokeSession } from "@/app/actions";
+import { AgencyProfileCard } from "@/components/agency-profile-card";
 import { AppShell } from "@/components/app-shell";
 import { NotificationPreferences } from "@/components/notification-preferences";
 import { api } from "@/lib/auth";
@@ -24,7 +24,10 @@ interface ActiveSession {
   lastAccessAt: string;
 }
 
-/** Profile: personal data, organizations and roles, active sessions (spec 01, «Profilo»). */
+/**
+ * Profile: personal data, organizations and roles, active sessions (spec 01,
+ * «Profilo»); for an agency also the agency's data (Dan, 2026-10-21).
+ */
 export default async function ProfilePage() {
   const viewer = await requireViewer();
   const t = await getTranslations();
@@ -32,17 +35,22 @@ export default async function ProfilePage() {
   const { me } = viewer;
   const consents = me.kind === "PRIVATE" ? (await api<OwnConsent[]>("/me/consents")).body : [];
   const missing = t("profile.missing");
+  const links = linksFor(viewer.actor);
+  const agency = viewer.activeMembership?.organization.type === "AGENCY";
 
   return (
     <AppShell viewer={viewer}>
       <h1 className="text-2xl font-bold">{t("profile.title")}</h1>
       <div className="mt-6 space-y-6">
-        {me.kind === "PRIVATE" ? (
-          // Dan, 2026-10-21: the pages left out of the menu of the private customer.
+        {agency ? <AgencyProfileCard /> : null}
+        {links.length > 0 ? (
+          // Dan, 2026-10-21: the pages left out of the short menus.
           <Card>
-            <CardTitle>{t("profile.morePages")}</CardTitle>
+            <CardTitle>
+              {me.kind === "PRIVATE" ? t("profile.morePages") : t("profile.otherPages")}
+            </CardTitle>
             <ul className="mt-3 grid gap-2 sm:grid-cols-3">
-              {PRIVATE_LINKS.filter((l) => can(viewer.actor, l.action)).map((l) => (
+              {links.map((l) => (
                 <li key={l.key}>
                   <Link
                     href={l.href}

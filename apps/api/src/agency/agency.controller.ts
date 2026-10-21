@@ -65,6 +65,13 @@ export class AgencyController {
     return this.agency.dashboard(auth);
   }
 
+  /** «Profilo» of the agency (Dan, 2026-10-21, docs/piano-agenzie.md D). */
+  @Get("profile")
+  @RequirePermission("auction.viewStatus")
+  profile(@CurrentAuth() auth: AuthContext) {
+    return this.agency.profile(auth);
+  }
+
   @Get("requests")
   @RequirePermission("auction.viewStatus")
   incoming(@CurrentAuth() auth: AuthContext, @Query() query: unknown) {

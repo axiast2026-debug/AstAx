@@ -59,6 +59,14 @@ const CHOOSABLE: readonly NotificationChannel[] = ["EMAIL", "SMS", "PUSH"];
  * indispensable links) and the push of an event with a deadline (forcePush)
  * are locked on. Web Push subscriptions of the user's browsers, encrypted.
  */
+/** An event's name from a text of its template, without the variables. */
+const nameOf = (text: string | undefined) =>
+  (text ?? "")
+    .replace(/\{\{\s*[a-z_]+\s*\}\}/g, "…")
+    .replace(/[:\s]*…$/, "")
+    .replace(/^…$/, "")
+    .trim();
+
 @Injectable()
 export class PreferencesService {
   constructor(
@@ -98,9 +106,8 @@ export class PreferencesService {
         return {
           eventKey: t.eventKey,
           // The event's name: its title (or subject) without the variables.
-          name: (texts.title ?? texts.emailSubject ?? t.eventKey)
-            .replace(/\{\{\s*[a-z_]+\s*\}\}/g, "…")
-            .replace(/[:\s]*…$/, ""),
+          // A title made only of variables falls back on the email's subject, never empty.
+          name: nameOf(texts.title) || nameOf(texts.emailSubject) || t.eventKey,
           channels: t.channels
             .filter((c) => CHOOSABLE.includes(c))
             .map((channel) => ({

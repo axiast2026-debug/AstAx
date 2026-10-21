@@ -77,7 +77,8 @@
     "systemSettings": "Sicurezza e dati",
     "listsHolidays": "Elenchi e festività",
     "onboardingQueue": "Ingressi",
-    "batches": "Lotti"
+    "batches": "Lotti",
+    "metrics": "Metriche"
   },
   "home": {
     "welcome": "Ciao {name}",
@@ -176,6 +177,21 @@
         "busy": "Un momento…",
         "error": "Non è stato possibile cambiare l'impostazione. Riprova."
       }
+    },
+    "otherPages": "Le altre pagine",
+    "agency": {
+      "rui": "Numero RUI",
+      "section": "sezione {section}",
+      "vatNumber": "Partita IVA",
+      "pec": "PEC",
+      "address": "Sede",
+      "iban": "IBAN per le rimesse",
+      "profInsurance": "RC professionale",
+      "validUntil": "valida fino al {date}",
+      "team": "Team",
+      "members": "{count, plural, one {# utente attivo} other {# utenti attivi}}",
+      "mandates": "Compagnie mandanti",
+      "toVerify": "da verificare"
     }
   },
   "notifications": {
@@ -1569,7 +1585,8 @@
       "AWAITING_PAYMENT_hint": "Il cliente ha scelto e firmato la vostra offerta e non ha ancora pagato. Dopo il pagamento la trovate in «Polizze da emettere».",
       "WON": "Vinte",
       "WON_hint": "Le aste vinte e pagate: le polizze sono in «Polizze da emettere» o in «Polizze emesse»."
-    }
+    },
+    "toMetrics": "I numeri di periodo sono in «Metriche»."
   },
   "renewals": {
     "title": "Rinnovi",
@@ -1786,5 +1803,23 @@
       "MUNICIPALITY_NOT_FOUND": "comune non trovato in quella provincia",
       "UNKNOWN_VALUE": "valore non tra quelli ammessi (vedi il secondo foglio del modello)"
     }
+  },
+  "metrics": {
+    "title": "Metriche",
+    "period": "Periodo",
+    "periods": {
+      "30": "Ultimi 30 giorni",
+      "90": "Ultimi 3 mesi",
+      "365": "Ultimi 12 mesi"
+    },
+    "invited": "Inviti ricevuti",
+    "offers": "Offerte fatte",
+    "responseRate": "Tasso di risposta",
+    "wins": "Aste vinte",
+    "winRate": "Tasso di vittoria",
+    "wonPremiums": "Premi vinti",
+    "averageGap": "Distanza media dal primo",
+    "averageIssuance": "Tempo medio di emissione",
+    "hoursMinutes": "{hours} h {minutes} min"
   }
 }

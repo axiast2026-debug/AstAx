@@ -110,6 +110,39 @@ describe("fase 4: the agency area (spec 04)", () => {
     expect(due.map((x) => x.auctionId)).not.toContain(auctionId);
   });
 
+  it("«Profilo» of the agency (Dan, 2026-10-21): its data, mandates and team; the IBAN masked", async () => {
+    const profile = await r.json<{
+      legalName: string;
+      ruiNumber: string;
+      iban: string | null;
+      mandates: { company: string; verified: boolean }[];
+      activeMembers: number;
+    }>(await r.call(await who("agenzia-uno-owner", "agenzia-uno"), "/agency/profile"), 200);
+    expect(profile).toMatchObject({ legalName: "Agenzia Uno", ruiNumber: "A000000001" });
+    expect(profile.iban).toMatch(/^IT[0-9]{2} •••• [0-9]{4}$/);
+    expect(profile.mandates.length).toBeGreaterThan(0);
+    expect(profile.activeMembers).toBeGreaterThan(0);
+  });
+
+  it("«Metriche» (Dan, 2026-10-21): the period, the rates in basis points; the operator sees only its own", async () => {
+    const owner = await r.json<{ scope: string; days: number; totals: Record<string, unknown> }>(
+      await r.call(await who("agenzia-uno-owner", "agenzia-uno"), "/agency/metrics?days=90"),
+      200,
+    );
+    expect(owner).toMatchObject({ scope: "AGENCY", days: 90 });
+    expect(owner.totals).toHaveProperty("winRateBasisPoints");
+    expect(owner.totals).toHaveProperty("wonPremiumCents");
+    const operator = await r.json<{ scope: string; totals: { responseRateBasisPoints: unknown } }>(
+      await r.call(await who("agenzia-uno-operator", "agenzia-uno"), "/agency/metrics"),
+      200,
+    );
+    expect(operator).toMatchObject({ scope: "OWN", totals: { responseRateBasisPoints: null } });
+    expect(
+      (await r.call(await who("agenzia-uno-owner", "agenzia-uno"), "/agency/metrics?days=7"))
+        .status,
+    ).toBe(400);
+  });
+
   it("«Partecipa all'asta» (Dan, 2026-10-21): open or closed, closing within, package, without documents", async () => {
     const uno = await who("agenzia-uno-owner", "agenzia-uno");
     const ids = async (query: string) =>

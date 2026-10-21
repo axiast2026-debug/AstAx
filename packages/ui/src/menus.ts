@@ -78,6 +78,8 @@ const AGENCY_MENU: MenuItem[] = [
   item("results", "/risultati", "ranking.view"),
   item("toIssue", "/da-emettere", "issuance.manage"),
   item("issuedPolicies", "/polizze", "issuance.manage"),
+  item("metrics", "/metriche", "ranking.view"),
+  item("profile", "/profilo", "profile.view"),
 ];
 
 /** The agency's other pages, at the bottom of every page. */
@@ -95,6 +97,8 @@ const SUB_AGENT_MENU: MenuItem[] = [
   item("incomingRequests", "/richieste-in-arrivo", "request.viewQuoteData"),
   item("myResults", "/risultati", "ranking.view"),
   item("toIssue", "/da-emettere", "issuance.manage"),
+  item("metrics", "/metriche", "ranking.view"),
+  item("profile", "/profilo", "profile.view"),
 ];
 
 /** The sub-agent's other pages, at the bottom of every page. */

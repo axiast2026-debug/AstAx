@@ -76,7 +76,7 @@
 | --- | --- |
 | 1. Menu e «Partecipa all'asta» | **Fatto (2026-10-21).** Menu dell'agenzia: Partecipa all'asta, Risultati, Polizze da emettere, Polizze emesse; Dashboard, Le mie offerte, Filtri, Contabilità, Team e Agenzia in fondo a ogni pagina. Il sub-agente: Partecipa all'asta, Risultati, Polizze da emettere (se può emettere); in fondo Dashboard personale, Le mie offerte, I miei filtri. Filtri nuovi: asta aperta o chiusa, chiude entro 1, 4 o 24 ore, pacchetto, solo senza documenti |
 | 2. Risultati con due schede | **Fatto (2026-10-21).** Schede «Non vinte», «In attesa del pagamento» e «Vinte», ognuna con il numero di aste; per ogni asta la posizione, le prime due offerte anonime e la propria. «In attesa del pagamento» sono le offerte che il cliente ha scelto e firmato ma non ancora pagato: la classifica si vede solo dalla firma (CLA-02). «Vinte» tiene la storia delle aste vinte e pagate, anche quando il cliente ha scelto un'offerta non prima (per esempio con il confronto AI) |
-| 3. Metriche e Profilo | Da fare |
+| 3. Metriche e Profilo | **Fatto (2026-10-21).** «Metriche» con il periodo (ultimi 30 giorni, 3 mesi, 12 mesi): inviti ricevuti, offerte fatte, tasso di risposta, aste vinte, tasso di vittoria, premi vinti, distanza media dal primo, tempo medio di emissione; poi per compagnia, provincia, classe e tipo di veicolo. Le statistiche sono passate da «Risultati» a «Metriche». «Profilo» mostra in alto la scheda dell'agenzia: RUI, partita IVA, PEC, sede, IBAN nascosto in parte, RC professionale, utenti attivi, compagnie mandanti; poi le altre pagine e i dati personali. Il sub-agente vede i suoi numeri |
 | 4. Preventivi chiesti dall'agenzia | Da fare |
 | 5. Sub-agente iscritto da solo | Da fare |
 

@@ -56,6 +56,8 @@ describe("menus by role (docs/specifiche 02-07)", () => {
       "results",
       "toIssue",
       "issuedPolicies",
+      "metrics",
+      "profile",
     ]);
     expect(linksFor(member("OWNER", "AGENCY")).map((l) => l.key)).toEqual([
       "dashboard",
@@ -76,7 +78,12 @@ describe("menus by role (docs/specifiche 02-07)", () => {
   });
 
   it("sub-agent: personal menu, «Da emettere» only if enabled (spec 05)", () => {
-    expect(keys(member("OPERATOR", "AGENCY"))).toEqual(["incomingRequests", "myResults"]);
+    expect(keys(member("OPERATOR", "AGENCY"))).toEqual([
+      "incomingRequests",
+      "myResults",
+      "metrics",
+      "profile",
+    ]);
     expect(linksFor(member("OPERATOR", "AGENCY")).map((l) => l.key)).toEqual([
       "personalDashboard",
       "myOffers",

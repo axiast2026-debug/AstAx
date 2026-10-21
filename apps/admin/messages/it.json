@@ -68,7 +68,8 @@
     "systemSettings": "Sicurezza e dati",
     "listsHolidays": "Elenchi e festività",
     "onboardingQueue": "Ingressi",
-    "batches": "Lotti"
+    "batches": "Lotti",
+    "metrics": "Metriche"
   },
   "home": {
     "welcome": "Ciao {name}",

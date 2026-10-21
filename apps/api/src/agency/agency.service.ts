@@ -165,6 +165,63 @@ export class AgencyService {
   }
 
   /** «Richieste in arrivo» (spec 04): in target, ordered by closing, with the columns of the spec. */
+  /**
+   * «Profilo» of the agency (Dan, 2026-10-21, docs/piano-agenzie.md D): the
+   * agency's data, its mandates, the professional liability policy and the
+   * team, for every member; the IBAN only masked.
+   */
+  async profile(auth: AuthContext) {
+    const m = auth.membership;
+    if (!m || m.organizationType !== "AGENCY") return this.denied(auth, "AgencyArea", "profile");
+    return withContext(this.db, auth.db, async (tx) => {
+      const organization = await tx.organization.findUniqueOrThrow({
+        where: { id: m.organizationId },
+      });
+      const [mandates, members] = await Promise.all([
+        tx.agencyMandate.findMany({
+          where: { organizationId: m.organizationId },
+          include: { company: { select: { name: true } } },
+        }),
+        tx.membership.count({ where: { organizationId: m.organizationId, status: "ACTIVE" } }),
+      ]);
+      const address = organization.address as {
+        street?: string;
+        postalCode?: string;
+        municipalityIstat?: string;
+        province?: string;
+      } | null;
+      const municipality = address?.municipalityIstat
+        ? await tx.municipality.findUnique({ where: { istatCode: address.municipalityIstat } })
+        : null;
+      const iban = organization.ibanEnc ? this.cipher.decrypt(organization.ibanEnc) : null;
+      return {
+        legalName: organization.legalName,
+        vatNumber: organization.vatNumber,
+        ruiNumber: organization.ruiNumber,
+        ruiSection: organization.ruiSection,
+        pec: organization.pec,
+        address: address
+          ? {
+              street: address.street ?? "",
+              postalCode: address.postalCode ?? "",
+              municipality: municipality?.name ?? "",
+              province: address.province ?? "",
+            }
+          : null,
+        iban: iban ? `${iban.slice(0, 4)} •••• ${iban.slice(-4)}` : null,
+        status: organization.status,
+        profInsuranceExpiresOn: organization.profInsuranceExpiresOn
+          ? dbDateToCalendarDate(organization.profInsuranceExpiresOn)
+          : null,
+        mandates: mandates
+          .map((x) => ({ company: x.company.name, verified: x.verifiedAt !== null }))
+          .sort((a, b) => a.company.localeCompare(b.company)),
+        activeMembers: members,
+        role: m.role,
+      };
+    });
+  }
+
   async incoming(auth: AuthContext, filters: IncomingFilters) {
     const m = auth.membership;
     // Rule 4: a member of another kind of organization is refused and logged.

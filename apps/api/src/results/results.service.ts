@@ -3,7 +3,8 @@ import { agencyRankingView, type RankingEntry } from "@astax/shared/domain";
 import { Inject, Injectable } from "@nestjs/common";
 import type { AuthContext } from "../auth/auth-context.js";
 import { ProblemError } from "../http/problem.js";
-import { DB } from "../infra/tokens.js";
+import type { Clock } from "@astax/adapters/clock";
+import { CLOCK, DB } from "../infra/tokens.js";
 
 const WON = ["WINNING", "ISSUED"] as const;
 
@@ -37,9 +38,41 @@ function average(values: readonly number[]): number | null {
 
 @Injectable()
 export class ResultsService {
-  constructor(@Inject(DB) private readonly db: DbClient) {}
+  constructor(
+    @Inject(DB) private readonly db: DbClient,
+    @Inject(CLOCK) private readonly clock: Clock,
+  ) {}
 
-  async results(auth: AuthContext) {
+  /**
+   * «Metriche» (Dan, 2026-10-21, docs/piano-agenzie.md C): the statistics of
+   * the last `days`, with the rates and the premiums won. The owner and the
+   * supervisors see the whole agency, an operator only its own offers.
+   */
+  async metrics(auth: AuthContext, days: number) {
+    const since = new Date(this.clock.now().getTime() - days * 86_400_000);
+    const all = await this.results(auth, since);
+    const { totals } = all;
+    const rate = (part: number, whole: number) =>
+      whole === 0 ? null : Math.round((part * 10_000) / whole);
+    return {
+      scope: all.scope,
+      days,
+      since: since.toISOString(),
+      totals: {
+        ...totals,
+        // Basis points (rule 5: no decimals); null with nothing to divide.
+        responseRateBasisPoints:
+          all.scope === "AGENCY" ? rate(totals.offers, totals.invited) : null,
+        winRateBasisPoints: rate(totals.wins, totals.offers),
+      },
+      byProvince: all.byProvince,
+      byClass: all.byClass,
+      byVehicleType: all.byVehicleType,
+      byCompany: all.byCompany,
+    };
+  }
+
+  async results(auth: AuthContext, since?: Date) {
     const m = auth.membership;
     if (!m || m.organizationType !== "AGENCY") throw new ProblemError("NOT_FOUND");
     const onlyOwn = m.role === "OPERATOR";
@@ -50,6 +83,7 @@ export class ResultsService {
             organizationId: m.organizationId,
             status: { not: "WITHDRAWN" },
             ...(onlyOwn ? { userId: auth.userId } : {}),
+            ...(since ? { submittedAt: { gte: since } } : {}),
           },
           include: { auction: true },
           orderBy: { submittedAt: "desc" },
@@ -73,7 +107,10 @@ export class ResultsService {
           onlyOwn
             ? Promise.resolve([])
             : tx.invitation.findMany({
-                where: { organizationId: m.organizationId },
+                where: {
+                  organizationId: m.organizationId,
+                  ...(since ? { invitedAt: { gte: since } } : {}),
+                },
                 include: { auction: { select: { quoteRequestId: true } } },
                 take: 5000,
               }),
@@ -165,6 +202,10 @@ export class ResultsService {
             invited: invitations.length,
             offers: closed.length,
             wins: closed.filter((o) => (WON as readonly string[]).includes(o.status)).length,
+            // The premiums of the offers won (paid), in cents.
+            wonPremiumCents: closed
+              .filter((o) => (WON as readonly string[]).includes(o.status))
+              .reduce((sum, o) => sum + (o.annualGrossPremiumCents ?? 0), 0),
             // Spec 04: the average gap from the winner when not first, in basis points.
             averageGapBasisPoints: average(
               published.flatMap((p) =>

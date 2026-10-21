@@ -72,7 +72,8 @@
     "systemSettings": "Siguria dhe të dhënat",
     "listsHolidays": "Listat dhe festat",
     "onboardingQueue": "Anëtarësimet",
-    "batches": "Lotet"
+    "batches": "Lotet",
+    "metrics": "Metrikat"
   },
   "home": {
     "welcome": "Përshëndetje {name}",

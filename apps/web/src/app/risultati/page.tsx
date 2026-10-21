@@ -68,46 +68,9 @@ export default async function ResultsPage({
   };
   if (viewer.activeMembership?.organization.type !== "AGENCY") notFound();
   const t = await getTranslations("results");
-  const tv = await getTranslations("agency.vehicleTypes");
   const { status, body } = await api<Results>("/agency/results");
   if (status !== 200) notFound();
   const shown = body.published.filter((p) => p.outcome === tab.outcome);
-
-  const table = (title: string, rows: Bucket[], label: (key: string) => string, invited = true) => (
-    <Card className="mt-4">
-      <CardTitle>{title}</CardTitle>
-      {rows.length === 0 ? (
-        <p className="mt-2 text-sm">{t("noData")}</p>
-      ) : (
-        <div className="mt-2 overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="text-warm-600">
-              <tr>
-                <th className="py-1 pr-3 font-medium">{title}</th>
-                {invited && body.scope === "AGENCY" ? (
-                  <th className="py-1 pr-3 text-right font-medium">{t("invited")}</th>
-                ) : null}
-                <th className="py-1 pr-3 text-right font-medium">{t("offers")}</th>
-                <th className="py-1 pr-3 text-right font-medium">{t("wins")}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-warm-200">
-              {rows.map((r) => (
-                <tr key={r.key}>
-                  <td className="py-1 pr-3">{label(r.key)}</td>
-                  {invited && body.scope === "AGENCY" ? (
-                    <td className="tabular py-1 pr-3 text-right">{r.invited}</td>
-                  ) : null}
-                  <td className="tabular py-1 pr-3 text-right">{r.offers}</td>
-                  <td className="tabular py-1 pr-3 text-right">{r.wins}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </Card>
-  );
 
   return (
     <AppShell viewer={viewer}>
@@ -174,31 +137,11 @@ export default async function ResultsPage({
           </ul>
         )}
       </Card>
-      <h2 className="mt-8 text-lg font-semibold">{t("statsTitle")}</h2>
-      <p className="mt-1 text-sm">
-        {t("totals", {
-          invited: body.totals.invited,
-          offers: body.totals.offers,
-          wins: body.totals.wins,
-        })}
+      <p className="mt-6 text-sm">
+        <Link href="/metriche" className="underline">
+          {t("toMetrics")}
+        </Link>
       </p>
-      {body.totals.averageGapBasisPoints !== null ? (
-        <p className="mt-1 text-sm">
-          {t("averageGap", { gap: formatGapPercent(body.totals.averageGapBasisPoints) })}
-        </p>
-      ) : null}
-      {body.totals.averageIssuanceMinutes !== null ? (
-        <p className="mt-1 text-sm">
-          {t("averageIssuance", {
-            hours: Math.floor(body.totals.averageIssuanceMinutes / 60),
-            minutes: body.totals.averageIssuanceMinutes % 60,
-          })}
-        </p>
-      ) : null}
-      {table(t("province"), body.byProvince, (k) => k)}
-      {table(t("cuClass"), body.byClass, (k) => t("classLabel", { cu: k }))}
-      {table(t("vehicleType"), body.byVehicleType, (k) => (tv.has(k) ? tv(k) : k))}
-      {table(t("company"), body.byCompany, (k) => k, false)}
     </AppShell>
   );
 }

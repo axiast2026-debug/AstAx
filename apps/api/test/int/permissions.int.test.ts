@@ -333,6 +333,9 @@ const ENDPOINTS: Endpoint[] = [
   { action: "request.bulkUpload", method: "POST", path: () => "/broker/bulk-uploads", body: {} },
   // ADR 0014: the broker's lots from Excel.
   { action: "request.bulkUpload", method: "GET", path: () => "/broker/batches" },
+  // Dan, 2026-10-21 (docs/piano-agenzie.md C, D).
+  { action: "auction.viewStatus", method: "GET", path: () => "/agency/profile" },
+  { action: "ranking.view", method: "GET", path: () => "/agency/metrics" },
   { action: "request.bulkUpload", method: "GET", path: () => "/broker/batches/template" },
   { action: "request.bulkUpload", method: "POST", path: () => "/broker/batches", body: {} },
   { action: "admin.settings.manage", method: "GET", path: () => "/admin/retention" },
