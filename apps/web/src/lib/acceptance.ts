@@ -21,6 +21,10 @@ export interface OfferRow {
 export interface Presentation {
   channel: "PRIVATE" | "BROKER";
   aiUsed: boolean;
+  /** The server's clock when it answered: the countdowns count from it (GAR-02). */
+  serverNow: string;
+  /** GAR-05: from how many days before its end a guarantee is shown as expiring. */
+  reminderDaysBefore: number;
   offers: OfferRow[];
   suggestion: { recommendedOfferId: string; text: string; shownAt: string } | null;
 }

@@ -1,5 +1,6 @@
 import {
   addRequestEvent,
+  autoCancelAt,
   publishLastRanking,
   reconfirmationPending,
   settingsAt,
@@ -16,12 +17,7 @@ import {
   transitionRequest,
   type RankedOffer,
 } from "@astax/shared/domain";
-import {
-  dbDateToCalendarDate,
-  formatDate,
-  formatEuroCents,
-  romeCalendarDate,
-} from "@astax/shared/format";
+import { dbDateToCalendarDate, formatDate, formatEuroCents } from "@astax/shared/format";
 import { rankingVariables } from "@astax/shared/notifications";
 import type { PendingEmail } from "../notifier.js";
 import {
@@ -261,28 +257,11 @@ export function guaranteeActivities(
     return max;
   }
 
-  /** When a request «Scaduta» without actions closes by itself (GAR-06, proposal D). */
-  async function autoCancelAtOf(tx: DbTransaction, requestId: string, now: Date) {
-    const since = await tx.quoteRequestEvent.findFirst({
-      where: { quoteRequestId: requestId, type: "EXPIRED" },
-      orderBy: { at: "desc" },
-    });
-    const { "requests.autoCancelExpiredDays": days } = await settingsAt(
-      tx,
-      ["requests.autoCancelExpiredDays"],
-      now,
-    );
-    // Calendar days in Rome (rule 6): from the start of the day after the last
-    // of them, whatever the change to and from summer time in between.
-    const expiredOn = romeCalendarDate(since?.at ?? now);
-    return { at: romeInstant(addCalendarDays(expiredOn, days + 1), "00:00"), days };
-  }
-
   async function expiredSchedule(input: { requestId: string }): Promise<ExpiredSchedule> {
     return withContext(db, SYSTEM_CONTEXT, async (tx) => {
       const request = await tx.quoteRequest.findUniqueOrThrow({ where: { id: input.requestId } });
       if (request.status !== "EXPIRED") return { expired: false, autoCancelAt: null };
-      const { at } = await autoCancelAtOf(tx, request.id, clock.now());
+      const { at } = await autoCancelAt(tx, request.id, clock.now());
       const pending = await reconfirmationPending(tx, request, await maxReconfirmations(tx));
       return { expired: true, autoCancelAt: at.toISOString(), ...(pending ? { pending } : {}) };
     });
@@ -294,7 +273,7 @@ export function guaranteeActivities(
       const now = clock.now();
       const request = await tx.quoteRequest.findUniqueOrThrow({ where: { id: input.requestId } });
       if (request.status !== "EXPIRED") return { cancelled: request.status === "CANCELLED" };
-      const { at, days } = await autoCancelAtOf(tx, request.id, now);
+      const { at, days } = await autoCancelAt(tx, request.id, now);
       if (now < at) return { cancelled: false };
       // GAR-06: a reconfirmation asked just before the end is an action: no cancellation.
       if (await reconfirmationPending(tx, request, await maxReconfirmations(tx))) {

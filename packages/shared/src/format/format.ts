@@ -24,6 +24,25 @@ export function formatDate(value: Date | string, locale: DisplayLocale = "it"): 
   }).format(new Date(value));
 }
 
+/** The day with its name, for deadlines: «domenica 6 dicembre». */
+export function formatWeekdayDate(value: Date | string, locale: DisplayLocale = "it"): string {
+  return new Intl.DateTimeFormat(LOCALE_TAG[locale], {
+    timeZone: DISPLAY_TIME_ZONE,
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(new Date(value));
+}
+
+/** The hour and minute in Rome: «10:00». */
+export function formatTime(value: Date | string, locale: DisplayLocale = "it"): string {
+  return new Intl.DateTimeFormat(LOCALE_TAG[locale], {
+    timeZone: DISPLAY_TIME_ZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
 export function formatEuroCents(cents: number, locale: DisplayLocale = "it"): string {
   if (!Number.isInteger(cents)) throw new TypeError("Amounts are integer cents (FEE-07)");
   return new Intl.NumberFormat(LOCALE_TAG[locale], { style: "currency", currency: "EUR" }).format(

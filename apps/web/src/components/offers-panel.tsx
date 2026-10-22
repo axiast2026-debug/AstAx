@@ -1,14 +1,23 @@
-import { formatDate, formatDateTime, formatEuroCents } from "@astax/shared/format";
+import { endOfRomeDay } from "@astax/shared/domain";
+import {
+  formatDate,
+  formatDateTime,
+  formatEuroCents,
+  formatWeekdayDate,
+} from "@astax/shared/format";
 import { Badge, Button, buttonVariants, GuaranteeChip, Icon } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { chooseOffer, confirmAiComparison } from "@/app/acceptance-actions";
+import { AddToCalendar } from "@/components/add-to-calendar";
 import { AiCompareSheet } from "@/components/ai-compare-sheet";
+import { GuaranteeTimeLeft } from "@/components/guarantee-time-left";
 import { OffersReveal } from "@/components/offers-reveal";
 import { UNLOCK_AT } from "@/components/offers-reveal-timing";
 import type { CurrentAcceptance, OfferRow, Presentation } from "@/lib/acceptance";
+import { guaranteeState } from "@/lib/guarantee";
 import { api } from "@/lib/auth";
 
 const eur = (value: unknown) => formatEuroCents(Number(value) * 100).replace(/,00(?=\s*€)/, "");
@@ -17,8 +26,10 @@ const eur = (value: unknown) => formatEuroCents(Number(value) * 100).replace(/,0
 const MAX_TILES = 8;
 
 interface AuctionSummary {
+  reconfirmation?: { used: number; max: number };
   auction: {
     round: number;
+    kind: string;
     scheduledCloseAt: string;
     closedAt: string | null;
     offers: number | null;
@@ -199,6 +210,45 @@ export async function OffersPanel({ requestId }: { requestId: string }) {
   const bestSaving =
     currentCents !== null && cheapest ? currentCents - cheapest.annualGrossPremiumCents : null;
   const live = p.offers.filter((o) => o.block !== "EXPIRED");
+  // GAR-04: the expired rows stay visible, grey, after the ones that can still be chosen.
+  const rows = [...live, ...p.offers.filter((o) => o.block === "EXPIRED")];
+
+  // GAR-02, GAR-05: until when each price holds; orange from the reminder, the hours on the last day.
+  const expiresAt = (o: OfferRow) => endOfRomeDay(o.guaranteeUntil).toISOString();
+  const guarantee = (o: OfferRow) => {
+    const state = guaranteeState(o, p.reminderDaysBefore);
+    if (state === "expired") {
+      return {
+        state,
+        title: t("guaranteeExpiredTitle", { date: formatDate(o.guaranteeUntil) }),
+        detail: t("guaranteeExpiredDetail"),
+      };
+    }
+    if (state === "lastDay") {
+      return {
+        state,
+        title: t("guaranteeLastDayTitle"),
+        detail: <GuaranteeTimeLeft expiresAt={expiresAt(o)} serverNow={p.serverNow} />,
+      };
+    }
+    if (state === "expiring") {
+      return {
+        state,
+        title: t("guaranteeExpiringTitle", { day: formatWeekdayDate(expiresAt(o)) }),
+        detail: t("guaranteeExpiringDays", { days: o.daysLeft }),
+      };
+    }
+    return {
+      state,
+      title: t("guaranteeTitle", { date: formatDate(o.guaranteeUntil) }),
+      detail: t("guaranteeDays", { days: o.daysLeft }),
+    };
+  };
+  // GAR-05: the reminder about the cheapest offer still guaranteed, until the customer chooses.
+  const remind =
+    cheapest && !current.acceptance && guaranteeState(cheapest, p.reminderDaysBefore) !== "ok"
+      ? cheapest
+      : null;
 
   // The opening plays once per auction round (a reconfirmation is a new round).
   const seenCookie = `astax_offers_seen_${requestId}_${auction?.round ?? 1}`;
@@ -209,6 +259,7 @@ export async function OffersPanel({ requestId }: { requestId: string }) {
     style: animate ? at(i) : undefined,
   });
 
+  // After the closing the API counts no envelopes: one tile per company that offered.
   const envelopes = auction?.offers ?? p.offers.length;
   const closedAt = auction?.closedAt ?? auction?.scheduledCloseAt;
 
@@ -255,6 +306,64 @@ export async function OffersPanel({ requestId }: { requestId: string }) {
         {t("readyTitle")}
       </h2>
 
+      {remind ? (
+        <div
+          role="status"
+          className="flex flex-col gap-3 rounded-2xl bg-orange-50 p-4 shadow-[inset_0_0_0_1px_var(--color-orange-100)] lg:flex-row lg:items-center lg:gap-4 lg:px-6"
+        >
+          <span className="flex flex-1 items-start gap-2">
+            <span className="inline-flex pt-0.5 text-orange-700">
+              <Icon name="clock" />
+            </span>
+            <span className="flex flex-col gap-0.5">
+              <span className="text-body font-bold text-orange-700">
+                {remind.daysLeft === 0
+                  ? t.rich("reminderLastDay", {
+                      left: () => (
+                        <GuaranteeTimeLeft expiresAt={expiresAt(remind)} serverNow={p.serverNow} />
+                      ),
+                    })
+                  : t("reminderTitle", { day: formatWeekdayDate(expiresAt(remind)) })}
+              </span>
+              <span className="text-table">
+                {t(remind.daysLeft === 0 ? "reminderLastDayText" : "reminderText", {
+                  price: formatEuroCents(remind.annualGrossPremiumCents),
+                  company: remind.company,
+                  date: formatDate(remind.guaranteeUntil),
+                })}
+              </span>
+            </span>
+          </span>
+          <AddToCalendar
+            expiresAt={expiresAt(remind)}
+            uid={`${requestId}-${remind.id}`}
+            label={t("addToCalendar")}
+            summary={t("calendarSummary")}
+            description={t("calendarDescription", {
+              price: formatEuroCents(remind.annualGrossPremiumCents),
+              company: remind.company,
+            })}
+          />
+        </div>
+      ) : null}
+      {auction?.kind === "RECONFIRMATION" && status.reconfirmation ? (
+        <p
+          role="status"
+          className="flex items-start gap-3 rounded-xl bg-green-50 px-4 py-3 text-table"
+        >
+          <span className="inline-flex pt-0.5 text-green-700">
+            <Icon name="checkCircle" />
+          </span>
+          <span>
+            {t.rich("reconfirmed", {
+              used: status.reconfirmation.used,
+              max: status.reconfirmation.max,
+              b: (chunks) => <b className="text-green-700">{chunks}</b>,
+            })}
+          </span>
+        </p>
+      ) : null}
+
       <OffersReveal
         seenCookie={seenCookie}
         animate={animate}
@@ -289,7 +398,7 @@ export async function OffersPanel({ requestId }: { requestId: string }) {
               </span>
             ))}
           </div>
-          <p className="text-table">{t("revealLine", { envelopes, companies: p.offers.length })}</p>
+          <p className="text-table">{t("revealLine", { companies: p.offers.length })}</p>
           {currentCents === null ? saving : <div className="lg:mt-2">{saving}</div>}
         </DarkPanel>
 
@@ -316,16 +425,16 @@ export async function OffersPanel({ requestId }: { requestId: string }) {
         ) : null}
 
         <ul className="grid gap-4 lg:col-span-12 lg:grid-cols-2 lg:items-start lg:gap-6">
-          {p.offers.map((o, i) => {
+          {rows.map((o, i) => {
             const recommended = o.id === recommendedId;
-            const expired = o.block === "EXPIRED";
+            const g = guarantee(o);
             return (
               <li
                 key={o.id}
                 aria-disabled={o.block ? true : undefined}
                 {...enter(
                   i + 1,
-                  `flex flex-col gap-3 rounded-2xl bg-white p-4 lg:p-6 ${
+                  `flex flex-col gap-3 rounded-2xl p-4 lg:p-6 ${o.block === "EXPIRED" ? "bg-warm-100" : "bg-white"} ${
                     recommended
                       ? "shadow-[inset_0_0_0_2px_var(--color-night-900)]"
                       : "shadow-[inset_0_0_0_1px_var(--color-warm-200)]"
@@ -364,27 +473,15 @@ export async function OffersPanel({ requestId }: { requestId: string }) {
                 <GuaranteeChip
                   size="sm"
                   className="lg:hidden"
-                  state={expired ? "expired" : "ok"}
-                  title={
-                    expired
-                      ? t("guaranteeExpiredTitle", { date: formatDate(o.guaranteeUntil) })
-                      : t("guaranteeTitle", { date: formatDate(o.guaranteeUntil) })
-                  }
-                  detail={
-                    expired ? t("guaranteeExpiredDetail") : t("guaranteeDays", { days: o.daysLeft })
-                  }
+                  state={g.state}
+                  title={g.title}
+                  detail={g.detail}
                 />
                 <GuaranteeChip
                   className="hidden self-start lg:inline-flex"
-                  state={expired ? "expired" : "ok"}
-                  title={
-                    expired
-                      ? t("guaranteeExpiredTitle", { date: formatDate(o.guaranteeUntil) })
-                      : t("guaranteeTitle", { date: formatDate(o.guaranteeUntil) })
-                  }
-                  detail={
-                    expired ? t("guaranteeExpiredDetail") : t("guaranteeDays", { days: o.daysLeft })
-                  }
+                  state={g.state}
+                  title={g.title}
+                  detail={g.detail}
                 />
                 {o.block === "TOO_LATE" ? <p className="text-table">{t("tooLate")}</p> : null}
                 {o.savingCents !== null && !o.block ? (

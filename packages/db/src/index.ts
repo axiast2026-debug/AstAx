@@ -29,6 +29,7 @@ export {
 export { kmsEventRecorder, type KmsEventInput } from "./kms-events.js";
 export {
   addRequestEvent,
+  autoCancelAt,
   reconfirmationAsked,
   reconfirmationPending,
   type ActorKind,

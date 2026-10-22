@@ -12,6 +12,7 @@ import {
   withContext,
   type DbClient,
   type DbTransaction,
+  type AuctionSettingsSnapshot,
   type QuoteRequest,
   requestRequirements,
 } from "@astax/db";
@@ -272,9 +273,24 @@ export class AcceptanceService {
         where: { quoteRequestId: request.id },
         orderBy: { shownAt: "desc" },
       });
+      // GAR-05: the reminder days of the last round (ASTA-09), as the worker reads them.
+      const round = await tx.auction.findFirst({
+        where: { quoteRequestId: request.id },
+        orderBy: { round: "desc" },
+        select: { settingsSnapshot: true },
+      });
+      const snapshot = round?.settingsSnapshot as AuctionSettingsSnapshot | undefined;
+      const reminderDaysBefore =
+        snapshot?.["guarantee.reminderDaysBefore"] ??
+        (await settingsAt(tx, ["guarantee.reminderDaysBefore"], this.clock.now()))[
+          "guarantee.reminderDaysBefore"
+        ];
       return {
         channel: request.channel,
         aiUsed: request.aiComparisonUsed,
+        // The countdowns of the page (GAR-02, last day) count from here, not from the device.
+        serverNow: this.clock.now().toISOString(),
+        reminderDaysBefore,
         offers: rows.map((r) => this.publicRow(r)),
         suggestion: suggestion
           ? {

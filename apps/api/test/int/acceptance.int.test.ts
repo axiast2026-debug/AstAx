@@ -191,7 +191,7 @@ afterAll(async () => {
 });
 
 const presentation = async () =>
-  r.json<{ offers: Row[]; aiUsed: boolean }>(
+  r.json<{ offers: Row[]; aiUsed: boolean; serverNow: string; reminderDaysBefore: number }>(
     await r.call(customer, `/requests/${requestId}/presentation`),
     200,
   );
@@ -208,6 +208,10 @@ describe("fase 5: the private customer's acceptance (S01)", () => {
     expect(p.offers[0]?.id).toBe(offers[3]);
     expect(JSON.stringify(p)).not.toMatch(/organizationId|Agenzia/);
     expect(p.offers[0]).toMatchObject({ feeCents: 3000, feeWithAiCents: 3500, block: null });
+    // GAR-02: the page counts the last hours of a guarantee from the server's clock.
+    expect(p.serverNow).toBe(h.clock.now().toISOString());
+    // GAR-05: the reminder days of the round, from which the guarantee is shown as expiring.
+    expect(p.reminderDaysBefore).toBe(2);
   });
 
   it("PRES-06 PRES-08 FEE-01 the AI comparison: suggestion saved with weights, scores, model and text; the fee becomes 35,00 €", async () => {

@@ -1,5 +1,11 @@
-import { formatDate, formatDateTime, formatEuroCents } from "@astax/shared/format";
-import { Badge, Button, Card, CardTitle } from "@astax/ui";
+import {
+  formatDate,
+  formatDateTime,
+  formatEuroCents,
+  formatTime,
+  formatWeekdayDate,
+} from "@astax/shared/format";
+import { Badge, Button, Card, CardTitle, GuaranteeChip, Icon } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { realtimeTicket } from "@/app/actions";
@@ -30,7 +36,14 @@ export async function StatusBadge({ status }: { status: string }) {
 interface AuctionStatus {
   status: string;
   /** GAR-06: reconfirmations used and allowed. */
-  reconfirmation?: { used: number; max: number; available: boolean; pending: boolean };
+  reconfirmation?: {
+    used: number;
+    max: number;
+    available: boolean;
+    pending: boolean;
+    /** When a request «Scaduta» without actions closes by itself. */
+    autoCancelAt?: string | null;
+  };
   auction: {
     round: number;
     kind: string;
@@ -81,21 +94,111 @@ async function AuctionPanel({
   const a = status.auction;
   if (!a) return null;
   // Momento 3: once the offers are presented the offers panel tells the closing; an empty card would only repeat it.
-  if (presented && !status.reconfirmation?.pending && !status.reconfirmation?.available)
-    return null;
+  if (presented) return null;
   const open = a.status === "OPEN";
   const offers =
     open || presented
       ? []
       : (await api<{ offers: PresentedOffer[] }>(`/requests/${requestId}/offers`)).body.offers;
+
+  // Momento 4, GAR-07: the agencies answer in sealed envelopes; only how many, never a price.
+  if (open && a.kind === "RECONFIRMATION") {
+    const answers = a.offers ?? 0;
+    return (
+      <section className="on-dark flex flex-col gap-3 rounded-3xl bg-night-900 px-4 py-6 text-white lg:px-8">
+        <h2 className="font-display text-screen font-extrabold">{t("reconfirmationTitle")}</h2>
+        <p className="text-body font-bold">
+          {t("reconfirmationDeadline", {
+            day: formatWeekdayDate(a.scheduledCloseAt),
+            time: formatTime(a.scheduledCloseAt),
+          })}
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          {Array.from({ length: Math.min(answers, 8) }, (_, i) => (
+            <span
+              key={i}
+              aria-hidden
+              className="inline-flex size-10 items-center justify-center rounded-lg bg-night-800"
+            >
+              <Icon name="envelope" size={24} />
+            </span>
+          ))}
+          <span className="text-label font-semibold">
+            {t("reconfirmationAnswers", { count: answers })}
+          </span>
+        </div>
+        <p className="text-table text-night-300">{t("reconfirmationIntro")}</p>
+      </section>
+    );
+  }
+
+  // Momento 4, GAR-06: every guarantee has ended; the same agencies can be asked again.
+  if (!open && status.status === "EXPIRED") {
+    const left = status.reconfirmation ? status.reconfirmation.max - status.reconfirmation.used : 0;
+    const autoCancelAt = status.reconfirmation?.autoCancelAt;
+    return (
+      <section className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-[inset_0_0_0_1px_var(--color-warm-200)] lg:p-6">
+          <h2 className="flex items-center gap-2 text-section font-bold">
+            <Icon name="hourglass" />
+            {t("expiredTitle")}
+          </h2>
+          {status.reconfirmation?.available ? (
+            <form action={askReconfirmation} className="flex flex-col gap-3">
+              <input type="hidden" name="requestId" value={requestId} />
+              <input type="hidden" name="base" value={base} />
+              <p className="text-table">{t("reconfirmationOffer", { left })}</p>
+              <Button type="submit" size="lg" className="w-full sm:w-auto sm:self-start">
+                <Icon name="refresh" />
+                {t("askReconfirmation")}
+              </Button>
+            </form>
+          ) : null}
+          {status.reconfirmation?.pending ? (
+            <p role="status" className="rounded-xl bg-green-50 px-4 py-3 text-table">
+              {t("reconfirmationPending")}
+            </p>
+          ) : null}
+          {autoCancelAt ? (
+            <p className="text-note text-warm-600">
+              {t("autoCancel", { date: formatDate(autoCancelAt) })}
+            </p>
+          ) : null}
+        </div>
+        {offers.length > 0 ? (
+          <ul className="grid gap-4 lg:grid-cols-2 lg:items-start lg:gap-6">
+            {offers.map((o) => (
+              <li
+                key={o.id}
+                aria-disabled
+                className="flex flex-col gap-3 rounded-2xl bg-warm-100 p-4 text-warm-600 shadow-[inset_0_0_0_1px_var(--color-warm-200)] lg:p-6"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <span className="flex flex-col">
+                    <span className="text-body font-bold">{o.company}</span>
+                    <span className="text-table">{o.product}</span>
+                  </span>
+                  <span className="font-display text-screen font-extrabold whitespace-nowrap tabular">
+                    {formatEuroCents(o.annualGrossPremiumCents)}
+                  </span>
+                </div>
+                <GuaranteeChip
+                  size="sm"
+                  state="expired"
+                  title={t("expiredTitleRow", { date: formatDate(o.guaranteeUntil) })}
+                  detail={t("expiredDetailRow")}
+                />
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </section>
+    );
+  }
+
   return (
     <Card>
-      <CardTitle>
-        {open && a.kind === "RECONFIRMATION" ? t("reconfirmationTitle") : t("title")}
-      </CardTitle>
-      {open && a.kind === "RECONFIRMATION" ? (
-        <p className="mt-1 text-sm text-warm-600">{t("reconfirmationIntro")}</p>
-      ) : null}
+      <CardTitle>{t("title")}</CardTitle>
       {open ? (
         <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-[12rem_1fr]">
           <dt className="text-warm-600">{t("closesIn")}</dt>
@@ -144,25 +247,6 @@ async function AuctionPanel({
           </ul>
         </>
       )}
-      {status.reconfirmation?.pending ? (
-        <p role="status" className="mt-4 rounded-lg bg-green-50 p-3 text-sm">
-          {t("reconfirmationPending")}
-        </p>
-      ) : null}
-      {status.reconfirmation?.available ? (
-        <form action={askReconfirmation} className="mt-4 border-t border-warm-200 pt-4">
-          <input type="hidden" name="requestId" value={requestId} />
-          <input type="hidden" name="base" value={base} />
-          <p className="text-sm">
-            {t("reconfirmationOffer", {
-              left: status.reconfirmation.max - status.reconfirmation.used,
-            })}
-          </p>
-          <Button type="submit" className="mt-3">
-            {t("askReconfirmation")}
-          </Button>
-        </form>
-      ) : null}
     </Card>
   );
 }

@@ -1,3 +1,6 @@
+import { addCalendarDays, romeInstant } from "@astax/shared/domain";
+import { romeCalendarDate } from "@astax/shared/format";
+import { settingsAt } from "./auction-data.js";
 import type { DbTransaction } from "./client.js";
 
 /** Entries of a request's timeline (QuoteRequestEvent), shown to its requester. */
@@ -88,6 +91,30 @@ export async function reconfirmationPending(
     request.reconfirmationsUsed < max &&
     (await reconfirmationAsked(tx, request.id, request.reconfirmationsUsed))
   );
+}
+
+/**
+ * When a request «Scaduta» without actions closes by itself (GAR-06,
+ * proposal D): the worker schedules it, the requester's page shows it.
+ */
+export async function autoCancelAt(
+  tx: DbTransaction,
+  requestId: string,
+  now: Date,
+): Promise<{ at: Date; days: number }> {
+  const since = await tx.quoteRequestEvent.findFirst({
+    where: { quoteRequestId: requestId, type: "EXPIRED" },
+    orderBy: { at: "desc" },
+  });
+  const { "requests.autoCancelExpiredDays": days } = await settingsAt(
+    tx,
+    ["requests.autoCancelExpiredDays"],
+    now,
+  );
+  // Calendar days in Rome (rule 6): from the start of the day after the last
+  // of them, whatever the change to and from summer time in between.
+  const expiredOn = romeCalendarDate(since?.at ?? now);
+  return { at: romeInstant(addCalendarDays(expiredOn, days + 1), "00:00"), days };
 }
 
 export async function reconfirmationAsked(

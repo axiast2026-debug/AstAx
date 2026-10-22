@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { cn } from "../cn.js";
 import { Icon, type IconName } from "./icon.js";
 
@@ -46,7 +47,7 @@ export function GuaranteeChip({
 }: {
   state: GuaranteeState;
   title: string;
-  detail: string;
+  detail: ReactNode;
   size?: "md" | "sm";
   className?: string;
 }) {

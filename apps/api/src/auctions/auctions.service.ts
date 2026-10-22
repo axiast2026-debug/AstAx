@@ -3,6 +3,7 @@ import type { Clock } from "@astax/adapters/clock";
 import {
   addRequestEvent,
   asSystem,
+  autoCancelAt,
   reconfirmationPending,
   recordDomainEvent,
   settingsAt,
@@ -120,6 +121,11 @@ export class AuctionsService {
       max,
       pending,
       available: request.status === "EXPIRED" && request.reconfirmationsUsed < max && !pending,
+      // GAR-06: shown to the requester, the same instant the worker schedules.
+      autoCancelAt:
+        request.status === "EXPIRED"
+          ? (await autoCancelAt(tx, request.id, now)).at.toISOString()
+          : null,
     };
   }
 

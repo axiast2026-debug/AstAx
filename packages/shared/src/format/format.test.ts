@@ -5,6 +5,8 @@ import {
   formatDate,
   formatDateTime,
   formatEuroCents,
+  formatTime,
+  formatWeekdayDate,
   romeCalendarDate,
 } from "./format.js";
 
@@ -13,6 +15,12 @@ describe("display formatting", () => {
     expect(formatDateTime("2026-11-16T09:00:00.000Z")).toBe("16/11/26, 10:00");
     expect(formatDateTime("2026-07-01T09:00:00.000Z")).toBe("01/07/26, 11:00");
     expect(formatDate("2026-12-01T23:30:00.000Z")).toBe("2 dicembre 2026");
+  });
+
+  it("GAR-02 shows a deadline with the name of the day and the Rome hour", () => {
+    // The end of the guarantee day: 23:59:59 in Rome, 22:59:59 in UTC.
+    expect(formatWeekdayDate("2026-12-06T22:59:59.999Z")).toBe("domenica 6 dicembre");
+    expect(formatTime("2026-12-15T09:00:00.000Z")).toBe("10:00");
   });
 
   it("FEE-07 shows euros from integer cents and refuses decimals", () => {

@@ -98,6 +98,24 @@ describe("fase 4: reconfirmation (GAR-06, GAR-07)", () => {
     expect(status.reconfirmation).toMatchObject({ pending: true, available: false });
   });
 
+  it("GAR-06 the requester sees when a request «Scaduta» closes by itself: the day after the last of requests.autoCancelExpiredDays, Rome midnight", async () => {
+    await system(async (tx) => {
+      const request = await tx.quoteRequest.findUniqueOrThrow({ where: { id: requestId } });
+      await addRequestEvent(tx, request, {
+        type: "EXPIRED",
+        actorKind: "SYSTEM",
+        actorUserId: null,
+        at: new Date("2026-11-10T10:00:00Z"),
+      });
+    });
+    const status = await r.json<{ reconfirmation: { autoCancelAt: string | null } }>(
+      await r.call(customer, `/requests/${requestId}/auction`),
+      200,
+    );
+    // Expired on 10/11, 30 days: it closes at the start of 11/12, Rome time (UTC+1).
+    expect(status.reconfirmation.autoCancelAt).toBe("2026-12-10T23:00:00.000Z");
+  });
+
   it("GAR-06 at most reconfirmation.maxPerRequest reconfirmations per request", async () => {
     await system(async (tx) => {
       const request = await tx.quoteRequest.update({
