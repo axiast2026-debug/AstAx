@@ -22,7 +22,6 @@ describe("phase 8 notifications through MessageOutbox", () => {
     const ticketCode = `T-${randomUUID().slice(0, 8)}`;
     const user = {
       userId: randomUUID(),
-      locale: "it" as const,
       email: "anna.riva@example.test",
       phone: null,
     };

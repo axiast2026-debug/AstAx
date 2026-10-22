@@ -176,7 +176,7 @@ export default async function globalSetup(): Promise<void> {
             emailEnc: cipher.encrypt(user.email),
             emailHash: cipher.blindIndex("email", user.email),
           },
-          update: { keycloakId, status: "ACTIVE", locale: "it" },
+          update: { keycloakId, status: "ACTIVE" },
         });
         for (const m of user.memberships) {
           const organizationId = syntheticId(seed, "org", m.org);

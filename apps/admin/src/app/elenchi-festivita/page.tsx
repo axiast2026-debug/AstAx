@@ -1,6 +1,6 @@
 import { formatDate } from "@astax/shared/format";
 import { Button, Card, CardTitle } from "@astax/ui";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -11,15 +11,14 @@ import { addHoliday, confirmYear, removeHoliday, saveListValue } from "./actions
 interface ListValue {
   code: string;
   labelIt: string;
-  labelSq: string;
   active: boolean;
   sortOrder: number;
 }
 
 interface Holidays {
   year: number;
-  holidays: { id: string; date: string; name: string; nameSq: string | null }[];
-  missing: { date: string; name: string; nameSq: string | null }[];
+  holidays: { id: string; date: string; name: string }[];
+  missing: { date: string; name: string }[];
 }
 
 const DONE = ["list", "holiday", "removed", "confirmed"] as const;
@@ -37,7 +36,6 @@ export default async function ListsHolidaysPage({
 }) {
   const viewer = await requireViewer();
   const t = await getTranslations("listsHolidays");
-  const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const query = await searchParams;
   // Without a year the API proposes the next one, from its clock (rule 6).
   const requested = /^\d{4}$/.test(query.anno ?? "") ? `?year=${query.anno}` : "";
@@ -99,7 +97,7 @@ export default async function ListsHolidaysPage({
                   <form
                     key={v.code}
                     action={saveListValue}
-                    className="grid items-end gap-2 border-b border-warm-200 pb-3 text-sm md:grid-cols-[8rem_1fr_1fr_5rem_auto]"
+                    className="grid items-end gap-2 border-b border-warm-200 pb-3 text-sm md:grid-cols-[8rem_1fr_5rem_auto]"
                   >
                     {keep}
                     <input type="hidden" name="code" value={v.code} />
@@ -107,10 +105,6 @@ export default async function ListsHolidaysPage({
                     <label className="grid gap-1">
                       {t("labelIt")}
                       <input name="labelIt" required defaultValue={v.labelIt} className={field} />
-                    </label>
-                    <label className="grid gap-1">
-                      {t("labelSq")}
-                      <input name="labelSq" required defaultValue={v.labelSq} className={field} />
                     </label>
                     <label className="grid gap-1">
                       {t("order")}
@@ -149,10 +143,6 @@ export default async function ListsHolidaysPage({
                   <label className="grid gap-1">
                     {t("labelIt")}
                     <input name="labelIt" required className={field} />
-                  </label>
-                  <label className="grid gap-1">
-                    {t("labelSq")}
-                    <input name="labelSq" required className={field} />
                   </label>
                   <label className="grid gap-1">
                     {t("order")}
@@ -201,8 +191,7 @@ export default async function ListsHolidaysPage({
                 <li key={hd.id}>
                   <details>
                     <summary className="cursor-pointer">
-                      {formatDate(hd.date, locale)} · {hd.name}
-                      {hd.nameSq ? ` · ${hd.nameSq}` : ""}
+                      {formatDate(hd.date)} · {hd.name}
                     </summary>
                     <form action={removeHoliday} className="mt-2 flex flex-wrap items-end gap-2">
                       {keep}
@@ -231,7 +220,7 @@ export default async function ListsHolidaysPage({
               <ul className="mt-2 space-y-1 text-sm">
                 {holidays.body.missing.map((m) => (
                   <li key={m.date}>
-                    {formatDate(m.date, locale)} · {m.name}
+                    {formatDate(m.date)} · {m.name}
                   </li>
                 ))}
               </ul>
@@ -257,10 +246,6 @@ export default async function ListsHolidaysPage({
             <label className="grid gap-1">
               {t("nameIt")}
               <input name="name" required className={field} />
-            </label>
-            <label className="grid gap-1">
-              {t("nameSq")}
-              <input name="nameSq" className={field} />
             </label>
             <label className="grid gap-1">
               {t("reason")}

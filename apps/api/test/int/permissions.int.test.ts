@@ -29,13 +29,6 @@ interface Endpoint {
 
 const ENDPOINTS: Endpoint[] = [
   { action: "profile.view", method: "GET", path: () => "/me", personal: true },
-  {
-    action: "profile.update",
-    method: "PATCH",
-    path: () => "/me",
-    body: { locale: "xx" },
-    personal: true,
-  },
   { action: "session.manageOwn", method: "GET", path: () => "/me/sessions", personal: true },
   {
     action: "session.manageOwn",

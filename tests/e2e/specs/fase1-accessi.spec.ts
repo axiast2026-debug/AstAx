@@ -113,9 +113,7 @@ test.describe("fase 1: accessi", () => {
     await expect(current).toHaveText("Agenzia Tre");
   });
 
-  test("l'amministratore entra nel back office, passa all'albanese e vede il registro", async ({
-    page,
-  }) => {
+  test("l'amministratore entra nel back office e vede il registro", async ({ page }) => {
     const { users, password } = e2eState();
     await page.goto(ADMIN);
     await page.getByRole("link", { name: "Accedi" }).click();
@@ -124,13 +122,10 @@ test.describe("fase 1: accessi", () => {
     await acceptLegalIfAsked(page);
 
     await expect(page).toHaveURL(`${ADMIN}/`);
-    await page.getByRole("button", { name: "Shqip" }).click();
-    await expect(page.getByRole("link", { name: "Regjistri i aktiviteteve" })).toBeVisible();
-    await page.getByRole("link", { name: "Regjistri i aktiviteteve" }).click();
-    await expect(page.getByRole("heading", { name: "Regjistri i aktiviteteve" })).toBeVisible();
-    await expect(page.getByText("LEGAL_ACCEPTED").first()).toBeVisible();
-
-    await page.getByRole("button", { name: "Italiano" }).click();
+    // ADR 0017: the back office is in Italian only, with no language switch.
+    await expect(page.getByRole("button", { name: "Shqip" })).toHaveCount(0);
+    await page.getByRole("link", { name: "Registro delle attività" }).click();
     await expect(page.getByRole("heading", { name: "Registro delle attività" })).toBeVisible();
+    await expect(page.getByText("LEGAL_ACCEPTED").first()).toBeVisible();
   });
 });

@@ -220,13 +220,13 @@ export class TeamService {
         lifespanSeconds: validityDays * 86_400,
       });
     } else {
-      const message = renderEmail(this.#templates, "team.invitation", "it", {
+      const message = renderEmail(this.#templates, "team.invitation", {
         nome: input.firstName,
         invitante: inviterName,
         organizzazione: organizationName,
         ruolo: labels.role[input.role],
         link: `${this.config.WEB_URL}/inviti`,
-        scadenza: formatDate(invite.expiresAt, "it"),
+        scadenza: formatDate(invite.expiresAt),
       });
       await this.email.send({ to: input.email, ...message });
     }

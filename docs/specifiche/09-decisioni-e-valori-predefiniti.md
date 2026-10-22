@@ -193,7 +193,7 @@ AstAx deve sembrare affidabile come una banca e veloce come un'asta: interfacce 
 | Riferimenti per i privati | Revolut e Satispay: chiarezza su soldi, stati e conferme |
 | Riferimenti per professionisti e back office | Stripe Dashboard e Linear: tabelle dense ma leggibili, filtri rapidi |
 | Impostazione | Mobile per i privati; desktop per agenzie, broker e back office |
-| Lingue | Italiano per tutti; back office anche in albanese. Testi in file di traduzione dal primo giorno, così l'inglese costa poco dopo |
+| Lingue | Solo italiano, back office compreso (ADR 0017, Dan, 2026-10-22). Testi in file di traduzione dal primo giorno |
 
 ## 9. Dati e scenari di prova
 

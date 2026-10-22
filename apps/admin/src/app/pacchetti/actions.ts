@@ -31,13 +31,11 @@ export async function newPackageVersion(formData: FormData): Promise<void> {
   } catch {
     redirect("/pacchetti?errore=INVALID_JSON");
   }
-  const sq = String(formData.get("customerTextSq") ?? "").trim();
   const { status, body } = await api(`/admin/packages/${code}/versions`, {
     method: "POST",
     body: JSON.stringify({
       requirements,
       customerTextIt: String(formData.get("customerTextIt") ?? ""),
-      customerTextSq: sq || null,
       validFrom: romeInstant(day, "00:00").toISOString(),
       reason: String(formData.get("reason") ?? ""),
     }),
@@ -53,7 +51,6 @@ export async function saveExclusion(formData: FormData): Promise<void> {
   const fields = {
     blockingInWizard: formData.get("blockingInWizard") === "on",
     messageIt: String(formData.get("messageIt") ?? ""),
-    messageSq: String(formData.get("messageSq") ?? ""),
     active: formData.get("active") === "on",
     reason: String(formData.get("reason") ?? ""),
   };

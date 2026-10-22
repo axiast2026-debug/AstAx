@@ -35,7 +35,7 @@ const readHome = async () => {
       openAuctions: number;
       offersPerAuction: number;
       featured: null | Record<string, unknown>;
-      ticker: { kind: string; count: number; province: string | null }[];
+      ticker: { at: string; kind: string; count: number; province: string | null }[];
       saving: null | { percent: number; policies: number };
     };
   };
@@ -141,8 +141,16 @@ describe("Momento 1: the public home (ADR 0016)", () => {
     // The round closing first, maybe of another file in the shared database: only its shape.
     expect(live?.featured).toMatchObject({ envelopes: expect.any(Number) });
     expect(live?.featured).toHaveProperty("workingSecondsLeft");
-    expect(live?.ticker.some((e) => e.kind === "CLOSED" && e.count === 2)).toBe(true);
-    expect(live?.ticker.some((e) => e.kind === "ENVELOPE")).toBe(true);
+    // The latest events of the shared database, whichever file left them: their shape and order.
+    const ticker = live?.ticker ?? [];
+    expect(ticker.length).toBeGreaterThan(0);
+    expect(ticker.length).toBeLessThanOrEqual(12);
+    for (const e of ticker) {
+      expect(["ENVELOPE", "CLOSED"]).toContain(e.kind);
+      if (e.kind === "ENVELOPE") expect(e.count).toBeGreaterThanOrEqual(1);
+    }
+    const times = ticker.map((e) => Date.parse(e.at));
+    expect(times).toEqual([...times].sort((a, b) => b - a));
     const text = JSON.stringify(home);
     for (const code of codes) expect(text).not.toContain(code);
     expect(text).not.toMatch(/52000|61000|Compagnia|Agenzia|GN123AB|@example/);

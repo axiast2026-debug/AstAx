@@ -1,6 +1,6 @@
 import { formatDateTime } from "@astax/shared/format";
 import { Button, Card, CardTitle } from "@astax/ui";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -40,7 +40,6 @@ export default async function LegalDocumentsPage({
 }) {
   const viewer = await requireViewer();
   const t = await getTranslations("legalDocuments");
-  const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const query = await searchParams;
   const { status, body } = await api<LegalDocument[]>("/admin/legal/documents");
   if (status !== 200) notFound();
@@ -99,7 +98,7 @@ export default async function LegalDocumentsPage({
                       {v.status === "VALIDATED" ? t("validated") : t("draft")} ·{" "}
                       {v.publishedAt
                         ? v.id === inForce?.id
-                          ? t("inForce", { at: formatDateTime(v.publishedAt, locale) })
+                          ? t("inForce", { at: formatDateTime(v.publishedAt) })
                           : t("replaced")
                         : t("notPublished")}
                     </h3>

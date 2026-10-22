@@ -12,7 +12,6 @@ const openSchema = z.strictObject({
   channel: z.enum(["EMAIL", "PHONE", "CHAT"]),
   text: z.string().trim().min(3).max(5000),
   contactEmail: z.email().max(200).nullable().optional(),
-  locale: z.enum(["it", "sq"]).default("it"),
   customerId: z.uuid().nullable().optional(),
   requestCode: z.string().trim().max(40).nullable().optional(),
 });

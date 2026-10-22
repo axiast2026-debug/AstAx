@@ -16,7 +16,7 @@ Queste regole valgono per tutte le utenze. Le schede dei singoli ruoli descrivon
 - Assistenza: chat o ticket con il back office.
 - Menu del profilo.
 - Solo sub-agente: selettore dell'agenzia, se collabora con più agenzie.
-- Solo back office: lingua dell'interfaccia, italiano o albanese.
+- Lingua dell'interfaccia: solo italiano, per tutti (ADR 0017, Dan, 2026-10-22).
 
 ## Profilo
 

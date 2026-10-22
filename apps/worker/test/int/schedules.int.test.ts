@@ -121,7 +121,6 @@ describe("ADR 0010 the schedules", () => {
           complainantUserId: null,
           complainantName: "Reclamante di prova",
           complainantEmailEnc: null,
-          complainantLocale: "it",
           customerId: null,
           quoteRequestId: null,
           organizationId: null,

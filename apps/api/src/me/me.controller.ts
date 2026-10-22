@@ -1,18 +1,7 @@
 import type { FieldCipher } from "@astax/adapters/crypto";
 import { withContext, type DbClient } from "@astax/db";
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  Inject,
-  Param,
-  Patch,
-  Post,
-} from "@nestjs/common";
+import { Controller, Delete, Get, HttpCode, Inject, Param, Post } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
-import { z } from "zod";
 import { actorOf, AuditService } from "../audit/audit.service.js";
 import type { AuthContext } from "../auth/auth-context.js";
 import {
@@ -22,11 +11,8 @@ import {
   RequirePermission,
 } from "../auth/decorators.js";
 import { ProblemError } from "../http/problem.js";
-import { parseInput } from "../http/validation.js";
 import { DB, FIELD_CIPHER, IDENTITY_ADMIN } from "../infra/tokens.js";
 import type { IdentityAdmin } from "../identity/identity-admin.js";
-
-const updateProfileSchema = z.object({ locale: z.enum(["it", "sq"]) }).strict();
 
 /** The caller's own profile, contexts and sessions (spec 01, «Profilo»). */
 @ApiTags("me")
@@ -63,7 +49,6 @@ export class MeController {
         lastName: user.lastName,
         email: user.emailEnc ? this.cipher.decrypt(user.emailEnc) : null,
         phone: user.phoneEnc ? this.cipher.decrypt(user.phoneEnc) : null,
-        locale: user.locale,
         memberships: user.memberships.map((m) => ({
           id: m.id,
           role: m.role,
@@ -81,29 +66,6 @@ export class MeController {
         })),
       };
     });
-  }
-
-  @Patch("me")
-  @RequirePermission("profile.update")
-  @NoContext()
-  @AllowPendingLegal()
-  async update(@CurrentAuth() auth: AuthContext, @Body() body: unknown) {
-    const input = parseInput(updateProfileSchema, body);
-    await withContext(this.db, auth.db, async (tx) => {
-      const before = await tx.user.findUniqueOrThrow({
-        where: { id: auth.userId },
-        select: { locale: true },
-      });
-      await tx.user.update({ where: { id: auth.userId }, data: { locale: input.locale } });
-      await this.audit.inTransaction(tx, actorOf(auth), {
-        action: "PROFILE_UPDATED",
-        targetType: "User",
-        targetId: auth.userId,
-        before,
-        after: input,
-      });
-    });
-    return { locale: input.locale };
   }
 
   /** The active context, as chosen with X-AstAx-Context. */

@@ -15,7 +15,6 @@ export interface Me {
   lastName: string;
   email: string | null;
   phone: string | null;
-  locale: "it" | "sq";
   memberships: {
     id: string;
     role: MembershipRole;

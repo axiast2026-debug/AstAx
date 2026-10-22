@@ -39,7 +39,6 @@ import {
 
 export interface InAppRecipient {
   userId: string;
-  locale: "it" | "sq";
 }
 
 /**
@@ -113,7 +112,7 @@ export class NotificationService {
     tx: DbTransaction,
     users: readonly DispatchUser[],
     eventKey: string,
-    variables: (locale: "it" | "sq", userId: string) => TemplateVariables,
+    variables: (userId: string) => TemplateVariables,
     link: string | null,
     payload: Record<string, string> = {},
     only?: readonly ("IN_APP" | "EMAIL" | "SMS" | "PUSH")[],
@@ -137,7 +136,7 @@ export class NotificationService {
           data: plan.inApp.map((u) => ({
             userId: u.userId,
             eventKey,
-            ...renderInApp(texts, eventKey, u.locale, variables(u.locale, u.userId), this.#labels),
+            ...renderInApp(texts, eventKey, variables(u.userId), this.#labels),
             link,
             payload,
           })),
@@ -149,7 +148,7 @@ export class NotificationService {
       out.push({
         channel: "EMAIL",
         to: u.email ?? "",
-        ...renderEmail(texts, eventKey, u.locale, variables(u.locale, u.userId), this.#labels),
+        ...renderEmail(texts, eventKey, variables(u.userId), this.#labels),
         eventKey,
         ids: payload,
       });
@@ -158,20 +157,14 @@ export class NotificationService {
       out.push({
         channel: "SMS",
         to: u.phone ?? "",
-        text: renderSms(texts, eventKey, variables(u.locale, u.userId), u.locale),
+        text: renderSms(texts, eventKey, variables(u.userId)),
         eventKey,
         ids: payload,
       });
     }
     for (const { user, subscriptions } of plan.push) {
       const message = {
-        ...renderPush(
-          texts,
-          eventKey,
-          user.locale,
-          variables(user.locale, user.userId),
-          this.#labels,
-        ),
+        ...renderPush(texts, eventKey, variables(user.userId), this.#labels),
         url: link ?? "/notifiche",
       };
       for (const enc of subscriptions) {
@@ -228,13 +221,13 @@ export class NotificationService {
     tx: DbTransaction,
     recipients: readonly InAppRecipient[],
     eventKey: string,
-    variables: (locale: "it" | "sq") => TemplateVariables,
+    variables: () => TemplateVariables,
     link: string | null,
     payload: Record<string, string> = {},
   ): Promise<void> {
     await this.deliver(
       tx,
-      recipients.map((r) => ({ userId: r.userId, locale: r.locale, email: null, phone: null })),
+      recipients.map((r) => ({ userId: r.userId, email: null, phone: null })),
       eventKey,
       variables,
       link,
@@ -253,13 +246,12 @@ export class NotificationService {
     eventKey: string,
     variables: TemplateVariables,
     ids: Record<string, string>,
-    locale: "it" | "sq" = "it",
   ): Promise<Outbound> {
     const texts = asRenderable(await this.store.get());
     const out: Outbound = {
       channel: "EMAIL",
       to,
-      ...renderEmail(texts, eventKey, locale, variables, this.#labels),
+      ...renderEmail(texts, eventKey, variables, this.#labels),
       eventKey,
       ids,
     };
@@ -279,13 +271,12 @@ export class NotificationService {
     eventKey: string,
     variables: TemplateVariables,
     ids: Record<string, string>,
-    locale: "it" | "sq" = "it",
   ): Promise<void> {
     const texts = asRenderable(await this.store.get());
     try {
       await this.email.send({
         to,
-        ...renderEmail(texts, eventKey, locale, variables, this.#labels),
+        ...renderEmail(texts, eventKey, variables, this.#labels),
       });
     } catch (error) {
       this.logger.error({ eventKey, ...ids, err: errorForLog(error) }, "email not sent");

@@ -151,7 +151,6 @@ export class QuoteChecksService {
           tx,
           members.map((m) => ({
             userId: m.user.id,
-            locale: m.user.locale,
             email: m.user.emailEnc ? this.cipher.decrypt(m.user.emailEnc) : null,
             phone: null,
           })),
@@ -218,7 +217,6 @@ export class QuoteChecksService {
       [
         {
           userId: requester.id,
-          locale: requester.locale,
           email: requester.emailEnc ? this.cipher.decrypt(requester.emailEnc) : null,
           phone: null,
         },
@@ -232,7 +230,6 @@ export class QuoteChecksService {
       tx,
       staff.map((m) => ({
         userId: m.user.id,
-        locale: m.user.locale,
         email: m.user.emailEnc ? this.cipher.decrypt(m.user.emailEnc) : null,
         phone: null,
       })),

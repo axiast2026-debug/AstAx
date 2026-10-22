@@ -4,7 +4,7 @@ import { acceptAllLegal, membershipId, startHarness, userId, type Harness } from
 import { requestHelpers, type Who } from "./request-helpers.js";
 
 // Phase 7, spec 07 «Comunicazioni»: the texts edited with a version and a
-// reason and used at once; the preview in it and sq; the test to oneself; the
+// reason and used at once; the preview; the test to oneself; the
 // messages to a group.
 let h: Harness;
 let r: ReturnType<typeof requestHelpers>;
@@ -28,7 +28,6 @@ interface Template {
   version: number;
   variables: string[];
   it: Record<string, string>;
-  sq: Record<string, string> | null;
 }
 
 describe("phase 7 the texts of the notifications", () => {
@@ -44,7 +43,6 @@ describe("phase 7 the texts of the notifications", () => {
         method: "PUT",
         body: {
           it: { ...t?.it, body: "{{testo}} per {{nome}}" },
-          sq: t?.sq,
           reason: "Prova",
         },
       }),
@@ -56,7 +54,6 @@ describe("phase 7 the texts of the notifications", () => {
         method: "PUT",
         body: {
           it: { ...t?.it, body: "Avviso: {{testo}}" },
-          sq: t?.sq,
           reason: "Testo più chiaro",
         },
       }),
@@ -70,21 +67,21 @@ describe("phase 7 the texts of the notifications", () => {
     expect(history[0]).toMatchObject({ version: ok.version, reason: "Testo più chiaro" });
   });
 
-  it("the preview in Italian and Albanian with sample values", async () => {
+  it("the preview with sample values, in Italian only (ADR 0017)", async () => {
     const it = await r.json<{ body: string }>(
       await r.call(admin, "/admin/notification-templates/communication.message/preview", {
-        body: { locale: "it" },
+        body: {},
       }),
       200,
     );
     expect(it.body).toBe("Avviso: «testo»");
-    const sq = await r.json<{ title: string }>(
+    // A language is no longer a field of the preview.
+    await r.json(
       await r.call(admin, "/admin/notification-templates/request.submitted.bo/preview", {
         body: { locale: "sq" },
       }),
-      200,
+      400,
     );
-    expect(sq.title).toBe("Kërkesë e re për verifikim");
   });
 
   it("the test reaches oneself, with the new text", async () => {

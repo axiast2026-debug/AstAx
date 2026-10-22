@@ -67,7 +67,6 @@ describe("phase 7 packages", () => {
         body: {
           requirements: current?.requirements,
           customerTextIt: "La responsabilità civile obbligatoria, spiegata meglio.",
-          customerTextSq: "Përgjegjësia civile e detyrueshme.",
           validFrom: "2030-01-01T00:00:00.000Z",
           reason: "Testo più chiaro",
         },
@@ -96,7 +95,6 @@ describe("phase 7 excluded cases", () => {
         version: number;
         blockingInWizard: boolean;
         messageIt: string;
-        messageSq: string;
         active: boolean;
       }[]
     >(await r.call(admin, "/admin/exclusion-rules"), 200);
@@ -108,10 +106,9 @@ describe("phase 7 excluded cases", () => {
         method: "PUT",
         body: {
           blockingInWizard: rule.blockingInWizard,
-          messageIt: rule.messageIt,
-          messageSq: `${rule.messageSq} (riletto)`,
+          messageIt: `${rule.messageIt} (riletto)`,
           active: true,
-          reason: "Testo albanese riletto",
+          reason: "Testo riletto",
         },
       }),
       200,
@@ -123,7 +120,7 @@ describe("phase 7 excluded cases", () => {
     expect(versions.map((v) => v.version)).toEqual(
       Array.from({ length: saved.version }, (_, i) => i + 1),
     );
-    expect(versions.at(-1)).toMatchObject({ reason: "Testo albanese riletto" });
+    expect(versions.at(-1)).toMatchObject({ reason: "Testo riletto" });
 
     const duplicate = await r.call(admin, "/admin/exclusion-rules", {
       method: "POST",
@@ -131,7 +128,6 @@ describe("phase 7 excluded cases", () => {
         code: rule.code,
         blockingInWizard: false,
         messageIt: "x",
-        messageSq: "x",
         active: true,
         reason: "Prova",
       },
@@ -141,12 +137,9 @@ describe("phase 7 excluded cases", () => {
 });
 
 describe("phase 7 lists", () => {
-  it("edits a label in Italian and Albanian, with before and after", async () => {
+  it("edits a label, with before and after", async () => {
     const lists = await r.json<
-      Record<
-        string,
-        { code: string; labelIt: string; labelSq: string; active: boolean; sortOrder: number }[]
-      >
+      Record<string, { code: string; labelIt: string; active: boolean; sortOrder: number }[]>
     >(await r.call(admin, "/admin/lists"), 200);
     const value = lists.fuel?.[0];
     expect(value).toBeDefined();
@@ -155,7 +148,7 @@ describe("phase 7 lists", () => {
     await r.json(
       await r.call(admin, path, {
         method: "PUT",
-        body: { ...value, code: undefined, labelSq: `${value.labelSq}!`, reason: "Correzione" },
+        body: { ...value, code: undefined, labelIt: `${value.labelIt}!`, reason: "Correzione" },
       }),
       200,
     );
@@ -165,8 +158,8 @@ describe("phase 7 lists", () => {
       }),
     );
     expect(logged).toMatchObject({
-      before: { labelSq: value.labelSq },
-      after: { labelSq: `${value.labelSq}!` },
+      before: { labelIt: value.labelIt },
+      after: { labelIt: `${value.labelIt}!` },
     });
     await r.json(
       await r.call(admin, path, {
@@ -177,7 +170,7 @@ describe("phase 7 lists", () => {
     );
     const unknownList = await r.call(admin, "/admin/lists/nothing", {
       method: "POST",
-      body: { code: "X", labelIt: "x", labelSq: "x", active: true, sortOrder: 1, reason: "Prova" },
+      body: { code: "X", labelIt: "x", active: true, sortOrder: 1, reason: "Prova" },
     });
     expect(unknownList.status).toBe(404);
   });
@@ -214,7 +207,7 @@ describe("phase 7 holidays (ASTA-02)", () => {
     const added = await r.json<{ id: string }>(
       await r.call(admin, "/admin/holidays", {
         method: "POST",
-        body: { date: "2099-06-29", name: "Santi Pietro e Paolo", nameSq: null, reason: "Prova" },
+        body: { date: "2099-06-29", name: "Santi Pietro e Paolo", reason: "Prova" },
       }),
       201,
     );

@@ -8,7 +8,6 @@ export const DUPLICATE_WINDOW_MS = 10 * 60_000;
 
 export interface DispatchUser {
   userId: string;
-  locale: "it" | "sq";
   /** Decrypted by the caller; null when the user has none. */
   email: string | null;
   phone: string | null;

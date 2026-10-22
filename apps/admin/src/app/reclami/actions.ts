@@ -21,7 +21,6 @@ export async function registerComplaint(formData: FormData): Promise<void> {
       receivedOn: value("receivedOn"),
       complainantName: value("complainantName"),
       complainantEmail: value("complainantEmail") || null,
-      locale: value("locale") === "sq" ? "sq" : "it",
       subject: value("subject"),
       description: value("description"),
       requestCode: value("requestCode") || null,

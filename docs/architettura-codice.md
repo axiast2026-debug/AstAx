@@ -53,7 +53,7 @@ Moduli: `auth`, `organizations`, `users`, `legal`, `settings`, `lists`, `audit`,
 ## Frontend
 
 - Next.js con App Router e TypeScript strict. Dati con TanStack Query e il client generato; moduli con React Hook Form e gli stessi schemi Zod dell'API.
-- Testi solo nei file di traduzione (`next-intl`): `it` per tutti, `sq` in più per `apps/admin`. Nessun testo scritto nei componenti.
+- Testi solo nei file di traduzione (`next-intl`), in italiano, l'unica lingua (ADR 0017). Nessun testo scritto nei componenti.
 - `packages/ui`: componenti shadcn/ui con i token di design (blu notte `#0B1B33`, arancio `#FF6A1A`, verde `#12A150`, grigi caldi, contrasto almeno AA), font Inter con cifre tabellari per i prezzi.
 - Area privati mobile first, installabile (PWA con Serwist, notifiche Web Push). Aree professionali pensate per il desktop.
 - Date e importi sempre attraverso funzioni di formattazione comuni (fuso Europe/Rome, euro con due decimali).

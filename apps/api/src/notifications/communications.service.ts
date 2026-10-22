@@ -20,7 +20,6 @@ import { ProblemError } from "../http/problem.js";
 import { CLOCK, DB, FIELD_CIPHER } from "../infra/tokens.js";
 import { NotificationService } from "./notification.service.js";
 
-export type Locale = "it" | "sq";
 const FIELDS = ["title", "body", "emailSubject", "emailBody", "sms"] as const;
 export type CommunicationGroup = "PRIVATE" | "AGENCY" | "BROKER" | "STAFF";
 
@@ -54,7 +53,6 @@ export class CommunicationsService {
       forcePush: t.forcePush,
       variables: t.variables,
       it: t.it,
-      sq: t.sq ?? null,
     };
   }
 
@@ -87,7 +85,7 @@ export class CommunicationsService {
   }
 
   /** Each text of each channel present, with only the event's variables. */
-  private check(t: StoredTemplate, texts: TemplateTexts, locale: Locale) {
+  private check(t: StoredTemplate, texts: TemplateTexts) {
     const issues: { path: string; issue: string }[] = [];
     const needs: Record<string, readonly (typeof FIELDS)[number][]> = {
       IN_APP: ["title", "body"],
@@ -97,8 +95,8 @@ export class CommunicationsService {
     };
     for (const channel of t.channels) {
       for (const field of needs[channel] ?? []) {
-        if (!texts[field]?.trim() && (locale === "it" || channel !== "SMS")) {
-          issues.push({ path: `${locale}.${field}`, issue: "REQUIRED" });
+        if (!texts[field]?.trim()) {
+          issues.push({ path: `it.${field}`, issue: "REQUIRED" });
         }
       }
     }
@@ -107,23 +105,16 @@ export class CommunicationsService {
       if (!text) continue;
       for (const m of text.matchAll(/\{\{\s*([a-z_]+)\s*\}\}/g)) {
         if (!t.variables.includes(m[1] ?? "")) {
-          issues.push({ path: `${locale}.${field}`, issue: `UNKNOWN_VARIABLE:${m[1]}` });
+          issues.push({ path: `it.${field}`, issue: `UNKNOWN_VARIABLE:${m[1]}` });
         }
       }
     }
     return issues;
   }
 
-  async update(
-    auth: AuthContext,
-    eventKey: string,
-    input: { it: TemplateTexts; sq?: TemplateTexts | null; reason: string },
-  ) {
+  async update(auth: AuthContext, eventKey: string, input: { it: TemplateTexts; reason: string }) {
     const t = await this.template(eventKey);
-    const issues = [
-      ...this.check(t, input.it, "it"),
-      ...(input.sq ? this.check(t, input.sq, "sq") : []),
-    ];
+    const issues = this.check(t, input.it);
     if (issues.length > 0) throw new ProblemError("VALIDATION_FAILED", undefined, issues);
     const version = await withContext(this.db, auth.db, async (tx) => {
       const last = await tx.notificationTemplate.findFirst({
@@ -141,7 +132,7 @@ export class CommunicationsService {
             mandatory: t.mandatory,
             forcePush: t.forcePush,
             variables: t.variables,
-            content: { it: input.it, ...(input.sq ? { sq: input.sq } : {}) } as object,
+            content: { it: input.it } as object,
             reason: input.reason,
             changedByUserId: auth.userId,
             createdAt: this.clock.now(),
@@ -152,8 +143,8 @@ export class CommunicationsService {
         action: "NOTIFICATION_TEMPLATE_CHANGED",
         targetType: "NotificationTemplate",
         targetId: eventKey,
-        before: { version: t.version, content: { it: t.it, sq: t.sq ?? null } },
-        after: { version: next, content: { it: input.it, sq: input.sq ?? null } },
+        before: { version: t.version, content: { it: t.it } },
+        after: { version: next, content: { it: input.it } },
         reason: input.reason,
       });
       return next;
@@ -162,17 +153,17 @@ export class CommunicationsService {
     return { eventKey, version };
   }
 
-  /** The texts (saved or being edited) rendered with sample values, in one language. */
-  async preview(eventKey: string, locale: Locale, texts?: TemplateTexts) {
+  /** The texts (saved or being edited) rendered with sample values. */
+  async preview(eventKey: string, texts?: TemplateTexts) {
     const t = await this.template(eventKey);
-    const source = texts ?? (locale === "sq" ? (t.sq ?? t.it) : t.it);
+    const source = texts ?? t.it;
     const vars = samples(t.variables);
     const out: Record<string, string> = {};
     for (const field of FIELDS) {
       const text = source[field];
       if (!text) continue;
       try {
-        out[field] = render(text, vars, { locale });
+        out[field] = render(text, vars);
       } catch (error) {
         if (error instanceof MissingTemplateVariableError) {
           throw new ProblemError("VALIDATION_FAILED", undefined, [
@@ -195,7 +186,6 @@ export class CommunicationsService {
         [
           {
             userId: user.id,
-            locale: user.locale === "sq" ? "sq" : "it",
             email: user.emailEnc ? this.cipher.decrypt(user.emailEnc) : null,
             phone: user.phoneEnc ? this.cipher.decrypt(user.phoneEnc) : null,
           },
@@ -249,7 +239,6 @@ export class CommunicationsService {
           tx,
           users.map((u) => ({
             userId: u.id,
-            locale: u.locale === "sq" ? "sq" : "it",
             email: u.emailEnc ? this.cipher.decrypt(u.emailEnc) : null,
             phone: null,
           })),

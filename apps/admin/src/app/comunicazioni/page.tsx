@@ -15,7 +15,6 @@ interface Template {
   forcePush: boolean;
   variables: string[];
   it: Record<string, string | undefined>;
-  sq: Record<string, string | undefined> | null;
 }
 
 const FIELDS = ["title", "body", "emailSubject", "emailBody", "sms"] as const;
@@ -23,8 +22,8 @@ const field = "rounded-lg border border-warm-200 px-3 py-2";
 
 /**
  * «Comunicazioni» (spec 07): the texts of every notification, edited with a
- * reason (a new version), the preview in Italian and Albanian with the names
- * of the variables, a test sent to oneself; the messages to a group of users.
+ * reason (a new version), the preview with the names of the variables, a
+ * test sent to oneself; the messages to a group of users.
  */
 export default async function CommunicationsPage({
   searchParams,
@@ -37,17 +36,12 @@ export default async function CommunicationsPage({
   const { status, body } = await api<Template[]>("/admin/notification-templates");
   if (status !== 200) notFound();
   const selected = body.find((x) => x.eventKey === query.evento);
-  const previews = selected
-    ? await Promise.all(
-        (["it", "sq"] as const).map(async (locale) => {
-          const res = await api<Record<string, string>>(
-            `/admin/notification-templates/${selected.eventKey}/preview`,
-            { method: "POST", body: JSON.stringify({ locale }) },
-          );
-          return { locale, texts: res.status === 200 ? res.body : {} };
-        }),
-      )
-    : [];
+  const preview = selected
+    ? await api<Record<string, string>>(
+        `/admin/notification-templates/${selected.eventKey}/preview`,
+        { method: "POST", body: "{}" },
+      ).then((res) => (res.status === 200 ? res.body : {}))
+    : null;
   const groups = [...new Set(body.map((x) => x.eventKey.split(".")[0] ?? x.eventKey))];
 
   return (
@@ -111,29 +105,26 @@ export default async function CommunicationsPage({
               </p>
               <form action={saveTemplate} className="mt-4 grid gap-4 text-sm">
                 <input type="hidden" name="eventKey" value={selected.eventKey} />
-                {(["it", "sq"] as const).map((locale) => (
-                  <fieldset key={locale} className="grid gap-2">
-                    <legend className="font-semibold">{t(`locale.${locale}`)}</legend>
-                    {FIELDS.map((f) => {
-                      const value = (locale === "it" ? selected.it : selected.sq)?.[f] ?? "";
-                      return (
-                        <label key={f} className="grid gap-1">
-                          {t(`field.${f}`)}
-                          {f === "emailBody" || f === "body" ? (
-                            <textarea
-                              name={`${locale}.${f}`}
-                              rows={f === "emailBody" ? 5 : 2}
-                              defaultValue={value}
-                              className={field}
-                            />
-                          ) : (
-                            <input name={`${locale}.${f}`} defaultValue={value} className={field} />
-                          )}
-                        </label>
-                      );
-                    })}
-                  </fieldset>
-                ))}
+                <div className="grid gap-2">
+                  {FIELDS.map((f) => {
+                    const value = selected.it[f] ?? "";
+                    return (
+                      <label key={f} className="grid gap-1">
+                        {t(`field.${f}`)}
+                        {f === "emailBody" || f === "body" ? (
+                          <textarea
+                            name={`it.${f}`}
+                            rows={f === "emailBody" ? 5 : 2}
+                            defaultValue={value}
+                            className={field}
+                          />
+                        ) : (
+                          <input name={`it.${f}`} defaultValue={value} className={field} />
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
                 <label className="grid gap-1">
                   {t("reason")}
                   <input name="reason" required minLength={3} className={field} />
@@ -149,23 +140,17 @@ export default async function CommunicationsPage({
                 </Button>
               </form>
               <h3 className="mt-6 font-semibold">{t("preview")}</h3>
-              <div className="mt-2 grid gap-4 md:grid-cols-2">
-                {previews.map((p) => (
-                  <section
-                    key={p.locale}
-                    aria-label={t(`locale.${p.locale}`)}
-                    className="rounded-lg bg-warm-100 p-3 text-sm"
-                  >
-                    <h4 className="font-medium">{t(`locale.${p.locale}`)}</h4>
-                    {Object.entries(p.texts).map(([k, v]) => (
-                      <p key={k} className="mt-1 whitespace-pre-line">
-                        <span className="text-warm-600">{t(`field.${k}`)}: </span>
-                        {v}
-                      </p>
-                    ))}
-                  </section>
+              <section
+                aria-label={t("preview")}
+                className="mt-2 rounded-lg bg-warm-100 p-3 text-sm"
+              >
+                {Object.entries(preview ?? {}).map(([k, v]) => (
+                  <p key={k} className="mt-1 whitespace-pre-line">
+                    <span className="text-warm-600">{t(`field.${k}`)}: </span>
+                    {v}
+                  </p>
                 ))}
-              </div>
+              </section>
             </Card>
           ) : (
             <Card>

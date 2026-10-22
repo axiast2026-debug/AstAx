@@ -22,7 +22,6 @@ export interface StoredTemplate {
   forcePush: boolean;
   variables: string[];
   it: TemplateTexts;
-  sq?: TemplateTexts;
 }
 
 const CHANNEL: Record<string, NotificationChannel> = {
@@ -60,7 +59,7 @@ export async function seedNotificationTemplates(
         mandatory: raw.mandatory === true,
         forcePush: raw.forcePush === true,
         variables: event.variables,
-        content: { it: event.it, ...(event.sq ? { sq: event.sq } : {}) } as object,
+        content: { it: event.it } as object,
         reason: "Valore iniziale da seed/notifiche.yaml",
       },
     });
@@ -76,7 +75,7 @@ export async function loadStoredTemplates(tx: DbTransaction): Promise<Map<string
   });
   const out = new Map<string, StoredTemplate>();
   for (const r of rows) {
-    const content = r.content as unknown as { it: TemplateTexts; sq?: TemplateTexts };
+    const content = r.content as unknown as { it: TemplateTexts };
     out.set(r.eventKey, {
       eventKey: r.eventKey,
       version: r.version,
@@ -86,7 +85,6 @@ export async function loadStoredTemplates(tx: DbTransaction): Promise<Map<string
       forcePush: r.forcePush,
       variables: r.variables,
       it: content.it,
-      ...(content.sq ? { sq: content.sq } : {}),
     });
   }
   return out;
@@ -110,7 +108,6 @@ export function templatesFromFile(events: NotificationTemplates): Map<string, St
           forcePush: raw.forcePush === true,
           variables: e.variables,
           it: e.it,
-          ...(e.sq ? { sq: e.sq } : {}),
         },
       ];
     }),
@@ -120,10 +117,7 @@ export function templatesFromFile(events: NotificationTemplates): Map<string, St
 /** The templates in the shape of the rendering engine (@astax/shared/notifications). */
 export function asRenderable(stored: Map<string, StoredTemplate>): NotificationTemplates {
   return Object.fromEntries(
-    [...stored.values()].map((t) => [
-      t.eventKey,
-      { variables: t.variables, it: t.it, ...(t.sq ? { sq: t.sq } : {}) },
-    ]),
+    [...stored.values()].map((t) => [t.eventKey, { variables: t.variables, it: t.it }]),
   ) as NotificationTemplates;
 }
 

@@ -72,7 +72,6 @@ export class UsersAdminService {
         email: u.emailEnc ? this.cipher.decrypt(u.emailEnc) : null,
         kind: u.kind,
         status: u.status,
-        locale: u.locale,
         memberships: u.memberships.map((m) => ({
           organization: m.organization.legalName,
           type: m.organization.type,

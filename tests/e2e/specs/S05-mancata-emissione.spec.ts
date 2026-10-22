@@ -73,27 +73,14 @@ test.describe.serial("S05 — mancata emissione per colpa dell'agenzia", () => {
     await uno.getByRole("button", { name: "Invia la segnalazione" }).click();
     await expect(uno.getByRole("status")).toContainText("Segnalazione inviata");
 
-    // The back office, in Albanian (phase 7): the agency's fault.
+    // The back office: the agency's fault.
     await operator.goto(`${ADMIN}/eccezioni`);
-    await operator.getByRole("button", { name: "Shqip" }).click();
-    await expect(operator.getByRole("button", { name: "Shqip" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    try {
-      const problem = operator.getByRole("region", { name: code });
-      await expect(problem).toContainText("E pamundur të lëshohet");
-      await problem.getByRole("radio", { name: "Agjencia", exact: true }).check();
-      await problem.getByLabel("Arsyeja").fill("Rifiuto della compagnia non motivato");
-      await problem.getByRole("button", { name: "Vendos" }).click();
-      await expect(operator.getByRole("status")).toContainText("Vendimi u regjistrua");
-    } finally {
-      await operator.getByRole("button", { name: "Italiano" }).click();
-      await expect(operator.getByRole("button", { name: "Italiano" })).toHaveAttribute(
-        "aria-pressed",
-        "true",
-      );
-    }
+    const problem = operator.getByRole("region", { name: code });
+    await expect(problem).toContainText("Impossibile emettere");
+    await problem.getByRole("radio", { name: "Dell'agenzia", exact: true }).check();
+    await problem.getByLabel("Motivo").fill("Rifiuto della compagnia non motivato");
+    await problem.getByRole("button", { name: "Decidi" }).click();
+    await expect(operator.getByRole("status")).toContainText("Decisione registrata");
 
     // EMI-04: Uno has lost the request.
     await uno.goto(`${WEB}/da-emettere`);

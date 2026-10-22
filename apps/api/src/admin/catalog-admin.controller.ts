@@ -21,20 +21,17 @@ const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const packageVersion = z.strictObject({
   requirements: z.unknown(),
   customerTextIt: z.string().trim().min(3).max(2000),
-  customerTextSq: z.string().trim().max(2000).nullable().optional(),
   validFrom: z.iso.datetime({ offset: true }),
   reason,
 });
 const exclusion = z.strictObject({
   blockingInWizard: z.boolean(),
   messageIt: label,
-  messageSq: label,
   active: z.boolean(),
   reason,
 });
 const listValue = z.strictObject({
   labelIt: label,
-  labelSq: label,
   active: z.boolean(),
   sortOrder: z.number().int().min(0).max(10_000),
   reason,
@@ -64,7 +61,6 @@ export class CatalogAdminController {
     return this.catalog.newPackageVersion(auth, parseInput(code, packageCode), {
       requirements: input.requirements,
       customerTextIt: input.customerTextIt,
-      customerTextSq: input.customerTextSq || null,
       validFrom: new Date(input.validFrom),
       reason: input.reason,
     });

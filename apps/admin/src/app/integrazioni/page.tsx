@@ -1,6 +1,6 @@
 import { formatDateTime } from "@astax/shared/format";
 import { Badge, Card } from "@astax/ui";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { api } from "@/lib/auth";
@@ -17,7 +17,6 @@ interface Integration {
 export default async function IntegrationsPage() {
   const viewer = await requireViewer();
   const t = await getTranslations("integrations");
-  const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const { status, body } = await api<Integration[]>("/admin/integrations");
   if (status !== 200) notFound();
   return (
@@ -39,7 +38,7 @@ export default async function IntegrationsPage() {
             </div>
             <p className="mt-2 text-sm text-warm-600">
               {i.lastActivity
-                ? t("lastActivity", { at: formatDateTime(i.lastActivity, locale) })
+                ? t("lastActivity", { at: formatDateTime(i.lastActivity) })
                 : t("noActivity")}
             </p>
             {i.problems > 0 ? (

@@ -12,10 +12,10 @@ function codesOf(body: unknown): string {
   return problem.errors?.map((e) => e.issue).join(",") || problem.code || "INTERNAL";
 }
 
-function textsOf(formData: FormData, locale: "it" | "sq") {
+function textsOf(formData: FormData) {
   const out: Record<string, string> = {};
   for (const f of FIELDS) {
-    const v = String(formData.get(`${locale}.${f}`) ?? "");
+    const v = String(formData.get(`it.${f}`) ?? "");
     if (v.trim()) out[f] = v.replace(/\r\n/g, "\n");
   }
   return out;
@@ -25,12 +25,10 @@ function textsOf(formData: FormData, locale: "it" | "sq") {
 export async function saveTemplate(formData: FormData): Promise<void> {
   const key = String(formData.get("eventKey") ?? "");
   if (!KEY.test(key)) redirect("/comunicazioni");
-  const sq = textsOf(formData, "sq");
   const { status, body } = await api(`/admin/notification-templates/${key}`, {
     method: "PUT",
     body: JSON.stringify({
-      it: textsOf(formData, "it"),
-      sq: Object.keys(sq).length > 0 ? sq : null,
+      it: textsOf(formData),
       reason: String(formData.get("reason") ?? ""),
     }),
   });

@@ -66,7 +66,6 @@ export class ComplaintsController {
         receivedOn: day,
         complainantName: text(2, 200),
         complainantEmail: z.email().max(200).nullable().optional(),
-        locale: z.enum(["it", "sq"]).default("it"),
         subject: text(3, 200),
         description: text(10, 5000),
         requestCode: z.string().trim().max(40).nullable().optional(),

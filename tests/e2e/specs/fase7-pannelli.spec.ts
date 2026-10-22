@@ -10,8 +10,8 @@ import { latestMail } from "../support/requests.js";
  * Phase 7 (fasi/07, «Test richiesti», end-to-end): the administrator changes
  * the default duration of the auction and the private's fee (and puts them
  * back); a new agency enters from the site and the back office approves it;
- * the back office, in Albanian, registers and answers a complaint. The
- * missed issuance handled in Albanian is in S05.
+ * the back office registers and answers a complaint. The missed issuance
+ * is in S05.
  */
 const PDF = Buffer.from("%PDF-1.4 polizza RC professionale e2e");
 /** Real time: the servers of the local environment run on it. */
@@ -143,43 +143,29 @@ test.describe.serial("fase 7 — pannelli", () => {
     expect(welcome.text).toContain(E2E_ONBOARDING.legalName);
   });
 
-  test("the back office in Albanian registers a complaint and answers it", async ({ page }) => {
+  test("the back office registers a complaint and answers it", async ({ page }) => {
     await backOffice(page, "supervisor");
-    await page.getByRole("button", { name: "Shqip" }).click();
-    await expect(page.getByRole("button", { name: "Shqip" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
-    try {
-      await page.goto(`${ADMIN}/reclami`);
-      await page.getByLabel("Kanali").selectOption("PEC");
-      await page.getByLabel("Marrë më").fill(today);
-      await page.getByLabel("Ankuesi", { exact: true }).fill("Reclamante E2E");
-      await page.getByLabel("Email-i i ankuesit").fill("reclamante.e2e@example.test");
-      await page.getByLabel("Subjekti").fill("Ritardo nella risposta");
-      await page.getByLabel("Teksti i ankesës").fill("Nessuno mi ha risposto per due settimane.");
-      await page.getByRole("button", { name: "Regjistro", exact: true }).click();
-      const status = page.getByRole("status");
-      await expect(status).toContainText("Ankesa u regjistrua");
-      const protocol = /R-\d{4}-\d{6}/.exec((await status.textContent()) ?? "")?.[0] ?? "";
-      expect(protocol).not.toBe("");
+    await page.goto(`${ADMIN}/reclami`);
+    await page.getByLabel("Canale").selectOption("PEC");
+    await page.getByLabel("Ricevuto il").fill(today);
+    await page.getByLabel("Reclamante", { exact: true }).fill("Reclamante E2E");
+    await page.getByLabel("Email del reclamante").fill("reclamante.e2e@example.test");
+    await page.getByLabel("Oggetto").fill("Ritardo nella risposta");
+    await page.getByLabel("Testo del reclamo").fill("Nessuno mi ha risposto per due settimane.");
+    await page.getByRole("button", { name: "Registra", exact: true }).click();
+    const status = page.getByRole("status");
+    await expect(status).toContainText("Reclamo registrato");
+    const protocol = /R-\d{4}-\d{6}/.exec((await status.textContent()) ?? "")?.[0] ?? "";
+    expect(protocol).not.toBe("");
 
-      await page.getByRole("link", { name: new RegExp(protocol) }).click();
-      await page.getByLabel("Rezultati").selectOption("ACCEPTED");
-      await page
-        .getByLabel("Teksti i përgjigjes")
-        .fill("Ci scusiamo: la risposta è stata data oggi.");
-      await page.getByRole("button", { name: "Regjistro dhe dërgo përgjigjen" }).click();
-      await expect(page.getByRole("status")).toContainText("Përgjigja u regjistrua");
-      const mail = await latestMail("reclamante.e2e@example.test", new RegExp(protocol));
-      expect(mail.text).toContain("Ci scusiamo");
-    } finally {
-      // Back to Italian: the other scenarios read the Italian texts.
-      await page.getByRole("button", { name: "Italiano" }).click();
-      await expect(page.getByRole("button", { name: "Italiano" })).toHaveAttribute(
-        "aria-pressed",
-        "true",
-      );
-    }
+    await page.getByRole("link", { name: new RegExp(protocol) }).click();
+    await page.getByLabel("Esito").selectOption("ACCEPTED");
+    await page
+      .getByLabel("Testo della risposta")
+      .fill("Ci scusiamo: la risposta è stata data oggi.");
+    await page.getByRole("button", { name: "Registra e invia la risposta" }).click();
+    await expect(page.getByRole("status")).toContainText("Risposta registrata");
+    const mail = await latestMail("reclamante.e2e@example.test", new RegExp(protocol));
+    expect(mail.text).toContain("Ci scusiamo");
   });
 });

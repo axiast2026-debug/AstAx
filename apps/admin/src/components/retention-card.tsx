@@ -1,6 +1,6 @@
 import { formatDate } from "@astax/shared/format";
 import { Button, Card, CardTitle } from "@astax/ui";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import { runRetention } from "@/app/retention-actions";
 import { api } from "@/lib/auth";
 
@@ -18,14 +18,13 @@ interface Preview {
  */
 export async function RetentionCard({ purged }: { purged?: string }) {
   const t = await getTranslations("retention");
-  const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const { status, body } = await api<Preview>("/admin/retention");
   if (status !== 200) return null;
   return (
     <Card className="mt-6">
       <CardTitle>{t("title")}</CardTitle>
       <p className="mt-1 text-sm text-warm-600">
-        {t("intro", { months: body.months, before: formatDate(body.before, locale) })}
+        {t("intro", { months: body.months, before: formatDate(body.before) })}
       </p>
       {purged ? (
         <p role="status" className="mt-3 rounded-lg bg-green-50 p-3 text-sm">
@@ -40,7 +39,7 @@ export async function RetentionCard({ purged }: { purged?: string }) {
           {body.candidates.map((c) => (
             <li key={c.code}>
               {c.code} · {t(`statuses.${c.status}`)} ·{" "}
-              {t("lastActivity", { at: formatDate(c.lastActivity, locale) })}
+              {t("lastActivity", { at: formatDate(c.lastActivity) })}
             </li>
           ))}
         </ul>
@@ -56,7 +55,7 @@ export async function RetentionCard({ purged }: { purged?: string }) {
           <ul className="mt-1 space-y-1 text-sm text-warm-600">
             {body.lastPurged.map((p) => (
               <li key={`${p.code}-${p.at}`}>
-                {p.code} · {formatDate(p.at, locale)}
+                {p.code} · {formatDate(p.at)}
               </li>
             ))}
           </ul>

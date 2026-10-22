@@ -1,6 +1,6 @@
 import { formatDateTime } from "@astax/shared/format";
 import { Button, Card, CardTitle } from "@astax/ui";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -14,7 +14,6 @@ interface Detail {
   subject: string;
   channel: string;
   status: "OPEN" | "WAITING_CUSTOMER" | "CLOSED";
-  locale: "it" | "sq";
   contactEmail: string | null;
   customer: { id: string; name: string } | null;
   requestCode: string | null;
@@ -39,7 +38,6 @@ export default async function TicketPage({
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const viewer = await requireViewer();
   const t = await getTranslations("support");
-  const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const query = await searchParams;
   const { status, body: x } = await api<Detail>(`/back-office/tickets/${id}`);
   if (status !== 200) notFound();
@@ -54,10 +52,10 @@ export default async function TicketPage({
         {x.code} · {x.subject}
       </h1>
       <p className="mt-1 text-sm text-warm-600">
-        {t(`channels.${x.channel}`)} · {t(`status.${x.status}`)} · {t(`languages.${x.locale}`)} ·{" "}
+        {t(`channels.${x.channel}`)} · {t(`status.${x.status}`)} ·{" "}
         {x.firstAnsweredAt
-          ? t("answeredAt", { at: formatDateTime(x.firstAnsweredAt, locale) })
-          : t("dueAt", { at: formatDateTime(x.dueAt, locale) })}
+          ? t("answeredAt", { at: formatDateTime(x.firstAnsweredAt) })
+          : t("dueAt", { at: formatDateTime(x.dueAt) })}
       </p>
       <p className="text-sm">
         {x.contactEmail ?? t("noEmail")}
@@ -92,7 +90,7 @@ export default async function TicketPage({
               }
             >
               <span className="text-xs text-warm-600">
-                {t(`kinds.${m.kind}`)} · {formatDateTime(m.at, locale)}
+                {t(`kinds.${m.kind}`)} · {formatDateTime(m.at)}
                 {m.author ? ` · ${m.author}` : ""}
               </span>
               <p className="mt-1 whitespace-pre-line">{m.text}</p>

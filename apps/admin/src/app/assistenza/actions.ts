@@ -22,7 +22,6 @@ export async function openTicket(formData: FormData): Promise<void> {
       channel: value("channel"),
       text: value("text"),
       contactEmail: value("contactEmail") || null,
-      locale: value("locale") === "sq" ? "sq" : "it",
       customerId: ID.test(customerId) ? customerId : null,
       requestCode: value("requestCode") || null,
     }),

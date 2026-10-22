@@ -1,7 +1,7 @@
 import { formatDateTime } from "@astax/shared/format";
 import { can } from "@astax/shared/permissions";
 import { Button, Card, CardTitle } from "@astax/ui";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { api, sessionId, webAuth } from "@/lib/auth";
@@ -30,7 +30,6 @@ const field = "rounded-lg border border-warm-200 px-3 py-2";
 export default async function CustomersPage() {
   const viewer = await requireViewer();
   const t = await getTranslations("customersBo");
-  const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const q = ((await webAuth().search(await sessionId(), "back-office-customers")).q ?? "").trim();
   const found =
     q.length >= 2
@@ -88,7 +87,7 @@ export default async function CustomersPage() {
                   <Link href={`/clienti/${d.customerId}`} className="underline">
                     {d.customer}
                   </Link>{" "}
-                  · {t(`kinds.${d.kind}`)} · {t("dueAt", { at: formatDateTime(d.dueAt, locale) })}
+                  · {t(`kinds.${d.kind}`)} · {t("dueAt", { at: formatDateTime(d.dueAt) })}
                 </li>
               ))}
             </ul>

@@ -16,14 +16,12 @@ import { CLOCK, DB } from "../infra/tokens.js";
 export interface ExclusionInput {
   blockingInWizard: boolean;
   messageIt: string;
-  messageSq: string;
   active: boolean;
   reason: string;
 }
 
 export interface ListValueInput {
   labelIt: string;
-  labelSq: string;
   active: boolean;
   sortOrder: number;
   reason: string;
@@ -67,7 +65,6 @@ export class CatalogAdminService {
             version: v.version,
             requirements: v.requirements as PackageRequirements,
             customerTextIt: v.customerTextIt,
-            customerTextSq: v.customerTextSq,
             validFrom: v.validFrom.toISOString(),
             reason: v.reason,
             inForce: v.id === inForce?.id,
@@ -83,7 +80,6 @@ export class CatalogAdminService {
     input: {
       requirements: unknown;
       customerTextIt: string;
-      customerTextSq: string | null;
       validFrom: Date;
       reason: string;
     },
@@ -124,7 +120,6 @@ export class CatalogAdminService {
           version: (last?.version ?? 0) + 1,
           requirements: parsed.data,
           customerTextIt: input.customerTextIt,
-          customerTextSq: input.customerTextSq,
           validFrom: input.validFrom,
           reason: input.reason,
           changedByUserId: auth.userId,
@@ -161,7 +156,6 @@ export class CatalogAdminService {
         blockingInWizard: r.blockingInWizard,
         automatic: r.condition !== null,
         messageIt: r.messageIt,
-        messageSq: r.messageSq,
         active: r.active,
         history: versions
           .filter((v) => v.code === r.code)
@@ -188,7 +182,6 @@ export class CatalogAdminService {
       const data = {
         blockingInWizard: input.blockingInWizard,
         messageIt: input.messageIt,
-        messageSq: input.messageSq,
         active: input.active,
         version,
         updatedAt: now,
@@ -203,7 +196,6 @@ export class CatalogAdminService {
           condition: saved.condition ?? undefined,
           blockingInWizard: saved.blockingInWizard,
           messageIt: saved.messageIt,
-          messageSq: saved.messageSq,
           active: saved.active,
           reason: input.reason,
           changedByUserId: auth.userId,
@@ -219,7 +211,6 @@ export class CatalogAdminService {
               version: current.version,
               blockingInWizard: current.blockingInWizard,
               messageIt: current.messageIt,
-              messageSq: current.messageSq,
               active: current.active,
             }
           : null,
@@ -227,7 +218,6 @@ export class CatalogAdminService {
           version,
           blockingInWizard: saved.blockingInWizard,
           messageIt: saved.messageIt,
-          messageSq: saved.messageSq,
           active: saved.active,
         },
         reason: input.reason,
@@ -248,7 +238,6 @@ export class CatalogAdminService {
         (lists[v.listKey] ??= []).push({
           code: v.code,
           labelIt: v.labelIt,
-          labelSq: v.labelSq,
           active: v.active,
           sortOrder: v.sortOrder,
         });
@@ -280,7 +269,6 @@ export class CatalogAdminService {
       } else if (!current) throw new ProblemError("NOT_FOUND");
       const data = {
         labelIt: input.labelIt,
-        labelSq: input.labelSq,
         active: input.active,
         sortOrder: input.sortOrder,
         updatedAt: now,
@@ -290,7 +278,6 @@ export class CatalogAdminService {
         : await tx.listValue.create({ data: { listKey, code, ...data, createdAt: now } });
       const view = (v: typeof saved) => ({
         labelIt: v.labelIt,
-        labelSq: v.labelSq,
         active: v.active,
         sortOrder: v.sortOrder,
       });
@@ -326,7 +313,6 @@ export class CatalogAdminService {
           id: r.id,
           date: isoDay(r.date),
           name: r.name,
-          nameSq: r.nameSq,
         })),
         missing: proposal.filter((p) => !have.has(p.date)),
       };
@@ -344,13 +330,8 @@ export class CatalogAdminService {
     const before = await this.holidaysOf(tx, year - 1);
     const fixed = before
       .filter((h) => h.name !== EASTER_MONDAY_NAME)
-      .map((h) => ({ monthDay: isoDay(h.date).slice(5), name: h.name, nameSq: h.nameSq }));
-    const sq = new Map(fixed.map((f) => [f.name, f.nameSq]));
-    const easterSq = before.find((h) => h.name === EASTER_MONDAY_NAME)?.nameSq ?? null;
-    return proposedHolidays(year, fixed).map((p) => ({
-      ...p,
-      nameSq: p.name === EASTER_MONDAY_NAME ? easterSq : (sq.get(p.name) ?? null),
-    }));
+      .map((h) => ({ monthDay: isoDay(h.date).slice(5), name: h.name }));
+    return proposedHolidays(year, fixed);
   }
 
   async confirmYear(auth: AuthContext, year: number, reason: string) {
@@ -360,7 +341,7 @@ export class CatalogAdminService {
       const missing = (await this.proposalFor(tx, year)).filter((p) => !have.has(p.date));
       for (const p of missing) {
         await tx.holiday.create({
-          data: { date: dayOf(p.date), name: p.name, nameSq: p.nameSq, createdAt: now },
+          data: { date: dayOf(p.date), name: p.name, createdAt: now },
         });
       }
       await this.audit.inTransaction(tx, actorOf(auth), {
@@ -387,13 +368,13 @@ export class CatalogAdminService {
         ]);
       }
       const created = await tx.holiday.create({
-        data: { date, name: input.name, nameSq: input.nameSq, createdAt: now },
+        data: { date, name: input.name, createdAt: now },
       });
       await this.audit.inTransaction(tx, actorOf(auth), {
         action: "HOLIDAY_ADDED",
         targetType: "Holiday",
         targetId: created.id,
-        after: { date: input.date, name: input.name, nameSq: input.nameSq },
+        after: { date: input.date, name: input.name },
         reason: input.reason,
       });
       return { id: created.id, date: input.date };

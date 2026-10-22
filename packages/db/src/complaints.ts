@@ -16,7 +16,6 @@ export interface NewComplaint {
   complainantUserId: string | null;
   complainantName: string;
   complainantEmailEnc: string | null;
-  complainantLocale: "it" | "sq";
   customerId: string | null;
   quoteRequestId: string | null;
   organizationId: string | null;

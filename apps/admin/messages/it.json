@@ -17,7 +17,6 @@
     "context": "Stai lavorando per",
     "switchContext": "Cambia",
     "menu": "Menu principale",
-    "language": "Lingua",
     "unread": "{count} notifiche non lette"
   },
   "menu": {
@@ -136,10 +135,6 @@
     "AGENCY": "Agenzia",
     "BROKER": "Broker",
     "ASTAX": "AstAx"
-  },
-  "languages": {
-    "it": "Italiano",
-    "sq": "Shqip"
   },
   "audit": {
     "title": "Registro delle attività",
@@ -789,7 +784,7 @@
   },
   "communications": {
     "title": "Comunicazioni",
-    "intro": "I testi di ogni notifica, in italiano e albanese. Ogni modifica crea una nuova versione con il motivo e vale da subito.",
+    "intro": "I testi di ogni notifica. Ogni modifica crea una nuova versione con il motivo e vale da subito.",
     "error": "Operazione non riuscita ({code}).",
     "done": {
       "saved": "Testo salvato: nuova versione.",
@@ -800,10 +795,6 @@
     "meta": "versione {version} · canali {channels} · variabili {variables}",
     "mandatory": "obbligatoria",
     "forcePush": "push sempre attiva",
-    "locale": {
-      "it": "Italiano",
-      "sq": "Albanese"
-    },
     "field": {
       "title": "Titolo (in app e push)",
       "body": "Testo (in app e push)",
@@ -929,8 +920,7 @@
     "inForce": "in vigore",
     "newVersion": "Nuova versione",
     "requirements": "Coperture richieste (formato JSON, come nella versione attuale)",
-    "customerTextIt": "Testo per il cliente (italiano)",
-    "customerTextSq": "Testo per il cliente (albanese, per il back office)",
+    "customerTextIt": "Testo per il cliente",
     "validFrom": "In vigore dal",
     "reason": "Motivo",
     "saveVersion": "Salva la nuova versione",
@@ -942,15 +932,14 @@
     "history": "Versioni",
     "newExclusion": "Nuovo caso escluso",
     "code": "Codice (lettere maiuscole e _)",
-    "messageIt": "Testo in italiano",
-    "messageSq": "Testo in albanese",
+    "messageIt": "Testo",
     "blockingInWizard": "Blocca nella richiesta",
     "saveExclusion": "Salva",
     "createExclusion": "Aggiungi il caso"
   },
   "listsHolidays": {
     "title": "Elenchi e festività",
-    "intro": "Le voci degli elenchi usati nei moduli, con le etichette in italiano e albanese, e le festività nazionali in cui il tempo delle aste non scorre. Le aste già aperte tengono il calendario della loro apertura.",
+    "intro": "Le voci degli elenchi usati nei moduli e le festività nazionali in cui il tempo delle aste non scorre. Le aste già aperte tengono il calendario della loro apertura.",
     "error": "Operazione non riuscita ({code}).",
     "done": {
       "list": "Voce salvata.",
@@ -962,8 +951,7 @@
     "chooseList": "Scegli un elenco a sinistra.",
     "listHint": "Una voce non attiva non compare più nei moduli; il codice non si cambia.",
     "code": "Codice",
-    "labelIt": "Etichetta italiana",
-    "labelSq": "Etichetta albanese",
+    "labelIt": "Etichetta",
     "order": "Ordine",
     "active": "Attiva",
     "reason": "Motivo",
@@ -981,8 +969,7 @@
     "confirmYear": "Conferma il calendario {year}",
     "addHoliday": "Aggiungi una festività",
     "date": "Data",
-    "nameIt": "Nome in italiano",
-    "nameSq": "Nome in albanese",
+    "nameIt": "Nome",
     "add": "Aggiungi"
   },
   "onboardingQueue": {
@@ -1268,11 +1255,6 @@
     "newTicket": "Nuovo ticket",
     "subject": "Oggetto",
     "channel": "Canale",
-    "language": "Lingua delle risposte",
-    "languages": {
-      "it": "Italiano",
-      "sq": "Albanese"
-    },
     "contactEmail": "Email per le risposte",
     "requestCode": "Codice della richiesta (se c'è)",
     "text": "Cosa ha scritto o detto",
@@ -1349,11 +1331,6 @@
     "receivedOn": "Ricevuto il",
     "complainantName": "Reclamante",
     "complainantEmail": "Email del reclamante",
-    "language": "Lingua della risposta",
-    "languages": {
-      "it": "Italiano",
-      "sq": "Albanese"
-    },
     "requestCode": "Codice della richiesta (se c'è)",
     "subject": "Oggetto",
     "description": "Testo del reclamo",

@@ -501,7 +501,7 @@ export class ConsentService {
           broker: organization.legalName,
           veicolo: this.vehicleLabel(request),
           link: `${this.config.WEB_URL}/consenso/${token}`,
-          scadenza_link: formatDate(link.expiresAt, "it"),
+          scadenza_link: formatDate(link.expiresAt),
         },
       };
     });

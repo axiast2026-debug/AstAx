@@ -97,12 +97,11 @@ export class LegalService {
           tx,
           users.map((u) => ({
             userId: u.id,
-            locale: u.locale === "sq" ? "sq" : "it",
             email: u.emailEnc ? this.cipher.decrypt(u.emailEnc) : null,
             phone: null,
           })),
           "legal.new_version",
-          (_locale, userId) => ({
+          (userId) => ({
             nome: names.get(userId) ?? "",
             documento: version.document.title,
             data: { date: now.toISOString() },

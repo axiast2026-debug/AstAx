@@ -183,7 +183,7 @@ export function issuanceActivities(
                     })
                   : null,
             },
-            (key) => notifier.label(key, "it"),
+            (key) => notifier.label(key),
           )
         : "";
       const toIssue = `${urls.web}/da-emettere/${request.id}`;

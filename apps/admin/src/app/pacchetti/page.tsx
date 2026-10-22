@@ -1,6 +1,6 @@
 import { formatDateTime } from "@astax/shared/format";
 import { Button, Card, CardTitle } from "@astax/ui";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { api } from "@/lib/auth";
@@ -15,7 +15,6 @@ interface PackageView {
     version: number;
     requirements: unknown;
     customerTextIt: string;
-    customerTextSq: string | null;
     validFrom: string;
     reason: string | null;
     inForce: boolean;
@@ -28,7 +27,6 @@ interface Exclusion {
   blockingInWizard: boolean;
   automatic: boolean;
   messageIt: string;
-  messageSq: string;
   active: boolean;
   history: {
     version: number;
@@ -54,7 +52,6 @@ export default async function PackagesPage({
 }) {
   const viewer = await requireViewer();
   const t = await getTranslations("catalog");
-  const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const query = await searchParams;
   const [packages, exclusions] = await Promise.all([
     api<PackageView[]>("/admin/packages"),
@@ -91,14 +88,11 @@ export default async function PackagesPage({
                     <details>
                       <summary className="cursor-pointer">
                         {t("version", { number: v.version })} ·{" "}
-                        {t("from", { at: formatDateTime(v.validFrom, locale) })}
+                        {t("from", { at: formatDateTime(v.validFrom) })}
                         {v.inForce ? ` · ${t("inForce")}` : ""}
                         {v.reason ? ` · ${v.reason}` : ""}
                       </summary>
                       <p className="mt-2">{v.customerTextIt}</p>
-                      {v.customerTextSq ? (
-                        <p className="mt-1 text-warm-600">{v.customerTextSq}</p>
-                      ) : null}
                       <pre className="mt-2 overflow-x-auto rounded bg-warm-100 p-2 text-xs">
                         {JSON.stringify(v.requirements, null, 2)}
                       </pre>
@@ -127,15 +121,6 @@ export default async function PackagesPage({
                       required
                       rows={3}
                       defaultValue={last?.customerTextIt ?? ""}
-                      className={field}
-                    />
-                  </label>
-                  <label className="grid gap-1">
-                    {t("customerTextSq")}
-                    <textarea
-                      name="customerTextSq"
-                      rows={3}
-                      defaultValue={last?.customerTextSq ?? ""}
                       className={field}
                     />
                   </label>
@@ -173,7 +158,7 @@ export default async function PackagesPage({
               <ul className="mt-2 space-y-1">
                 {x.history.map((v) => (
                   <li key={v.version}>
-                    {t("version", { number: v.version })} · {formatDateTime(v.at, locale)} ·{" "}
+                    {t("version", { number: v.version })} · {formatDateTime(v.at)} ·{" "}
                     {v.active ? t("active") : t("inactive")}
                     {v.reason ? ` · ${v.reason}` : ""}
                   </li>
@@ -214,10 +199,6 @@ function ExclusionForm({
       <label className="grid gap-1">
         {t("messageIt")}
         <input name="messageIt" required defaultValue={exclusion?.messageIt} className={field} />
-      </label>
-      <label className="grid gap-1">
-        {t("messageSq")}
-        <input name="messageSq" required defaultValue={exclusion?.messageSq} className={field} />
       </label>
       <label className="flex items-center gap-2">
         <input

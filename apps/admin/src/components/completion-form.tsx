@@ -13,11 +13,9 @@ import type { Completion } from "@/lib/verification";
 export async function CompletionForm({
   requestId,
   completion,
-  locale,
 }: {
   requestId: string;
   completion: Completion;
-  locale: "it" | "sq";
 }) {
   const t = await getTranslations("verification.completion");
   const { candidate, intake, lists, phone } = completion;
@@ -26,8 +24,7 @@ export async function CompletionForm({
   const licence = (candidate.drivers[0]?.licence ?? {}) as Record<string, string | undefined>;
   const vehicle = candidate.vehicle as Record<string, string | number | boolean | undefined>;
   const history = candidate.history as Record<string, unknown>;
-  const label = (item: { it: string; sq: string | null }) =>
-    locale === "sq" ? (item.sq ?? item.it) : item.it;
+  const label = (item: { it: string }) => item.it;
 
   const field = (
     name: string,

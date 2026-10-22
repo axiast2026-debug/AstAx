@@ -1,6 +1,6 @@
 import { formatDate, formatDateTime } from "@astax/shared/format";
 import { Button, Card, CardTitle } from "@astax/ui";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -42,7 +42,6 @@ export default async function ComplaintPage({
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const viewer = await requireViewer();
   const t = await getTranslations("complaintsRegister");
-  const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const query = await searchParams;
   const { status, body: c } = await api<Detail>(`/back-office/complaints/${id}`);
   if (status !== 200) notFound();
@@ -56,8 +55,8 @@ export default async function ComplaintPage({
         {c.protocol} · {c.subject}
       </h1>
       <p className="mt-1 text-sm text-warm-600">
-        {t(`channels.${c.channel}`)} · {t("receivedAt", { at: formatDate(c.receivedAt, locale) })} ·{" "}
-        {t("dueAt", { at: formatDate(c.dueAt, locale) })}
+        {t(`channels.${c.channel}`)} · {t("receivedAt", { at: formatDate(c.receivedAt) })} ·{" "}
+        {t("dueAt", { at: formatDate(c.dueAt) })}
       </p>
       {query.errore ? (
         <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
@@ -94,7 +93,7 @@ export default async function ComplaintPage({
             <>
               <p className="mt-2 text-sm text-warm-600">
                 {t(`outcomes.${c.outcome ?? "REJECTED"}`)}
-                {c.answeredAt ? ` · ${formatDateTime(c.answeredAt, locale)}` : ""}
+                {c.answeredAt ? ` · ${formatDateTime(c.answeredAt)}` : ""}
               </p>
               <p className="mt-2 whitespace-pre-line text-sm">{c.responseText}</p>
             </>

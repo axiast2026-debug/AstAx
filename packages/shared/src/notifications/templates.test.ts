@@ -10,7 +10,7 @@ describe("notification texts from seed/notifiche.yaml", () => {
   const templates = loadNotificationTemplates();
 
   it("loads the file and the team invitation email", () => {
-    const email = renderEmail(templates, "team.invitation", "it", {
+    const email = renderEmail(templates, "team.invitation", {
       nome: "Bianca",
       invitante: "Anna Moretti",
       organizzazione: "Agenzia Uno",
@@ -31,20 +31,16 @@ describe("notification texts from seed/notifiche.yaml", () => {
 });
 
 describe("phase 7 the template engine", () => {
-  it("formats amounts, dates and labels in the recipient's language", () => {
+  it("formats amounts, dates and labels in Italian", () => {
     const vars = {
       importo: { cents: 50_500 },
       quando: { dateTime: "2026-10-14T08:30:00.000Z" },
       giorno: { date: "2026-12-01" },
     };
     const plain = (text: string) => text.replace(/\u00a0/g, " ");
-    expect(plain(render("{{importo}} · {{quando}} · {{giorno}}", vars, { locale: "it" }))).toBe(
+    expect(plain(render("{{importo}} · {{quando}} · {{giorno}}", vars))).toBe(
       "505,00 € · mercoledì 14 ottobre alle 10:30 · 1 dicembre 2026",
     );
-    const sq = render("{{importo}} · {{quando}}", vars, { locale: "sq" });
-    expect(sq).toContain("505,00");
-    expect(sq).toContain("tetor");
-    expect(sq).toContain("ora 10:30");
   });
 
   it("an empty variable leaves no double space, no space before punctuation, no empty line", () => {

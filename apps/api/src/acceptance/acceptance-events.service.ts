@@ -118,7 +118,7 @@ export class AcceptanceEventsService {
   private async tell(
     tx: DbTransaction,
     emails: Email[],
-    users: { id: string; locale: "it" | "sq"; emailEnc: string | null; phoneEnc?: string | null }[],
+    users: { id: string; emailEnc: string | null; phoneEnc?: string | null }[],
     eventKey: string,
     variables: TemplateVariables,
     link: string,
@@ -129,7 +129,6 @@ export class AcceptanceEventsService {
         tx,
         users.map((u) => ({
           userId: u.id,
-          locale: u.locale,
           email: u.emailEnc ? this.cipher.decrypt(u.emailEnc) : null,
           phone: u.phoneEnc ? this.cipher.decrypt(u.phoneEnc) : null,
         })),
@@ -474,7 +473,7 @@ export class AcceptanceEventsService {
               })
             : null,
       },
-      (key) => label(NOTIFICATION_LABELS, key, "it"),
+      (key) => label(NOTIFICATION_LABELS, key),
     );
     await tx.acceptance.update({
       where: { id: a.id },
@@ -598,7 +597,7 @@ export class AcceptanceEventsService {
     });
     await this.notifications.inApp(
       tx,
-      staff.map((m) => ({ userId: m.user.id, locale: m.user.locale })),
+      staff.map((m) => ({ userId: m.user.id })),
       "offer.won.bo",
       () => ({
         codice: request.code,
@@ -614,7 +613,7 @@ export class AcceptanceEventsService {
   /** Who paid: the private user, or the broker's customer and the broker's user. */
   private async payers(tx: DbTransaction, request: QuoteRequest) {
     const requester = await tx.user.findUniqueOrThrow({ where: { id: request.requesterUserId } });
-    return [{ id: requester.id, locale: requester.locale, emailEnc: requester.emailEnc }];
+    return [{ id: requester.id, emailEnc: requester.emailEnc }];
   }
 
   private async payerName(tx: DbTransaction, request: QuoteRequest) {

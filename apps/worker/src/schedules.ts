@@ -305,7 +305,7 @@ export function startSchedules(
   const { db, clock, cipher, logger, rui, notifier, adminUrl, deleteObject, identity } = deps;
   let retentionDay = "";
   let keysDay = "";
-  const brokerLine = label(loadNotificationLabels(), "invoice.brokerLine", "it");
+  const brokerLine = label(loadNotificationLabels(), "invoice.brokerLine");
   let running = false;
   // Phase 8: with two workers the jobs run once per tick, by whoever takes the turn.
   const holder = randomUUID();

@@ -36,7 +36,6 @@ const template = (over: Partial<StoredTemplate> = {}): StoredTemplate => ({
 
 const user = () => ({
   userId: randomUUID(),
-  locale: "it" as const,
   email: "test@example.test",
   phone: null,
 });

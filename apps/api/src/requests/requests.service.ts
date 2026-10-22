@@ -56,7 +56,6 @@ import {
   PLATE_LOOKUP,
 } from "../infra/tokens.js";
 import labelsIt from "../notifications/labels.it.json" with { type: "json" };
-import labelsSq from "../notifications/labels.sq.json" with { type: "json" };
 import { NotificationService } from "../notifications/notification.service.js";
 import { ConsentService } from "./consent.service.js";
 import { AutoCheckService } from "./auto-check.service.js";
@@ -1097,7 +1096,7 @@ export class RequestsService {
     outcome: string,
   ) {
     // The requester may not read AstAx memberships (row level security): the
-    // recipients are looked up as a system job, identifiers and locale only.
+    // recipients are looked up as a system job, identifiers only.
     const staff = await withContext(this.db, SYSTEM_CONTEXT, (system) =>
       system.membership.findMany({
         where: {
@@ -1105,23 +1104,20 @@ export class RequestsService {
           status: "ACTIVE",
           organization: { type: "ASTAX" },
         },
-        select: { user: { select: { id: true, locale: true } } },
+        select: { user: { select: { id: true } } },
       }),
     );
     await this.notifications.inApp(
       tx,
-      staff.map((m) => ({ userId: m.user.id, locale: m.user.locale })),
+      staff.map((m) => ({ userId: m.user.id })),
       "request.submitted.bo",
-      (locale) => {
-        const labels = locale === "sq" ? labelsSq : labelsIt;
-        return {
-          codice: request.code,
-          canale: labels.channel[request.channel],
-          veicolo: vehicle,
-          esito_auto: labels.outcome[outcome as "GREEN" | "YELLOW" | "RED"],
-          link: `/verifiche/${request.id}`,
-        };
-      },
+      () => ({
+        codice: request.code,
+        canale: labelsIt.channel[request.channel],
+        veicolo: vehicle,
+        esito_auto: labelsIt.outcome[outcome as "GREEN" | "YELLOW" | "RED"],
+        link: `/verifiche/${request.id}`,
+      }),
       `/verifiche/${request.id}`,
       // Each submission is its own event: a second one after an integration is not a duplicate.
       { requestId: request.id, submittedAt: this.clock.now().toISOString() },

@@ -37,7 +37,6 @@ describe("phase 7 support tickets", () => {
           channel: "EMAIL",
           text: "Il caricamento si ferma a metà.",
           contactEmail: "cliente.assistenza@example.test",
-          locale: "sq",
         },
       }),
       201,
@@ -51,7 +50,9 @@ describe("phase 7 support tickets", () => {
       200,
     );
     // The ready replies come in the person's language.
-    expect(detail.readyReplies.find((x) => x.code === "RECEIVED")?.text).toContain("E kemi marrë");
+    expect(detail.readyReplies.find((x) => x.code === "RECEIVED")?.text).toContain(
+      "Abbiamo ricevuto la tua richiesta",
+    );
 
     const before = h.email.sent.length;
     await r.json(

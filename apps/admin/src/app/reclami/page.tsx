@@ -1,7 +1,7 @@
 import { formatDate } from "@astax/shared/format";
 import { can } from "@astax/shared/permissions";
 import { Badge, Button, Card, CardTitle } from "@astax/ui";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { api } from "@/lib/auth";
@@ -34,7 +34,6 @@ export default async function ComplaintsPage({
 }) {
   const viewer = await requireViewer();
   const t = await getTranslations("complaintsRegister");
-  const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const query = await searchParams;
   const status = STATUSES.find((s) => s === query.stato) ?? "OPEN";
   const manage = can(viewer.actor, "complaint.manage");
@@ -79,9 +78,8 @@ export default async function ComplaintsPage({
                   {c.late ? <Badge tone="danger">{t("late")}</Badge> : null}
                 </div>
                 <p className="text-sm text-warm-600">
-                  {t(`channels.${c.channel}`)} ·{" "}
-                  {t("receivedAt", { at: formatDate(c.receivedAt, locale) })} ·{" "}
-                  {t("dueAt", { at: formatDate(c.dueAt, locale) })}
+                  {t(`channels.${c.channel}`)} · {t("receivedAt", { at: formatDate(c.receivedAt) })}{" "}
+                  · {t("dueAt", { at: formatDate(c.dueAt) })}
                   {c.intermediary ? ` · ${c.intermediary}` : ""}
                 </p>
               </Card>
@@ -134,13 +132,6 @@ export default async function ComplaintsPage({
           <label className="grid gap-1">
             {t("complainantEmail")}
             <input name="complainantEmail" type="email" className={field} />
-          </label>
-          <label className="grid gap-1">
-            {t("language")}
-            <select name="locale" className={field}>
-              <option value="it">{t("languages.it")}</option>
-              <option value="sq">{t("languages.sq")}</option>
-            </select>
           </label>
           <label className="grid gap-1">
             {t("requestCode")}

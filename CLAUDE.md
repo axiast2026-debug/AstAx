@@ -15,7 +15,7 @@ AstAx è una piattaforma italiana di aste inverse per i preventivi RC auto, gest
 
 ## Lingue
 
-- Documenti e interfaccia in italiano; il back office anche in albanese. Nessun testo dell'interfaccia scritto nel codice: solo file di traduzione.
+- Documenti e interfaccia solo in italiano, back office compreso: nessuna altra lingua ([ADR 0017](docs/adr/0017-solo-italiano.md)). Nessun testo dell'interfaccia scritto nel codice: solo file di traduzione.
 - Codice, nomi, commenti e messaggi di commit in inglese. I nomi di dominio sono quelli di [`docs/glossario.md`](docs/glossario.md), senza sinonimi.
 - Con Dan si parla in italiano, in modo semplice: è esperto di assicurazioni, non di programmazione.
 

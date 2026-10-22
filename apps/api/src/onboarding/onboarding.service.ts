@@ -501,7 +501,6 @@ export class OnboardingService {
         tx,
         supervisors.map((u) => ({
           userId: u.id,
-          locale: u.locale === "sq" ? "sq" : "it",
           email: u.emailEnc ? this.cipher.decrypt(u.emailEnc) : null,
           phone: null,
         })),

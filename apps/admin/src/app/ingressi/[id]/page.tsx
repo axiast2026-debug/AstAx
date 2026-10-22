@@ -1,6 +1,6 @@
 import { formatDate, formatDateTime } from "@astax/shared/format";
 import { Badge, Button, Card, CardTitle } from "@astax/ui";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -60,7 +60,6 @@ export default async function OnboardingDetailPage({
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const viewer = await requireViewer();
   const t = await getTranslations("onboardingQueue");
-  const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const query = await searchParams;
   const { status, body: a } = await api<Detail>(`/back-office/onboarding/${id}`);
   if (status !== 200) notFound();
@@ -77,7 +76,7 @@ export default async function OnboardingDetailPage({
       <h1 className="mt-2 text-2xl font-bold">{a.legalName}</h1>
       <p className="mt-1 text-sm text-warm-600">
         {t(`types.${a.principalRuiNumber ? "E" : a.type}`)} · {t(`status.${a.status}`)}
-        {a.submittedAt ? ` · ${t("sentAt", { at: formatDateTime(a.submittedAt, locale) })}` : ""}
+        {a.submittedAt ? ` · ${t("sentAt", { at: formatDateTime(a.submittedAt) })}` : ""}
       </p>
       {query.errore ? (
         <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
@@ -115,7 +114,7 @@ export default async function OnboardingDetailPage({
                 </>
               ) : null}
               <dt>{t("ruiImportedAt")}</dt>
-              <dd>{check.importedAt ? formatDateTime(check.importedAt, locale) : "—"}</dd>
+              <dd>{check.importedAt ? formatDateTime(check.importedAt) : "—"}</dd>
             </dl>
           ) : (
             <p className="mt-2 text-sm text-warm-600">{t("notSent")}</p>
@@ -175,9 +174,7 @@ export default async function OnboardingDetailPage({
           {a.profInsurance ? (
             <p className="mt-2 text-sm">
               {t("expiresOn", {
-                date: a.profInsurance.expiresOn
-                  ? formatDate(a.profInsurance.expiresOn, locale)
-                  : "—",
+                date: a.profInsurance.expiresOn ? formatDate(a.profInsurance.expiresOn) : "—",
               })}{" "}
               <a href={`/ingressi/${a.id}/polizza`} className="underline">
                 {t("open")}
@@ -201,7 +198,7 @@ export default async function OnboardingDetailPage({
           {a.acceptedAt ? (
             <p className="mt-2 text-sm text-warm-600">
               {t("acceptedAt", {
-                at: formatDateTime(a.acceptedAt, locale),
+                at: formatDateTime(a.acceptedAt),
                 ip: a.acceptedIp ?? "—",
               })}
             </p>
@@ -237,7 +234,7 @@ export default async function OnboardingDetailPage({
         <Card className="mt-6">
           <CardTitle>{t("decision")}</CardTitle>
           <p className="mt-2 text-sm">
-            {t("decidedAt", { at: formatDateTime(a.decidedAt, locale) })}: {a.decisionReason}
+            {t("decidedAt", { at: formatDateTime(a.decidedAt) })}: {a.decisionReason}
           </p>
         </Card>
       ) : null}

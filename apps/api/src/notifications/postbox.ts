@@ -5,7 +5,6 @@ import type { NotificationService, Outbound } from "./notification.service.js";
 
 export interface PostboxUser {
   id: string;
-  locale: "it" | "sq";
   emailEnc: string | null;
   phoneEnc?: string | null;
 }
@@ -44,7 +43,6 @@ export class Postbox {
       tx,
       users.map((u) => ({
         userId: u.id,
-        locale: u.locale,
         email: u.emailEnc ? this.cipher.decrypt(u.emailEnc) : null,
         phone: u.phoneEnc ? this.cipher.decrypt(u.phoneEnc) : null,
       })),

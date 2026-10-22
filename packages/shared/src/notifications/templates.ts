@@ -14,13 +14,12 @@ const localized = z.looseObject({
 });
 const fileSchema = z.object({
   schemaVersion: z.literal(1),
-  labels: z.record(z.string(), z.object({ it: z.string(), sq: z.string().optional() })).default({}),
+  labels: z.record(z.string(), z.object({ it: z.string() })).default({}),
   events: z.record(
     z.string(),
     z.looseObject({
       variables: z.array(z.string()).default([]),
       it: localized,
-      sq: localized.optional(),
     }),
   ),
 });
@@ -28,7 +27,7 @@ const fileSchema = z.object({
 export type NotificationTemplates = z.infer<typeof fileSchema>["events"];
 export type NotificationLabels = z.infer<typeof fileSchema>["labels"];
 
-/** The labels of seed/notifiche.yaml, for the variables in the recipient's language. */
+/** The labels of seed/notifiche.yaml, for the variables of the texts. */
 export function loadNotificationLabels(
   repoRoot: string = findRepoRoot(import.meta.dirname),
 ): NotificationLabels {
@@ -36,10 +35,10 @@ export function loadNotificationLabels(
     .labels;
 }
 
-export function label(labels: NotificationLabels, key: string, locale: "it" | "sq"): string {
+export function label(labels: NotificationLabels, key: string): string {
   const entry = labels[key];
   if (!entry) throw new Error(`No label ${key}`);
-  return (locale === "sq" ? entry.sq : undefined) ?? entry.it;
+  return entry.it;
 }
 
 /**
@@ -61,9 +60,9 @@ export class MissingTemplateVariableError extends Error {
 }
 
 /**
- * A variable of a text: already a string, or a value the engine formats in the
- * recipient's language (docs/notifiche.md): an amount in cents, a date, a
- * moment, a label of a list (seed/notifiche.yaml «labels»).
+ * A variable of a text: already a string, or a value the engine formats
+ * (docs/notifiche.md): an amount in cents, a date, a moment, a label of a list
+ * (seed/notifiche.yaml «labels»).
  */
 export type TemplateValue =
   string | { cents: number } | { date: string } | { dateTime: string } | { label: string };
@@ -71,16 +70,15 @@ export type TemplateValue =
 export type TemplateVariables = Readonly<Record<string, TemplateValue>>;
 
 export interface RenderContext {
-  locale: "it" | "sq";
   labels?: NotificationLabels;
 }
 
 function formatted(value: TemplateValue, ctx: RenderContext): string {
   if (typeof value === "string") return value;
-  if ("cents" in value) return formatEuroCents(value.cents, ctx.locale);
-  if ("date" in value) return formatDate(value.date, ctx.locale);
-  if ("dateTime" in value) return formatNotificationDateTime(value.dateTime, ctx.locale);
-  return ctx.labels ? label(ctx.labels, value.label, ctx.locale) : value.label;
+  if ("cents" in value) return formatEuroCents(value.cents);
+  if ("date" in value) return formatDate(value.date);
+  if ("dateTime" in value) return formatNotificationDateTime(value.dateTime);
+  return ctx.labels ? label(ctx.labels, value.label) : value.label;
 }
 
 /**
@@ -91,7 +89,7 @@ function formatted(value: TemplateValue, ctx: RenderContext): string {
 export function render(
   template: string,
   variables: TemplateVariables,
-  ctx: RenderContext = { locale: "it" },
+  ctx: RenderContext = {},
 ): string {
   return template
     .split("\n")
@@ -108,21 +106,19 @@ export function render(
     .join("\n");
 }
 
-function textsOf(templates: NotificationTemplates, eventKey: string, locale: "it" | "sq") {
-  const event = templates[eventKey];
-  return (locale === "sq" ? event?.sq : undefined) ?? event?.it;
+function textsOf(templates: NotificationTemplates, eventKey: string) {
+  return templates[eventKey]?.it;
 }
 
 export function renderEmail(
   templates: NotificationTemplates,
   eventKey: string,
-  locale: "it" | "sq",
   variables: TemplateVariables,
   labels?: NotificationLabels,
 ): { subject: string; text: string } {
-  const texts = textsOf(templates, eventKey, locale);
+  const texts = textsOf(templates, eventKey);
   if (!texts?.emailSubject || !texts.emailBody) throw new Error(`No email text for ${eventKey}`);
-  const ctx = { locale, ...(labels ? { labels } : {}) };
+  const ctx = labels ? { labels } : {};
   return {
     subject: render(texts.emailSubject, variables, ctx),
     text: render(texts.emailBody, variables, ctx).trim(),
@@ -132,13 +128,12 @@ export function renderEmail(
 export function renderInApp(
   templates: NotificationTemplates,
   eventKey: string,
-  locale: "it" | "sq",
   variables: TemplateVariables,
   labels?: NotificationLabels,
 ): { title: string; body: string } {
-  const texts = textsOf(templates, eventKey, locale);
+  const texts = textsOf(templates, eventKey);
   if (!texts?.title || !texts.body) throw new Error(`No in-app text for ${eventKey}`);
-  const ctx = { locale, ...(labels ? { labels } : {}) };
+  const ctx = labels ? { labels } : {};
   return { title: render(texts.title, variables, ctx), body: render(texts.body, variables, ctx) };
 }
 
@@ -146,20 +141,18 @@ export function renderSms(
   templates: NotificationTemplates,
   eventKey: string,
   variables: TemplateVariables,
-  locale: "it" | "sq" = "it",
 ): string {
-  const text = textsOf(templates, eventKey, locale)?.sms ?? templates[eventKey]?.it.sms;
+  const text = textsOf(templates, eventKey)?.sms;
   if (!text) throw new Error(`No SMS text for ${eventKey}`);
-  return render(text, variables, { locale });
+  return render(text, variables);
 }
 
 /** The push: the in-app title and body (docs/notifiche.md, «push» channel). */
 export function renderPush(
   templates: NotificationTemplates,
   eventKey: string,
-  locale: "it" | "sq",
   variables: TemplateVariables,
   labels?: NotificationLabels,
 ): { title: string; body: string } {
-  return renderInApp(templates, eventKey, locale, variables, labels);
+  return renderInApp(templates, eventKey, variables, labels);
 }

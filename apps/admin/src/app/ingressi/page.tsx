@@ -1,6 +1,6 @@
 import { formatDateTime } from "@astax/shared/format";
 import { Badge, Card } from "@astax/ui";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -27,7 +27,6 @@ export default async function OnboardingQueuePage({
 }) {
   const viewer = await requireViewer();
   const t = await getTranslations("onboardingQueue");
-  const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const query = await searchParams;
   const status = STATUSES.find((s) => s === query.stato) ?? "SUBMITTED";
   const { status: code, body } = await api<Row[]>(`/back-office/onboarding?status=${status}`);
@@ -72,9 +71,7 @@ export default async function OnboardingQueuePage({
               </div>
               <p className="text-sm text-warm-600">
                 {t(`types.${r.type}`)} · {t("rui", { number: r.ruiNumber })}
-                {r.submittedAt
-                  ? ` · ${t("sentAt", { at: formatDateTime(r.submittedAt, locale) })}`
-                  : ""}
+                {r.submittedAt ? ` · ${t("sentAt", { at: formatDateTime(r.submittedAt) })}` : ""}
               </p>
             </Card>
           ))}

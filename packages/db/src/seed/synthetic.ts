@@ -7,7 +7,6 @@ import {
 } from "@astax/shared/domain";
 import type { DbTransaction } from "../client.js";
 import type {
-  Locale,
   MembershipRole,
   OrganizationType,
   UserKind,
@@ -27,7 +26,6 @@ export interface SyntheticUser {
   lastName: string;
   email: string;
   phone: string;
-  locale: Locale;
 }
 
 export interface SyntheticOrganization {
@@ -148,7 +146,6 @@ function user(
   firstName: string,
   lastName: string,
   domain: string,
-  locale: Locale = "it",
 ): SyntheticUser {
   return {
     key,
@@ -157,7 +154,6 @@ function user(
     lastName,
     email: `${slug(firstName)}.${slug(lastName)}@${domain}`,
     phone: nextPhone(),
-    locale,
   };
 }
 
@@ -191,7 +187,7 @@ function buildDataset() {
   ];
 
   const users: SyntheticUser[] = [
-    user("bo-verifier", "STAFF", "Arta", "Hoxha", "astax.test", "sq"),
+    user("bo-verifier", "STAFF", "Arta", "Hoxha", "astax.test"),
     user("bo-support", "STAFF", "Chiara", "Lodi", "astax.test"),
     user("bo-accounting", "STAFF", "Fabio", "Serra", "astax.test"),
     user("bo-supervisor", "STAFF", "Ilaria", "Volpe", "astax.test"),
@@ -350,7 +346,6 @@ export async function seedSynthetic(
         emailHash: cipher.blindIndex("email", u.email),
         phoneEnc: cipher.encrypt(u.phone),
         phoneHash: cipher.blindIndex("phone", u.phone),
-        locale: u.locale,
         personId: deterministicUuid(seed, `person:${u.key}`),
       },
       update: {},

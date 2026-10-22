@@ -111,20 +111,17 @@ export class BatchSchedulerService implements OnApplicationBootstrap, OnApplicat
           [
             {
               userId: user.id,
-              locale: user.locale === "sq" ? "sq" : "it",
               email: user.emailEnc ? this.cipher.decrypt(user.emailEnc) : null,
               phone: null,
             },
           ],
           "batch.documents_due",
-          (locale) => ({
+          () => ({
             cliente: person
               ? (person.companyName ?? `${person.givenName ?? ""} ${person.surname ?? ""}`.trim())
               : "",
             veicolo: request.plate ?? "",
-            data_asta: request.scheduledSubmitAt
-              ? formatDate(request.scheduledSubmitAt, locale)
-              : "",
+            data_asta: request.scheduledSubmitAt ? formatDate(request.scheduledSubmitAt) : "",
             link: `${this.config.WEB_URL}/richieste/${request.id}/dati`,
           }),
           `/richieste/${request.id}/dati`,

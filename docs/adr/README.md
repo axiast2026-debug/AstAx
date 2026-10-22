@@ -24,5 +24,6 @@ ADR attesi:
 | 0014 | Lotti dei broker: file Excel, richieste programmate, documenti a tempo | dopo la 8 |
 | 0015 | L'agenzia che chiede preventivi per i suoi clienti | dopo la 8 |
 | 0016 | I dati veri nella home pubblica | dopo la 8 |
+| 0017 | AstAx solo in italiano, anche nel back office | dopo la 8 |
 
 I numeri seguono l'ordine in cui le decisioni vengono prese: la 0003 e la 0004 sono arrivate in fase 1, prima di quelle previste.

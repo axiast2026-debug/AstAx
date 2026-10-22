@@ -31,11 +31,6 @@ enum UserStatus {
   BLOCKED
 }
 
-enum Locale {
-  it
-  sq
-}
-
 model User {
   id         String     @id @default(uuid(7)) @db.Uuid
   keycloakId String?    @unique
@@ -46,7 +41,6 @@ model User {
   emailHash  String?    @unique
   phoneEnc   String?
   phoneHash  String?
-  locale     Locale     @default(it)
   status     UserStatus @default(ACTIVE)
   /// Natural person behind the account (OFF-02); the Person table arrives in phase 2.
   personId   String?    @db.Uuid
@@ -282,7 +276,6 @@ model ListValue {
   listKey   String
   code      String
   labelIt   String
-  labelSq   String
   active    Boolean  @default(true)
   sortOrder Int
   createdAt DateTime @default(now()) @db.Timestamptz(3)
@@ -311,7 +304,6 @@ model ExclusionRule {
   condition        Json?
   blockingInWizard Boolean
   messageIt        String
-  messageSq        String
   active           Boolean  @default(true)
   /// The version in force (phase 7): every change keeps a copy in ExclusionRuleVersion.
   version          Int      @default(1)
@@ -327,7 +319,6 @@ model ExclusionRuleVersion {
   condition        Json?
   blockingInWizard Boolean
   messageIt        String
-  messageSq        String
   active           Boolean
   reason           String?
   changedByUserId  String?  @db.Uuid
@@ -354,7 +345,6 @@ model CoveragePackageVersion {
   requirements    Json
   customerTextIt  String
   /// Phase 7: the text in Albanian, for the back office.
-  customerTextSq  String?
   validFrom       DateTime        @db.Timestamptz(3)
   reason          String?
   changedByUserId String?         @db.Uuid
@@ -369,7 +359,6 @@ model Holiday {
   date      DateTime @unique @db.Date
   name      String
   /// Phase 7: the name in Albanian, for the back office.
-  nameSq    String?
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @default(now()) @db.Timestamptz(3)
 }
@@ -1896,7 +1885,7 @@ model NotificationTemplate {
   mandatory       Boolean               @default(false)
   forcePush       Boolean               @default(false)
   variables       String[]              @default([])
-  /// { it: { title, body, emailSubject, emailBody, sms }, sq?: {…} }
+  /// { it: { title, body, emailSubject, emailBody, sms } }
   content         Json
   reason          String?
   changedByUserId String?               @db.Uuid
@@ -2145,7 +2134,6 @@ model SupportTicket {
   status           SupportTicketStatus @default(OPEN)
   /// Where the replies go (encrypted); none for a phone call.
   contactEmailEnc  String?
-  locale           Locale              @default(it)
   customerId       String?             @db.Uuid
   quoteRequestId   String?             @db.Uuid
   assignedToUserId String?             @db.Uuid
@@ -2202,7 +2190,6 @@ model Complaint {
   complainantUserId   String?           @db.Uuid
   complainantName     String
   complainantEmailEnc String?
-  complainantLocale   Locale            @default(it)
   customerId          String?           @db.Uuid
   quoteRequestId      String?           @db.Uuid
   /// The intermediary concerned: an agency or a broker; null for AstAx itself.

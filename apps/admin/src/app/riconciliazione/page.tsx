@@ -1,7 +1,7 @@
 import { formatDate, formatEuroCents } from "@astax/shared/format";
 import { can } from "@astax/shared/permissions";
 import { Button, Card, CardTitle } from "@astax/ui";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -55,7 +55,6 @@ export default async function ReconciliationPage({
   const viewer = await requireViewer();
   if (!can(viewer.actor, "accounting.view")) notFound();
   const t = await getTranslations("reconciliation");
-  const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const query = await searchParams;
   const status = STATUSES.find((s) => s === query.stato) ?? "UNMATCHED";
   const manage = can(viewer.actor, "payment.reconcile");
@@ -66,7 +65,7 @@ export default async function ReconciliationPage({
       ? await api<Day[]>(`/back-office/reconciliation/daily?from=${query.da}&to=${query.a}`)
       : null;
   if (lines.status !== 200) notFound();
-  const money = (cents: number) => formatEuroCents(cents, locale);
+  const money = (cents: number) => formatEuroCents(cents);
 
   return (
     <AppShell viewer={viewer}>
@@ -117,7 +116,7 @@ export default async function ReconciliationPage({
           <Card key={l.id}>
             <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
               <span className="font-semibold">
-                {formatDate(l.bookingDate, locale)} · {money(l.amountCents)}
+                {formatDate(l.bookingDate)} · {money(l.amountCents)}
               </span>
               <span className="text-warm-600">{l.reference ?? ""}</span>
             </div>
@@ -216,7 +215,7 @@ export default async function ReconciliationPage({
               <tbody className="divide-y divide-warm-200">
                 {balance.body.map((d) => (
                   <tr key={d.day}>
-                    <td className="py-2 pr-3">{formatDate(d.day, locale)}</td>
+                    <td className="py-2 pr-3">{formatDate(d.day)}</td>
                     <td className="py-2 pr-3">{money(d.creditsCents)}</td>
                     <td className="py-2 pr-3">{money(d.matchedCents)}</td>
                     <td className="py-2 pr-3">{money(d.capturedCents)}</td>

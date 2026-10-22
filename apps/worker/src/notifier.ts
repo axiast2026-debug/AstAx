@@ -29,7 +29,6 @@ import {
 
 export interface Recipient {
   userId: string;
-  locale: "it" | "sq";
   /** Decrypted only to send; never logged (rule 8). */
   email: string | null;
 }
@@ -40,7 +39,6 @@ interface PendingMail {
   to: string;
   eventKey: string;
   variables: TemplateVariables;
-  locale: "it" | "sq";
   ids: Record<string, string>;
   /** Phase 8: the row of MessageOutbox written in the activity's transaction. */
   outboxId?: string;
@@ -98,8 +96,8 @@ export class WorkerNotifier {
   }
 
   /** A label of seed/notifiche.yaml in the recipient's language (no text in the code). */
-  label(key: string, locale: "it" | "sq"): string {
-    return label(this.#labels, key, locale);
+  label(key: string): string {
+    return label(this.#labels, key);
   }
 
   hasEmail(eventKey: string): boolean {
@@ -107,11 +105,11 @@ export class WorkerNotifier {
   }
 
   /** Rendered texts of the file, for the tests on what agencies receive. */
-  render(eventKey: string, locale: "it" | "sq", variables: TemplateVariables) {
+  render(eventKey: string, variables: TemplateVariables) {
     return {
-      inApp: renderInApp(this.#file, eventKey, locale, variables, this.#labels),
+      inApp: renderInApp(this.#file, eventKey, variables, this.#labels),
       email: this.hasEmail(eventKey)
-        ? renderEmail(this.#file, eventKey, locale, variables, this.#labels)
+        ? renderEmail(this.#file, eventKey, variables, this.#labels)
         : null,
     };
   }
@@ -121,7 +119,7 @@ export class WorkerNotifier {
     pending: PendingEmail[],
     recipients: readonly Recipient[],
     eventKey: string,
-    variables: (locale: "it" | "sq") => TemplateVariables,
+    variables: () => TemplateVariables,
     link: string | null,
     ids: Record<string, string>,
   ): Promise<void> {
@@ -137,7 +135,6 @@ export class WorkerNotifier {
         template,
         recipients.map((r) => ({
           userId: r.userId,
-          locale: r.locale,
           email: r.email,
           phone: null,
         })),
@@ -151,7 +148,7 @@ export class WorkerNotifier {
           data: plan.inApp.map((r) => ({
             userId: r.userId,
             eventKey,
-            ...renderInApp(texts, eventKey, r.locale, variables(r.locale), this.#labels),
+            ...renderInApp(texts, eventKey, variables(), this.#labels),
             link,
             payload: ids,
           })),
@@ -162,16 +159,15 @@ export class WorkerNotifier {
       await this.queueEmail(tx, pending, {
         to: r.email ?? "",
         eventKey,
-        variables: variables(r.locale),
-        locale: r.locale,
+        variables: variables(),
         ids,
       });
     }
     const cipher = this.options.cipher;
     if (!cipher) return;
-    for (const { user, subscriptions } of plan.push) {
+    for (const { subscriptions } of plan.push) {
       const message = {
-        ...renderPush(texts, eventKey, user.locale, variables(user.locale), this.#labels),
+        ...renderPush(texts, eventKey, variables(), this.#labels),
         url: link ?? "/notifiche",
       };
       for (const enc of subscriptions) {
@@ -215,7 +211,7 @@ export class WorkerNotifier {
           channel: "EMAIL",
           email: {
             to: mail.to,
-            ...renderEmail(texts, mail.eventKey, mail.locale, mail.variables, this.#labels),
+            ...renderEmail(texts, mail.eventKey, mail.variables, this.#labels),
           },
         },
         { eventKey: mail.eventKey, ids: mail.ids },
@@ -234,7 +230,7 @@ export class WorkerNotifier {
         } else {
           await this.email.send({
             to: p.to,
-            ...renderEmail(texts, p.eventKey, p.locale, p.variables, this.#labels),
+            ...renderEmail(texts, p.eventKey, p.variables, this.#labels),
           });
         }
       } catch (error) {

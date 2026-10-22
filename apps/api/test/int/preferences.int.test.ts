@@ -5,7 +5,7 @@ import { requestHelpers, type Who } from "./request-helpers.js";
 
 // Phase 7, docs/notifiche.md: the choices per event and channel are
 // respected; a mandatory notification cannot be switched off; the push reaches
-// the browsers subscribed; the back office gets the texts in Albanian.
+// the browsers subscribed; the back office gets the texts in Italian (ADR 0017).
 let h: Harness;
 let r: ReturnType<typeof requestHelpers>;
 const system = <T>(work: Parameters<typeof withContext<T>>[2]) =>
@@ -123,24 +123,15 @@ describe("phase 7 the notification preferences", () => {
     expect(refused.errors[0]?.issue).toBe("MANDATORY");
   });
 
-  it("the back office in Albanian gets the texts in Albanian", async () => {
-    await system((tx) =>
-      tx.user.update({ where: { id: userId("bo-verifier") }, data: { locale: "sq" } }),
+  it("the back office gets the texts in Italian, the only language (ADR 0017)", async () => {
+    await r.submittedPrivateRequest(customer, EMAIL);
+    const note = await system((tx) =>
+      tx.notification.findFirst({
+        where: { userId: userId("bo-verifier"), eventKey: "request.submitted.bo" },
+        orderBy: { createdAt: "desc" },
+      }),
     );
-    try {
-      await r.submittedPrivateRequest(customer, EMAIL);
-      const note = await system((tx) =>
-        tx.notification.findFirst({
-          where: { userId: userId("bo-verifier"), eventKey: "request.submitted.bo" },
-          orderBy: { createdAt: "desc" },
-        }),
-      );
-      expect(note?.title).toBe("Kërkesë e re për verifikim");
-    } finally {
-      await system((tx) =>
-        tx.user.update({ where: { id: userId("bo-verifier") }, data: { locale: "it" } }),
-      );
-    }
+    expect(note?.title).toBe("Nuova richiesta da verificare");
   });
 
   it("read all: the counter goes to zero", async () => {

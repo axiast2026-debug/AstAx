@@ -1,45 +1,37 @@
 # Testi delle notifiche di AstAx.
 # Regole, destinatari e canali: docs/notifiche.md.
 # Campi: title e body valgono per in app e push; emailSubject ed emailBody per l'email; sms per l'SMS.
-# Variabili tra doppie graffe, già formattate dal motore (importi, date nel fuso di Roma, etichette nella lingua del destinatario).
-# Le versioni in albanese (sq) servono al back office: vanno rilette da un madrelingua prima del lancio.
+# Variabili tra doppie graffe, già formattate dal motore (importi, date nel fuso di Roma, etichette).
+# Solo italiano: AstAx non ha altre lingue (ADR 0017).
 
 schemaVersion: 1
 
-# Etichette che il motore mette nelle variabili, nella lingua del destinatario.
+# Etichette che il motore mette nelle variabili.
 labels:
-  offerStatus.valid: { it: "valida", sq: "e vlefshme" }
-  offerStatus.excluded: { it: "esclusa", sq: "e përjashtuar" }
+  offerStatus.valid: { it: "valida" }
+  offerStatus.excluded: { it: "esclusa" }
   offerExclusion.generic:
     it: "Le coperture o i dati dichiarati non rispettano la richiesta."
-    sq: "Mbulimet ose të dhënat e deklaruara nuk përputhen me kërkesën."
-  offerExclusion.none: { it: "", sq: "" }
-  guarantee.none: { it: "—", sq: "—" }
+  offerExclusion.none: { it: "" }
+  guarantee.none: { it: "—" }
   # Domanda 1: la decorrenza quando non è una data scelta (prima del pagamento o dell'emissione).
   startMode.ON_ISSUANCE:
     it: "immediata, dal momento dell'emissione"
-    sq: "menjëherë, nga momenti i lëshimit"
   startMode.MIDNIGHT_AFTER_DEADLINE:
     it: "dalle 24:00 del giorno del termine di emissione"
-    sq: "nga ora 24:00 e ditës së afatit të lëshimit"
-  offerQuote.fileName: { it: "preventivo.pdf", sq: "oferta.pdf" }
+  offerQuote.fileName: { it: "preventivo.pdf" }
   renewal.autoDraftReady:
     it: "Rinnovo automatico attivo: la bozza è pronta, manca solo il nuovo attestato."
-    sq: "Rinovimi automatik aktiv: drafti është gati, mungon vetëm dëshmia e re."
   renewal.autoOff:
     it: "Puoi preparare il rinnovo con i dati già salvati."
-    sq: "Mund ta përgatitësh rinovimin me të dhënat e ruajtura."
-  organizationType.AGENCY: { it: "Agenzia", sq: "Agjenci" }
-  organizationType.BROKER: { it: "Broker", sq: "Broker" }
+  organizationType.AGENCY: { it: "Agenzia" }
+  organizationType.BROKER: { it: "Broker" }
   onboarding.nextStep.new:
     it: "Riceverete a parte un'email per scegliere la password e attivare il secondo fattore."
-    sq: "Do të merrni veçmas një email për të zgjedhur fjalëkalimin dhe për të aktivizuar faktorin e dytë."
   onboarding.nextStep.existing:
     it: "Accedete con il vostro account e scegliete la nuova organizzazione."
-    sq: "Hyni me llogarinë tuaj dhe zgjidhni organizatën e re."
   invoice.brokerLine:
     it: "Fee AstAx sulle polizze acquistate fino al mese"
-    sq: "Tarifa AstAx për policat e blera deri në muajin"
 
 events:
 
@@ -66,10 +58,6 @@ events:
     it:
       title: "Nuova richiesta da verificare"
       body: "{{codice}} · {{canale}} · {{veicolo}}. Controllo automatico: {{esito_auto}}."
-    sq:
-      title: "Kërkesë e re për verifikim"
-      body: "{{codice}} · {{canale}} · {{veicolo}}. Kontrolli automatik: {{esito_auto}}."
-
   request.integration_requested:
     recipients: [requester]
     channels: [in_app, push, email]
@@ -235,14 +223,6 @@ events:
       emailBody: |
         La richiesta {{codice}} ({{veicolo}}) è deserta anche dopo la riapertura automatica.
         Decidi se aprire una nuova asta con filtri più ampi o chiudere con un avviso al cliente: {{link}}
-    sq:
-      title: "Ankand pa oferta: {{codice}}"
-      body: "Asnjë ofertë e vlefshme edhe pas rihapjes. Vendos nëse do të hapësh një ankand të ri apo do të njoftosh klientin."
-      emailSubject: "Ankand pa oferta: {{codice}}"
-      emailBody: |
-        Kërkesa {{codice}} ({{veicolo}}) mbeti pa oferta edhe pas rihapjes automatike.
-        Vendos nëse do të hapësh një ankand të ri me filtra më të gjerë apo do ta mbyllësh me një njoftim për klientin: {{link}}
-
   offer.quote_mismatch.bo:
     recipients: [bo_verifiers, bo_supervisors]
     channels: [in_app, email]
@@ -255,14 +235,6 @@ events:
       emailBody: |
         Alla chiusura della richiesta {{codice}}, {{numero}} preventivi PDF non corrispondono all'offerta dichiarata.
         Controllali e decidi se escludere l'offerta, finché il cliente non ha accettato: {{link}}
-    sq:
-      title: "Oferta për t'u kontrolluar: {{codice}}"
-      body: "{{numero}} oferta PDF nuk përputhen me ofertën e deklaruar."
-      emailSubject: "Oferta për t'u kontrolluar: {{codice}}"
-      emailBody: |
-        Në mbylljen e kërkesës {{codice}}, {{numero}} oferta PDF nuk përputhen me ofertën e deklaruar.
-        Kontrolloji dhe vendos nëse e përjashton ofertën, para se klienti ta pranojë: {{link}}
-
   offer.excluded_after_review:
     recipients: [participating_agency_users]
     channels: [in_app, email]
@@ -304,14 +276,6 @@ events:
       emailBody: |
         La richiesta {{codice}} non ha più offerte valide dopo l'esclusione dell'ultima ed è «Deserta».
         Da qui puoi aprire una nuova asta o chiudere la richiesta: {{link}}
-    sq:
-      title: "Kërkesë pa oferta pas një përjashtimi"
-      body: "Kërkesa {{codice}} nuk ka më oferta të vlefshme."
-      emailSubject: "Kërkesa {{codice}} pa oferta pas një përjashtimi"
-      emailBody: |
-        Kërkesa {{codice}} nuk ka më oferta të vlefshme pas përjashtimit të së fundit.
-        Mund të hapësh një ankand të ri ose ta mbyllësh kërkesën: {{link}}
-
   guarantee.expiring:
     recipients: [requester]
     channels: [in_app, push, email]
@@ -464,10 +428,6 @@ events:
     it:
       title: "Polizza da emettere: {{codice}}"
       body: "Pagamento confermato. {{agenzia}} deve emettere entro {{termine_emissione}}."
-    sq:
-      title: "Policë për t'u lëshuar: {{codice}}"
-      body: "Pagesa u konfirmua. {{agenzia}} duhet ta lëshojë deri më {{termine_emissione}}."
-
   ranking.available:
     recipients: [participating_agency_users]
     channels: [in_app, email]
@@ -516,10 +476,6 @@ events:
     it:
       title: "Termine di emissione vicino: {{codice}}"
       body: "{{agenzia}} non ha ancora emesso. Termine: {{termine_emissione}}."
-    sq:
-      title: "Afati i lëshimit po afron: {{codice}}"
-      body: "{{agenzia}} nuk e ka lëshuar ende policën. Afati: {{termine_emissione}}."
-
   issuance.deadline_passed:
     recipients: [winning_agency_users]
     channels: [in_app, push, email]
@@ -544,14 +500,6 @@ events:
       emailBody: |
         {{agenzia}} non ha emesso la polizza della richiesta {{codice}} entro {{termine_emissione}}. È stata proposta la penale per ritardo.
         Decorrenza: {{decorrenza}}. Se la polizza non arriva in tempo, apri la mancata emissione: {{link}}
-    sq:
-      title: "Afati i lëshimit ka kaluar: {{codice}}"
-      body: "{{agenzia}} nuk e lëshoi policën brenda {{termine_emissione}}. Data e fillimit: {{decorrenza}}."
-      emailSubject: "Afati i lëshimit ka kaluar: {{codice}}"
-      emailBody: |
-        {{agenzia}} nuk e lëshoi policën e kërkesës {{codice}} brenda {{termine_emissione}}. U propozua gjoba për vonesë.
-        Data e fillimit: {{decorrenza}}. Nëse polica nuk lëshohet në kohë, hap rastin e moslëshimit: {{link}}
-
   issuance.missed.bo:
     recipients: [bo_verifiers, bo_supervisors]
     channels: [in_app, email]
@@ -563,14 +511,6 @@ events:
       emailBody: |
         {{agenzia}} non ha emesso la polizza della richiesta {{codice}} prima della decorrenza ({{decorrenza}}).
         Apri il caso e decidi di chi è la colpa: {{link}}
-    sq:
-      title: "Moslëshim: {{codice}}"
-      body: "{{agenzia}} nuk e lëshoi policën para datës së fillimit ({{decorrenza}}). Vendos kush e ka fajin."
-      emailSubject: "Moslëshim: {{codice}}"
-      emailBody: |
-        {{agenzia}} nuk e lëshoi policën e kërkesës {{codice}} para datës së fillimit ({{decorrenza}}).
-        Hap rastin dhe vendos kush e ka fajin: {{link}}
-
   issuance.problem_reported.bo:
     recipients: [bo_verifiers, bo_supervisors]
     channels: [in_app, email]
@@ -583,15 +523,6 @@ events:
         {{agenzia}} segnala un problema sulla richiesta {{codice}}: {{tipo_problema}}.
         {{descrizione}}
         Apri il caso e decidi come procedere: {{link}}
-    sq:
-      title: "Problem me lëshimin: {{codice}}"
-      body: "{{agenzia}} sinjalizon: {{tipo_problema}}."
-      emailSubject: "Problem me lëshimin: {{codice}}"
-      emailBody: |
-        {{agenzia}} sinjalizon një problem për kërkesën {{codice}}: {{tipo_problema}}.
-        {{descrizione}}
-        Hap rastin dhe vendos si të veprosh: {{link}}
-
   issuance.second_offer_proposed:
     recipients: [requester, broker_client]
     channels: [in_app, push, email, sms]
@@ -669,10 +600,6 @@ events:
     it:
       title: "Polizza emessa: {{codice}}"
       body: "{{agenzia}} ha emesso la polizza {{numero_polizza}}."
-    sq:
-      title: "Polica u lëshua: {{codice}}"
-      body: "{{agenzia}} lëshoi policën {{numero_polizza}}."
-
   # ---------------------------------------------------------------- Contabilità e penali
 
   remittance.executed:
@@ -775,15 +702,6 @@ events:
         {{richiedente_rimborso}} chiede un rimborso di {{importo}} sulla richiesta {{codice}}.
         Motivo: {{motivo}}
         Approva o respingi: {{link}}
-    sq:
-      title: "Rimbursim për miratim: {{codice}}"
-      body: "{{importo}}. Arsyeja: {{motivo}}. Kërkuar nga {{richiedente_rimborso}}."
-      emailSubject: "Rimbursim për miratim: {{codice}}"
-      emailBody: |
-        {{richiedente_rimborso}} kërkon një rimbursim prej {{importo}} për kërkesën {{codice}}.
-        Arsyeja: {{motivo}}
-        Mirato ose refuzo: {{link}}
-
   withdrawal.requested.agency:
     recipients: [agency_owner]
     channels: [in_app, email]
@@ -890,14 +808,6 @@ events:
       emailBody: |
         {{organizzazione}} ({{tipo_organizzazione}}, RUI {{numero_rui}}) ha chiesto di entrare su AstAx.
         Verifica dati, mandati, RC professionale e contratti firmati: {{link}}
-    sq:
-      title: "Kërkesë e re për anëtarësim: {{organizzazione}}"
-      body: "{{tipo_organizzazione}}, RUI {{numero_rui}}. Verifiko të dhënat, mandatet, sigurimin e përgjegjësisë profesionale dhe kontratat."
-      emailSubject: "Kërkesë e re për anëtarësim: {{organizzazione}}"
-      emailBody: |
-        {{organizzazione}} ({{tipo_organizzazione}}, RUI {{numero_rui}}) ka kërkuar të anëtarësohet në AstAx.
-        Verifiko të dhënat, mandatet, sigurimin e përgjegjësisë profesionale dhe kontratat e nënshkruara: {{link}}
-
   onboarding.approved:
     recipients: [organization_owner]
     channels: [in_app, email]
@@ -960,13 +870,6 @@ events:
       emailSubject: "AstAx: {{titolo}}"
       emailBody: |
         {{testo}}
-    sq:
-      title: "{{titolo}}"
-      body: "{{testo}}"
-      emailSubject: "AstAx: {{titolo}}"
-      emailBody: |
-        {{testo}}
-
   # ---------------------------------------------------------------- Reclami e segnalazioni
 
   complaint.received:
@@ -1005,14 +908,6 @@ events:
       emailBody: |
         È arrivato un nuovo reclamo, protocollo {{protocollo}}, ricevuto il {{data}}.
         La risposta va data entro il {{scadenza}}: {{link}}
-    sq:
-      title: "Ankesë e re: protokolli {{protocollo}}"
-      body: "Marrë më {{data}}. Përgjigja deri më {{scadenza}}."
-      emailSubject: "Ankesë e re: protokolli {{protocollo}}"
-      emailBody: |
-        Ka mbërritur një ankesë e re, protokolli {{protocollo}}, e marrë më {{data}}.
-        Përgjigja duhet dhënë deri më {{scadenza}}: {{link}}
-
   # Fase 8, BC-03: il controllo notturno ha trovato decifrature della busta chiusa fuori regola.
   security.kms_anomaly.admin:
     recipients: [admins]
@@ -1026,14 +921,6 @@ events:
       emailBody: |
         Il controllo notturno delle chiavi ha trovato {{numero}} decifrature della busta chiusa fuori regola (prima della chiusura, da un processo non autorizzato o senza asta).
         I dettagli sono nel registro attività: {{link}}
-    sq:
-      title: "Alarm sigurie: zarfi i mbyllur"
-      body: "Kontrolli i natës gjeti {{numero}} deshifrime jashtë rregullit. Kontrollo regjistrin e aktivitetit."
-      emailSubject: "Alarm sigurie AstAx: zarfi i mbyllur"
-      emailBody: |
-        Kontrolli i natës i çelësave gjeti {{numero}} deshifrime të zarfit të mbyllur jashtë rregullit (para mbylljes, nga një proces i paautorizuar ose pa ankand).
-        Detajet janë në regjistrin e aktivitetit: {{link}}
-
   complaint.due_soon.bo:
     recipients: [bo_supervisors]
     channels: [in_app, email]
@@ -1044,13 +931,6 @@ events:
       emailSubject: "Reclamo in scadenza: {{protocollo}}"
       emailBody: |
         Mancano {{giorni}} giorni alla scadenza della risposta al reclamo {{protocollo}} ({{scadenza}}): {{link}}
-    sq:
-      title: "Ankesë që po skadon: {{protocollo}}"
-      body: "Mbeten {{giorni}} ditë deri në afatin e përgjigjes ({{scadenza}})."
-      emailSubject: "Ankesë që po skadon: {{protocollo}}"
-      emailBody: |
-        Mbeten {{giorni}} ditë deri në afatin e përgjigjes për ankesën {{protocollo}} ({{scadenza}}): {{link}}
-
   flag.new.bo:
     recipients: [bo_supervisors]
     channels: [in_app, email]
@@ -1062,14 +942,6 @@ events:
       emailBody: |
         Nuova segnalazione di {{tipo_segnalazione}} sulla richiesta {{codice}}. Fonte: {{fonte}}.
         Controlla il registro degli accessi alla richiesta e decidi l'esito: {{link}}
-    sq:
-      title: "Sinjalizim i ri: {{tipo_segnalazione}}"
-      body: "Kërkesa {{codice}}. Burimi: {{fonte}}."
-      emailSubject: "Sinjalizim i ri: {{tipo_segnalazione}}"
-      emailBody: |
-        Sinjalizim i ri për {{tipo_segnalazione}} në kërkesën {{codice}}. Burimi: {{fonte}}.
-        Kontrollo regjistrin e aksesit në kërkesë dhe vendos rezultatin: {{link}}
-
   # Phase 7: the reply of the support to a ticket, by email («Assistenza»).
   support.reply:
     recipients: [affected_users]
@@ -1082,9 +954,3 @@ events:
         {{testo}}
 
         Per rispondere, scrivi citando il codice {{codice}}.
-    sq:
-      emailSubject: "AstAx asistenca: kërkesa {{codice}}"
-      emailBody: |
-        {{testo}}
-
-        Për t'u përgjigjur, shkruaj duke përmendur kodin {{codice}}.

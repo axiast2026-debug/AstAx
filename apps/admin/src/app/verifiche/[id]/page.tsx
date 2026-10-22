@@ -1,6 +1,6 @@
 import { formatDateTime } from "@astax/shared/format";
 import { Badge, Button, Card, CardTitle, cn } from "@astax/ui";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import { AppShell } from "@/components/app-shell";
 import { CompletionForm } from "@/components/completion-form";
 import { api } from "@/lib/auth";
@@ -58,7 +58,6 @@ export default async function VerificationCardPage({
 }) {
   const viewer = await requireViewer();
   const t = await getTranslations("verification");
-  const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const { id } = await params;
   const query = await searchParams;
   const card = await verificationCard(id);
@@ -110,7 +109,7 @@ export default async function VerificationCardPage({
           <select id="exclude-reason" name="reasonCode" required className={INPUT}>
             {card.reasons.exclusion.map((r) => (
               <option key={r.code} value={r.code}>
-                {r[locale]}
+                {r.it}
               </option>
             ))}
           </select>
@@ -180,7 +179,7 @@ export default async function VerificationCardPage({
                   {t(`documentKinds.${doc.kind}`)}
                   {doc.driverIndex === null ? "" : ` ${doc.driverIndex + 1}`}
                 </a>
-                <span className="ml-2 text-warm-600">{formatDateTime(doc.uploadedAt, locale)}</span>
+                <span className="ml-2 text-warm-600">{formatDateTime(doc.uploadedAt)}</span>
                 {doc.extraction ? (
                   <dl className="mt-2 grid grid-cols-[minmax(0,1fr)_auto_auto] gap-x-3 gap-y-1 text-xs">
                     {Object.entries(doc.extraction.fields).map(([name, f]) => {
@@ -251,7 +250,7 @@ export default async function VerificationCardPage({
               <p className="mt-3 text-sm">
                 {t("consent", {
                   method: t(`consentMethods.${card.consent.method}`),
-                  at: formatDateTime(card.consent.acceptedAt, locale),
+                  at: formatDateTime(card.consent.acceptedAt),
                 })}
               </p>
             ) : null}
@@ -324,7 +323,7 @@ export default async function VerificationCardPage({
 
           {open && !card.quoteData && card.completion ? (
             <>
-              <CompletionForm requestId={card.id} completion={card.completion} locale={locale} />
+              <CompletionForm requestId={card.id} completion={card.completion} />
               {excludeCard}
             </>
           ) : null}
@@ -435,7 +434,7 @@ export default async function VerificationCardPage({
                             value={r.code}
                             className="h-4 w-4"
                           />
-                          {r[locale]}
+                          {r.it}
                         </label>
                       ))}
                     </div>
@@ -546,7 +545,7 @@ export default async function VerificationCardPage({
                   {t("versionLine", {
                     version: v.version,
                     source: t(`sources.${v.source}`),
-                    at: formatDateTime(v.createdAt, locale),
+                    at: formatDateTime(v.createdAt),
                   })}
                   {v.changedFields.length > 0 ? (
                     <span className="ml-2 text-warm-600">{v.changedFields.join(", ")}</span>
@@ -562,7 +561,7 @@ export default async function VerificationCardPage({
               {card.timeline.map((e, i) => (
                 <li key={`${e.type}-${i}`} className="flex gap-3">
                   <time dateTime={e.at} className="w-40 shrink-0 text-warm-600 tabular">
-                    {formatDateTime(e.at, locale)}
+                    {formatDateTime(e.at)}
                   </time>
                   <span>{t(`timelineEvents.${e.type}`)}</span>
                 </li>

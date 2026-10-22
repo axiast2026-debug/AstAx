@@ -1,6 +1,6 @@
 import { formatDateTime } from "@astax/shared/format";
 import { buttonVariants, Card } from "@astax/ui";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { api } from "@/lib/auth";
@@ -28,7 +28,6 @@ export default async function AuditLogPage({
 }) {
   const viewer = await requireViewer();
   const t = await getTranslations("audit");
-  const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const before = (await searchParams).before;
   const query = new URLSearchParams({
     limit: "50",
@@ -59,9 +58,7 @@ export default async function AuditLogPage({
             <tbody className="divide-y divide-warm-200">
               {body.entries.map((e) => (
                 <tr key={e.seq} className="align-top">
-                  <td className="tabular whitespace-nowrap px-4 py-2">
-                    {formatDateTime(e.at, locale)}
-                  </td>
+                  <td className="tabular whitespace-nowrap px-4 py-2">{formatDateTime(e.at)}</td>
                   <td className="px-4 py-2 font-mono text-xs">{e.action}</td>
                   <td className="px-4 py-2 font-mono text-xs">{e.actorUserId ?? t("system")}</td>
                   <td className="px-4 py-2 font-mono text-xs">{e.actorOrganizationId ?? ""}</td>

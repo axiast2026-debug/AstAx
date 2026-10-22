@@ -259,7 +259,7 @@ describe("fase 2: a private request from draft to the verification queue", () =>
     );
     expect(notifications.map((n) => n.userId)).toContain(userId("bo-verifier"));
     expect(notifications.find((n) => n.userId === userId("bo-verifier"))?.title).toBe(
-      "Kërkesë e re për verifikim",
+      "Nuova richiesta da verificare",
     );
   });
 

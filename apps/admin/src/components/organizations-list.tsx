@@ -1,6 +1,6 @@
 import { formatDate, formatDateTime } from "@astax/shared/format";
 import { Badge, Button, Card, CardTitle } from "@astax/ui";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { decideExclusion } from "@/app/organizzazioni/org-actions";
 import { api } from "@/lib/auth";
@@ -26,7 +26,6 @@ const field = "rounded-lg border border-warm-200 px-3 py-2";
 /** Spec 06 «Agenzie e broker»: the list with participation, penalties, flags, documents. */
 export async function OrganizationsList({ q, type }: { q?: string; type?: string }) {
   const t = await getTranslations("organizationsList");
-  const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const params = new URLSearchParams();
   if (q) params.set("q", q);
   if (type === "AGENCY" || type === "BROKER") params.set("type", type);
@@ -97,7 +96,7 @@ export async function OrganizationsList({ q, type }: { q?: string; type?: string
                 <td className="py-2 pr-3">{o.penalties}</td>
                 <td className="py-2 pr-3">{o.openFlags}</td>
                 <td className="py-2">
-                  {o.profInsuranceExpiresOn ? formatDate(o.profInsuranceExpiresOn, locale) : "—"}
+                  {o.profInsuranceExpiresOn ? formatDate(o.profInsuranceExpiresOn) : "—"}
                 </td>
               </tr>
             ))}
@@ -119,7 +118,6 @@ interface Proposal {
 /** Spec 07: the exclusions proposed by the back office, for the administrator. */
 export async function ExclusionProposals() {
   const t = await getTranslations("organizationsList");
-  const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const { status, body } = await api<Proposal[]>("/admin/exclusion-proposals");
   if (status !== 200) return null;
   return (
@@ -139,7 +137,7 @@ export async function ExclusionProposals() {
                   {p.organization}
                 </Link>
                 <p className="text-warm-600">
-                  {formatDateTime(p.createdAt, locale)} · {p.text}
+                  {formatDateTime(p.createdAt)} · {p.text}
                 </p>
                 <form action={decideExclusion} className="mt-2 flex flex-wrap items-end gap-3">
                   <input type="hidden" name="id" value={p.id} />

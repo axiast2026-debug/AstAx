@@ -74,7 +74,6 @@ export class SupportService {
       channel: "EMAIL" | "PHONE" | "CHAT";
       text: string;
       contactEmail: string | null;
-      locale: "it" | "sq";
       customerId: string | null;
       requestCode: string | null;
     },
@@ -107,7 +106,6 @@ export class SupportService {
           subject: input.subject,
           channel: input.channel,
           contactEmailEnc: input.contactEmail ? this.cipher.encrypt(input.contactEmail) : null,
-          locale: input.locale,
           customerId: input.customerId ?? request?.customerId ?? null,
           quoteRequestId: request?.id ?? null,
           assignedToUserId: auth.userId,
@@ -181,7 +179,6 @@ export class SupportService {
         subject: t.subject,
         channel: t.channel,
         status: t.status,
-        locale: t.locale,
         contactEmail: t.contactEmailEnc ? this.cipher.decrypt(t.contactEmailEnc) : null,
         customer: extra.customer
           ? { id: extra.customer.id, name: customerName(extra.customer.person) }
@@ -201,7 +198,7 @@ export class SupportService {
         }),
         readyReplies: replies.map((r) => ({
           code: r.code,
-          text: t.locale === "sq" ? r.labelSq : r.labelIt,
+          text: r.labelIt,
         })),
       };
     });
@@ -243,7 +240,6 @@ export class SupportService {
         ? {
             to: this.cipher.decrypt(t.contactEmailEnc ?? ""),
             code: codeOf(t.number),
-            locale: t.locale,
           }
         : null;
     });
@@ -253,7 +249,6 @@ export class SupportService {
         "support.reply",
         { codice: sent.code, testo: text },
         { ticketId: id },
-        sent.locale,
       );
     }
     return { id, sent: sent !== null };

@@ -1,6 +1,6 @@
 import { formatEuroCents } from "@astax/shared/format";
 import { Button, Card, CardTitle } from "@astax/ui";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import { api } from "@/lib/auth";
 
 interface Dashboard {
@@ -54,7 +54,6 @@ export async function AdminDashboard({
   query: { da?: string; a?: string; canale?: string; provincia?: string };
 }) {
   const t = await getTranslations("adminDashboard");
-  const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const params = new URLSearchParams();
   if (query.da && DAY.test(query.da)) params.set("from", query.da);
   if (query.a && DAY.test(query.a)) params.set("to", query.a);
@@ -64,7 +63,7 @@ export async function AdminDashboard({
   }
   const { status, body: d } = await api<Dashboard>(`/admin/dashboard?${params.toString()}`);
   if (status !== 200) return null;
-  const money = (cents: number) => formatEuroCents(cents, locale);
+  const money = (cents: number) => formatEuroCents(cents);
   const pct = (value: number | null) => (value === null ? "—" : t("percent", { value }));
   const steps: [string, number][] = [
     ["submitted", d.volumes.submitted],

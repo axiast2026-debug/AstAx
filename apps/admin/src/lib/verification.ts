@@ -28,7 +28,6 @@ export interface CardDocument {
 export interface Reason {
   code: string;
   it: string;
-  sq: string;
 }
 
 export interface VerificationCard {
@@ -209,5 +208,5 @@ export interface Completion {
     missing: string[];
   };
   phone: string | null;
-  lists: Record<string, { code: string; it: string; sq: string | null }[]>;
+  lists: Record<string, { code: string; it: string }[]>;
 }

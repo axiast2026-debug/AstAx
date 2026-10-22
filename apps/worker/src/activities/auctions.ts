@@ -156,7 +156,7 @@ export function auctionActivities(
       pending,
       await agencyRecipients(tx, cipher, organizationIds),
       "auction.invited",
-      (locale) => ({
+      () => ({
         codice: request.code,
         veicolo: vehicleForAgency(quoteData),
         provincia: request.province ?? "",
@@ -164,7 +164,7 @@ export function auctionActivities(
         decorrenza: request.startDate
           ? startForNotice(
               { startMode: request.startMode, startDate: dbDateToCalendarDate(request.startDate) },
-              (key) => notifier.label(key, locale),
+              (key) => notifier.label(key),
             )
           : "",
         garanzia_minima: formatDate(dbDateToCalendarDate(auction.minGuaranteeDate)),
@@ -786,7 +786,7 @@ export function auctionActivities(
                   sha256: createHash("sha256").update(pdf).digest("hex"),
                   mime: "application/pdf",
                   size: pdf.length,
-                  fileName: notifier.label("offerQuote.fileName", "it"),
+                  fileName: notifier.label("offerQuote.fileName"),
                   uploadedByUserId: offer.userId,
                 },
               });
@@ -925,20 +925,14 @@ export function auctionActivities(
           pending,
           await agencyRecipients(tx, cipher, [offer.organizationId]),
           "auction.closed.agency",
-          (locale) => ({
+          () => ({
             codice: request.code,
             veicolo: vehicleForAgency(quoteData),
-            stato_offerta: notifier.label(
-              isValid ? "offerStatus.valid" : "offerStatus.excluded",
-              locale,
-            ),
+            stato_offerta: notifier.label(isValid ? "offerStatus.valid" : "offerStatus.excluded"),
             motivo_esclusione: notifier.label(
               isValid ? "offerExclusion.none" : "offerExclusion.generic",
-              locale,
             ),
-            garanzia_offerta: guarantee
-              ? formatDate(guarantee)
-              : notifier.label("guarantee.none", locale),
+            garanzia_offerta: guarantee ? formatDate(guarantee) : notifier.label("guarantee.none"),
             link: `${urls.web}/le-mie-offerte`,
           }),
           `/le-mie-offerte`,

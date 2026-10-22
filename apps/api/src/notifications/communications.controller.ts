@@ -44,13 +44,9 @@ export class CommunicationsController {
   @Put("notification-templates/:key")
   @RequirePermission("admin.notifications.manage")
   update(@CurrentAuth() auth: AuthContext, @Param("key") eventKey: string, @Body() body: unknown) {
-    const input = parseInput(
-      z.strictObject({ it: texts, sq: texts.nullable().optional(), reason }),
-      body,
-    );
+    const input = parseInput(z.strictObject({ it: texts, reason }), body);
     return this.communications.update(auth, parseInput(key, eventKey), {
       it: input.it,
-      sq: input.sq ?? null,
       reason: input.reason,
     });
   }
@@ -59,11 +55,8 @@ export class CommunicationsController {
   @HttpCode(200)
   @RequirePermission("admin.notifications.manage")
   preview(@Param("key") eventKey: string, @Body() body: unknown) {
-    const input = parseInput(
-      z.strictObject({ locale: z.enum(["it", "sq"]), texts: texts.optional() }),
-      body,
-    );
-    return this.communications.preview(parseInput(key, eventKey), input.locale, input.texts);
+    const input = parseInput(z.strictObject({ texts: texts.optional() }), body);
+    return this.communications.preview(parseInput(key, eventKey), input.texts);
   }
 
   @Post("notification-templates/:key/test")

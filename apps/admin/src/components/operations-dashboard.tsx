@@ -1,6 +1,6 @@
 import { formatDateTime } from "@astax/shared/format";
 import { Card, CardTitle } from "@astax/ui";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { api } from "@/lib/auth";
 
@@ -20,7 +20,6 @@ const HOUR_MS = 3_600_000;
 /** Spec 06 «Dashboard operativa»: the queues of the role, with counter and longest wait. */
 export async function OperationsDashboard() {
   const t = await getTranslations("operations");
-  const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const { status, body } = await api<Overview>("/back-office/dashboard");
   if (status !== 200) return null;
   const now = new Date(body.at).getTime();
@@ -44,9 +43,9 @@ export async function OperationsDashboard() {
               {q.count === 0 || !q.since
                 ? t("nothingWaiting")
                 : q.key === "openAuctions"
-                  ? t("nextClosing", { at: formatDateTime(q.since, locale) })
+                  ? t("nextClosing", { at: formatDateTime(q.since) })
                   : ["dataRequests", "tickets", "complaints"].includes(q.key)
-                    ? t("nextDue", { at: formatDateTime(q.since, locale) })
+                    ? t("nextDue", { at: formatDateTime(q.since) })
                     : t("longestWait", { wait: wait(q.since) })}
             </p>
           </Card>

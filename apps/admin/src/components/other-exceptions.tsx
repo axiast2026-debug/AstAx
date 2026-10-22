@@ -1,7 +1,7 @@
 import { formatDateTime, formatEuroCents } from "@astax/shared/format";
 import { can, type Actor } from "@astax/shared/permissions";
 import { Card, CardTitle } from "@astax/ui";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import { api } from "@/lib/auth";
 
 interface Overview {
@@ -26,7 +26,6 @@ interface Withdrawal {
  */
 export async function OtherExceptions({ actor }: { actor: Actor }) {
   const t = await getTranslations("otherExceptions");
-  const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const [overview, withdrawals] = await Promise.all([
     api<Overview>("/back-office/exceptions"),
     can(actor, "withdrawal.manage")
@@ -47,7 +46,7 @@ export async function OtherExceptions({ actor }: { actor: Actor }) {
                 {overview.body.deserted.map((d) => (
                   <li key={d.id}>
                     {d.code} · {t(`channels.${d.channel}`)} ·{" "}
-                    {t("since", { at: formatDateTime(d.since, locale) })}
+                    {t("since", { at: formatDateTime(d.since) })}
                   </li>
                 ))}
               </ul>
@@ -62,7 +61,7 @@ export async function OtherExceptions({ actor }: { actor: Actor }) {
                 {overview.body.reconfirmations.map((r) => (
                   <li key={`${r.id}-${r.round}`}>
                     {r.code} · {t(`channels.${r.channel}`)} ·{" "}
-                    {t("closesAt", { at: formatDateTime(r.closesAt, locale) })}
+                    {t("closesAt", { at: formatDateTime(r.closesAt) })}
                   </li>
                 ))}
               </ul>
@@ -79,11 +78,11 @@ export async function OtherExceptions({ actor }: { actor: Actor }) {
             <ul className="mt-2 space-y-1 text-sm">
               {withdrawals.body.map((w) => (
                 <li key={w.id}>
-                  {w.code} · {w.policyNumber} · {formatDateTime(w.requestedAt, locale)} ·{" "}
+                  {w.code} · {w.policyNumber} · {formatDateTime(w.requestedAt)} ·{" "}
                   {t(`withdrawalStatus.${w.status}`)}
                   {w.refundableCents === null
                     ? ""
-                    : ` · ${t("refundable", { amount: formatEuroCents(w.refundableCents, locale) })}`}
+                    : ` · ${t("refundable", { amount: formatEuroCents(w.refundableCents) })}`}
                 </li>
               ))}
             </ul>

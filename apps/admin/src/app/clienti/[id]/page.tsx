@@ -1,7 +1,7 @@
 import { formatDate, formatDateTime } from "@astax/shared/format";
 import { can } from "@astax/shared/permissions";
 import { Badge, Button, Card, CardTitle } from "@astax/ui";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -58,7 +58,6 @@ export default async function CustomerCardPage({
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const viewer = await requireViewer();
   const t = await getTranslations("customersBo");
-  const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const query = await searchParams;
   const { status, body: c } = await api<CustomerCard>(`/back-office/customers/${id}`);
   if (status !== 200) notFound();
@@ -87,7 +86,7 @@ export default async function CustomerCardPage({
             <dt className="text-warm-600">{t("fiscalCode")}</dt>
             <dd>{c.fiscalCode ?? c.vatNumber ?? "—"}</dd>
             <dt className="text-warm-600">{t("birthDate")}</dt>
-            <dd>{c.birthDate ? formatDate(c.birthDate, locale) : "—"}</dd>
+            <dd>{c.birthDate ? formatDate(c.birthDate) : "—"}</dd>
             <dt className="text-warm-600">{t("email")}</dt>
             <dd>{c.email ?? "—"}</dd>
             <dt className="text-warm-600">{t("phone")}</dt>
@@ -106,7 +105,7 @@ export default async function CustomerCardPage({
             {c.requests.map((r) => (
               <li key={r.id}>
                 {r.code} · {r.plate ?? "—"} · {t(`requestStatus.${r.status}`)} ·{" "}
-                {formatDateTime(r.createdAt, locale)}
+                {formatDateTime(r.createdAt)}
               </li>
             ))}
           </ul>
@@ -117,8 +116,7 @@ export default async function CustomerCardPage({
             <ul className="mt-1 space-y-1 text-sm">
               {c.policies.map((p) => (
                 <li key={p.id}>
-                  {p.number} · {p.requestCode} · {formatDate(p.startDate, locale)} →{" "}
-                  {formatDate(p.endDate, locale)}
+                  {p.number} · {p.requestCode} · {formatDate(p.startDate)} → {formatDate(p.endDate)}
                 </li>
               ))}
             </ul>
@@ -130,13 +128,11 @@ export default async function CustomerCardPage({
           <ul className="mt-2 space-y-1 text-sm">
             {c.consents.map((x) => (
               <li key={`${x.type}-${x.acceptedAt}`}>
-                {t(`consentTypes.${x.type}`)} · {formatDateTime(x.acceptedAt, locale)}
+                {t(`consentTypes.${x.type}`)} · {formatDateTime(x.acceptedAt)}
                 {x.revokedAt ? (
                   <>
                     {" "}
-                    <Badge tone="danger">
-                      {t("revoked", { at: formatDateTime(x.revokedAt, locale) })}
-                    </Badge>
+                    <Badge tone="danger">{t("revoked", { at: formatDateTime(x.revokedAt) })}</Badge>
                   </>
                 ) : null}
               </li>
@@ -153,8 +149,7 @@ export default async function CustomerCardPage({
               {c.dataRequests.map((d) => (
                 <li key={d.id}>
                   <span className="font-medium">{t(`kinds.${d.kind}`)}</span> ·{" "}
-                  {t(`dsrStatus.${d.status}`)} ·{" "}
-                  {t("dueAt", { at: formatDateTime(d.dueAt, locale) })}
+                  {t(`dsrStatus.${d.status}`)} · {t("dueAt", { at: formatDateTime(d.dueAt) })}
                   <span className="block text-warm-600">{d.description}</span>
                   {d.outcome ? <span className="block">{d.outcome}</span> : null}
                   {manage && d.status === "OPEN" ? (
@@ -242,7 +237,7 @@ export default async function CustomerCardPage({
           <ul className="mt-2 space-y-1 text-sm">
             {c.accessLog.map((a) => (
               <li key={`${a.at}-${a.action}`}>
-                {formatDateTime(a.at, locale)} · {a.who ?? t("system")}
+                {formatDateTime(a.at)} · {a.who ?? t("system")}
                 {a.whoKind ? ` (${t(`whoKinds.${a.whoKind}`)})` : ""} ·{" "}
                 {t(`accessActions.${a.action}`)}
               </li>

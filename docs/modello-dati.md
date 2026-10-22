@@ -41,7 +41,7 @@ erDiagram
 
 | Entità | Campi principali | Note |
 | --- | --- | --- |
-| `User` | `keycloakId`, `kind` (`PRIVATE`, `PROFESSIONAL`, `STAFF`), `firstName`, `lastName`, `emailEnc`/`emailHash`, `phoneEnc`/`phoneHash`, `locale` (`it`, `sq`), `status` (`ACTIVE`, `SUSPENDED`, `BLOCKED`), `personId` | Una persona può avere più appartenenze |
+| `User` | `keycloakId`, `kind` (`PRIVATE`, `PROFESSIONAL`, `STAFF`), `firstName`, `lastName`, `emailEnc`/`emailHash`, `phoneEnc`/`phoneHash`, `status` (`ACTIVE`, `SUSPENDED`, `BLOCKED`), `personId` | Una persona può avere più appartenenze |
 | `Organization` | `type` (`AGENCY`, `BROKER`, `ASTAX`), `legalName`, `vatNumber`, `fiscalCodeEnc`/`Hash`, `ruiNumber`, `ruiSection` (`A`, `B`), `pec`, `address`, `ibanEnc`, `status` (`PENDING`, `ACTIVE`, `SUSPENDED`, `EXCLUDED`), `statusReason`, `profInsuranceExpiresOn` | AstAx stessa è un'organizzazione `ASTAX` |
 | `Membership` | `userId`, `organizationId`, `role`, `ruiNumberE`, `ruiVerifiedAt`, `canIssue`, `canSeeColleagueOffers`, `canSeeAccounting`, `seesAllClients`, `status` | Il contesto attivo è una `Membership` |
 | `TeamInvite` | `organizationId`, `emailHash`, `role`, `tokenHash`, `expiresAt`, `acceptedAt` | Invito a entrare nel team; diverso da `Invitation`, l'invito all'asta |

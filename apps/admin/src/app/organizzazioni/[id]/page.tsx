@@ -1,6 +1,6 @@
 import { formatDate, formatDateTime } from "@astax/shared/format";
 import { Badge, Button, Card, CardTitle } from "@astax/ui";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -44,7 +44,6 @@ export default async function OrganizationPage({
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const viewer = await requireViewer();
   const t = await getTranslations("organizationsList");
-  const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const query = await searchParams;
   const { status, body: o } = await api<Detail>(`/back-office/organizations/${id}`);
   if (status !== 200) notFound();
@@ -77,7 +76,7 @@ export default async function OrganizationPage({
           <CardTitle>{t("details")}</CardTitle>
           <dl className="mt-3 grid grid-cols-[10rem_1fr] gap-1 text-sm">
             <dt className="text-warm-600">{t("profInsurance")}</dt>
-            <dd>{o.profInsuranceExpiresOn ? formatDate(o.profInsuranceExpiresOn, locale) : "—"}</dd>
+            <dd>{o.profInsuranceExpiresOn ? formatDate(o.profInsuranceExpiresOn) : "—"}</dd>
             {o.type === "AGENCY" ? (
               <>
                 <dt className="text-warm-600">{t("mandates")}</dt>
@@ -126,7 +125,7 @@ export default async function OrganizationPage({
             <ul className="mt-2 space-y-2 text-sm">
               {o.notes.map((n) => (
                 <li key={n.id}>
-                  <span className="text-warm-600">{formatDateTime(n.createdAt, locale)}</span>{" "}
+                  <span className="text-warm-600">{formatDateTime(n.createdAt)}</span>{" "}
                   {n.kind === "EXCLUSION_PROPOSAL" ? (
                     <Badge tone="danger">{t("steps.EXCLUSION_PROPOSAL")}</Badge>
                   ) : null}{" "}
@@ -147,13 +146,13 @@ export default async function OrganizationPage({
           <ul className="mt-2 space-y-1 text-sm">
             {o.suspensions.map((s) => (
               <li key={s.startedAt}>
-                {t("suspendedFrom", { at: formatDateTime(s.startedAt, locale) })}
-                {s.revokedAt ? ` → ${formatDateTime(s.revokedAt, locale)}` : ""} · {s.reason}
+                {t("suspendedFrom", { at: formatDateTime(s.startedAt) })}
+                {s.revokedAt ? ` → ${formatDateTime(s.revokedAt)}` : ""} · {s.reason}
               </li>
             ))}
             {o.history.map((x) => (
               <li key={`${x.action}-${x.at}`}>
-                {formatDateTime(x.at, locale)} · {t(`audit.${x.action}`)}
+                {formatDateTime(x.at)} · {t(`audit.${x.action}`)}
                 {x.reason ? ` · ${x.reason}` : ""}
               </li>
             ))}

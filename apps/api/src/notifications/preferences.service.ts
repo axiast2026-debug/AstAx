@@ -101,10 +101,8 @@ export class PreferencesService {
     const templates = await this.notifications.templates();
     return withContext(this.db, auth.db, async (tx) => {
       const prefs = await tx.notificationPreference.findMany({ where: { userId: auth.userId } });
-      const user = await tx.user.findUniqueOrThrow({ where: { id: auth.userId } });
-      const locale = user.locale === "sq" ? "sq" : "it";
       return this.relevant(auth, templates).map((t) => {
-        const texts = (locale === "sq" ? t.sq : undefined) ?? t.it;
+        const texts = t.it;
         return {
           eventKey: t.eventKey,
           // The event's name: its title (or subject) without the variables.

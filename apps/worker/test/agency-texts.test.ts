@@ -22,15 +22,15 @@ const common = {
 
 describe("texts for the agencies (VIS-01, rule 8)", () => {
   for (const eventKey of ["auction.invited", "auction.closing_soon", "auction.closed.agency"]) {
-    for (const locale of ["it", "sq"] as const) {
-      it(`${eventKey} (${locale}) carries no contact of the customer and no price`, () => {
+    {
+      it(`${eventKey} carries no contact of the customer and no price`, () => {
         const variables = {
           ...common,
-          stato_offerta: notifier.label("offerStatus.excluded", locale),
-          motivo_esclusione: notifier.label("offerExclusion.generic", locale),
+          stato_offerta: notifier.label("offerStatus.excluded"),
+          motivo_esclusione: notifier.label("offerExclusion.generic"),
           garanzia_offerta: "10/12/2026",
         };
-        const { inApp, email } = notifier.render(eventKey, locale, variables);
+        const { inApp, email } = notifier.render(eventKey, variables);
         const text = JSON.stringify([inApp, email]);
         expect(text).not.toMatch(/€|@|\+39|\d{3}\s?\d{3}\s?\d{4}/);
         expect(text).toContain("AX-2026-000123");
@@ -63,7 +63,7 @@ describe("texts for the agencies (VIS-01, rule 8)", () => {
         },
       ],
     ] as const) {
-      const { inApp, email } = notifier.render(eventKey, "it", variables);
+      const { inApp, email } = notifier.render(eventKey, variables);
       expect(JSON.stringify(inApp)).toContain("480,00 €");
       expect(JSON.stringify([inApp, email])).toContain("AB123CD");
     }

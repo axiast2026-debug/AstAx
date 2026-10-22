@@ -113,7 +113,6 @@ async function recipientsOf(
   });
   return users.map((u) => ({
     userId: u.id,
-    locale: u.locale === "sq" ? "sq" : "it",
     email: u.emailEnc ? cipher.decrypt(u.emailEnc) : null,
   }));
 }

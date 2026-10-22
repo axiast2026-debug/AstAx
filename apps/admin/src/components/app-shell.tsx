@@ -1,16 +1,14 @@
 import { Badge, menuFor } from "@astax/ui";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { logout, setLocale } from "@/app/actions";
-import { LOCALES } from "@/i18n/request";
+import { logout } from "@/app/actions";
 import { api } from "@/lib/auth";
 import type { Viewer } from "@/lib/me";
 
 /** Top bar and menu of the back office (spec 01, «Barra superiore»; specs 06-07). */
 export async function AppShell({ viewer, children }: { viewer: Viewer; children: ReactNode }) {
   const t = await getTranslations();
-  const locale = await getLocale();
   const menu = menuFor(viewer.actor);
   const active = viewer.activeMembership;
   const { body: inbox } = await api<{ unread: number }>("/me/notifications");
@@ -25,28 +23,6 @@ export async function AppShell({ viewer, children }: { viewer: Viewer; children:
           </Link>
           {active ? <Badge tone="dark">{t(`roles.${active.role}`)}</Badge> : null}
           <nav className="ml-auto flex items-center gap-4 text-sm">
-            <form
-              action={setLocale}
-              className="flex items-center gap-1"
-              aria-label={t("shell.language")}
-            >
-              {LOCALES.map((code) => (
-                <button
-                  key={code}
-                  type="submit"
-                  name="locale"
-                  value={code}
-                  aria-pressed={locale === code}
-                  className={
-                    locale === code
-                      ? "font-semibold text-orange-500"
-                      : "text-warm-200 hover:text-white"
-                  }
-                >
-                  {t(`languages.${code}`)}
-                </button>
-              ))}
-            </form>
             <Link href="/notifiche" className="flex items-center gap-1 hover:text-orange-500">
               {t("shell.notifications")}
               <Badge

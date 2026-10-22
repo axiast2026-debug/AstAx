@@ -1,6 +1,6 @@
 # Notifiche
 
-I testi di tutte le notifiche sono in [`../seed/notifiche.yaml`](../seed/notifiche.yaml): italiano per tutti, albanese in più per quelle che arrivano al back office. In fase 7 il seed li carica in `NotificationTemplate`, dove l'amministratore può modificarli; fino ad allora il codice li legge dal file.
+I testi di tutte le notifiche sono in [`../seed/notifiche.yaml`](../seed/notifiche.yaml): solo in italiano (ADR 0017). In fase 7 il seed li carica in `NotificationTemplate`, dove l'amministratore può modificarli; fino ad allora il codice li legge dal file.
 
 ## Canali
 

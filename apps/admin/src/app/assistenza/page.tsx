@@ -1,6 +1,6 @@
 import { formatDateTime } from "@astax/shared/format";
 import { Badge, Button, Card, CardTitle } from "@astax/ui";
-import { getLocale, getTranslations } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -31,7 +31,6 @@ export default async function SupportPage({
 }) {
   const viewer = await requireViewer();
   const t = await getTranslations("support");
-  const locale = (await getLocale()) === "sq" ? "sq" : "it";
   const query = await searchParams;
   const status = STATUSES.find((s) => s === query.stato) ?? "OPEN";
   const mine = query.miei === "1";
@@ -76,7 +75,7 @@ export default async function SupportPage({
             </div>
             <p className="text-sm text-warm-600">
               {t(`channels.${x.channel}`)} · {t(`status.${x.status}`)} ·{" "}
-              {t("dueAt", { at: formatDateTime(x.dueAt, locale) })}
+              {t("dueAt", { at: formatDateTime(x.dueAt) })}
               {x.assignedTo ? ` · ${x.assignedTo}` : ""}
             </p>
           </Card>
@@ -99,13 +98,6 @@ export default async function SupportPage({
                   {t(`channels.${c}`)}
                 </option>
               ))}
-            </select>
-          </label>
-          <label className="grid gap-1">
-            {t("language")}
-            <select name="locale" className={field}>
-              <option value="it">{t("languages.it")}</option>
-              <option value="sq">{t("languages.sq")}</option>
             </select>
           </label>
           <label className="grid gap-1">

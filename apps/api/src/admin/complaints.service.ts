@@ -55,7 +55,6 @@ export class ComplaintsService {
     );
     return users.map((u) => ({
       userId: u.id,
-      locale: (u.locale === "sq" ? "sq" : "it") as "it" | "sq",
       email: u.emailEnc ? this.cipher.decrypt(u.emailEnc) : null,
       phone: null,
     }));
@@ -90,7 +89,6 @@ export class ComplaintsService {
           [
             {
               userId: input.complainantUserId,
-              locale: input.complainantLocale,
               email,
               phone: null,
             },
@@ -121,8 +119,7 @@ export class ComplaintsService {
       complaint,
       outbound,
       // Without an account the receipt goes by email only.
-      emailOnly:
-        !input.complainantUserId && email ? { to: email, locale: input.complainantLocale } : null,
+      emailOnly: !input.complainantUserId && email ? { to: email } : null,
     };
   }
 
@@ -138,7 +135,6 @@ export class ComplaintsService {
           scadenza: { date: result.complaint.dueAt.toISOString() },
         },
         { complaintId: result.complaint.id },
-        result.emailOnly.locale,
       );
     }
     return {
@@ -181,7 +177,6 @@ export class ComplaintsService {
         complainantUserId: auth.userId,
         complainantName: `${user.firstName} ${user.lastName}`.trim(),
         complainantEmailEnc: user.emailEnc,
-        complainantLocale: user.locale === "sq" ? "sq" : "it",
         customerId: request?.customerId ?? null,
         quoteRequestId: request?.id ?? null,
         organizationId: policy?.organizationId ?? null,
@@ -222,7 +217,6 @@ export class ComplaintsService {
       receivedOn: string;
       complainantName: string;
       complainantEmail: string | null;
-      locale: "it" | "sq";
       subject: string;
       description: string;
       requestCode: string | null;
@@ -256,7 +250,6 @@ export class ComplaintsService {
         complainantEmailEnc: input.complainantEmail
           ? this.cipher.encrypt(input.complainantEmail)
           : null,
-        complainantLocale: input.locale,
         customerId: request?.customerId ?? null,
         quoteRequestId: request?.id ?? null,
         organizationId: input.organizationId,
@@ -377,7 +370,6 @@ export class ComplaintsService {
             [
               {
                 userId: c.complainantUserId,
-                locale: c.complainantLocale === "sq" ? "sq" : "it",
                 email,
                 phone: null,
               },
@@ -392,7 +384,6 @@ export class ComplaintsService {
         outbound,
         email: c.complainantUserId ? null : email,
         vars,
-        locale: c.complainantLocale,
       };
     });
     await this.notifications.send(done.outbound);
@@ -403,7 +394,6 @@ export class ComplaintsService {
         "support.reply",
         { codice: done.vars.protocollo, testo: responseText },
         { complaintId: id },
-        done.locale === "sq" ? "sq" : "it",
       );
     }
     return { id, status: "ANSWERED" as const };

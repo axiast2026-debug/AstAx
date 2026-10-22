@@ -21,7 +21,6 @@ Il lancio in produzione richiede ogni punto spuntato. Il primo blocco dipende da
 - [ ] Prova di carico (`tests/load`): chiusure entro 5 secondi, p95 sotto 300 ms, nessun errore
 - [ ] Prova di ripristino dai backup con tempi scritti in `docs/ripristino.md`
 - [ ] Misura della lettura AI sugli 80 documenti: almeno il 95% di campi corretti sopra soglia
-- [ ] Testi in albanese del back office riletti (proposta K della fase 7)
 - [ ] Demo di Dan sul telefono vero (S01 completo)
 
 ## Il giorno del lancio

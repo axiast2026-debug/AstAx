@@ -246,9 +246,7 @@ export class VerificationService {
       lists: Object.fromEntries(
         ["vehicleType", "vehicleUse", "fuel", "provenance", "licenceCategory"].map((key) => [
           key,
-          lists
-            .filter((l) => l.listKey === key)
-            .map((l) => ({ code: l.code, it: l.labelIt, sq: l.labelSq })),
+          lists.filter((l) => l.listKey === key).map((l) => ({ code: l.code, it: l.labelIt })),
         ]),
       ),
     };
@@ -312,10 +310,10 @@ export class VerificationService {
         reasons: {
           integration: lists
             .filter((l) => l.listKey === "integrationRequestReason")
-            .map((l) => ({ code: l.code, it: l.labelIt, sq: l.labelSq })),
+            .map((l) => ({ code: l.code, it: l.labelIt })),
           exclusion: lists
             .filter((l) => l.listKey === "exclusionCase")
-            .map((l) => ({ code: l.code, it: l.labelIt, sq: l.labelSq })),
+            .map((l) => ({ code: l.code, it: l.labelIt })),
         },
         quoteData,
         quoteDataVersion: request.quoteDataVersion,
@@ -711,7 +709,6 @@ export class VerificationService {
       [
         {
           userId: user.id,
-          locale: user.locale,
           email: user.emailEnc ? this.cipher.decrypt(user.emailEnc) : null,
           phone: null,
         },

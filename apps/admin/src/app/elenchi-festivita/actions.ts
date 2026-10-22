@@ -26,7 +26,7 @@ function back(formData: FormData, status: number, expected: number, body: unknow
   redirect(`/elenchi-festivita?${params.toString()}`);
 }
 
-/** A value of a list: labels in Italian and Albanian, order, active. */
+/** A value of a list: its label, order, active. */
 export async function saveListValue(formData: FormData): Promise<void> {
   const list = String(formData.get("list") ?? "");
   const code = String(formData.get("code") ?? "").trim();
@@ -34,7 +34,6 @@ export async function saveListValue(formData: FormData): Promise<void> {
   if (!LIST.test(list) || !CODE.test(code)) redirect("/elenchi-festivita?errore=INVALID_CODE");
   const fields = {
     labelIt: String(formData.get("labelIt") ?? ""),
-    labelSq: String(formData.get("labelSq") ?? ""),
     active: formData.get("active") === "on",
     sortOrder: Number(formData.get("sortOrder") ?? 0) || 0,
     reason: String(formData.get("reason") ?? ""),
@@ -49,13 +48,11 @@ export async function saveListValue(formData: FormData): Promise<void> {
 }
 
 export async function addHoliday(formData: FormData): Promise<void> {
-  const sq = String(formData.get("nameSq") ?? "").trim();
   const { status, body } = await api("/admin/holidays", {
     method: "POST",
     body: JSON.stringify({
       date: String(formData.get("date") ?? ""),
       name: String(formData.get("name") ?? ""),
-      nameSq: sq || null,
       reason: String(formData.get("reason") ?? ""),
     }),
   });

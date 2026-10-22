@@ -118,7 +118,6 @@ export function policyActivities(
             to,
             eventKey: "survey.post_sale",
             variables: { nome: name, veicolo: vehicle, link: `${urls.web}/questionario/${token}` },
-            locale: "it",
             ids: { policyId: policy.id },
           });
         }
@@ -177,7 +176,6 @@ export function policyActivities(
           : "";
         const auto = notifier.label(
           policy.autoRenewal ? "renewal.autoDraftReady" : "renewal.autoOff",
-          "it",
         );
         await notifier.notify(
           tx,
