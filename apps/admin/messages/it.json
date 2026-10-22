@@ -373,7 +373,8 @@
         "riskUniqueId": "Identificativo univoco del rischio (IUR)",
         "relativeFiscalCode": "Codice fiscale del familiare"
       },
-      "save": "Salva i dati completati"
+      "save": "Salva i dati completati",
+      "callButton": "Chiama il cliente · {phone}"
     },
     "withoutDocuments": "Senza documenti: l'asta va solo alle agenzie che lo accettano"
   },
@@ -1065,7 +1066,8 @@
     "desertedToday": "Aste deserte",
     "minutes": "{count, plural, one {# minuto} other {# minuti}}",
     "percent": "{value}%",
-    "nextDue": "Prima scadenza: {at}."
+    "nextDue": "Prima scadenza: {at}.",
+    "mostUrgent": "Attende da più tempo"
   },
   "organizationsList": {
     "title": "Agenzie e broker",

@@ -1,5 +1,5 @@
 import { formatDateTime, formatEuroCents } from "@astax/shared/format";
-import { Badge, Button, Card } from "@astax/ui";
+import { Badge, Button, Card, Icon } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { realtimeTicket } from "@/app/actions";
@@ -147,7 +147,7 @@ export default async function AuctionsPage({
     // An error of the API (for example a timeout): a message, never a broken page.
     return (
       <AppShell viewer={viewer}>
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        <h1 className="font-display text-screen font-extrabold">{t("title")}</h1>
         <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm">
           {t("error", { code: String(status) })}
         </p>
@@ -158,8 +158,17 @@ export default async function AuctionsPage({
   return (
     <AppShell viewer={viewer}>
       <LiveRefresh ticket={realtimeTicket} follow="auctions" />
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
-      <p className="mt-1 text-sm text-warm-600">{t("intro")}</p>
+      <h1 className="font-display text-screen font-extrabold">{t("title")}</h1>
+      {/* Back office of the design: before the closing only counters, never a price (BC-01). */}
+      <p
+        role="note"
+        className="mt-2 flex items-start gap-2 rounded-lg bg-info-50 px-3 py-2 text-table text-info-700"
+      >
+        <span className="inline-flex pt-0.5">
+          <Icon name="lock" size={18} />
+        </span>
+        {t("intro")}
+      </p>
       <form method="get" action="/aste" className="mt-4 flex flex-wrap items-end gap-2">
         <label className="text-sm">
           {t("search")}
@@ -228,22 +237,18 @@ export default async function AuctionsPage({
                   {t("round", { round: a.round, kind: t(`kind.${a.kind}`) })}
                 </span>
               </div>
-              <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
-                <dt className="text-warm-600">{t("closesAt")}</dt>
-                <dd className="tabular">
-                  {formatDateTime(a.scheduledCloseAt)}
-                  {a.extended ? ` · ${t("extended")}` : ""}
-                </dd>
-                <dt className="text-warm-600">{t("invited")}</dt>
-                <dd className="tabular">{a.invited}</dd>
-                <dt className="text-warm-600">{t("offers")}</dt>
-                <dd className="tabular">{a.offers ?? "—"}</dd>
-                {a.closedAt ? (
-                  <>
-                    <dt className="text-warm-600">{t("closedAt")}</dt>
-                    <dd className="tabular">{formatDateTime(a.closedAt)}</dd>
-                  </>
-                ) : null}
+              <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <Counter label={t("invited")} value={a.invited} />
+                <Counter label={t("offers")} value={a.offers ?? "—"} />
+                <div className="flex flex-col gap-1 rounded-lg bg-warm-50 p-3 sm:col-span-2">
+                  <dt className="text-note text-warm-600">
+                    {a.closedAt ? t("closedAt") : t("closesAt")}
+                  </dt>
+                  <dd className="text-body font-semibold tabular">
+                    {formatDateTime(a.closedAt ?? a.scheduledCloseAt)}
+                    {a.extended ? ` · ${t("extended")}` : ""}
+                  </dd>
+                </div>
               </dl>
               {DEV_TOOLS &&
               ["AUCTION_OPEN", "OFFERS_AVAILABLE", "IN_RECONFIRMATION"].includes(
@@ -341,5 +346,15 @@ export default async function AuctionsPage({
         </div>
       )}
     </AppShell>
+  );
+}
+
+/** A counter of an auction: the only numbers shown before the closing. */
+function Counter({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div className="flex flex-col gap-1 rounded-lg bg-warm-50 p-3">
+      <dt className="text-note text-warm-600">{label}</dt>
+      <dd className="font-display text-section font-extrabold tabular">{value}</dd>
+    </div>
   );
 }
