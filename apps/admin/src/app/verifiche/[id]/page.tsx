@@ -1,5 +1,5 @@
 import { formatDateTime } from "@astax/shared/format";
-import { Badge, Button, Card, CardTitle, cn } from "@astax/ui";
+import { Badge, Button, Card, CardTitle, cn, Icon } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { AppShell } from "@/components/app-shell";
 import { CompletionForm } from "@/components/completion-form";
@@ -26,6 +26,12 @@ interface AgencyPreview {
 }
 
 const TONE = { GREEN: "success", YELLOW: "warning", RED: "danger" } as const;
+/** The checklist icons (back office of the design). */
+const OUTCOME_ICON = {
+  GREEN: { name: "checkCircle", className: "text-green-700" },
+  YELLOW: { name: "warning", className: "text-warning-700" },
+  RED: { name: "close", className: "text-red-700" },
+} as const;
 const SECTIONS = [
   "policyHolder",
   "vehicleOwner",
@@ -130,7 +136,9 @@ export default async function VerificationCardPage({
   return (
     <AppShell viewer={viewer}>
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold">{t("cardTitle", { code: card.code })}</h1>
+        <h1 className="font-display text-screen font-extrabold">
+          {t("cardTitle", { code: card.code })}
+        </h1>
         {round ? (
           <Badge tone={TONE[round.autoOutcome]}>{t(`outcomes.${round.autoOutcome}`)}</Badge>
         ) : null}
@@ -164,7 +172,7 @@ export default async function VerificationCardPage({
         </form>
       ) : null}
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.3fr)_minmax(0,1fr)] xl:items-start">
         <Card>
           <CardTitle>{t("documents")}</CardTitle>
           <ul className="mt-3 space-y-4 text-sm">
@@ -181,7 +189,7 @@ export default async function VerificationCardPage({
                 </a>
                 <span className="ml-2 text-warm-600">{formatDateTime(doc.uploadedAt)}</span>
                 {doc.extraction ? (
-                  <dl className="mt-2 grid grid-cols-[minmax(0,1fr)_auto_auto] gap-x-3 gap-y-1 text-xs">
+                  <dl className="mt-2 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-x-3 gap-y-1 text-xs">
                     {Object.entries(doc.extraction.fields).map(([name, f]) => {
                       const path = `documents.${doc.kind}${doc.driverIndex === null ? "" : `.${doc.driverIndex}`}.${name}`;
                       return (
@@ -189,11 +197,13 @@ export default async function VerificationCardPage({
                           key={name}
                           className={cn(
                             "contents",
-                            highlighted.has(path) ? "font-semibold text-red-700" : "",
+                            highlighted.has(path)
+                              ? "font-semibold text-red-700 [&>*]:bg-red-50"
+                              : "",
                           )}
                         >
-                          <dt>{name}</dt>
-                          <dd>{String(f.value ?? "")}</dd>
+                          <dt className="min-w-0 break-words text-warm-600">{name}</dt>
+                          <dd className="min-w-0 break-words">{String(f.value ?? "")}</dd>
                           <dd className="tabular">
                             {t("confidence", { value: Math.round(f.confidence * 100) })}
                           </dd>
@@ -207,6 +217,7 @@ export default async function VerificationCardPage({
           </ul>
         </Card>
 
+        {/* Middle: declared data against the documents; the request to complete. */}
         <div className="space-y-6">
           <Card className="overflow-x-auto">
             <CardTitle>{t("comparison")}</CardTitle>
@@ -228,7 +239,7 @@ export default async function VerificationCardPage({
                       key={r.path}
                       className={cn(
                         "border-t border-warm-200",
-                        different || highlighted.has(r.path) ? "bg-orange-50" : "",
+                        different || highlighted.has(r.path) ? "bg-red-50 text-red-700" : "",
                       )}
                     >
                       <th scope="row" className="py-1 font-normal">
@@ -256,6 +267,48 @@ export default async function VerificationCardPage({
             ) : null}
           </Card>
 
+          {open && !card.quoteData && card.completion ? (
+            <>
+              <CompletionForm requestId={card.id} completion={card.completion} />
+              {excludeCard}
+            </>
+          ) : null}
+
+          <Card>
+            <CardTitle>{t("versions")}</CardTitle>
+            <ul className="mt-3 space-y-1 text-sm">
+              {card.versions.map((v) => (
+                <li key={v.version}>
+                  {t("versionLine", {
+                    version: v.version,
+                    source: t(`sources.${v.source}`),
+                    at: formatDateTime(v.createdAt),
+                  })}
+                  {v.changedFields.length > 0 ? (
+                    <span className="ml-2 text-warm-600">{v.changedFields.join(", ")}</span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </Card>
+
+          <Card>
+            <CardTitle>{t("timeline")}</CardTitle>
+            <ol className="mt-3 space-y-1 text-sm">
+              {card.timeline.map((e, i) => (
+                <li key={`${e.type}-${i}`} className="flex gap-3">
+                  <time dateTime={e.at} className="w-40 shrink-0 text-warm-600 tabular">
+                    {formatDateTime(e.at)}
+                  </time>
+                  <span>{t(`timelineEvents.${e.type}`)}</span>
+                </li>
+              ))}
+            </ol>
+          </Card>
+        </div>
+
+        {/* Right: the checklist, the agencies and the decisions. */}
+        <div className="space-y-6">
           <Card>
             <CardTitle>{t("checklist")}</CardTitle>
             <ul className="mt-3 space-y-4">
@@ -266,8 +319,11 @@ export default async function VerificationCardPage({
                   className="rounded-lg border border-warm-200 p-3"
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone={TONE[item.outcome]}>{t(`outcomes.${item.outcome}`)}</Badge>
+                    <span className={cn("inline-flex", OUTCOME_ICON[item.outcome].className)}>
+                      <Icon name={OUTCOME_ICON[item.outcome].name} size={20} />
+                    </span>
                     <span className="font-medium">{t(`checklistItems.${item.code}`)}</span>
+                    <Badge tone={TONE[item.outcome]}>{t(`outcomes.${item.outcome}`)}</Badge>
                   </div>
                   {item.reasons.length > 0 ? (
                     <ul className="mt-2 list-disc pl-5 text-sm">
@@ -279,10 +335,7 @@ export default async function VerificationCardPage({
                     </ul>
                   ) : null}
                   {open ? (
-                    <form
-                      action={saveChecklistItem}
-                      className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
-                    >
+                    <form action={saveChecklistItem} className="mt-3 grid gap-2">
                       <input type="hidden" name="requestId" value={card.id} />
                       <input type="hidden" name="code" value={item.code} />
                       <div>
@@ -307,7 +360,12 @@ export default async function VerificationCardPage({
                           className={INPUT}
                         />
                       </div>
-                      <Button type="submit" variant="outline" size="sm">
+                      <Button
+                        type="submit"
+                        variant="outline"
+                        size="sm"
+                        className="justify-self-start"
+                      >
                         {t("save")}
                       </Button>
                     </form>
@@ -320,13 +378,6 @@ export default async function VerificationCardPage({
               ))}
             </ul>
           </Card>
-
-          {open && !card.quoteData && card.completion ? (
-            <>
-              <CompletionForm requestId={card.id} completion={card.completion} />
-              {excludeCard}
-            </>
-          ) : null}
 
           {open && card.quoteData ? (
             <>
@@ -415,7 +466,9 @@ export default async function VerificationCardPage({
                     </label>
                     <input id="approve-note" name="note" className={INPUT} />
                   </div>
-                  <Button type="submit">{t("approve")}</Button>
+                  <Button type="submit" size="lg">
+                    {t("approve")}
+                  </Button>
                 </form>
               </Card>
 
@@ -536,38 +589,6 @@ export default async function VerificationCardPage({
               </Card>
             </>
           ) : null}
-
-          <Card>
-            <CardTitle>{t("versions")}</CardTitle>
-            <ul className="mt-3 space-y-1 text-sm">
-              {card.versions.map((v) => (
-                <li key={v.version}>
-                  {t("versionLine", {
-                    version: v.version,
-                    source: t(`sources.${v.source}`),
-                    at: formatDateTime(v.createdAt),
-                  })}
-                  {v.changedFields.length > 0 ? (
-                    <span className="ml-2 text-warm-600">{v.changedFields.join(", ")}</span>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          </Card>
-
-          <Card>
-            <CardTitle>{t("timeline")}</CardTitle>
-            <ol className="mt-3 space-y-1 text-sm">
-              {card.timeline.map((e, i) => (
-                <li key={`${e.type}-${i}`} className="flex gap-3">
-                  <time dateTime={e.at} className="w-40 shrink-0 text-warm-600 tabular">
-                    {formatDateTime(e.at)}
-                  </time>
-                  <span>{t(`timelineEvents.${e.type}`)}</span>
-                </li>
-              ))}
-            </ol>
-          </Card>
         </div>
       </div>
     </AppShell>

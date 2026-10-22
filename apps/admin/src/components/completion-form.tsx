@@ -1,4 +1,4 @@
-import { Button, Card, CardTitle } from "@astax/ui";
+import { Button, buttonVariants, Card, CardTitle, Icon } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import type { InputHTMLAttributes } from "react";
 import { completeRequest } from "@/app/verifiche/actions";
@@ -76,12 +76,17 @@ export async function CompletionForm({
       <CardTitle>{t("title")}</CardTitle>
       <p className="mt-1 text-sm text-warm-600">{t("intro")}</p>
       {phone ? (
-        <p className="mt-3 text-sm">
-          {t("call")}{" "}
-          <a href={`tel:${phone.replace(/\s/g, "")}`} className="font-semibold underline">
-            {phone}
+        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-lg bg-warm-100 p-3">
+          <span className="text-table">{t("call")}</span>
+          {/* Back office of the design: the call is a button; on a phone it dials. */}
+          <a
+            href={`tel:${phone.replace(/\s/g, "")}`}
+            className={buttonVariants({ variant: "secondary", size: "sm" })}
+          >
+            <Icon name="phone" size={16} />
+            {t("callButton", { phone })}
           </a>
-        </p>
+        </div>
       ) : null}
       <p className="mt-2 text-sm">
         {t("essential", {

@@ -17,7 +17,7 @@ export async function AppShell({ viewer, children }: { viewer: Viewer; children:
   return (
     <div className="min-h-screen">
       <header className="bg-night-950 text-white">
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
+        <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3">
           <Link href="/" className="text-lg font-bold tracking-tight">
             {t("app.name")}
           </Link>
@@ -43,7 +43,7 @@ export async function AppShell({ viewer, children }: { viewer: Viewer; children:
           </nav>
         </div>
       </header>
-      <div className="mx-auto flex max-w-6xl gap-8 px-4 py-8">
+      <div className="mx-auto flex max-w-7xl gap-8 px-4 py-8">
         <nav aria-label={t("shell.menu")} className="w-60 shrink-0">
           <ul className="space-y-1">
             {menu.map((entry) => (
