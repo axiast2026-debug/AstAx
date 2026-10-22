@@ -6,6 +6,7 @@ import {
   formatDateTime,
   formatEuroCents,
   formatTime,
+  formatTimeSeconds,
   formatWeekdayDate,
   romeCalendarDate,
 } from "./format.js";
@@ -21,6 +22,10 @@ describe("display formatting", () => {
     // The end of the guarantee day: 23:59:59 in Rome, 22:59:59 in UTC.
     expect(formatWeekdayDate("2026-12-06T22:59:59.999Z")).toBe("domenica 6 dicembre");
     expect(formatTime("2026-12-15T09:00:00.000Z")).toBe("10:00");
+  });
+
+  it("PRES-01 shows the server time of a receipt to the second", () => {
+    expect(formatTimeSeconds("2026-11-16T09:20:14.400Z")).toBe("10:20:14");
   });
 
   it("FEE-07 shows euros from integer cents and refuses decimals", () => {

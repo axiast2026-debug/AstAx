@@ -4,9 +4,11 @@ import type { ObjectStoragePort } from "@astax/adapters/storage";
 import {
   asSystem,
   isUniqueViolation,
+  loadWorkingCalendar,
   settingsAt,
   withContext,
   type Auction,
+  type AuctionSettingsSnapshot,
   type DbClient,
   type DbTransaction,
   type Invitation,
@@ -19,6 +21,8 @@ import {
   isGuaranteed,
   PackageRequirementsSchema,
   romeInstant,
+  workingClock,
+  workingMsBetween,
   type QuoteData,
 } from "@astax/shared/domain";
 import { dbDateToCalendarDate, formatDateTime, romeCalendarDate } from "@astax/shared/format";
@@ -253,12 +257,27 @@ export class AgencyService {
         select: { id: true, firstName: true, lastName: true },
       });
       const elsewhere = await this.elsewhere(tx, auth, ids);
+      const now = this.clock.now();
+      const { "agency.dashboard.closingSoonMinutes": soonMinutes } = await settingsAt(
+        tx,
+        ["agency.dashboard.closingSoonMinutes"],
+        now,
+      );
+      const live = new Map(
+        await Promise.all(
+          all
+            .filter((i) => i.auction.status === "OPEN")
+            .map(async (i) => [i.auctionId, await this.workingTime(tx, i.auction, now)] as const),
+        ),
+      );
       const rows = all.flatMap((i) => {
         const r = requests.find((q) => q.id === i.auction.quoteRequestId);
         if (!r || !this.offers.fitsScope(scope, r, i.auction.openedAt)) return [];
         const claim = claims.find((c) => c.auctionId === i.auctionId);
         const offer = offers.find((o) => o.auctionId === i.auctionId && o.status !== "WITHDRAWN");
         const holder = users.find((u) => u.id === claim?.userId);
+        const state = this.state(i, auth, claim, offer !== undefined);
+        const time = live.get(i.auctionId) ?? null;
         return [
           {
             auctionId: i.auctionId,
@@ -277,7 +296,15 @@ export class AgencyService {
             minGuaranteeDate: dbDateToCalendarDate(i.auction.minGuaranteeDate),
             auctionStatus: i.auction.status,
             scheduledCloseAt: i.auction.scheduledCloseAt.toISOString(),
-            state: this.state(i, auth, claim, offer !== undefined),
+            state,
+            // P5 radar: the working time left, from the server, and whether it closes
+            // within the «closing soon» minutes with nothing sent yet.
+            live: time,
+            urgent:
+              time !== null &&
+              state !== "OFFERED" &&
+              state !== "DECLINED" &&
+              time.workingSecondsLeft <= soonMinutes * 60,
             claimedBy: holder ? `${holder.firstName} ${holder.lastName}`.trim() : null,
             elsewhere: elsewhere.get(i.auctionId) ?? null,
             offer: offer ? { id: offer.id, status: offer.status, version: offer.version } : null,
@@ -286,7 +313,7 @@ export class AgencyService {
         ];
       });
       const closesBy = filters.closesWithinHours
-        ? new Date(this.clock.now().getTime() + filters.closesWithinHours * 3_600_000).toISOString()
+        ? new Date(now.getTime() + filters.closesWithinHours * 3_600_000).toISOString()
         : null;
       return rows
         .filter((row) => !filters.vehicleType || row.vehicleType === filters.vehicleType)
@@ -306,6 +333,26 @@ export class AgencyService {
           return open(a) - open(b) || a.scheduledCloseAt.localeCompare(b.scheduledCloseAt);
         });
     });
+  }
+
+  /** ASTA-02: the working time of an open round, with the calendar of its opening (ASTA-09). */
+  private async workingTime(
+    tx: DbTransaction,
+    auction: { openedAt: Date; scheduledCloseAt: Date; settingsSnapshot: unknown },
+    now: Date,
+  ) {
+    const snapshot = auction.settingsSnapshot as AuctionSettingsSnapshot;
+    const calendar = await loadWorkingCalendar(tx, snapshot["calendar.workingHours"], snapshot);
+    const clock = workingClock(calendar, now, auction.scheduledCloseAt);
+    return {
+      serverNow: now.toISOString(),
+      workingSecondsLeft: Math.round(clock.msLeft / 1000),
+      totalWorkingSeconds: Math.round(
+        workingMsBetween(calendar, auction.openedAt, auction.scheduledCloseAt) / 1000,
+      ),
+      pausedUntil: clock.pausedUntil?.toISOString() ?? null,
+      runsUntil: clock.runsUntil?.toISOString() ?? null,
+    };
   }
 
   /**
@@ -432,6 +479,8 @@ export class AgencyService {
         kind: auction.kind,
         auctionStatus: auction.status,
         scheduledCloseAt: auction.scheduledCloseAt.toISOString(),
+        // ASTA-02: the working time from the server, for the ring.
+        live: auction.status === "OPEN" ? await this.workingTime(tx, auction, now) : null,
         minGuaranteeDate: dbDateToCalendarDate(auction.minGuaranteeDate),
         invitation: invitation.status,
         claim: claim

@@ -16,9 +16,11 @@ export async function AppShell({ viewer, children }: { viewer: Viewer; children:
   const t = await getTranslations();
   const menu = menuFor(viewer.actor);
   const links = linksFor(viewer.actor);
-  // The broker works at the computer (docs/piano-broker.md, G): a wider page for its tables.
+  // Brokers and agencies work at the computer (docs/piano-broker.md, G; Area agenzia of
+  // the design): a wider page for their tables.
   const role = actorRoleOf(viewer.actor);
-  const width = role === "BROKER_OWNER" || role === "BROKER_OPERATOR" ? "max-w-7xl" : "max-w-6xl";
+  const width =
+    role?.startsWith("BROKER_") || role?.startsWith("AGENCY_") ? "max-w-7xl" : "max-w-6xl";
   const active = viewer.activeMembership;
   const isPrivate = viewer.me.kind === "PRIVATE";
   const { body: inbox } = await api<{ unread: number }>("/me/notifications");

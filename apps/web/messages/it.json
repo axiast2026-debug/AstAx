@@ -932,7 +932,11 @@
       "hours": "{hours, plural, one {# ora} other {# ore}}",
       "package": "Pacchetto",
       "withoutDocuments": "Solo senza documenti",
-      "noDocuments": "Senza documenti"
+      "noDocuments": "Senza documenti",
+      "radarLabel": "Aste in chiusura senza vostra offerta",
+      "radarTitle": "Chiudono entro un'ora",
+      "radarNote": "senza vostra offerta",
+      "arrived": "Nuova richiesta in target: {codes}"
     },
     "columns": {
       "code": "Codice",
@@ -1056,7 +1060,7 @@
       "guaranteeHint": "Almeno fino al {date}.",
       "coverageTitle": "Le coperture",
       "coverageIntro": "Il cliente ha chiesto il pacchetto {name}. Per ogni voce indica cosa offri: uguale o migliore, mai meno.",
-      "packageAsks": "Il pacchetto chiede: {text}",
+      "packageAsks": "Chiede: {text}",
       "requirement": {
         "none": "non richiesta",
         "required": "inclusa",
@@ -1094,7 +1098,10 @@
       "change": "Salva la modifica",
       "pdfKept": "Per confermare la stessa offerta (premio, compagnia, prodotto, coperture e note) con una nuova data di garanzia puoi lasciare il PDF del giro precedente; per ogni altra modifica serve il PDF nuovo.",
       "confirmSame": "Conferma lo stesso premio",
-      "sendUpdated": "Invia il premio aggiornato"
+      "sendUpdated": "Invia il premio aggiornato",
+      "sealing": "Sigillo la busta…",
+      "shortfall": "Sotto il pacchetto richiesto",
+      "meets": "Come il pacchetto o meglio"
     },
     "offerStatus": {
       "SUBMITTED": "In corso",
@@ -1153,6 +1160,20 @@
       },
       "goIncoming": "Vai alle richieste in arrivo",
       "personalTitle": "Il tuo cruscotto"
+    },
+    "receipt": {
+      "eyebrow": "Ricevuta",
+      "sealed": "Inviata in busta chiusa",
+      "title": "Offerta registrata",
+      "registeredAt": "alle {time} (ora del server)",
+      "sealedUntil": "Sigillata fino a",
+      "yourOffer": "La vostra offerta",
+      "offer": "{company} · {premium} · garantita fino al {date}",
+      "sentBy": "Inviata da",
+      "sender": "{name} per {agency}",
+      "nobody": "Resta sigillata fino alla chiusura: nessuno può leggerla, nemmeno AstAx. Puoi modificarla o ritirarla fino a {when}.",
+      "edit": "Modifica l'offerta",
+      "withdraw": "Ritira l'offerta"
     }
   },
   "agencySettings": {
@@ -1762,7 +1783,13 @@
       "WON": "Vinte",
       "WON_hint": "Le aste vinte e pagate: le polizze sono in «Polizze da emettere» o in «Polizze emesse»."
     },
-    "toMetrics": "I numeri di periodo sono in «Metriche»."
+    "toMetrics": "I numeri di periodo sono in «Metriche».",
+    "chosenAnyway": "Il cliente ha scelto la vostra offerta anche se non era la più bassa.",
+    "dotFirst": "La prima",
+    "dotSecond": "La seconda",
+    "dotOwn": "La vostra",
+    "lowest": "più bassa",
+    "anonymous": "Le altre offerte sono anonime: solo posizione e premi della prima e della seconda."
   },
   "renewals": {
     "title": "Rinnovi",

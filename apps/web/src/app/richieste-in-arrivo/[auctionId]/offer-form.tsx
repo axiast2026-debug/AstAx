@@ -1,9 +1,10 @@
 import { RECOURSE_WAIVER_CASES } from "@astax/shared/domain";
 import { formatDate } from "@astax/shared/format";
-import { Button } from "@astax/ui";
+import { Icon } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { sendOffer } from "@/app/agency-actions";
-import { CheckField, Field, Fieldset, hasError } from "@/components/form";
+import { CheckField, Field, Fieldset, fieldId, hasError, INPUT } from "@/components/form";
+import { PendingButton } from "@/components/pending-button";
 import {
   centsToEuroInput,
   COVERAGE_ITEMS,
@@ -50,16 +51,21 @@ async function requirementText(item: string, r: Requirement | undefined): Promis
  * The offer (OFF-04): premium, company and product among the agency's
  * mandates, the coverage item by item against the package, the guarantee
  * date, the PDF of the quote and the confirmation that the offer is binding.
- * A change (OFF-07) starts from the agency's own copy.
+ * A change (OFF-07) starts from the agency's own copy. Area agenzia of the
+ * design: the premium in Inter Tight, each cover with what the package asks
+ * and, right after the sending, a green tick or the warning of a shortfall.
  */
 export async function OfferForm({
   detail,
   own,
   errors,
+  shortfalls,
 }: {
   detail: AgencyRequestDetail;
   own: OwnOffer | null;
   errors: string | undefined;
+  /** OFF-06: the items under the package, as the API said at the sending; null when not just sent. */
+  shortfalls: string[] | null;
 }) {
   const t = await getTranslations("agency.offer");
   const tc = await getTranslations("agency.coverage");
@@ -82,17 +88,26 @@ export async function OfferForm({
       <input type="hidden" name="auctionId" value={detail.auctionId} />
       {own ? <input type="hidden" name="offerId" value={own.id} /> : null}
       <Fieldset legend={t("priceTitle")}>
-        <Field
-          label={t("premium")}
-          name="premium"
-          inputMode="decimal"
-          required
-          hint={t("premiumHint")}
-          defaultValue={base ? centsToEuroInput(base.annualGrossPremiumCents) : ""}
-          invalid={hasError(errors, "annualGrossPremiumCents")}
-        />
+        <div className="sm:col-span-2">
+          <label htmlFor={fieldId("premium")} className="block text-label font-semibold">
+            {t("premium")}
+          </label>
+          <input
+            id={fieldId("premium")}
+            name="premium"
+            inputMode="decimal"
+            required
+            defaultValue={base ? centsToEuroInput(base.annualGrossPremiumCents) : ""}
+            aria-invalid={hasError(errors, "annualGrossPremiumCents") || undefined}
+            aria-describedby={`${fieldId("premium")}-hint`}
+            className={`${INPUT} font-display text-section font-extrabold tabular`}
+          />
+          <p id={`${fieldId("premium")}-hint`} className="mt-1 text-note text-warm-600">
+            {t("premiumHint")}
+          </p>
+        </div>
         <div>
-          <label htmlFor="f-companyId" className="block text-sm font-medium">
+          <label htmlFor="f-companyId" className="block text-label font-semibold">
             {t("company")}
           </label>
           <select
@@ -100,7 +115,7 @@ export async function OfferForm({
             name="companyId"
             required
             defaultValue={base?.companyId ?? ""}
-            className="mt-1 block w-full rounded-lg border border-warm-200 bg-white px-3 py-2"
+            className={INPUT}
             aria-invalid={hasError(errors, "companyId") || undefined}
           >
             <option value="">{t("choose")}</option>
@@ -112,7 +127,7 @@ export async function OfferForm({
           </select>
         </div>
         <div>
-          <label htmlFor="f-productId" className="block text-sm font-medium">
+          <label htmlFor="f-productId" className="block text-label font-semibold">
             {t("product")}
           </label>
           <select
@@ -120,7 +135,7 @@ export async function OfferForm({
             name="productId"
             required
             defaultValue={base?.productId ?? ""}
-            className="mt-1 block w-full rounded-lg border border-warm-200 bg-white px-3 py-2"
+            className={INPUT}
             aria-invalid={hasError(errors, "productId") || undefined}
           >
             <option value="">{t("choose")}</option>
@@ -136,7 +151,7 @@ export async function OfferForm({
               </optgroup>
             ))}
           </select>
-          <p className="mt-1 text-xs text-warm-600">{t("productHint")}</p>
+          <p className="mt-1 text-note text-warm-600">{t("productHint")}</p>
         </div>
         <Field
           label={t("guaranteeUntil")}
@@ -152,32 +167,47 @@ export async function OfferForm({
 
       <fieldset className="rounded-xl border border-warm-200 bg-white p-4 sm:p-6">
         <legend className="px-1 text-base font-semibold">{t("coverageTitle")}</legend>
-        <p className="text-sm text-warm-600">
+        <p className="text-table text-warm-600">
           {t("coverageIntro", { name: detail.package?.name ?? "—" })}
         </p>
-        <div className="mt-4 space-y-4">
+        <div className="mt-4 flex flex-col">
           {COVERAGE_ITEMS.map((item, index) => {
             const d = coverage[item];
+            const short = shortfalls?.includes(item) === true;
             return (
-              <div key={item} className="rounded-lg border border-warm-200 p-3">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="font-medium">{tc(item)}</p>
-                  <p className="text-xs text-warm-600">
-                    {t("packageAsks", { text: requirementTexts[index] ?? "" })}
-                  </p>
+              <div key={item} className="border-t border-warm-100 py-3 first:border-t-0">
+                <div className="flex items-start gap-2">
+                  <span
+                    className={`inline-flex size-5 shrink-0 pt-0.5 ${short ? "text-orange-700" : "text-green-700"}`}
+                  >
+                    {short ? (
+                      <Icon name="warning" size={18} label={t("shortfall")} />
+                    ) : shortfalls ? (
+                      <Icon name="check" size={18} label={t("meets")} />
+                    ) : null}
+                  </span>
+                  <span className="flex flex-col">
+                    <span className="text-table font-semibold">{tc(item)}</span>
+                    <span className="text-note text-warm-600">
+                      {t("packageAsks", { text: requirementTexts[index] ?? "" })}
+                    </span>
+                  </span>
                 </div>
-                <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                <div className="mt-2 grid gap-3 sm:grid-cols-2 sm:pl-7">
                   {item === "rca" ? (
                     <>
                       <div>
-                        <label htmlFor="f-coverage-rca-limitType" className="block text-sm">
+                        <label
+                          htmlFor="f-coverage-rca-limitType"
+                          className="block text-label font-semibold"
+                        >
                           {t("limitType")}
                         </label>
                         <select
                           id="f-coverage-rca-limitType"
                           name="coverage.rca.limitType"
                           defaultValue={separate ? "SEPARATE_LIMITS" : "SINGLE_LIMIT"}
-                          className="mt-1 block w-full rounded-lg border border-warm-200 bg-white px-3 py-2"
+                          className={INPUT}
                         >
                           <option value="SINGLE_LIMIT">{t("singleLimit")}</option>
                           <option value="SEPARATE_LIMITS">{t("separateLimits")}</option>
@@ -284,7 +314,7 @@ export async function OfferForm({
           invalid={hasError(errors, "pdf")}
         />
         <div className="sm:col-span-2">
-          <label htmlFor="f-notes" className="block text-sm font-medium">
+          <label htmlFor="f-notes" className="block text-label font-semibold">
             {t("notes")}
           </label>
           <textarea
@@ -294,9 +324,9 @@ export async function OfferForm({
             defaultValue={base?.notes ?? ""}
             aria-describedby="f-notes-hint"
             aria-invalid={hasError(errors, "notes") || undefined}
-            className="mt-1 block w-full rounded-lg border border-warm-200 bg-white px-3 py-2"
+            className={INPUT}
           />
-          <p id="f-notes-hint" className="mt-1 text-xs text-warm-600">
+          <p id="f-notes-hint" className="mt-1 text-note text-warm-600">
             {t("notesHint")}
           </p>
         </div>
@@ -304,21 +334,23 @@ export async function OfferForm({
 
       <CheckField label={t("binding")} name="binding" required />
       {previous ? (
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <input
             type="hidden"
             name="previousPremium"
             value={centsToEuroInput(previous.annualGrossPremiumCents)}
           />
-          <Button type="submit" name="mode" value="confirm">
-            {t("confirmSame")}
-          </Button>
-          <Button type="submit" name="mode" value="update" variant="outline">
-            {t("sendUpdated")}
-          </Button>
+          <PendingButton name="mode" value="confirm" label={t("confirmSame")} busy={t("sealing")} />
+          <PendingButton
+            name="mode"
+            value="update"
+            variant="outline"
+            label={t("sendUpdated")}
+            busy={t("sealing")}
+          />
         </div>
       ) : (
-        <Button type="submit">{own ? t("change") : t("send")}</Button>
+        <PendingButton label={own ? t("change") : t("send")} busy={t("sealing")} />
       )}
     </form>
   );

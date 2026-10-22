@@ -100,6 +100,13 @@ describe("fase 4: the agency area (spec 04)", () => {
       cuClass: 1,
       minValidityDays: 15,
       auctionStatus: "OPEN",
+      // ASTA-02, P5 radar: the working time from the server.
+      live: {
+        workingSecondsLeft: expect.any(Number),
+        totalWorkingSeconds: expect.any(Number),
+        serverNow: expect.any(String),
+      },
+      urgent: expect.any(Boolean),
     });
     noContacts(rows);
     // Agenzia Due is not invited.
@@ -162,12 +169,14 @@ describe("fase 4: the agency area (spec 04)", () => {
       documents: { id: string; kind: string }[];
       accessLogged: boolean;
       companies: { name: string }[];
+      live: { workingSecondsLeft: number } | null;
     }>(
       await r.call(await who("agenzia-uno-owner", "agenzia-uno"), `/agency/requests/${auctionId}`),
       200,
     );
     expect(detail.quoteData.vehicle.plate).toBe("GN123AB");
     expect(detail.accessLogged).toBe(true);
+    expect(detail.live?.workingSecondsLeft).toBeGreaterThan(0);
     expect(detail.companies.map((c) => c.name).sort()).toEqual([
       "Compagnia Alfa",
       "Compagnia Beta",

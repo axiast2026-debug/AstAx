@@ -1,9 +1,4 @@
-import {
-  formatDateTime,
-  formatTime,
-  formatWeekdayDate,
-  romeCalendarDate,
-} from "@astax/shared/format";
+import { formatDateTime, formatTime, romeCalendarDate } from "@astax/shared/format";
 import { Icon } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { AddToCalendar } from "@/components/add-to-calendar";
@@ -11,6 +6,7 @@ import { CountdownRing, type WorkingTime } from "@/components/countdown-ring";
 import { PushSwitch } from "@/components/push-switch";
 import { SealedEnvelopes } from "@/components/sealed-envelopes";
 import type { RequestDetail } from "@/lib/requests";
+import { whenWords } from "@/lib/when";
 
 export interface LiveAuction extends Omit<WorkingTime, "serverNow"> {
   round: number;
@@ -56,13 +52,7 @@ export async function AuctionLive({
   const tp = await getTranslations("profile.notifications.push");
   const close = auction.scheduledCloseAt;
   const today = romeCalendarDate(new Date(serverNow));
-  const when = (at: string) => {
-    const day = romeCalendarDate(new Date(at));
-    if (day === today) return t("todayAt", { time: formatTime(at) });
-    const tomorrow = romeCalendarDate(new Date(Date.parse(`${today}T12:00:00Z`) + 86_400_000));
-    if (day === tomorrow) return t("tomorrowAt", { time: formatTime(at) });
-    return t("dayAt", { day: formatWeekdayDate(at), time: formatTime(at) });
-  };
+  const when = await whenWords(serverNow);
   const resumes = auction.pausedUntil ? when(auction.pausedUntil) : null;
   const time: WorkingTime = { ...auction, serverNow };
   const count = auction.offers ?? 0;

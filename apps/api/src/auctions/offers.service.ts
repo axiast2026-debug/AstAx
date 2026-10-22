@@ -746,9 +746,15 @@ export class OffersService {
         targetType: "Offer",
         targetId: offerId,
       });
+      // P3 receipt: who sent it, by name (an agency colleague, never a contact of the customer).
+      const sender = await tx.user.findUnique({
+        where: { id: offer.userId },
+        select: { firstName: true, lastName: true },
+      });
       return {
         id: offer.id,
         auctionId: offer.auctionId,
+        sentBy: sender ? `${sender.firstName} ${sender.lastName}`.trim() : null,
         status: offer.status,
         version: offer.version,
         submittedAt: offer.submittedAt.toISOString(),

@@ -1,4 +1,5 @@
 import type { QuoteData } from "@astax/shared/domain";
+import type { WorkingTime } from "@/components/countdown-ring";
 
 /** Answers of the agency area of the API (spec 04). */
 export type IncomingState =
@@ -21,6 +22,10 @@ export interface IncomingRow {
   minGuaranteeDate: string;
   auctionStatus: string;
   scheduledCloseAt: string;
+  /** ASTA-02: the working time of an open round, from the server. */
+  live: WorkingTime | null;
+  /** P5 radar: closes within the «closing soon» minutes with nothing sent. */
+  urgent: boolean;
   state: IncomingState;
   claimedBy: string | null;
   /** OFF-02 OFF-03: the person already works on it for another of their agencies. */
@@ -41,6 +46,7 @@ export interface AgencyRequestDetail {
   kind: string;
   auctionStatus: string;
   scheduledCloseAt: string;
+  live: WorkingTime | null;
   minGuaranteeDate: string;
   invitation: string;
   claim: { byMe: boolean; holder: string | null } | null;
@@ -69,6 +75,10 @@ export interface OwnOffer {
   id: string;
   status: string;
   version: number;
+  /** PRES-01: server time of the submission or of the last change. */
+  lastChangedAt: string;
+  /** P3 receipt: the colleague who sent it. */
+  sentBy: string | null;
   offer: {
     annualGrossPremiumCents: number;
     companyId: string;

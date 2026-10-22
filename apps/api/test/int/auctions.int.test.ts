@@ -356,8 +356,13 @@ describe("fase 3: claims and offers (OFF-01..07, BC-02, BC-04, BC-05)", () => {
     const own = await r.json<{
       offer: { annualGrossPremiumCents: number; notes: string };
       hasPdf: boolean;
+      sentBy: string | null;
+      lastChangedAt: string;
     }>(await r.call(uno, `/offers/${offerId}`), 200);
     expect(own.offer.annualGrossPremiumCents).toBe(50537);
+    // P3 receipt: the server time of the registration and who sent it.
+    expect(own.sentBy).toBe("Anna Moretti");
+    expect(Date.parse(own.lastChangedAt)).not.toBeNaN();
     expect(own.offer.notes).toBe("Sconto fedeltà");
     expect(own.hasPdf).toBe(true);
     const pdf = await r.call(uno, `/offers/${offerId}/pdf`);
