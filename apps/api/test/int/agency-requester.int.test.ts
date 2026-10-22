@@ -161,6 +161,19 @@ describe("ADR 0015: the agency that requests quotes for its customers", () => {
     expect(shared.length).toBeGreaterThan(0);
 
     const auctionId = await openTestAuction(h, requestId, ["agenzia-tre"]);
+    // The work table (broker design): counters and working time, never a price or a name.
+    const listed = await r.json<
+      { id: string; operator: string | null; auction: Record<string, unknown> | null }[]
+    >(await r.call(await who("agenzia-uno-owner", "agenzia-uno"), "/requests"), 200);
+    const row = listed.find((x) => x.id === requestId);
+    expect(row?.operator?.length).toBeGreaterThan(0);
+    expect(row?.auction).toMatchObject({
+      status: "OPEN",
+      offers: 0,
+      invited: 1,
+      bestPremiumCents: null,
+      live: { workingSecondsLeft: expect.any(Number) },
+    });
     const treOwner = await who("agenzia-tre-owner", "agenzia-tre");
     // The request has no completed data here: the offer is checked on its own.
     const product = await system((tx) =>

@@ -256,7 +256,26 @@
       "issuance": "L'agenzia emette",
       "reconfirmation": "Le agenzie riconfermano"
     },
-    "leavesOn": "Parte da sola il {date}"
+    "leavesOn": "Parte da sola il {date}",
+    "columns": {
+      "customer": "Cliente",
+      "status": "Stato",
+      "closing": "Chiusura o garanzia",
+      "offers": "Offerte",
+      "best": "Miglior premio",
+      "operator": "Operatore",
+      "todo": "Da fare"
+    },
+    "guaranteedUntil": "Garantito fino al {date}",
+    "closedOn": "Chiusa il {date}",
+    "offersInvited": "{offers} · {invited, plural, one {# agenzia invitata} other {# agenzie invitate}}",
+    "sealedNote": "I contatti dei clienti non arrivano mai alle agenzie in asta. Durante l'asta: solo numero di offerte e di agenzie invitate, nessun prezzo e nessun nome.",
+    "quick": {
+      "label": "Filtri rapidi",
+      "todo": "Da fare ({count})",
+      "all": "Tutte ({count})",
+      "soon": "Decorrenza entro {days} giorni"
+    }
   },
   "newBrokerRequest": {
     "title": "Nuova richiesta",
@@ -859,7 +878,7 @@
     "answersBy": "Le agenzie rispondono entro {when}",
     "phaseWorking": "Il tempo conta solo nelle ore lavorative.",
     "phasePaused": "Fuori orario l'asta è ferma: riprende {when}.",
-    "invitedAgencies": "{count, plural, one {# agenzia invitata} other {# agenzie invitate}}: i nomi non si vedono.",
+    "invitedAgencies": "{count, plural, one {# agenzia invitata} other {# agenzie invitate}}",
     "envelopes": "Buste arrivate",
     "answers": "Risposte arrivate",
     "envelopesCount": "{count, plural, =0 {Nessuna busta arrivata} one {# busta arrivata} other {# buste arrivate}}",
@@ -892,7 +911,10 @@
     "autoCancel": "Se non fai nulla, la richiesta si annulla da sola il giorno {date}.",
     "reconfirmationOffer": "Puoi chiedere alle stesse agenzie di confermare o aggiornare il prezzo, con nuove date di garanzia. {left, plural, one {Ti resta # riconferma.} other {Ti restano # riconferme.}}",
     "askReconfirmation": "Chiedi riconferma",
-    "reconfirmationPending": "Riconferma chiesta: tra pochi istanti le agenzie ricevono la richiesta."
+    "reconfirmationPending": "Riconferma chiesta: tra pochi istanti le agenzie ricevono la richiesta.",
+    "chosenDuration": "{hours, plural, one {Durata # ora lavorativa} other {Durata # ore lavorative}}",
+    "namesHidden": "I nomi delle agenzie non si vedono, neanche dopo la chiusura: compaiono solo quando il cliente accetta.",
+    "atClosingBroker": "Vedi la migliore offerta di ogni compagnia e mandi al cliente quelle che vuoi: riceve un link, conferma con un codice, firma e paga il solo premio."
   },
   "agency": {
     "days": "{days, plural, one {# giorno} other {# giorni}}",

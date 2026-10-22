@@ -15,6 +15,7 @@ export * from "./generated/prisma/client.js";
 export {
   AUCTION_SETTING_KEYS,
   auctionSettings,
+  auctionWorkingTime,
   auctionSettingsAt,
   filterableRequest,
   conflictedAgencies,

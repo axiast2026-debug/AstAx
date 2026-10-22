@@ -9,12 +9,15 @@ import {
 import type { ObjectStoragePort } from "@astax/adapters/storage";
 import type { PlateLookupPort, VehicleType } from "@astax/adapters/vehicle-data";
 import {
+  asSystem,
+  auctionWorkingTime,
   recordDomainEvent,
   SYSTEM_CONTEXT,
   withContext,
   type DbClient,
   type DbTransaction,
   type DocumentKind,
+  type OfferStatus,
   type QuoteRequest,
   auctionSettings,
   auctionSettingsAt,
@@ -39,7 +42,7 @@ import {
   type QuoteDraftSection,
   auctionTimes,
 } from "@astax/shared/domain";
-import { calendarDateToDbDate, romeCalendarDate } from "@astax/shared/format";
+import { calendarDateToDbDate, dbDateToCalendarDate, romeCalendarDate } from "@astax/shared/format";
 import { errorForLog, type Logger } from "@astax/shared/logging";
 import { Inject, Injectable } from "@nestjs/common";
 import { AcceptanceEventsService, type Email } from "../acceptance/acceptance-events.service.js";
@@ -74,6 +77,15 @@ import {
   sha256Of,
 } from "./request-support.js";
 
+/** The offers a requester is shown after the closing (PRES-01): their premium is plain. */
+const PRESENTED_OFFER_STATUSES: OfferStatus[] = [
+  "AWAITING_CUSTOMER",
+  "WINNING",
+  "ISSUED",
+  "NOT_CHOSEN",
+  "EXPIRED",
+  "MISSED_ISSUANCE",
+];
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
 const UPLOAD_KINDS: readonly DocumentKind[] = [
   "REGISTRATION_CERTIFICATE",
@@ -222,6 +234,7 @@ export class RequestsService {
         take: 100,
         include: { customer: { include: { person: true } }, batch: { select: { code: true } } },
       });
+      const { auctions, operators } = await this.listAuctions(tx, rows);
       return rows.map((r) => ({
         id: r.id,
         code: r.code,
@@ -239,8 +252,91 @@ export class RequestsService {
         batch: r.batch?.code ?? null,
         scheduledSubmitAt:
           r.status === "DRAFT" ? (r.scheduledSubmitAt?.toISOString() ?? null) : null,
+        operator: operators.get(r.id) ?? null,
+        auction: auctions.get(r.id) ?? null,
       }));
     });
+  }
+
+  /**
+   * The latest round of each request for the work table (broker, design):
+   * during the auction the working time and the counters (VIS-03: offers and
+   * invited agencies, never a price or a name); after the closing the lowest
+   * premium with its guarantee date; who in the office made the request.
+   */
+  private async listAuctions(
+    tx: DbTransaction,
+    rows: { id: string; channel: string; requesterMembershipId: string | null }[],
+  ) {
+    const now = this.clock.now();
+    const latest = new Map<string, Awaited<ReturnType<typeof tx.auction.findMany>>[number]>();
+    for (const a of await tx.auction.findMany({
+      where: { quoteRequestId: { in: rows.map((r) => r.id) } },
+      orderBy: { round: "desc" },
+    })) {
+      if (!latest.has(a.quoteRequestId)) latest.set(a.quoteRequestId, a);
+    }
+    const ids = [...latest.values()].map((a) => a.id);
+    const memberships = rows.flatMap((r) =>
+      r.requesterMembershipId ? [r.requesterMembershipId] : [],
+    );
+    const [offers, invited, best, operators] = await asSystem(tx, () =>
+      Promise.all([
+        tx.offer.groupBy({
+          by: ["auctionId"],
+          where: { auctionId: { in: ids }, status: { notIn: ["WITHDRAWN", "EXCLUDED"] } },
+          _count: { _all: true },
+        }),
+        tx.invitation.groupBy({
+          by: ["auctionId"],
+          where: { auctionId: { in: ids } },
+          _count: { _all: true },
+        }),
+        // BC-02: plain premiums exist only after the closing, and only those are read.
+        tx.offer.findMany({
+          where: {
+            auctionId: { in: ids },
+            auction: { status: "CLOSED" },
+            status: { in: PRESENTED_OFFER_STATUSES },
+            annualGrossPremiumCents: { not: null },
+          },
+          select: { auctionId: true, annualGrossPremiumCents: true, guaranteeUntil: true },
+          orderBy: { annualGrossPremiumCents: "asc" },
+        }),
+        tx.membership.findMany({
+          where: { id: { in: memberships } },
+          select: { id: true, user: { select: { firstName: true, lastName: true } } },
+        }),
+      ]),
+    );
+    const people = new Map<string, string>();
+    const auctions = new Map<string, Record<string, unknown>>();
+    for (const r of rows) {
+      const operator = operators.find((m) => m.id === r.requesterMembershipId);
+      if (operator) {
+        people.set(r.id, `${operator.user.firstName} ${operator.user.lastName}`.trim());
+      }
+      const a = latest.get(r.id);
+      if (!a) continue;
+      const open = a.status === "OPEN";
+      const lowest = open ? undefined : best.find((o) => o.auctionId === a.id);
+      auctions.set(r.id, {
+        status: a.status,
+        kind: a.kind,
+        scheduledCloseAt: a.scheduledCloseAt.toISOString(),
+        live: open ? await auctionWorkingTime(tx, a, now) : null,
+        offers: offers.find((o) => o.auctionId === a.id)?._count._all ?? 0,
+        // VIS-03: only the broker learns how many agencies are invited.
+        ...(r.channel === "BROKER"
+          ? { invited: invited.find((i) => i.auctionId === a.id)?._count._all ?? 0 }
+          : {}),
+        bestPremiumCents: lowest?.annualGrossPremiumCents ?? null,
+        bestGuaranteeUntil: lowest?.guaranteeUntil
+          ? dbDateToCalendarDate(lowest.guaranteeUntil)
+          : null,
+      });
+    }
+    return { auctions, operators: people };
   }
 
   /** PERSON or COMPANY: the kind of the request's customer. */

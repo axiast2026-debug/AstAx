@@ -3,6 +3,7 @@ import type { Clock } from "@astax/adapters/clock";
 import {
   addRequestEvent,
   asSystem,
+  auctionWorkingTime,
   autoCancelAt,
   reconfirmationPending,
   recordDomainEvent,
@@ -16,12 +17,7 @@ import {
   type DbTransaction,
   requesterExclusions,
 } from "@astax/db";
-import {
-  backOfficeMayInvite,
-  bestOfferPerCompany,
-  workingClock,
-  workingMsBetween,
-} from "@astax/shared/domain";
+import { backOfficeMayInvite, bestOfferPerCompany } from "@astax/shared/domain";
 import { dbDateToCalendarDate } from "@astax/shared/format";
 import { Inject, Injectable } from "@nestjs/common";
 import { actorOf, AuditService } from "../audit/audit.service.js";
@@ -122,9 +118,7 @@ export class AuctionsService {
     auction: { id: string; openedAt: Date; scheduledCloseAt: Date; settingsSnapshot: unknown },
     now: Date,
   ) {
-    const snapshot = auction.settingsSnapshot as AuctionSettingsSnapshot;
-    const calendar = await loadWorkingCalendar(tx, snapshot["calendar.workingHours"], snapshot);
-    const clock = workingClock(calendar, now, auction.scheduledCloseAt);
+    const time = await auctionWorkingTime(tx, auction, now);
     const arrivals = await asSystem(tx, () =>
       tx.offer.findMany({
         where: { auctionId: auction.id, status: "SUBMITTED" },
@@ -133,12 +127,7 @@ export class AuctionsService {
       }),
     );
     return {
-      workingSecondsLeft: Math.round(clock.msLeft / 1000),
-      totalWorkingSeconds: Math.round(
-        workingMsBetween(calendar, auction.openedAt, auction.scheduledCloseAt) / 1000,
-      ),
-      pausedUntil: clock.pausedUntil?.toISOString() ?? null,
-      runsUntil: clock.runsUntil?.toISOString() ?? null,
+      ...time,
       envelopesAt: arrivals.map((o) => o.submittedAt.toISOString()),
     };
   }

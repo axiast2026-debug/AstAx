@@ -110,9 +110,17 @@ export async function AuctionLive({
             {auction.pausedUntil ? t("phasePaused", { when: resumes ?? "" }) : t("phaseWorking")}
           </p>
           {auction.invitedAgencies !== undefined ? (
-            <p className="text-table text-night-300">
-              {t("invitedAgencies", { count: auction.invitedAgencies })}
-            </p>
+            <>
+              <p className="text-table text-night-300">
+                {t("chosenDuration", {
+                  hours: Math.round(auction.totalWorkingSeconds / 3600),
+                })}
+                {" · "}
+                {t("invitedAgencies", { count: auction.invitedAgencies })}
+              </p>
+              {/* Broker of the design: the names stay hidden until the customer accepts (VIS-03). */}
+              <p className="text-note text-night-300">{t("namesHidden")}</p>
+            </>
           ) : null}
           {reconfirmation ? (
             <p className="text-table text-night-300">{t("reconfirmationIntro")}</p>
@@ -173,7 +181,7 @@ export async function AuctionLive({
       {!reconfirmation ? (
         <section className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-[inset_0_0_0_1px_var(--color-warm-200)] lg:p-6">
           <h3 className="text-section font-bold">{t("atClosingTitle")}</h3>
-          <p className="text-table">{t("atClosingText")}</p>
+          <p className="text-table">{isPrivate ? t("atClosingText") : t("atClosingBroker")}</p>
           {isPrivate ? (
             <PushSwitch
               publicKey={process.env.VAPID_PUBLIC_KEY ?? ""}
