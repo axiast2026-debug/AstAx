@@ -5,9 +5,11 @@ import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { realtimeTicket } from "@/app/actions";
 import { ArrivalAnnouncer, ArrivalRow } from "@/components/arrival";
 import { ClosesIn } from "@/components/countdown-ring";
 import { IncomingBadge } from "@/components/incoming-badge";
+import { LiveRefresh } from "@/components/live-refresh";
 import { api } from "@/lib/auth";
 import type { IncomingRow, IncomingState } from "@/lib/agency";
 import { requireViewer } from "@/lib/me";
@@ -122,6 +124,8 @@ export default async function IncomingRequestsPage({
 
   return (
     <AppShell viewer={viewer}>
+      {/* A new request in target comes in without reloading (ADR 0008). */}
+      <LiveRefresh ticket={realtimeTicket} follow="incoming" />
       <div className="flex flex-col gap-4">
         {radar.length > 0 ? (
           <section
