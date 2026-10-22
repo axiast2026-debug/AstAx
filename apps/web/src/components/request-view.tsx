@@ -80,6 +80,9 @@ async function AuctionPanel({
   const { body: status } = await api<AuctionStatus>(`/requests/${requestId}/auction`);
   const a = status.auction;
   if (!a) return null;
+  // Momento 3: once the offers are presented the offers panel tells the closing; an empty card would only repeat it.
+  if (presented && !status.reconfirmation?.pending && !status.reconfirmation?.available)
+    return null;
   const open = a.status === "OPEN";
   const offers =
     open || presented

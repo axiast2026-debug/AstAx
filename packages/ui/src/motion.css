@@ -1,0 +1,154 @@
+/*
+ * AstAx motion (Claude Design handoff, «Movimento»). Only transform and
+ * opacity move; energy only in the home, the running auction, the opening of
+ * the envelopes and the expiring price; calm elsewhere. With «reduce motion»
+ * only a fade is left and numbers change at once.
+ */
+:root {
+  --motion-tap: 120ms;
+  --motion-state: 240ms;
+  --motion-enter: 420ms;
+  --motion-arrive: 600ms;
+  --motion-cascade: 120ms;
+  --motion-count: 1200ms;
+  --motion-live: 1600ms;
+  --motion-out: cubic-bezier(0.2, 0, 0, 1);
+  --motion-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes astax-enter {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes astax-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes astax-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes astax-unlock {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-6px);
+    opacity: 0;
+  }
+}
+
+@keyframes astax-unseal {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* A mark lands on its line with a light bounce: 0 → 70% → 100%. */
+@keyframes astax-land {
+  0% {
+    transform: translateY(-24px);
+    opacity: 0;
+  }
+  70% {
+    transform: translateY(2px);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes astax-sheet {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Tap: the control goes down to 97% in 120 ms. */
+.press {
+  transition: transform var(--motion-tap) var(--motion-out);
+}
+.press:active {
+  transform: scale(0.97);
+}
+
+/* Cascade: style="--i: 0|1|2…" on the element, 120 ms apart. */
+.cascade {
+  animation: astax-enter var(--motion-enter) var(--motion-out) both;
+  animation-delay: calc(var(--reveal-at, 0ms) + var(--i, 0) * var(--motion-cascade));
+}
+
+/* Opening of the envelopes: every lid goes up at once, the open envelope appears. */
+.unlock {
+  animation: astax-unlock var(--motion-enter) var(--motion-out) var(--unlock-at, 0ms) both;
+}
+.unseal {
+  animation: astax-unseal var(--motion-enter) var(--motion-out) var(--unlock-at, 0ms) both;
+}
+
+/* A mark lands on the premium line after its card, 120 ms apart. */
+.land {
+  animation: astax-land var(--motion-arrive) var(--motion-out) both;
+  animation-delay: calc(
+    var(--reveal-at, 0ms) + var(--motion-cascade) + var(--i, 0) * var(--motion-cascade)
+  );
+}
+
+/* Sheet from the bottom (native dialog) and its scrim. */
+.sheet-in {
+  animation: astax-sheet var(--motion-state) var(--motion-out) both;
+}
+.sheet-in::backdrop {
+  background: rgb(5 13 26 / 0.6);
+  animation: astax-fade var(--motion-state) linear both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .unlock {
+    animation: astax-fade-out var(--motion-state) linear both;
+  }
+  .unseal,
+  .land,
+  .sheet-in {
+    animation: astax-fade var(--motion-state) linear both;
+  }
+  .press {
+    transition: opacity var(--motion-tap) linear;
+  }
+  .press:active {
+    transform: none;
+    opacity: 0.85;
+  }
+  .cascade {
+    animation: astax-fade var(--motion-state) var(--motion-in-out) both !important;
+    animation-delay: 0ms !important;
+  }
+}

@@ -1,26 +1,76 @@
 /*
- * AstAx design tokens (docs/architettura-codice.md, «Frontend»): night blue,
- * orange, green, warm greys, contrast at least AA. Apps import this file after
- * Tailwind and scan packages/ui for classes.
+ * AstAx design tokens (docs/architettura-codice.md, «Frontend»; Claude Design
+ * handoff of 2026-10-22): night blue, orange, green, warm greys and the four
+ * signals, contrast at least AA. Apps import this file after Tailwind and scan
+ * packages/ui for classes. Values marked «to confirm» are the designer's
+ * proposals, kept until Dan confirms them.
  */
+@import "./motion.css";
+
 @theme {
+  /* Night blue: brand, text, navigation. */
   --color-night-950: #050d1a;
-  --color-night-900: #0b1b33;
+  --color-night-900: #0b1b33; /* text: 17.2:1 on white */
   --color-night-800: #16294a;
   --color-night-700: #243a61;
-  --color-orange-500: #ff6a1a;
-  --color-orange-600: #e0560a;
-  --color-green-600: #12a150;
-  --color-green-700: #0e8442;
-  --color-red-600: #c62828;
+  --color-night-300: #a3badb; /* labels on night blue, 8.7:1 */
+  --color-night-100: #e6ecf5; /* selected row, focus halo (to confirm) */
+
+  /* Auction orange: main action, auction, countdown, deadlines. */
+  --color-orange-50: #fff4ec; /* to confirm */
+  --color-orange-100: #ffe3d1; /* to confirm */
+  --color-orange-400: #ff8240; /* orange on night blue, 7.0:1 */
+  --color-orange-500: #ff6a1a; /* button with night-900 text, 6.0:1; never white text */
+  --color-orange-600: #e0560a; /* never text on light grounds */
+  --color-orange-700: #c2410c; /* orange text on light grounds, 5.2:1 */
+
+  /* Saving green: saving, payment done, policy issued. */
+  --color-green-50: #ecf7f0; /* to confirm */
+  --color-green-600: #12a150; /* text only from 24 px (3.4:1), icons */
+  --color-green-700: #0b7239; /* green text, 6.0:1 (was #0e8442) */
+
+  /* Warm greys: grounds, borders, secondary text. */
   --color-warm-50: #faf8f5;
   --color-warm-100: #f2eee8;
   --color-warm-200: #e4ddd3;
-  --color-warm-400: #a99f92;
-  --color-warm-600: #6b6258;
+  --color-warm-400: #a99f92; /* disabled graphics only, never text */
+  --color-warm-600: #6b6258; /* secondary text: 5.6:1 on warm-50 */
   --color-warm-800: #3a342e;
 
+  /* Signals (to confirm). */
+  --color-info-50: #eaf1fb;
+  --color-info-700: #1d4f91;
+  --color-warning-50: #fdf4dc;
+  --color-warning-700: #7a5300;
+  --color-red-50: #fcecec;
+  --color-red-600: #c62828;
+  --color-red-700: #a51f1f;
+
+  /* Inter for text and interface; Inter Tight 800–900 for big titles and hero numbers. */
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-inter-tight), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --text-price: 2.75rem;
+  --text-price--line-height: 3rem;
+  --text-price--letter-spacing: -0.02em;
+  --text-screen: 1.75rem;
+  --text-screen--line-height: 2.125rem;
+  --text-screen--letter-spacing: -0.01em;
+  --text-section: 1.25rem;
+  --text-section--line-height: 1.75rem;
+  --text-body: 1rem;
+  --text-body--line-height: 1.5rem;
+  --text-table: 0.875rem;
+  --text-table--line-height: 1.25rem;
+  --text-label: 0.875rem;
+  --text-label--line-height: 1.25rem;
+  --text-note: 0.75rem;
+  --text-note--line-height: 1rem;
+
+  /* Night-blue shadows (to confirm). */
+  --shadow-sm: 0 1px 2px rgb(11 27 51 / 0.06), 0 1px 1px rgb(11 27 51 / 0.04);
+  --shadow-md: 0 4px 12px rgb(11 27 51 / 0.08), 0 1px 3px rgb(11 27 51 / 0.06);
+  --shadow-lg: 0 16px 40px rgb(11 27 51 / 0.16), 0 4px 12px rgb(11 27 51 / 0.08);
 }
 
 @layer base {

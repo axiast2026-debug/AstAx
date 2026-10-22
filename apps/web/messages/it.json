@@ -1250,7 +1250,25 @@
     "cases": "{count, plural, one {# caso} other {# casi}}",
     "seeAcceptance": "Vedi pagamento ed emissione",
     "feeVaries": "Il nostro compenso dipende dal premio (più basso sotto i 200,00 €): lo trovi su ogni offerta e lo paghi solo se ne scegli una.",
-    "rowFee": "Nostro compenso: {fee}"
+    "rowFee": "Nostro compenso: {fee}",
+    "readyTitle": "Le offerte sono pronte",
+    "closedOn": "Asta chiusa il {date}",
+    "revealLine": "{envelopes, plural, one {# busta aperta} other {# buste aperte}}, {companies, plural, one {# compagnia} other {# compagnie}}: per ogni compagnia vedi la migliore offerta. Prezzi con imposte e contributo SSN.",
+    "savingHero": "in meno rispetto ai <b>{current}</b> che paghi oggi (il premio attuale che hai indicato), con l'offerta più conveniente.",
+    "noSavingHero": "Le offerte costano più dei <b>{current}</b> che paghi oggi (il premio attuale che hai indicato): confrontale tra loro.",
+    "noPremium": "Non hai indicato il premio che paghi oggi: confronta le offerte tra loro.",
+    "lineToday": "Oggi paghi",
+    "lineLowest": "prezzo più basso ←",
+    "lineSummary": "Linea del premio: oggi paghi {current}; le offerte vanno da {min} a {max}.",
+    "guaranteeTitle": "Garantito fino al {date}",
+    "guaranteeDays": "{days, plural, =0 {scade oggi} one {ancora # giorno} other {ancora # giorni}}",
+    "guaranteeExpiredTitle": "Garanzia scaduta il {date}",
+    "guaranteeExpiredDetail": "non più accettabile",
+    "coverageDeductibles": "Coperture e franchigie",
+    "agenciesHidden": "Le agenzie non si vedono finché non scegli.",
+    "adviceTitle": "Vuoi un parere?",
+    "adviceText": "L'AI confronta prezzo, coperture, durata della garanzia e indice dei reclami delle compagnie e ti dice quale conviene. Con il confronto il compenso diventa {to} invece di {from}, solo se poi scegli un'offerta.",
+    "adviceTextByOffer": "L'AI confronta prezzo, coperture, durata della garanzia e indice dei reclami delle compagnie e ti dice quale conviene. Con il confronto il compenso aumenta un po', solo se poi scegli un'offerta."
   },
   "startModeShort": {
     "ON_ISSUANCE": "Immediata, dall'emissione",
@@ -1262,7 +1280,10 @@
     "confirm": "Confronta con AI",
     "back": "Torna alle offerte",
     "textByOffer": "Con il confronto il nostro compenso aumenta, qualunque offerta sceglierai. Lo paghi solo se scegli un'offerta:",
-    "offerFee": "{offer}: da {from} a {to}"
+    "offerFee": "{offer}: da {from} a {to}",
+    "busy": "Sto confrontando le offerte…",
+    "feeWithout": "Compenso senza confronto",
+    "feeWith": "Compenso con il confronto"
   },
   "acceptance": {
     "title": "Accettazione {code}",

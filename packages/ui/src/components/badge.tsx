@@ -3,14 +3,14 @@ import type { HTMLAttributes } from "react";
 import { cn } from "../cn.js";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+  "inline-flex h-6 items-center gap-1 rounded-lg px-2 text-xs font-semibold",
   {
     variants: {
       tone: {
         neutral: "bg-warm-100 text-warm-800",
-        success: "bg-green-600/10 text-green-800",
+        success: "bg-green-50 text-green-700",
         warning: "bg-orange-500/15 text-night-900",
-        danger: "bg-red-600/10 text-red-700",
+        danger: "bg-red-50 text-red-700",
         dark: "bg-night-900 text-white",
       },
     },
