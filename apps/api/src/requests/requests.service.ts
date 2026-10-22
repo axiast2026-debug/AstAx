@@ -244,6 +244,16 @@ export class RequestsService {
     });
   }
 
+  /** PERSON or COMPANY: the kind of the request's customer. */
+  private async customerKind(tx: DbTransaction, request: QuoteRequest) {
+    if (!request.customerId) return null;
+    const customer = await tx.customer.findUnique({
+      where: { id: request.customerId },
+      include: { person: { select: { kind: true } } },
+    });
+    return customer?.person.kind ?? null;
+  }
+
   async detail(auth: AuthContext, id: string) {
     return withContext(this.db, auth.db, async (tx) => {
       const request = await this.findOwn(tx, auth, id);
@@ -279,6 +289,8 @@ export class RequestsService {
         code: request.code,
         status: request.status,
         channel: request.channel,
+        // A company's request has no owner's birth date (question 25).
+        customerKind: await this.customerKind(tx, request),
         editable,
         draft: editable ? this.draftOf(request) : null,
         missingSections: editable ? missingDraftSections(this.draftOf(request)) : [],
@@ -885,6 +897,12 @@ export class RequestsService {
   ) {
     const intake = IntakeSchema.safeParse(draft.intake);
     if (!intake.success) throw ProblemError.fromZod(intake.error);
+    // The owner's birth date: for a person always, never for a company (question 25).
+    if (!intake.data.ownerBirthDate && (await this.customerKind(tx, request)) !== "COMPANY") {
+      throw new ProblemError("VALIDATION_FAILED", undefined, [
+        { path: "ownerBirthDate", issue: "REQUIRED" },
+      ]);
+    }
     if (!intake.data.drivingFormula) {
       throw new ProblemError("VALIDATION_FAILED", undefined, [
         { path: "drivingFormula", issue: "REQUIRED" },

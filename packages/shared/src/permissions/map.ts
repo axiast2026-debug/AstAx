@@ -202,7 +202,8 @@ export const PERMISSIONS = {
     conditions: "statement import, matching, the queue",
   },
   "accounting.agencyStatement": { grants: AGENCY_ACCOUNTING },
-  "accounting.brokerStatement": { grants: ["BROKER_OWNER"] },
+  // ADR 0015: the agency that requests quotes has the same statement of its fees.
+  "accounting.brokerStatement": { grants: ["BROKER_OWNER", "AGENCY_OWNER"] },
   "invoice.viewOwn": {
     grants: ["PRIVATE", ...AGENCY_ACCOUNTING, "BROKER_OWNER"],
     conditions: "recipient of the invoice only",

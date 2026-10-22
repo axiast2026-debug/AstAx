@@ -154,6 +154,21 @@ describe("ADR 0013: the request in two stages", () => {
     });
   });
 
+  it("question 25: a company customer is the holder with its seat; the driver is the person of the licence", () => {
+    const c = quoteDataFromIntake({ ...insured, ownerBirthDate: undefined }, request, {
+      ...evidence,
+      customer: { kind: "COMPANY", companyName: "Trasporti Prova Srl", vatNumber: "01234567897" },
+    });
+    expect(c.policyHolder).toEqual({
+      kind: "COMPANY",
+      companyName: "Trasporti Prova Srl",
+      vatNumber: "01234567897",
+      registeredOffice: residence,
+    });
+    expect(c.drivers[0]?.person).toMatchObject({ kind: "PERSON", residence });
+    expect(c.missing).not.toContain("policyHolder.birthDate");
+  });
+
   it("nothing is invented: what the bot did not read is listed for the back office", () => {
     const c = quoteDataFromIntake(
       { ...insured, vehicleStatus: "NEW", classSource: { kind: "OWN_VEHICLE", plate: "AB123CD" } },

@@ -188,7 +188,7 @@ export class BatchesService {
       await this.requests.saveSection(auth, draft.id, "intake", {
         vehicleStatus: "INSURED",
         plate: row.plate,
-        ownerBirthDate: row.ownerBirthDate,
+        ...(row.kind === "PERSON" ? { ownerBirthDate: row.ownerBirthDate } : {}),
         residence: {
           street: row.street,
           postalCode: row.postalCode,
@@ -247,27 +247,36 @@ export class BatchesService {
     return { id: batch.id, code: batch.code, rows: results.length, results };
   }
 
-  /** The firm's customer with this fiscal code, or a new one. */
+  /** The firm's customer with this fiscal code or VAT number, or a new one. */
   private async customerOf(auth: AuthContext, row: BatchRow): Promise<string> {
     const organizationId = auth.membership?.organizationId ?? "";
+    const identity =
+      row.kind === "COMPANY"
+        ? { vatNumberHash: this.cipher.blindIndex("vatNumber", row.fiscalCode) }
+        : { fiscalCodeHash: this.cipher.blindIndex("fiscalCode", row.fiscalCode) };
     const found = await withContext(this.db, auth.db, (tx) =>
       tx.customer.findFirst({
-        where: {
-          ownerOrganizationId: organizationId,
-          person: { fiscalCodeHash: this.cipher.blindIndex("fiscalCode", row.fiscalCode) },
-        },
+        where: { ownerOrganizationId: organizationId, person: identity },
         select: { id: true },
       }),
     );
     if (found) return found.id;
-    const created = await this.customers.create(auth, {
-      kind: "PERSON",
-      surname: row.surname,
-      givenName: row.givenName,
-      fiscalCode: row.fiscalCode,
+    const contacts = {
       ...(row.email ? { email: row.email } : {}),
       ...(row.phone ? { phone: row.phone } : {}),
-    });
+    };
+    const created = await this.customers.create(
+      auth,
+      row.kind === "COMPANY"
+        ? { kind: "COMPANY", companyName: row.surname, vatNumber: row.fiscalCode, ...contacts }
+        : {
+            kind: "PERSON",
+            surname: row.surname,
+            givenName: row.givenName,
+            fiscalCode: row.fiscalCode,
+            ...contacts,
+          },
+    );
     return created.id;
   }
 

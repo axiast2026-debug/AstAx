@@ -43,6 +43,8 @@ export interface RequestDetail {
   code: string;
   status: string;
   channel: "PRIVATE" | "BROKER";
+  /** Question 25: a company customer has no owner's birth date. */
+  customerKind?: "PERSON" | "COMPANY" | null;
   editable: boolean;
   draft: QuoteDraft | null;
   missingSections: QuoteDraftSection[];

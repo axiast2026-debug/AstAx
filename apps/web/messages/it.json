@@ -1522,7 +1522,8 @@
       "SENT": "Inviata allo SDI",
       "DELIVERED": "Consegnata",
       "REJECTED": "Scartata dallo SDI"
-    }
+    },
+    "requesterTitle": "Le richieste per i vostri clienti"
   },
   "brokerAccounting": {
     "statementTitle": "Estratto conto",
@@ -1771,7 +1772,7 @@
     "title": "Lotti",
     "intro": "Carica in una volta i rinnovi, per esempio quelli del mese, con il modello Excel di AstAx. Ogni riga diventa una richiesta: parte da sola verso il back office 7 giorni prima della scadenza della polizza, e 3 giorni prima ti chiediamo libretto e documenti. Puoi inviarla prima quando vuoi, dalla tabella «Richieste».",
     "template": "Scarica il modello Excel",
-    "templateHint": "Una riga per veicolo, solo persone fisiche. Nel secondo foglio trovi i valori ammessi per tipo di guida, garanzie e decorrenza. Garanzie vuote = «Consigliato»; decorrenza vuota = alla scadenza.",
+    "templateHint": "Una riga per veicolo, per persone e società: per una società scrivi la ragione sociale nella prima colonna del nome, lascia vuoto «Nome» e metti la partita IVA. Nel secondo foglio trovi i valori ammessi per tipo di guida, garanzie e decorrenza. Garanzie vuote = «Consigliato»; decorrenza vuota = alla scadenza.",
     "upload": "Carica il file",
     "file": "File Excel (.xlsx)",
     "errorsTitle": "Il file ha degli errori: non abbiamo salvato niente",
@@ -1799,13 +1800,13 @@
       "INVALID_DATE": "data non valida",
       "EXPIRED": "la polizza è già scaduta",
       "INVALID_FISCAL_CODE": "codice fiscale non valido",
-      "COMPANY_NOT_YET": "per ora solo persone fisiche: per una società usa «Nuova richiesta»",
       "INVALID_EMAIL": "email non valida",
       "INVALID_PHONE": "cellulare non valido",
       "INVALID_POSTAL_CODE": "CAP non valido",
       "INVALID_PROVINCE": "provincia non valida (due lettere)",
       "MUNICIPALITY_NOT_FOUND": "comune non trovato in quella provincia",
-      "UNKNOWN_VALUE": "valore non tra quelli ammessi (vedi il secondo foglio del modello)"
+      "UNKNOWN_VALUE": "valore non tra quelli ammessi (vedi il secondo foglio del modello)",
+      "INVALID_VAT_NUMBER": "partita IVA non valida"
     }
   },
   "metrics": {

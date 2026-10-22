@@ -47,97 +47,9 @@ function compact<T extends Record<string, unknown>>(value: T): T {
   return Object.fromEntries(Object.entries(value).filter(([, v]) => v !== undefined)) as T;
 }
 
-export function vehicleFromForm(form: FormReader) {
-  return compact({
-    plate: text(form, "vehicle.plate"),
-    type: text(form, "vehicle.type"),
-    use: text(form, "vehicle.use") ?? "PRIVATE",
-    make: text(form, "vehicle.make"),
-    model: text(form, "vehicle.model"),
-    version: text(form, "vehicle.version"),
-    fuel: text(form, "vehicle.fuel"),
-    displacementCc: integer(form, "vehicle.displacementCc"),
-    powerKw: integer(form, "vehicle.powerKw"),
-    firstRegistrationDate: text(form, "vehicle.firstRegistrationDate"),
-    purchaseDate: text(form, "vehicle.purchaseDate"),
-    isNew: checked(form, "vehicle.isNew"),
-    marketValueEur: integer(form, "vehicle.marketValueEur"),
-    satelliteAlarm: checked(form, "vehicle.satelliteAlarm") ? true : undefined,
-    nightParking: text(form, "vehicle.nightParking"),
-    annualKmBand: text(form, "vehicle.annualKmBand"),
-  });
-}
-
-/** Claims of the last five years plus the current one, one row per year with any claim. */
-export function claimsFromForm(form: FormReader, years: readonly number[]) {
-  return years.flatMap((year) => {
-    const main = integer(form, `claims.${year}.main`) ?? 0;
-    const shared = integer(form, `claims.${year}.shared`) ?? 0;
-    return main === 0 && shared === 0
-      ? []
-      : [{ year, mainResponsibility: main, sharedResponsibility: shared }];
-  });
-}
-
-export function historyFromForm(form: FormReader, years: readonly number[]) {
-  const provenance = text(form, "history.provenance");
-  const familyPlate = text(form, "history.familyRc.plate");
-  const familyCode = text(form, "history.familyRc.relativeFiscalCode");
-  return compact({
-    provenance,
-    cuClass: integer(form, "history.cuClass"),
-    claims: claimsFromForm(form, years),
-    riskUniqueId: text(form, "history.riskUniqueId")?.toUpperCase(),
-    currentInsurer: text(form, "history.currentInsurer"),
-    currentExpiryDate: text(form, "history.currentExpiryDate"),
-    familyRc:
-      provenance === "FAMILY_RC" && familyPlate && familyCode
-        ? { plate: familyPlate, relativeFiscalCode: familyCode }
-        : undefined,
-  });
-}
-
-export interface PersonFields {
-  surname?: string;
-  givenName?: string;
-  fiscalCode?: string;
-  street?: string;
-  postalCode?: string;
-  municipality?: string;
-  province?: string;
-  profession?: string;
-  maritalStatus?: string;
-  children?: number;
-}
-
-/** The fields of a person block named `prefix` (policyHolder, vehicleOwner, driver1…). */
-export function personFieldsFromForm(form: FormReader, prefix: string): PersonFields {
-  return compact({
-    surname: text(form, `${prefix}.surname`),
-    givenName: text(form, `${prefix}.givenName`),
-    fiscalCode: text(form, `${prefix}.fiscalCode`)?.replace(/\s/g, "").toUpperCase(),
-    street: text(form, `${prefix}.street`),
-    postalCode: text(form, `${prefix}.postalCode`),
-    municipality: text(form, `${prefix}.municipality`),
-    province: text(form, `${prefix}.province`)?.toUpperCase(),
-    profession: text(form, `${prefix}.profession`),
-    maritalStatus: text(form, `${prefix}.maritalStatus`),
-    children: integer(form, `${prefix}.children`),
-  });
-}
-
-export function licenceFromForm(form: FormReader, prefix: string) {
-  return compact({
-    category: text(form, `${prefix}.licence.category`),
-    number: text(form, `${prefix}.licence.number`)?.replace(/\s/g, "").toUpperCase(),
-    issuedOn: text(form, `${prefix}.licence.issuedOn`),
-    expiresOn: text(form, `${prefix}.licence.expiresOn`),
-  });
-}
-
 const START_MODES = ["DATE", "ON_ISSUANCE", "MIDNIGHT_AFTER_DEADLINE"] as const;
 
-/** The packages offered to the private customer; the others stay for the broker. */
+/** The packages of a request: «Consigliato» or «Su misura» (Dan, 2026-10-21). */
 export const REQUEST_PACKAGES: readonly string[] = ["RECOMMENDED", "CUSTOM"];
 
 export function requestTermsFromForm(
@@ -167,31 +79,4 @@ export function requestTermsFromForm(
     minValidityDays: integer(form, "request.minValidityDays") ?? defaults.minValidityDays,
     currentPremiumCents: eurosToCents(text(form, "request.currentPremium")),
   });
-}
-
-/**
- * Step 2 «Chi guida»: whose details the drivers' part asks for. The holder is
- * the usual driver by default, also when the holder was saved before the
- * drivers (a step left half way). The other person's details are read only
- * when «Guida anche un'altra persona» is ticked, or always when the holder is a
- * company (a company never drives). With a person as holder who does not
- * drive and no other person, the step asks to say who the usual driver is.
- */
-export function holderDrivesByDefault(
-  holderFiscalCode: string | null | undefined,
-  drivers: readonly { isMain: boolean; person: { fiscalCode: string } }[],
-): boolean {
-  const main = drivers.find((d) => d.isMain);
-  if (!main) return true;
-  return holderFiscalCode !== null && main.person.fiscalCode === holderFiscalCode;
-}
-
-export function driversChoice(form: FormReader, holderIsPerson: boolean) {
-  const holderIsDriver = holderIsPerson && checked(form, "holderDrives");
-  const otherDriver = checked(form, "otherDriver") || !holderIsPerson;
-  return {
-    holderIsDriver,
-    otherDriver,
-    missingMainDriver: holderIsPerson && !holderIsDriver && !otherDriver,
-  };
 }

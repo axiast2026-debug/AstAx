@@ -79,6 +79,7 @@ const EXPECTED: Record<ActorRole, Action[]> = {
   ],
   AGENCY_OWNER: [
     ...PRO_SELF,
+    "accounting.brokerStatement",
     // ADR 0015 (Dan, 2026-10-21): the agency requests quotes for its own customers.
     "request.create",
     "consent.revoke",

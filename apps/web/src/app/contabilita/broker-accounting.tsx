@@ -38,10 +38,14 @@ interface BrokerStatement {
  * its customers with premium, commission (when active) and the fee due to
  * AstAx; the monthly invoices and credit notes; the CSV for its software.
  */
-export async function BrokerAccounting() {
+export async function BrokerAccounting({ optional = false }: { optional?: boolean } = {}) {
   const t = await getTranslations("brokerAccounting");
   const { status, body } = await api<BrokerStatement>("/broker/statement");
-  if (status !== 200) notFound();
+  // In the agency's page the statement of its requests is a part, not the page.
+  if (status !== 200) {
+    if (optional) return null;
+    notFound();
+  }
   const euro = (cents: number) => formatEuroCents(cents);
   const feeDue = body.policies.reduce((sum, p) => sum + p.feeCents, 0);
   return (

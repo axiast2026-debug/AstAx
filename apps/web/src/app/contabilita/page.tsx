@@ -1,5 +1,6 @@
 import { formatDate, formatDateTime, formatEuroCents } from "@astax/shared/format";
 import { Badge, Button, Card, CardTitle } from "@astax/ui";
+import { can } from "@astax/shared/permissions";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -286,6 +287,13 @@ export default async function AccountingPage({
           </ul>
         )}
       </Card>
+      {can(viewer.actor, "accounting.brokerStatement") ? (
+        // ADR 0015: the fees of the quotes the agency requested for its customers.
+        <section className="mt-8">
+          <h2 className="text-lg font-semibold">{t("requesterTitle")}</h2>
+          <BrokerAccounting optional />
+        </section>
+      ) : null}
     </AppShell>
   );
 }

@@ -19,6 +19,8 @@ Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in att
 
 ## Ultima sessione
 
+**2026-10-22 — risposte di Dan e lavori piccoli**: 22 (4 ore e 15 minuti, confermati in `docs/ripristino.md`), 23 (dopo la misura), 25 (lotti anche per le società: partita IVA e ragione sociale nelle stesse colonne, intestazioni del modello rinominate, data di nascita del proprietario obbligatoria solo per le persone e controllata all'invio, conducente principale dalla patente; ADR 0014 aggiornato), 26 (lotti in qualsiasi momento, partenza alle 9:00), casi esclusi dei privati come oggi (domanda 27). Estratto conto delle richieste anche per il titolare dell'agenzia richiedente (in «Contabilità»). Tolte da `apps/web/src/lib/wizard-forms.ts` le funzioni delle vecchie schermate del broker (debito tecnico chiuso).
+
 **2026-10-22 — broker, passo 5 del piano e memoria del PC**: voce «Flotte aziendali» con la pagina «In arrivo» (piano del broker completo). Per la poca memoria del computer (8 GB non espandibili) sito e back office in locale girano in produzione (`astax-web-prod`, `astax-admin-prod` in `.claude/launch.json`, dopo il build); gli E2E completi li fa la CI.
 
 **2026-10-22 — agenzie, passo 5 del piano** (risposte 6A, 7A, 8A, 9A): l'intermediario di sezione E di un'agenzia entra come organizzazione `AGENCY` con `ruiSection` E; `withCompanies` (`apps/api/src/onboarding/onboarding.service.ts`) prende le compagnie della sua agenzia dal RUI; `checkOnRui` le confronta con quelle dell'agenzia. Prova in `apps/api/test/int/onboarding.int.test.ts`. Piano delle agenzie completo.

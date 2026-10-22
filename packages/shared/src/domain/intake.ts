@@ -30,7 +30,11 @@ export const IntakeSchema = z
     /** «Già assicurato» or «Nuovo da assicurare». */
     vehicleStatus: z.enum(["INSURED", "NEW"]),
     plate,
-    ownerBirthDate: calendarDate,
+    /**
+     * Required for a person; a company has none (Dan, 2026-10-22, question 25:
+     * the lots and the requests for companies). Checked at the submission.
+     */
+    ownerBirthDate: calendarDate.optional(),
     residence: AddressSchema,
     /** Chosen on its own screen, required at the submission (Dan: «obbligatorio»). */
     drivingFormula: z.enum(DRIVING_FORMULAS).optional(),
@@ -96,7 +100,10 @@ export interface IntakeEvidence {
    * The broker's customer (docs/piano-broker.md, B): the policy holder is the
    * customer (LEG-04), so its name and fiscal code win over the documents.
    */
-  customer?: { surname?: string; givenName?: string; fiscalCode?: string } | null;
+  customer?:
+    | { kind?: "PERSON"; surname?: string; givenName?: string; fiscalCode?: string }
+    | { kind: "COMPANY"; companyName: string; vatNumber: string }
+    | null;
   /** ISTAT code of the municipality of a cadastral code, when known. */
   istatOfCadastral: (cadastral: string) => string | null;
   /** Today in Rome, from `Clock`. */
@@ -135,7 +142,8 @@ export function quoteDataFromIntake(
   const identity = evidence.extracted.IDENTITY_DOCUMENT ?? {};
   const risk = evidence.extracted.RISK_CERTIFICATE ?? {};
 
-  const customer = evidence.customer ?? null;
+  const company = evidence.customer?.kind === "COMPANY" ? evidence.customer : null;
+  const customer = evidence.customer?.kind === "COMPANY" ? null : (evidence.customer ?? null);
   const fiscalCode =
     str(customer?.fiscalCode) ?? str(reg.ownerFiscalCode) ?? str(identity.fiscalCode);
   const decoded = fiscalCode ? decodeFiscalCode(fiscalCode, evidence.today) : null;
@@ -144,7 +152,7 @@ export function quoteDataFromIntake(
       ? decoded.birthPlaceCadastralCode
       : (evidence.istatOfCadastral(decoded.birthPlaceCadastralCode) ?? undefined)
     : undefined;
-  const holder = {
+  const person = {
     kind: "PERSON",
     surname:
       str(customer?.surname) ??
@@ -162,6 +170,25 @@ export function quoteDataFromIntake(
     sex: decoded?.sex,
     residence: intake.residence,
   };
+  const holder: Record<string, unknown> = company
+    ? {
+        kind: "COMPANY",
+        companyName: company.companyName,
+        vatNumber: company.vatNumber,
+        registeredOffice: intake.residence,
+      }
+    : person;
+  // A company's vehicle: the main driver is the person of the licence, never the company.
+  const driver: Record<string, unknown> = company
+    ? {
+        kind: "PERSON",
+        surname: str(licence.surname),
+        givenName: str(licence.givenName),
+        fiscalCode: str(licence.fiscalCode),
+        birthDate: str(licence.birthDate),
+        residence: intake.residence,
+      }
+    : person;
 
   const driverLicence = {
     category: str(licence.category),
@@ -210,6 +237,11 @@ export function quoteDataFromIntake(
     ...Object.entries(holder)
       .filter(([, value]) => value === undefined)
       .map(([key]) => `policyHolder.${key}`),
+    ...(company
+      ? Object.entries(driver)
+          .filter(([, value]) => value === undefined)
+          .map(([key]) => `drivers.0.person.${key}`)
+      : []),
     ...Object.entries(driverLicence)
       .filter(([, value]) => value === undefined)
       .map(([key]) => `drivers.0.licence.${key}`),
@@ -230,7 +262,7 @@ export function quoteDataFromIntake(
   return {
     policyHolder: clean(holder),
     vehicleOwner: "SAME_AS_POLICY_HOLDER",
-    drivers: [{ person: clean(holder), isMain: true, licence: clean(driverLicence) }],
+    drivers: [{ person: clean(driver), isMain: true, licence: clean(driverLicence) }],
     drivingFormula: intake.drivingFormula,
     vehicle: clean(vehicle),
     history: clean(history),

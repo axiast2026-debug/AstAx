@@ -1,5 +1,6 @@
 import { addCalendarDays, isCalendarDate } from "./calendar-date.js";
 import { decodeFiscalCode, normalizeFiscalCodeInput } from "./fiscal-code.js";
+import { isValidVatNumber } from "./italian-ids.js";
 import { isItalianPlate, normalizePlate } from "./plates.js";
 import type { StartMode } from "./quote-data.js";
 
@@ -11,9 +12,9 @@ import type { StartMode } from "./quote-data.js";
 export const BATCH_COLUMNS = [
   "Targa",
   "Scadenza polizza",
-  "Cognome",
+  "Cognome o ragione sociale",
   "Nome",
-  "Codice fiscale",
+  "Codice fiscale o partita IVA",
   "Email",
   "Cellulare",
   "Indirizzo",
@@ -29,11 +30,16 @@ export type BatchCell = string | number | null;
 
 export interface BatchRow {
   line: number;
+  /** Dan, 2026-10-22 (question 25): persons and companies. */
+  kind: "PERSON" | "COMPANY";
   plate: string;
   policyExpiryDate: string;
+  /** The surname, or the company's name. */
   surname: string;
   givenName: string;
+  /** The fiscal code of a person, or the VAT number of a company. */
   fiscalCode: string;
+  /** Empty for a company. */
   ownerBirthDate: string;
   email: string | null;
   phone: string | null;
@@ -161,14 +167,25 @@ export function parseBatchRows(
     else if (expiry < options.today) problem("scadenza", "EXPIRED");
 
     const surname = required(2, "cognome");
-    const givenName = required(3, "nome");
     const rawCode = cell(4);
-    const fiscalCode = rawCode ? normalizeFiscalCodeInput(rawCode) : "";
-    // Only natural persons for now (ADR 0014, question 25): the birth date comes from the code.
-    const decoded = fiscalCode ? decodeFiscalCode(fiscalCode, options.today) : null;
+    // Question 25: 11 digits are a company's VAT number; otherwise a person's fiscal code.
+    const kind: BatchRow["kind"] = /^\d{11}$/.test(rawCode.replace(/\s/g, ""))
+      ? "COMPANY"
+      : "PERSON";
+    const givenName = kind === "COMPANY" ? cell(3) : required(3, "nome");
+    const fiscalCode =
+      kind === "COMPANY"
+        ? rawCode.replace(/\s/g, "")
+        : rawCode
+          ? normalizeFiscalCodeInput(rawCode)
+          : "";
+    // A person's birth date comes from the fiscal code.
+    const decoded =
+      kind === "PERSON" && fiscalCode ? decodeFiscalCode(fiscalCode, options.today) : null;
     if (!rawCode) problem("codice_fiscale", "REQUIRED");
-    else if (/^\d{11}$/.test(fiscalCode)) problem("codice_fiscale", "COMPANY_NOT_YET");
-    else if (!decoded) problem("codice_fiscale", "INVALID_FISCAL_CODE");
+    else if (kind === "COMPANY" && !isValidVatNumber(fiscalCode)) {
+      problem("codice_fiscale", "INVALID_VAT_NUMBER");
+    } else if (kind === "PERSON" && !decoded) problem("codice_fiscale", "INVALID_FISCAL_CODE");
 
     const email = cell(5) || null;
     if (email && !EMAIL.test(email)) problem("email", "INVALID_EMAIL");
@@ -209,6 +226,7 @@ export function parseBatchRows(
 
     rows.push({
       line,
+      kind,
       plate,
       policyExpiryDate: expiry ?? "",
       surname,

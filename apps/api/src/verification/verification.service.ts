@@ -171,17 +171,27 @@ export class VerificationService {
         })
       : null;
     const holder =
-      request.channel === "BROKER" && customer?.person.kind === "PERSON"
-        ? {
-            surname: customer.person.surname ?? undefined,
-            givenName: customer.person.givenName ?? undefined,
-            fiscalCode: customer.person.fiscalCodeEnc
-              ? this.cipher.decrypt(customer.person.fiscalCodeEnc)
-              : undefined,
-          }
-        : null;
+      request.channel !== "BROKER" || !customer
+        ? null
+        : customer.person.kind === "COMPANY"
+          ? {
+              // Question 25: a company customer is the holder, with its VAT number.
+              kind: "COMPANY" as const,
+              companyName: customer.person.companyName ?? "",
+              vatNumber: customer.person.vatNumberEnc
+                ? this.cipher.decrypt(customer.person.vatNumberEnc)
+                : "",
+            }
+          : {
+              kind: "PERSON" as const,
+              surname: customer.person.surname ?? undefined,
+              givenName: customer.person.givenName ?? undefined,
+              fiscalCode: customer.person.fiscalCodeEnc
+                ? this.cipher.decrypt(customer.person.fiscalCodeEnc)
+                : undefined,
+            };
     const fiscalCode =
-      holder?.fiscalCode ??
+      (holder?.kind === "PERSON" ? holder.fiscalCode : undefined) ??
       registration?.ownerFiscalCode ??
       latest("IDENTITY_DOCUMENT")?.fiscalCode;
     const cadastral =

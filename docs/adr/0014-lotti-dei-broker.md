@@ -18,7 +18,7 @@ Oggi esiste il caricamento in blocco della fase 7 (CSV, con uno ZIP facoltativo 
 4. **L'invio programmato lo fa l'API, non il worker.** Un controllo periodico dell'API (come la consegna delle fatture allo SDI) invia in verifica le richieste del lotto arrivate alla loro data, con gli stessi casi d'uso del broker: consenso dalla dichiarazione dello studio (risposta 3), registro attività, avviso al back office. Il back office completa i dati e approva; l'asta si apre all'approvazione. Il broker può inviare prima una richiesta del lotto dalle solite 5 schermate (risposta 6).
 5. **Documenti a tempo:** il giorno dei documenti il broker riceve un avviso con le richieste del lotto ancora senza libretto. Un avviso per richiesta, una volta sola.
 6. **Senza documenti (risposta 4):** una richiesta del lotto inviata senza libretto è segnata «senza documenti». A quell'asta sono invitate solo le agenzie che nei filtri hanno «Accetto richieste senza documenti» (nuovo filtro, spento di base).
-7. **Solo persone fisiche nei lotti, per ora.** I dati essenziali chiedono la data di nascita del proprietario; per le società serve una regola che Dan non ha ancora dato (domanda in `docs/domande-aperte.md`). Le righe con partita IVA sono segnalate come errore.
+7. **Persone e società.** Dan, 2026-10-22 (domanda 25): anche le società. Una riga con 11 cifre al posto del codice fiscale è una società: ragione sociale nella colonna del cognome, partita IVA, sede negli indirizzi; niente data di nascita del proprietario (obbligatoria solo per le persone, controllata all'invio); il conducente principale è la persona della patente.
 
 ## Alternative considerate
 
@@ -33,4 +33,4 @@ Oggi esiste il caricamento in blocco della fase 7 (CSV, con uno ZIP facoltativo 
 
 - Nuovi parametri `batch.auctionDaysBeforeExpiry` e `batch.documentsDaysBeforeAuction`; nuova tabella `RequestBatch`; nuove colonne della richiesta (`batchId`, `batchLine`, `policyExpiryDate`, `scheduledSubmitAt`, `documentsDueAt`, `documentsNotifiedAt`, `withoutDocuments`).
 - Il controllo periodico dell'API gira in ogni copia, sotto un lease del database: una richiesta è inviata una volta sola.
-- Il lettore Excel accetta solo il modello di AstAx: intestazioni in quell'ordine, primo foglio.
+- Il lettore Excel accetta solo il modello di AstAx: intestazioni in quell'ordine, primo foglio. Le intestazioni sono diventate «Cognome o ragione sociale» e «Codice fiscale o partita IVA» il 2026-10-22: i modelli scaricati prima vanno riscaricati.

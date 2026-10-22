@@ -1,5 +1,11 @@
 import { SYSTEM_CONTEXT, withContext } from "@astax/db";
-import { addCalendarDays, BATCH_COLUMNS, buildFiscalCode, romeInstant } from "@astax/shared/domain";
+import {
+  addCalendarDays,
+  BATCH_COLUMNS,
+  buildFiscalCode,
+  buildVatNumber,
+  romeInstant,
+} from "@astax/shared/domain";
 import { romeCalendarDate } from "@astax/shared/format";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { BatchSchedulerService } from "../../src/requests/batch-scheduler.service.js";
@@ -206,6 +212,45 @@ describe("broker plan, step 4: lots from Excel (ADR 0014)", () => {
     expect(logged?.after).toMatchObject({ outcome: "SUBMITTED" });
     // Nothing twice.
     expect(await scheduler.run()).toMatchObject({ reminded: 0, submitted: 0 });
+  });
+
+  it("question 25 (Dan, 2026-10-22): a company's vehicle, by its VAT number, is sent without a birth date", async () => {
+    const today = romeCalendarDate(h.clock.now());
+    const vat = buildVatNumber(5151, 9);
+    const file = writeXlsx([
+      {
+        name: "Richieste",
+        rows: [
+          [...BATCH_COLUMNS],
+          row("LT400AA", addCalendarDays(today, 40), "", { 2: "Trasporti Lotto Srl", 4: vat }),
+        ],
+      },
+    ]);
+    const done = await r.json<{ results: { requestId: string }[] }>(await send(file), 201);
+    const id = done.results[0]?.requestId ?? "";
+    const [request, customer] = await system(async (tx) => {
+      const q = await tx.quoteRequest.findUniqueOrThrow({ where: { id } });
+      return [
+        q,
+        await tx.customer.findUniqueOrThrow({
+          where: { id: q.customerId ?? "" },
+          include: { person: true },
+        }),
+      ] as const;
+    });
+    expect(customer.person).toMatchObject({ kind: "COMPANY", companyName: "Trasporti Lotto Srl" });
+    const detail = await r.json<{ customerKind: string; draft: { intake: object } }>(
+      await r.call(broker, `/requests/${id}`),
+      200,
+    );
+    expect(detail.customerKind).toBe("COMPANY");
+    expect(detail.draft.intake).not.toHaveProperty("ownerBirthDate");
+    // The broker sends it at once (answer 6): without documents and without a birth date.
+    const sent = await r.json<{ status: string }>(
+      await r.call(broker, `/requests/${request.id}/submit`, { body: {} }),
+      200,
+    );
+    expect(sent.status).toBe("IN_VERIFICATION");
   });
 
   it("only a requester organization uploads lots (a broker or, ADR 0015, an agency)", async () => {

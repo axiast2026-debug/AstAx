@@ -11,7 +11,7 @@
 | Redis | Solo dati temporanei (sessioni, tempo reale, limiti): non serve ripristinarlo | Snapshot 7 giorni |
 | Temporal | Su Temporal Cloud (ADR 0012); i workflow si ricostruiscono dagli stati nel database | — |
 
-## Obiettivi (da confermare con Dan)
+## Obiettivi (confermati da Dan il 2026-10-22, domanda 22)
 
 | | Obiettivo |
 | --- | --- |

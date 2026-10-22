@@ -129,14 +129,16 @@ export async function IntakeDataStep({
             invalid={hasError(errors, "plate")}
             required
           />
-          <Field
-            label={t("ownerBirthDate")}
-            name="intake.ownerBirthDate"
-            type="date"
-            defaultValue={intake.ownerBirthDate}
-            invalid={hasError(errors, "ownerBirthDate")}
-            required
-          />
+          {detail.customerKind === "COMPANY" ? null : (
+            <Field
+              label={t("ownerBirthDate")}
+              name="intake.ownerBirthDate"
+              type="date"
+              defaultValue={intake.ownerBirthDate}
+              invalid={hasError(errors, "ownerBirthDate")}
+              required
+            />
+          )}
           <Field
             label={t("street")}
             name="intake.street"

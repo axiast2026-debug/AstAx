@@ -136,6 +136,17 @@ describe("ADR 0015: the agency that requests quotes for its customers", () => {
     expect(await list("agenzia-uno-operator")).not.toContain(requestId);
   });
 
+  it("the owner sees the statement of the fees of its requests; an operator does not", async () => {
+    const statement = await r.json<{ policies: unknown[] }>(
+      await r.call(await who("agenzia-uno-owner", "agenzia-uno"), "/broker/statement"),
+      200,
+    );
+    expect(Array.isArray(statement.policies)).toBe(true);
+    expect(
+      (await r.call(await who("agenzia-uno-operator", "agenzia-uno"), "/broker/statement")).status,
+    ).toBe(403);
+  });
+
   it("answer 3B: Uno is never invited, Tre offers only with a company Uno does not have", async () => {
     const uno = orgId("agenzia-uno");
     const tre = orgId("agenzia-tre");

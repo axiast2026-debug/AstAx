@@ -6,6 +6,7 @@ import { romeCalendarDate } from "@astax/shared/format";
 import { Inject, Injectable } from "@nestjs/common";
 import { actorOf, AuditService } from "../audit/audit.service.js";
 import type { AuthContext } from "../auth/auth-context.js";
+import { isOrgRequester } from "../requests/request-support.js";
 import { ProblemError } from "../http/problem.js";
 import { CLOCK, DB, FIELD_CIPHER, OBJECT_STORAGE } from "../infra/tokens.js";
 import labels from "../notifications/labels.it.json" with { type: "json" };
@@ -102,7 +103,8 @@ export class InvoicesService {
    */
   async brokerStatement(auth: AuthContext) {
     const m = auth.membership;
-    if (!m || m.organizationType !== "BROKER") throw new ProblemError("NOT_FOUND");
+    // ADR 0015: a broker, or an agency for the policies it requested for its customers.
+    if (!isOrgRequester(m)) throw new ProblemError("NOT_FOUND");
     return withContext(this.db, auth.db, async (tx) => {
       const policies = await tx.policy.findMany({
         where: { ownerOrganizationId: m.organizationId },

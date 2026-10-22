@@ -221,7 +221,10 @@ export async function saveIntakeStep(formData: FormData): Promise<void> {
   const intake = {
     vehicleStatus: status,
     plate: text(formData, "intake.plate"),
-    ownerBirthDate: text(formData, "intake.ownerBirthDate"),
+    // A company's request has none (question 25).
+    ...(text(formData, "intake.ownerBirthDate")
+      ? { ownerBirthDate: text(formData, "intake.ownerBirthDate") }
+      : {}),
     residence: {
       street: text(formData, "intake.street"),
       postalCode: text(formData, "intake.postalCode"),

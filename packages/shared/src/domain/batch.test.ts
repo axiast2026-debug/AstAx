@@ -7,6 +7,7 @@ import {
   type BatchCell,
 } from "./batch.js";
 import { buildFiscalCode } from "./fiscal-code.js";
+import { buildVatNumber } from "./italian-ids.js";
 
 // ADR 0014, Dan 2026-10-21 (docs/piano-broker.md C-E): the broker's lot from Excel.
 const vocabulary = {
@@ -72,6 +73,18 @@ describe("broker lots from Excel (ADR 0014)", () => {
     });
   });
 
+  it("question 25: a company by its VAT number, its name in the first column, no birth date", () => {
+    const vat = buildVatNumber(4242, 7);
+    const { rows, problems } = parse([row({ 2: "Trasporti Lotto Srl", 3: "", 4: vat })]);
+    expect(problems).toEqual([]);
+    expect(rows[0]).toMatchObject({
+      kind: "COMPANY",
+      surname: "Trasporti Lotto Srl",
+      fiscalCode: vat,
+      ownerBirthDate: "",
+    });
+  });
+
   it("the coverages by name make «Su misura»; the start by its label", () => {
     const { rows, problems } = parse([
       row({ 12: "Assistenza stradale, cristalli", 13: "All'emissione" }),
@@ -93,7 +106,7 @@ describe("broker lots from Excel (ADR 0014)", () => {
       expect.arrayContaining([
         { line: 3, field: "targa", issue: "DUPLICATE_OF_2" },
         { line: 3, field: "scadenza", issue: "EXPIRED" },
-        { line: 3, field: "codice_fiscale", issue: "COMPANY_NOT_YET" },
+        { line: 3, field: "codice_fiscale", issue: "INVALID_VAT_NUMBER" },
         { line: 3, field: "tipo_di_guida", issue: "UNKNOWN_VALUE" },
         { line: 3, field: "garanzie", issue: "UNKNOWN_VALUE" },
       ]),
