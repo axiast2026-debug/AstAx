@@ -23,7 +23,14 @@ function tokenOf(formData: FormData): string {
 function inputOf(formData: FormData) {
   const value = (name: string) => String(formData.get(name) ?? "").trim();
   return {
-    type: value("type") === "BROKER" ? "BROKER" : "AGENCY",
+    // A section E intermediary of an agency enters as an agency (step 5 of docs/piano-agenzie.md).
+    type:
+      value("ruiNumber").toUpperCase().startsWith("E") &&
+      value("principalRuiNumber").toUpperCase().startsWith("A")
+        ? "AGENCY"
+        : value("type") === "BROKER"
+          ? "BROKER"
+          : "AGENCY",
     legalName: value("legalName"),
     vatNumber: value("vatNumber"),
     fiscalCode: value("fiscalCode") || null,

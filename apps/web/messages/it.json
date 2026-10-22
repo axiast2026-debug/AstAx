@@ -496,7 +496,8 @@
     "UNKNOWN_COMPANY": "Scegli almeno una compagnia mandante.",
     "INVALID_IBAN": "L'IBAN non è valido.",
     "PRINCIPAL_REQUIRED": "Indica il numero RUI dell'intermediario per cui lavori.",
-    "COMPANY_OF_THE_REQUESTER": "Questa compagnia è anche dell'agenzia che chiede il preventivo: offri con un'altra compagnia."
+    "COMPANY_OF_THE_REQUESTER": "Questa compagnia è anche dell'agenzia che chiede il preventivo: offri con un'altra compagnia.",
+    "PRINCIPAL_WITHOUT_COMPANIES": "Sul RUI la tua agenzia non ha compagnie mandanti: scrivici, le controlliamo noi."
   },
   "wizard": {
     "choose": "Scegli",
@@ -1708,7 +1709,7 @@
     "submit": "Invia la richiesta",
     "ruiNumberE": "Numero RUI (sezione E)",
     "principalRuiNumber": "Numero RUI dell'intermediario per cui lavori",
-    "principalRuiNumberHint": "L'agenzia (sezione A) o il broker (sezione B) per cui lavori. Se è un'agenzia, non sarà invitata alle aste dei tuoi preventivi."
+    "principalRuiNumberHint": "L'agenzia (sezione A) o il broker (sezione B) per cui lavori. Se è un'agenzia, partecipi alle aste a nome tuo con le compagnie della tua agenzia e la tua agenzia non è invitata alle aste dei tuoi preventivi; se è un broker, chiedi preventivi per i tuoi clienti."
   },
   "complaints": {
     "title": "Reclami",

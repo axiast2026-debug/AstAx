@@ -345,17 +345,20 @@ describe("broker plan, step 3 (Dan, 2026-10-21): an intermediary of section E", 
       400,
     );
     expect(missing.errors.map((e) => e.issue)).toEqual(["PRINCIPAL_REQUIRED"]);
-    const asAgency = await r.json<{ errors: { issue: string }[] }>(
-      await h.call("/onboarding", { body: { ...body("A000000001"), type: "AGENCY" } }),
+    const brokerAsAgency = await r.json<{ errors: { issue: string }[] }>(
+      await h.call("/onboarding", {
+        body: { ...body(null), ruiNumber: "B000000101", type: "AGENCY" },
+      }),
       400,
     );
-    expect(asAgency.errors.map((e) => e.issue)).toEqual(["WRONG_SECTION"]);
+    expect(brokerAsAgency.errors.map((e) => e.issue)).toEqual(["WRONG_SECTION"]);
 
     const { token } = await r.json<{ token: string }>(
       await h.call("/onboarding", { body: body("A000000001") }),
       201,
     );
-    const options = (await (await h.call("/onboarding/options?type=BROKER")).json()) as Options;
+    // Step 5 of docs/piano-agenzie.md: the intermediary of an agency enters as an agency.
+    const options = (await (await h.call("/onboarding/options?type=AGENCY")).json()) as Options;
     const versionIds = await complete(token, options);
     await r.json(await h.call(`/onboarding/${token}/submit`, { body: { versionIds } }), 200);
     const queue = await r.json<{ id: string; legalName: string; principalRuiNumber: string }[]>(
@@ -385,10 +388,25 @@ describe("broker plan, step 3 (Dan, 2026-10-21): an intermediary of section E", 
       tx.organization.findUniqueOrThrow({ where: { id: approved.organizationId } }),
     );
     expect(organization).toMatchObject({
-      type: "BROKER",
+      type: "AGENCY",
       ruiSection: "E",
       principalRuiNumber: "A000000001",
     });
+    // Answer 6A: the companies of Agenzia Uno on the RUI, confirmed; invited at once (19B).
+    const [mandates, filter] = await system((tx) =>
+      Promise.all([
+        tx.agencyMandate.findMany({
+          where: { organizationId: approved.organizationId },
+          include: { company: true },
+        }),
+        tx.agencyFilter.findUnique({ where: { organizationId: approved.organizationId } }),
+      ]),
+    );
+    expect(Object.fromEntries(mandates.map((m) => [m.company.name, m.source]))).toEqual({
+      "Compagnia Alfa": "RUI",
+      "Compagnia Beta": "RUI",
+    });
+    expect(filter).not.toBeNull();
     // Answer 2A: Agenzia Uno, for which it works, is left out of its auctions.
     const [conflicted, uno] = await system(async (tx) =>
       Promise.all([

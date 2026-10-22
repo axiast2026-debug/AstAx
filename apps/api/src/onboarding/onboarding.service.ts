@@ -164,6 +164,31 @@ export class OnboardingService {
     };
   }
 
+  /**
+   * The companies of the entry. Dan, 2026-10-22 (docs/piano-agenzie.md, step 5,
+   * answer 6A): a section E intermediary of an agency offers with its agency's
+   * companies, as the RUI lists them; the back office checks them.
+   */
+  private async withCompanies(tx: DbTransaction, input: OnboardingInput): Promise<OnboardingInput> {
+    if (input.type !== "AGENCY" || !input.principalRuiNumber) {
+      await this.checkCompanies(tx, input);
+      return input;
+    }
+    const principal = await tx.ruiRecord.findUnique({
+      where: { number: input.principalRuiNumber },
+    });
+    const companies = await tx.insuranceCompany.findMany({
+      where: { active: true, name: { in: principal?.companies ?? [] } },
+      select: { id: true },
+    });
+    if (companies.length === 0) {
+      throw new ProblemError("VALIDATION_FAILED", "The agency has no company on the RUI", [
+        { path: "principalRuiNumber", issue: "PRINCIPAL_WITHOUT_COMPANIES" },
+      ]);
+    }
+    return { ...input, companyIds: companies.map((c) => c.id) };
+  }
+
   private async checkCompanies(tx: DbTransaction, input: OnboardingInput) {
     if (input.type !== "AGENCY") return;
     const ids = [...new Set(input.companyIds)];
@@ -179,10 +204,10 @@ export class OnboardingService {
     const token = randomBytes(32).toString("base64url");
     const now = this.clock.now();
     const id = await withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
-      await this.checkCompanies(tx, input);
+      const complete = await this.withCompanies(tx, input);
       const created = await tx.onboardingApplication.create({
         data: {
-          ...this.encrypted(input),
+          ...this.encrypted(complete),
           tokenHash: sha256(token),
           tokenEnc: this.cipher.encrypt(token),
           createdAt: now,
@@ -261,13 +286,13 @@ export class OnboardingService {
           { path: "type", issue: "TYPE_CHANGED" },
         ]);
       }
-      await this.checkCompanies(tx, input);
+      const complete = await this.withCompanies(tx, input);
       const ibanChanged = this.cipher.decrypt(a.ibanEnc) !== input.iban;
       const phoneChanged = this.cipher.decrypt(a.ownerPhoneEnc) !== input.owner.phone;
       await tx.onboardingApplication.update({
         where: { id: a.id },
         data: {
-          ...this.encrypted(input),
+          ...this.encrypted(complete),
           status: "DRAFT",
           ...(ibanChanged || phoneChanged ? { ibanConfirmedAt: null } : {}),
           updatedAt: now,
@@ -723,7 +748,7 @@ export class OnboardingService {
               ? this.cipher.blindIndex("fiscalCode", this.cipher.decrypt(a.fiscalCodeEnc))
               : null,
             ruiNumber: a.ruiNumber,
-            ruiSection: a.type === "AGENCY" ? "A" : a.principalRuiNumber ? "E" : "B",
+            ruiSection: a.principalRuiNumber ? "E" : a.type === "AGENCY" ? "A" : "B",
             principalRuiNumber: a.principalRuiNumber,
             pec: a.pec,
             address: a.address as object,

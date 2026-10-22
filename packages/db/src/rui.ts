@@ -83,9 +83,13 @@ export async function checkOnRui(
     companyNames: readonly string[];
   },
 ): Promise<RuiCheck> {
-  const expected = input.type === "AGENCY" ? "A" : input.principalRuiNumber ? "E" : "B";
+  const expected = input.principalRuiNumber ? "E" : input.type === "AGENCY" ? "A" : "B";
   const record = await tx.ruiRecord.findUnique({ where: { number: input.ruiNumber } });
-  const listed = new Set((record?.companies ?? []).map(normalized));
+  // A section E intermediary works with the companies of its intermediary (step 5).
+  const principal = input.principalRuiNumber
+    ? await tx.ruiRecord.findUnique({ where: { number: input.principalRuiNumber } })
+    : null;
+  const listed = new Set(((principal ?? record)?.companies ?? []).map(normalized));
   const confirmed = input.companyNames.filter((c) => listed.has(normalized(c)));
   return {
     found: record !== null,

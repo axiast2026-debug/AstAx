@@ -78,5 +78,31 @@
 | 2. Risultati con due schede | **Fatto (2026-10-21).** Schede «Non vinte», «In attesa del pagamento» e «Vinte», ognuna con il numero di aste; per ogni asta la posizione, le prime due offerte anonime e la propria. «In attesa del pagamento» sono le offerte che il cliente ha scelto e firmato ma non ancora pagato: la classifica si vede solo dalla firma (CLA-02). «Vinte» tiene la storia delle aste vinte e pagate, anche quando il cliente ha scelto un'offerta non prima (per esempio con il confronto AI) |
 | 3. Metriche e Profilo | **Fatto (2026-10-21).** «Metriche» con il periodo (ultimi 30 giorni, 3 mesi, 12 mesi): inviti ricevuti, offerte fatte, tasso di risposta, aste vinte, tasso di vittoria, premi vinti, distanza media dal primo, tempo medio di emissione; poi per compagnia, provincia, classe e tipo di veicolo. Le statistiche sono passate da «Risultati» a «Metriche». «Profilo» mostra in alto la scheda dell'agenzia: RUI, partita IVA, PEC, sede, IBAN nascosto in parte, RC professionale, utenti attivi, compagnie mandanti; poi le altre pagine e i dati personali. Il sub-agente vede i suoi numeri |
 | 4. Preventivi chiesti dall'agenzia | **Fatto (2026-10-22)**, [ADR 0015](adr/0015-agenzia-richiedente.md). Menu «Le mie richieste» per titolare, supervisori e sub-agenti; in fondo alla pagina Clienti, Lotti e Rinnovi. Stesso percorso del broker: cliente, 5 schermate, lotti da Excel, consenso coperto dalla dichiarazione dell'agenzia (la firma il titolare), link al cliente per scegliere, firmare e pagare. Alle aste di un'agenzia le altre agenzie offrono solo con le compagnie che l'agenzia non ha (all'invito, nella pagina dell'offerta e all'invio dell'offerta); l'agenzia richiedente non è mai invitata, neanche a mano dal back office. Fee 30 € nella fattura mensile all'agenzia. Il supervisore vede tutti i clienti dell'agenzia, il sub-agente solo i suoi |
-| 5. Sub-agente iscritto da solo | Da fare |
+| 5. Sub-agente iscritto da solo | **Fatto (2026-10-22)**, risposte 6A, 7A, 8A, 9A. In «Lavora con AstAx», l'intermediario di sezione E che indica un'**agenzia** (sezione A) entra come agenzia a nome suo, anche se la sua agenzia è già su AstAx: all'invio prende le compagnie della sua agenzia dal RUI, il back office le vede confermate e approva; all'approvazione ha mandati, filtri e orari ed è subito invitabile. Partecipa alle aste e chiede preventivi; fee di 15 € come un'agenzia; RC professionale in PDF come tutti. Alle sue richieste non è invitata la sua agenzia e le altre non offrono con le sue compagnie. Chi indica un **broker** (sezione B) resta solo richiedente |
 
+## Passo 5: il sub-agente iscritto da solo (proposta e domande, 2026-10-22)
+
+Oggi (passo 3 del piano broker) l'intermediario di sezione E che si iscrive da solo diventa un **richiedente** con l'area del broker: chiede preventivi, ma non partecipa alle aste. Con la risposta 1C deve anche **partecipare alle aste a nome suo**.
+
+**Proposta:** nella domanda di ingresso l'E indica l'intermediario per cui lavora (già c'è).
+
+- Se lavora per un'**agenzia (sezione A)**, diventa un'«agenzia» a nome suo: partecipa alle aste e chiede preventivi, con l'area dell'agenzia. Alle sue richieste non è invitata la sua agenzia (risposta 2A) e le altre non offrono con le sue compagnie (risposta 3B).
+- Se lavora per un **broker (sezione B)**, resta come oggi: solo richiedente.
+
+### Domande
+
+6. **Con quali compagnie offre il sub-agente iscritto da solo?**
+   - A) quelle della sua agenzia, come risultano dal RUI; il back office le controlla prima di approvare (consiglio questa);
+   - B) quelle che dichiara lui, controllate dal back office;
+   - C) solo quelle per cui carica un mandato o un documento della compagnia.
+7. **Se la sua agenzia è già su AstAx:**
+   - A) può iscriversi da solo lo stesso, come un'agenzia separata (consiglio questa: è quello che hai scelto con la 1C);
+   - B) deve farsi invitare dalla sua agenzia nel team; da solo può solo chiedere preventivi.
+8. **Fee quando vince un'asta:** come un'agenzia, cioè 15 €?
+   - A) sì, 15 € come un'agenzia (consiglio questa);
+   - B) un importo diverso.
+9. **RC professionale:** il sub-agente spesso è coperto dalla polizza della sua agenzia. Chiediamo comunque il PDF della RC professionale?
+   - A) sì, il PDF della polizza che lo copre, anche se è quella dell'agenzia (consiglio questa);
+   - B) no, per il sub-agente non serve.
+
+Risposte di Dan (2026-10-22): **6 A, 7 A, 8 A, 9 A**. Il sub-agente di un'agenzia si iscrive da solo come agenzia a nome suo, anche se la sua agenzia è su AstAx; offre con le compagnie della sua agenzia risultanti dal RUI, controllate dal back office; fee di 15 € come un'agenzia; carica il PDF della RC professionale che lo copre.

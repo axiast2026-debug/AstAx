@@ -82,7 +82,16 @@ function parsed(body: unknown) {
   // The section of the RUI follows the type: A for agencies, B for brokers, and
   // E for the intermediaries who ask for quotes like a broker (Dan, 2026-10-21).
   const section = input.ruiNumber[0];
-  const allowed = input.type === "AGENCY" ? ["A"] : ["B", "E"];
+  // Dan, 2026-10-22 (docs/piano-agenzie.md, step 5): a section E intermediary
+  // enters as an agency when it works for an agency, as a broker when for a broker.
+  const principalSection = input.principalRuiNumber?.[0];
+  const type =
+    section === "E" && principalSection
+      ? principalSection === "A"
+        ? "AGENCY"
+        : "BROKER"
+      : input.type;
+  const allowed = type === "AGENCY" ? ["A", "E"] : ["B", "E"];
   if (!allowed.includes(section ?? "")) {
     throw new ProblemError("VALIDATION_FAILED", undefined, [
       { path: "ruiNumber", issue: "WRONG_SECTION" },
@@ -94,7 +103,12 @@ function parsed(body: unknown) {
       { path: "principalRuiNumber", issue: "PRINCIPAL_REQUIRED" },
     ]);
   }
-  return { ...input, fiscalCode: input.fiscalCode ?? null, principalRuiNumber: principal };
+  return {
+    ...input,
+    type,
+    fiscalCode: input.fiscalCode ?? null,
+    principalRuiNumber: principal,
+  };
 }
 
 /**

@@ -9,7 +9,7 @@ import { Field, Fieldset } from "@/components/form";
 export type OnboardingKind = "AGENCY" | "BROKER" | "E";
 
 export function kindOf(values: { type: "AGENCY" | "BROKER"; ruiNumber: string }): OnboardingKind {
-  return values.type === "BROKER" && values.ruiNumber.startsWith("E") ? "E" : values.type;
+  return values.ruiNumber.startsWith("E") ? "E" : values.type;
 }
 
 export interface OnboardingValues {
