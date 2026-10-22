@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { Server as HttpServer } from "node:http";
 import type { Clock } from "@astax/adapters/clock";
-import { withContext, type DbClient, type DbContext } from "@astax/db";
+import { SYSTEM_CONTEXT, withContext, type DbClient, type DbContext } from "@astax/db";
 import { errorForLog, type Logger } from "@astax/shared/logging";
 import {
   Inject,
@@ -26,6 +26,8 @@ interface Ticket {
   userId: string;
   db: DbContext;
   isStaff: boolean;
+  /** The agency of the active context: its list of requests in target («Partecipa all'asta»). */
+  agencyId: string | null;
   expiresAt: number;
 }
 
@@ -72,6 +74,8 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnApplicationShu
       userId: auth.userId,
       db: auth.db,
       isStaff: auth.membership?.organizationType === "ASTAX",
+      agencyId:
+        auth.membership?.organizationType === "AGENCY" ? auth.membership.organizationId : null,
       expiresAt: now + TICKET_TTL_MS,
     };
     if (this.#ticketStore) {
@@ -149,7 +153,35 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnApplicationShu
     io.on("connection", (socket) => this.onConnection(socket));
     this.#stopListening = this.hub.listen((event) => {
       io.to(`request:${event.requestId}`).to("auctions").emit("changed", event);
+      void this.toInvitedAgencies(io, event);
     });
+  }
+
+  /**
+   * The agencies invited to the latest round of the request hear that their
+   * list changed (a new request in target, a closing, a reopening): only that,
+   * never which request or what (VIS-01, VIS-13). The page reads it again.
+   */
+  private async toInvitedAgencies(io: Server, event: RealtimeEvent): Promise<void> {
+    try {
+      const invited = await withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
+        const auction = await tx.auction.findFirst({
+          where: { quoteRequestId: event.requestId },
+          orderBy: { round: "desc" },
+          select: { id: true },
+        });
+        if (!auction) return [];
+        return tx.invitation.findMany({
+          where: { auctionId: auction.id },
+          select: { organizationId: true },
+        });
+      });
+      for (const { organizationId } of invited) {
+        io.to(`agency:${organizationId}`).emit("changed", { type: "INCOMING_CHANGED" });
+      }
+    } catch (error) {
+      this.logger.warn({ err: errorForLog(error) }, "agencies not told of a change");
+    }
   }
 
   private onConnection(socket: Socket): void {
@@ -168,6 +200,10 @@ export class RealtimeGateway implements OnApplicationBootstrap, OnApplicationShu
         }
       }
       ack?.(ok);
+    });
+    socket.on("follow-incoming", async (_input: unknown, ack?: (ok: boolean) => void) => {
+      if (ticket.agencyId) await socket.join(`agency:${ticket.agencyId}`);
+      ack?.(ticket.agencyId !== null);
     });
     socket.on("follow-auctions", async (_input: unknown, ack?: (ok: boolean) => void) => {
       if (ticket.isStaff) await socket.join("auctions");
