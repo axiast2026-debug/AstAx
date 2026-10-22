@@ -41,6 +41,16 @@ export function formatTime(value: Date | string): string {
   }).format(new Date(value));
 }
 
+/** To the second, for a receipt (PRES-01): «10:20:14». */
+export function formatTimeSeconds(value: Date | string): string {
+  return new Intl.DateTimeFormat(LOCALE_TAG, {
+    timeZone: DISPLAY_TIME_ZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(new Date(value));
+}
+
 export function formatEuroCents(cents: number): string {
   if (!Number.isInteger(cents)) throw new TypeError("Amounts are integer cents (FEE-07)");
   return new Intl.NumberFormat(LOCALE_TAG, { style: "currency", currency: "EUR" }).format(

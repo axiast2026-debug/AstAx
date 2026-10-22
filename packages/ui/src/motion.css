@@ -182,6 +182,24 @@
   );
 }
 
+/*
+ * A new request in the agency list: it comes in in 420 ms and keeps a
+ * night-100 layer that fades after about 4 s. The parent needs `isolate`.
+ */
+.row-new {
+  position: relative;
+  animation: astax-enter var(--motion-enter) var(--motion-out) both;
+}
+.row-new::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--color-night-100);
+  animation: astax-fade-out var(--motion-state) linear 4s both;
+}
+
 /* Sheet from the bottom (native dialog) and its scrim. */
 .sheet-in {
   animation: astax-sheet var(--motion-state) var(--motion-out) both;
@@ -209,6 +227,7 @@
   }
   .unseal,
   .land,
+  .row-new,
   .sheet-in {
     animation: astax-fade var(--motion-state) linear both;
   }

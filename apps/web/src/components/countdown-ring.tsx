@@ -32,28 +32,16 @@ const FIGURE: Record<number, string> = {
   220: "text-price",
   200: "text-price",
   160: "text-screen",
-  96: "text-section",
+  // 96: «1:59:38» must fit inside the arc.
+  96: "text-body",
 };
 
 /**
- * The auction's time (ASTA-02, Momento 2): the arc is the working time left,
- * counted from the server's clock; outside the working hours it stands still
- * and says when it resumes. Orange in the last hour, darker and thicker in
- * the last 15 minutes, never flashing. Screen readers hear it once a minute.
+ * The working seconds left, counted from the server's clock (ASTA-02): still
+ * outside the working hours; at the pause or the closing the page asks the
+ * server again.
  */
-export function CountdownRing({
-  time,
-  size,
-  onDark = false,
-  resumeLabel,
-}: {
-  time: WorkingTime;
-  size: 96 | 160 | 200 | 220;
-  onDark?: boolean;
-  /** «domani alle 9:00»: when a paused clock resumes, already in words. */
-  resumeLabel: string | null;
-}) {
-  const t = useTranslations("auctionView.ring");
+export function useWorkingSecondsLeft(time: WorkingTime): number {
   const router = useRouter();
   const [left, setLeft] = useState(time.workingSecondsLeft);
 
@@ -83,6 +71,60 @@ export function CountdownRing({
     const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
   }, [time, router]);
+  return left;
+}
+
+/**
+ * The auction's time (ASTA-02, Momento 2): the arc is the working time left,
+ * counted from the server's clock; outside the working hours it stands still
+ * and says when it resumes. Orange in the last hour, darker and thicker in
+ * the last 15 minutes, never flashing. Screen readers hear it once a minute.
+ */
+export function CountdownRing({
+  time,
+  size,
+  onDark = false,
+  announce = true,
+  resumeLabel,
+}: {
+  time: WorkingTime;
+  size: 24 | 32 | 96 | 160 | 200 | 220;
+  onDark?: boolean;
+  /** Once a minute to screen readers; off for the small rings of a list. */
+  announce?: boolean;
+  /** «domani alle 9:00»: when a paused clock resumes, already in words. */
+  resumeLabel: string | null;
+}) {
+  const left = useWorkingSecondsLeft(time);
+  return (
+    <Ring
+      time={time}
+      left={left}
+      size={size}
+      onDark={onDark}
+      announce={announce}
+      resumeLabel={resumeLabel}
+    />
+  );
+}
+
+/** The drawing of the ring for a number of seconds already counted. */
+function Ring({
+  time,
+  left,
+  size,
+  onDark,
+  announce,
+  resumeLabel,
+}: {
+  time: WorkingTime;
+  left: number;
+  size: 24 | 32 | 96 | 160 | 200 | 220;
+  onDark: boolean;
+  announce: boolean;
+  resumeLabel: string | null;
+}) {
+  const t = useTranslations("auctionView.ring");
 
   const phase: Phase =
     left <= 0
@@ -96,6 +138,8 @@ export function CountdownRing({
             : "normal";
   const fraction = time.totalWorkingSeconds > 0 ? Math.min(1, left / time.totalWorkingSeconds) : 0;
   const dash = `${(fraction * LENGTH).toFixed(2)} ${LENGTH.toFixed(2)}`;
+  // The small rings of a list draw thicker, so the arc still reads at 24-32 px.
+  const stroke = (w: number) => (size <= 32 ? Math.min(w * 2.2, 16) : w);
   const arcs: { phase: Phase; className: string; width: number }[] = [
     { phase: "normal", className: onDark ? "stroke-night-300" : "stroke-night-900", width: 5 },
     { phase: "lastHour", className: onDark ? "stroke-orange-400" : "stroke-orange-500", width: 5 },
@@ -114,14 +158,14 @@ export function CountdownRing({
 
   const figure = FIGURE[size];
   return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
+    <span className="relative block shrink-0" style={{ width: size, height: size }}>
       <svg viewBox="0 0 100 100" className="size-full -rotate-90" aria-hidden>
         <circle
           cx="50"
           cy="50"
           r={R}
           fill="none"
-          strokeWidth={phase === "last15" ? 8 : 5}
+          strokeWidth={stroke(phase === "last15" ? 8 : 5)}
           className={onDark ? "stroke-night-700" : "stroke-warm-200"}
           strokeDasharray={phase === "paused" ? "3 3" : undefined}
         />
@@ -133,7 +177,7 @@ export function CountdownRing({
             r={R}
             fill="none"
             strokeLinecap="round"
-            strokeWidth={arc.width}
+            strokeWidth={stroke(arc.width)}
             strokeDasharray={dash}
             className={`ring-phase ${arc.className}`}
             style={{ opacity: phase === arc.phase ? 1 : 0 }}
@@ -141,7 +185,7 @@ export function CountdownRing({
         ))}
       </svg>
       {figure ? (
-        <div
+        <span
           aria-hidden
           className="absolute inset-0 flex flex-col items-center justify-center text-center"
         >
@@ -169,11 +213,56 @@ export function CountdownRing({
               {t("toClosing")}
             </span>
           )}
-        </div>
+        </span>
       ) : null}
-      <p role="status" aria-live="polite" className="sr-only">
-        {spoken}
-      </p>
-    </div>
+      {announce ? (
+        <span role="status" aria-live="polite" className="sr-only">
+          {spoken}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+/**
+ * «Chiude tra» in a list (Area agenzia, P5): a small ring and the time left.
+ * On light, orange-700 in bold in the last hour; on night blue (the radar),
+ * orange-400. Silent for screen readers: the text is already there.
+ */
+export function ClosesIn({
+  time,
+  size,
+  onDark = false,
+}: {
+  time: WorkingTime;
+  size: 24 | 32;
+  onDark?: boolean;
+}) {
+  const t = useTranslations("auctionView.ring");
+  const left = useWorkingSecondsLeft(time);
+  const lastHour = left > 0 && left <= HOUR;
+  const tone = onDark
+    ? "font-semibold text-orange-400"
+    : lastHour
+      ? "font-bold text-orange-700"
+      : "";
+  return (
+    <span className="inline-flex items-center gap-2">
+      <Ring
+        time={time}
+        left={left}
+        size={size}
+        onDark={onDark}
+        announce={false}
+        resumeLabel={null}
+      />
+      <span className={`tabular ${tone}`}>
+        {left <= 0
+          ? t("closed")
+          : time.pausedUntil
+            ? t("leftPaused", { time: clockText(left) })
+            : clockText(left)}
+      </span>
+    </span>
   );
 }
