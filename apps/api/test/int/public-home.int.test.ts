@@ -30,7 +30,7 @@ const readHome = async () => {
   expect(response.status).toBe(200);
   return (await response.json()) as {
     fees: Record<string, number>;
-    service: Record<string, number>;
+    service: Record<string, unknown>;
     live: null | {
       openAuctions: number;
       offersPerAuction: number;
@@ -106,6 +106,12 @@ describe("Momento 1: the public home (ADR 0016)", () => {
           "auction.defaultDurationWorkingHours",
           "fees.agency.amountCents",
           "issuance.deadlineWorkingHours",
+          "reconfirmation.maxPerRequest",
+          "auction.desertedReopen.enabled",
+          "auction.desertedReopen.workingHours",
+          "calendar.workingHours",
+          "remittance.runDay",
+          "home.publicData.windowDays",
         ],
         h.clock.now(),
       ),
@@ -121,6 +127,14 @@ describe("Momento 1: the public home (ADR 0016)", () => {
       defaultDurationWorkingHours: s["auction.defaultDurationWorkingHours"],
       agencyFeeCents: s["fees.agency.amountCents"],
       issuanceWorkingHours: s["issuance.deadlineWorkingHours"],
+      // Public pages (Come funziona, Per le agenzie, Domande frequenti): rule 7, never in their texts.
+      maxReconfirmations: s["reconfirmation.maxPerRequest"],
+      desertedReopenWorkingHours: s["auction.desertedReopen.enabled"]
+        ? s["auction.desertedReopen.workingHours"]
+        : null,
+      workingHours: s["calendar.workingHours"],
+      remittanceDay: s["remittance.runDay"],
+      savingWindowDays: s["home.publicData.windowDays"],
     });
     expect(home.live).toBeNull();
   });

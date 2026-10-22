@@ -9,6 +9,8 @@ import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { CountdownRing } from "@/components/countdown-ring";
 import { LiveTicker } from "@/components/live-ticker";
+import { PublicFooter, PublicHeader } from "@/components/public-shell";
+import type { WeeklyHours } from "@/lib/working-hours";
 
 export interface PublicHomeData {
   serverNow: string;
@@ -23,6 +25,12 @@ export interface PublicHomeData {
     defaultDurationWorkingHours: number;
     agencyFeeCents: number;
     issuanceWorkingHours: number;
+    maxReconfirmations: number;
+    /** Null when the deserted auction is not reopened (ASTA-08). */
+    desertedReopenWorkingHours: number | null;
+    workingHours: WeeklyHours;
+    remittanceDay: string;
+    savingWindowDays: number;
   };
   live: null | {
     windowDays: number;
@@ -49,17 +57,7 @@ export interface PublicHomeData {
   };
 }
 
-const eur = (cents: number) => formatEuroCents(cents).replace(/,00(?=\s*€)/, "");
-
-/** «AstA» with the orange «x», on night blue (design system, Logo). */
-async function Logo() {
-  const t = await getTranslations("publicHome");
-  return (
-    <span className="font-display text-2xl font-black tracking-[-0.035em] text-white">
-      {t.rich("logo", { x: (c) => <span className="text-orange-400">{c}</span> })}
-    </span>
-  );
-}
+export const eur = (cents: number) => formatEuroCents(cents).replace(/,00(?=\s*€)/, "");
 
 /**
  * The public home, Momento 1 (ADR 0016): what AstAx is, the auction moving
@@ -93,35 +91,7 @@ export async function PublicHome({ data }: { data: PublicHomeData }) {
         {t("skip")}
       </a>
       <div className="on-dark bg-night-900 text-white [clip-path:polygon(0_0,100%_0,100%_calc(100%-48px),0_100%)]">
-        <header className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
-          <Link href="/" aria-label={t("homeLabel")} className="inline-flex min-h-11 items-center">
-            <Logo />
-          </Link>
-          <nav aria-label={t("pagesLabel")} className="ml-auto flex items-center gap-1 sm:gap-4">
-            <a
-              href="#come-funziona"
-              className="hidden min-h-11 items-center text-label font-semibold sm:inline-flex"
-            >
-              {t("howItWorks")}
-            </a>
-            <a
-              href="/auth/login?as=pro"
-              className="hidden min-h-11 items-center text-label font-semibold md:inline-flex"
-            >
-              {t("proAccess")}
-            </a>
-            <Link
-              href="/accedi"
-              className={cn(
-                buttonVariants({ variant: "ghost", size: "sm" }),
-                "text-white hover:bg-night-800",
-              )}
-            >
-              <Icon name="user" size={18} />
-              {t("login")}
-            </Link>
-          </nav>
-        </header>
+        <PublicHeader />
 
         <main
           id="contenuto"
@@ -156,7 +126,7 @@ export async function PublicHome({ data }: { data: PublicHomeData }) {
                 {t("cta")}
               </a>
               <a
-                href="#come-funziona"
+                href="/come-funziona"
                 className={cn(
                   buttonVariants({
                     variant: "outline",
@@ -386,19 +356,7 @@ export async function PublicHome({ data }: { data: PublicHomeData }) {
         </section>
       </div>
 
-      <footer className="border-t border-warm-200">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-6 text-table text-warm-600 sm:flex-row sm:items-center sm:justify-between">
-          <span>{t("footerRui")}</span>
-          <nav aria-label={t("footerLabel")} className="flex gap-4">
-            <Link href="/accedi" className="inline-flex min-h-11 items-center underline">
-              {t("login")}
-            </Link>
-            <Link href="/ingresso" className="inline-flex min-h-11 items-center underline">
-              {t("agenciesCta")}
-            </Link>
-          </nav>
-        </div>
-      </footer>
+      <PublicFooter />
     </div>
   );
 }

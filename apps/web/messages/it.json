@@ -134,7 +134,8 @@
     "intro": "Prima di continuare leggi e accetta questi documenti. Registriamo la versione, la data e l'ora.",
     "notValidated": "[DA VALIDARE — LEGALE]",
     "version": "Versione {number}",
-    "accept": "Ho letto e accetto"
+    "accept": "Ho letto e accetto",
+    "recorded": "Registriamo la versione accettata, la data e l'ora."
   },
   "profile": {
     "title": "Profilo",
@@ -205,7 +206,8 @@
     "empty": "Non hai notifiche.",
     "open": "Apri",
     "markRead": "Segna come letta",
-    "readAll": "Segna tutte come lette"
+    "readAll": "Segna tutte come lette",
+    "unread": "Non letta"
   },
   "roles": {
     "OWNER": "Titolare",
@@ -220,9 +222,10 @@
   "quotes": {
     "title": "I tuoi preventivi",
     "new": "Nuovo preventivo",
-    "empty": "Non hai ancora richieste. Con «Nuovo preventivo» bastano pochi minuti.",
     "noPlate": "Veicolo da indicare",
-    "created": "Creata il {at}"
+    "created": "Creata il {at}",
+    "emptyTitle": "Non hai ancora richieste",
+    "emptyText": "Con «Nuovo preventivo» bastano pochi minuti: foto di libretto e patente, targa, data di nascita e indirizzo."
   },
   "brokerRequests": {
     "title": "Richieste",
@@ -1451,7 +1454,9 @@
     "agenciesText": "Ricevi le richieste che rientrano nei tuoi filtri, con dati e documenti già controllati dal back office. Offri in busta chiusa ed emetti entro {hours} ore lavorative dal pagamento. Paghi {fee} solo a polizza emessa.",
     "agenciesCta": "Lavora con AstAx",
     "footerRui": "AstAx · intermediario iscritto al RUI, sezione B, n. [DA VALIDARE — LEGALE]",
-    "footerLabel": "Link utili"
+    "footerLabel": "Link utili",
+    "forAgencies": "Per le agenzie",
+    "faq": "Domande frequenti"
   },
   "startModeShort": {
     "ON_ISSUANCE": "Immediata, dall'emissione",
@@ -2059,5 +2064,135 @@
     "errorText": "Riprova tra poco. I dati che hai inserito sono salvati.",
     "retry": "Riprova",
     "support": "Scrivi all’assistenza"
+  },
+  "publicPages": {
+    "howItWorks": {
+      "metaTitle": "Come funziona · AstAx",
+      "title": "Come funziona",
+      "intro": "Un'asta al ribasso sul tuo RC auto: le agenzie offrono in busta chiusa, tu scegli quando le buste si aprono.",
+      "stepsLabel": "I passi",
+      "steps": {
+        "photos": {
+          "when": "Pochi minuti",
+          "title": "Fotografa libretto e patente",
+          "text": "Leggiamo noi i dati. Tu scrivi targa, data di nascita e indirizzo, scegli tipo di guida, garanzie e decorrenza."
+        },
+        "check": {
+          "when": "Prima dell'asta",
+          "title": "Il back office controlla",
+          "text": "Una persona di AstAx verifica dati e documenti. Se manca qualcosa, te lo chiede."
+        },
+        "sealed": {
+          "when": "{hours, plural, one {# ora lavorativa} other {# ore lavorative}}",
+          "title": "Le agenzie offrono in busta chiusa",
+          "text": "Fino a {agencies} agenzie invitate preparano un'offerta vincolante. Vedi solo quante buste arrivano e il tempo che resta."
+        },
+        "opening": {
+          "when": "Alla chiusura",
+          "title": "Le buste si aprono tutte insieme",
+          "text": "Per ogni compagnia la migliore offerta, ordinate per prezzo, con il prezzo garantito fino a una data precisa."
+        },
+        "choose": {
+          "when": "Quando vuoi, entro la garanzia",
+          "title": "Firmi, paghi, l'agenzia emette",
+          "text": "Un solo pagamento con tutte le voci. L'agenzia emette entro {hours, plural, one {# ora lavorativa} other {# ore lavorative}} e trovi la polizza nella tua area."
+        }
+      },
+      "hours": "Il tempo dell'asta conta solo nelle ore lavorative: {calendar}, ora italiana. Fuori orario si ferma e riprende all'orario successivo.",
+      "seesTitle": "Chi vede cosa",
+      "sees": {
+        "during": {
+          "k": "Durante l'asta",
+          "v": "Nessuno vede i prezzi, nemmeno AstAx. Tu vedi le buste arrivate e il tempo."
+        },
+        "after": {
+          "k": "Dopo la chiusura",
+          "v": "Tu vedi la migliore offerta di ogni compagnia. Le agenzie vedono solo la propria."
+        },
+        "contacts": {
+          "k": "I tuoi contatti",
+          "v": "Solo all'agenzia che scegli, dopo il pagamento."
+        }
+      },
+      "savingTitle": "Come calcoliamo il risparmio medio",
+      "savingText": "È la differenza tra il premio attuale che i clienti dichiarano nella richiesta e il premio dell'offerta che hanno comprato, sulle polizze emesse negli ultimi {days} giorni in cui il premio attuale è indicato. Se i dati sono pochi, il numero non compare.",
+      "cta": "Chiedi il preventivo",
+      "faqLink": "Leggi le domande frequenti"
+    },
+    "agencies": {
+      "metaTitle": "Per le agenzie · AstAx",
+      "title": "Per le agenzie",
+      "intro": "Clienti già verificati. Un'offerta in busta chiusa. Paghi solo se emetti.",
+      "lead": "AstAx porta alla vostra agenzia (RUI sezione A) e ai vostri collaboratori di sezione E le richieste RC auto che rientrano nei vostri filtri, con dati e documenti controllati dal back office.",
+      "benefitsLabel": "Cosa vi porta AstAx",
+      "benefits": {
+        "filters": {
+          "title": "Solo richieste nei vostri filtri",
+          "text": "Tipi di veicolo, province, classi, sinistri, età, compagnie, decorrenza: decidete voi cosa arriva e quanto."
+        },
+        "sealed": {
+          "title": "Offerta in busta chiusa",
+          "text": "Premio, compagnia tra i vostri mandati, coperture e PDF del preventivo. Modificabile fino alla chiusura."
+        },
+        "fee": {
+          "title": "{fee} solo a polizza emessa",
+          "text": "Nessun canone. Il compenso si trattiene dalla rimessa settimanale del {day}."
+        },
+        "issuance": {
+          "title": "Emissione in {hours, plural, one {# ora lavorativa} other {# ore lavorative}}",
+          "text": "Dopo il pagamento ricevete i contatti del cliente e i documenti firmati."
+        }
+      },
+      "needsTitle": "Per entrare servono",
+      "needs": {
+        "rui": "Iscrizione al RUI in sezione A (o sezione E per i collaboratori)",
+        "mandates": "Compagnie mandanti, controllate sul RUI",
+        "liability": "Polizza di RC professionale in corso di validità",
+        "iban": "IBAN per le rimesse, confermato con un codice via SMS"
+      },
+      "transparencyTitle": "Trasparenza dopo la scelta",
+      "transparencyText": "Quando il cliente firma, ogni agenzia che ha offerto vede il premio della prima e della seconda offerta, senza nomi, la propria posizione e lo scarto dalla prima. Prima, nessuno vede le offerte degli altri: nemmeno AstAx.",
+      "cta": "Lavora con AstAx"
+    },
+    "faq": {
+      "metaTitle": "Domande frequenti · AstAx",
+      "title": "Domande frequenti",
+      "intro": "Le risposte brevi alle domande che ci fanno più spesso.",
+      "items": {
+        "sealed": {
+          "q": "Chi vede il prezzo delle offerte prima della chiusura?",
+          "a": "Nessuno. Ogni offerta viene cifrata appena arriva e si apre solo alla chiusura dell'asta: non la vedono le altre agenzie, non la vedi tu, non la vede AstAx."
+        },
+        "duration": {
+          "q": "Quanto dura l'asta?",
+          "a": "{hours, plural, one {# ora lavorativa} other {# ore lavorative}} dall'apertura, che avviene dopo il controllo dei documenti: {calendar}, ora italiana. Fuori orario il tempo si ferma e riprende all'orario successivo."
+        },
+        "cost": {
+          "q": "Quanto costa?",
+          "a": "Chiedere il preventivo è gratis. Se compri paghi ad AstAx {fee} ({lowFee} se il premio è fino a {threshold}), insieme al premio. Con il confronto con AI il compenso è di {ai} in più. È un compenso di intermediazione esente IVA."
+        },
+        "guarantee": {
+          "q": "Cos'è il prezzo garantito?",
+          "a": "Ogni offerta resta valida fino alle 23:59 della data indicata, se decorrenza e dati non cambiano. Dopo puoi chiedere alle stesse agenzie di riconfermare il prezzo, {count, plural, one {una volta} other {fino a # volte}}."
+        },
+        "choose": {
+          "q": "Devo scegliere l'offerta più economica?",
+          "a": "No. Puoi scegliere qualsiasi offerta ancora garantita: per ogni compagnia vedi la migliore, con coperture, franchigie e preventivo in PDF."
+        },
+        "ai": {
+          "q": "Il confronto con AI è obbligatorio?",
+          "a": "No, è facoltativo e non è mai già selezionato. Prima di usarlo vedi quanto cambia il compenso; lo paghi solo se poi compri."
+        },
+        "phone": {
+          "q": "Le agenzie hanno il mio telefono?",
+          "a": "Solo l'agenzia che scegli, e solo dopo il pagamento, per emettere la polizza. Le altre vedono i dati del preventivo e i documenti, mai telefono ed email."
+        },
+        "deserted": {
+          "q": "Cosa succede se nessuna agenzia offre?",
+          "a": "Riapriamo l'asta per {hours, plural, one {# ora lavorativa} other {# ore lavorative}} con altre agenzie. Se ancora nessuno offre, ti scriviamo con le alternative. Non paghi nulla.",
+          "aNoReopen": "Ti scriviamo con le alternative. Non paghi nulla."
+        }
+      }
+    }
   }
 }
