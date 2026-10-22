@@ -78,7 +78,8 @@
     "listsHolidays": "Elenchi e festività",
     "onboardingQueue": "Ingressi",
     "batches": "Lotti",
-    "metrics": "Metriche"
+    "metrics": "Metriche",
+    "myRequests": "Le mie richieste"
   },
   "home": {
     "welcome": "Ciao {name}",
@@ -494,7 +495,8 @@
     "NOT_EDITABLE": "La richiesta è già al back office: aspetta l'esito.",
     "UNKNOWN_COMPANY": "Scegli almeno una compagnia mandante.",
     "INVALID_IBAN": "L'IBAN non è valido.",
-    "PRINCIPAL_REQUIRED": "Indica il numero RUI dell'intermediario per cui lavori."
+    "PRINCIPAL_REQUIRED": "Indica il numero RUI dell'intermediario per cui lavori.",
+    "COMPANY_OF_THE_REQUESTER": "Questa compagnia è anche dell'agenzia che chiede il preventivo: offri con un'altra compagnia."
   },
   "wizard": {
     "choose": "Scegli",

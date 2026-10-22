@@ -242,8 +242,9 @@ describe("fase 4: reconfirmation (GAR-06, GAR-07)", () => {
       token: await h.tokenFor("agenzia-uno-owner"),
       context: membershipId("agenzia-uno-owner", "agenzia-uno"),
     };
+    // ADR 0015: an agency may ask for its own requests, not for this one (not even its existence).
     expect(
       (await r.call(other, `/requests/${requestId}/reconfirmation`, { body: {} })).status,
-    ).toBe(403);
+    ).toBe(404);
   });
 });

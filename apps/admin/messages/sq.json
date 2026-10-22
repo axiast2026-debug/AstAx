@@ -73,7 +73,8 @@
     "listsHolidays": "Listat dhe festat",
     "onboardingQueue": "Anëtarësimet",
     "batches": "Lotet",
-    "metrics": "Metrikat"
+    "metrics": "Metrikat",
+    "myRequests": "Kërkesat e mia"
   },
   "home": {
     "welcome": "Përshëndetje {name}",

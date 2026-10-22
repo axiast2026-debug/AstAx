@@ -3,7 +3,7 @@ import {
   auctionSettings,
   auctionSettingsAt,
   filterableRequest,
-  conflictedAgencies,
+  requesterExclusions,
   loadAgencyCandidates,
   loadWorkingCalendar,
   withContext,
@@ -63,6 +63,7 @@ export class AgencyPreviewService {
         where: { quoteRequestId: id },
         orderBy: { createdAt: "asc" },
       });
+      const requesterOut = await requesterExclusions(tx, request.ownerOrganizationId);
       const selection = selectAgencies({
         request: filterable,
         candidates: await loadAgencyCandidates(tx, now),
@@ -73,10 +74,8 @@ export class AgencyPreviewService {
         limit: settings.invitationsMax,
         alreadyInvited: [],
         // Answer 2A: the agency of an intermediary of section E is never invited.
-        excluded: [
-          ...exclusions.map((e) => e.organizationId),
-          ...(await conflictedAgencies(tx, request.ownerOrganizationId)),
-        ],
+        excluded: [...exclusions.map((e) => e.organizationId), ...requesterOut.agencies],
+        excludedCompanies: requesterOut.companies,
         rotation: true,
       });
       const orgIds = [

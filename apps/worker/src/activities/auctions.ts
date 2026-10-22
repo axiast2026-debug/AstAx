@@ -11,7 +11,7 @@ import {
   auctionSettings,
   auctionSettingsAt,
   filterableRequest,
-  conflictedAgencies,
+  requesterExclusions,
   loadAgencyCandidates,
   loadWorkingCalendar,
   reconfirmationAsked,
@@ -397,6 +397,7 @@ export function auctionActivities(
       const exclusions = await tx.invitationExclusion.findMany({
         where: { quoteRequestId: request.id },
       });
+      const requesterOut = await requesterExclusions(tx, request.ownerOrganizationId);
       const selection = selectAgencies({
         request: filterable,
         candidates: await loadAgencyCandidates(tx, now),
@@ -409,10 +410,8 @@ export function auctionActivities(
         alreadyInvited: rounds.flatMap((r) =>
           r.invitations.map((i) => ({ organizationId: i.organizationId, companies: [] })),
         ),
-        excluded: [
-          ...exclusions.map((e) => e.organizationId),
-          ...(await conflictedAgencies(tx, request.ownerOrganizationId)),
-        ],
+        excluded: [...exclusions.map((e) => e.organizationId), ...requesterOut.agencies],
+        excludedCompanies: requesterOut.companies,
         rotation: input.kind === "MAIN",
       });
       if (selection.selected.length === 0) return { opened: false, reason: "NO_AGENCIES" };
@@ -567,6 +566,7 @@ export function auctionActivities(
       const exclusions = await tx.invitationExclusion.findMany({
         where: { quoteRequestId: request.id },
       });
+      const requesterOut = await requesterExclusions(tx, request.ownerOrganizationId);
       const selection = selectAgencies({
         request: filterable,
         candidates: await loadAgencyCandidates(tx, now),
@@ -581,10 +581,8 @@ export function auctionActivities(
             .filter((m) => m.organizationId === i.organizationId)
             .map((m) => m.companyId),
         })),
-        excluded: [
-          ...exclusions.map((e) => e.organizationId),
-          ...(await conflictedAgencies(tx, request.ownerOrganizationId)),
-        ],
+        excluded: [...exclusions.map((e) => e.organizationId), ...requesterOut.agencies],
+        excludedCompanies: requesterOut.companies,
         rotation: true,
       });
       const ids = selection.selected.map((s) => s.organizationId);

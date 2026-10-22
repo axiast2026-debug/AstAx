@@ -474,7 +474,8 @@ describe("fase 2: verification queue and card", () => {
     const active = consents.find((c) => c.revokedAt === null);
     expect(active?.version).not.toBeNull();
 
-    expect((await r.call(agency, `/consents/${active?.id}/revoke`, { body: {} })).status).toBe(403);
+    // ADR 0015: an agency revokes the consents of its own customers only; this one it does not see.
+    expect((await r.call(agency, `/consents/${active?.id}/revoke`, { body: {} })).status).toBe(404);
     await r.json(await r.call(davide, `/consents/${active?.id}/revoke`, { body: {} }), 200);
     const after = await r.json<{ revokedAt: string | null }[]>(
       await r.call(davide, "/me/consents"),

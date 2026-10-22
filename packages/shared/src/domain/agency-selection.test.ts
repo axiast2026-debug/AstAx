@@ -200,6 +200,20 @@ describe("selection of the agencies (ASTA-05)", () => {
     expect(s.rejected).toEqual([{ organizationId: "nomandate", reasons: ["NO_COMPANY"] }]);
   });
 
+  it("ADR 0015 answer 3B: at an agency's auction the others offer only with the companies it does not have", () => {
+    // The requesting agency has Alfa: an Alfa + Beta agency is invited for Beta only,
+    // an Alfa-only agency is not invited.
+    const s = selectAgencies(
+      input([agency("alfa-beta", [ALFA, BETA]), agency("alfa", [ALFA])], {
+        excludedCompanies: [ALFA],
+      }),
+    );
+    expect(s.selected).toEqual([
+      { organizationId: "alfa-beta", companies: [BETA], newCompanies: [BETA] },
+    ]);
+    expect(s.rejected).toEqual([{ organizationId: "alfa", reasons: ["NO_COMPANY"] }]);
+  });
+
   it("ASTA-06 an agency left out by the back office is not invited, nor one already invited", () => {
     const s = selectAgencies(
       input([agency("out", [ALFA]), agency("in", [BETA])], {

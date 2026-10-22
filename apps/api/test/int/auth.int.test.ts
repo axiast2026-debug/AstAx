@@ -109,6 +109,8 @@ describe("LEG-01 LEG-02 legal documents gate", () => {
     }[];
     expect(pending.map((p) => p.documentKey).sort()).toEqual([
       "agency-agreement",
+      // ADR 0015: the agency requests quotes too, covered by its declaration.
+      "broker-clients-declaration",
       "cookie-policy",
       "data-processing-agreement",
       "terms-professional",
@@ -125,7 +127,7 @@ describe("LEG-01 LEG-02 legal documents gate", () => {
     const rows = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
       tx.legalAcceptance.findMany({ where: { userId: userId("agenzia-quattro-owner") } }),
     );
-    expect(rows).toHaveLength(4);
+    expect(rows).toHaveLength(5);
     expect(
       rows.every((r) => r.ip !== null && r.acceptedAt.toISOString() === "2026-11-16T09:00:00.000Z"),
     ).toBe(true);

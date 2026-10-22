@@ -18,6 +18,11 @@ export interface ActionRule {
 const BACK_OFFICE = ["BO_VERIFIER", "BO_SUPPORT", "BO_ACCOUNTING", "BO_SUPERVISOR"] as const;
 const AGENCY_USERS = ["AGENCY_OWNER", "AGENCY_SUPERVISOR", "AGENCY_OPERATOR"] as const;
 const BROKER_USERS = ["BROKER_OWNER", "BROKER_OPERATOR"] as const;
+/**
+ * Who requests quotes for its own customers: brokers and, since Dan's plan of
+ * 2026-10-21 (ADR 0015), agencies and their sub-agents.
+ */
+const ORG_REQUESTERS = [...BROKER_USERS, ...AGENCY_USERS] as const;
 const PROFESSIONALS = [...BROKER_USERS, ...AGENCY_USERS, ...BACK_OFFICE, "ADMIN"] as const;
 const EVERY_ACCOUNT = ["PRIVATE", ...PROFESSIONALS] as const;
 const ISSUERS: readonly Grant[] = [
@@ -48,20 +53,20 @@ export const PERMISSIONS = {
 
   // Requests, customers, documents
   "request.create": {
-    grants: ["PRIVATE", ...BROKER_USERS],
+    grants: ["PRIVATE", ...ORG_REQUESTERS],
     conditions: "consent present (LEG-04)",
   },
   "consent.revoke": {
-    grants: ["PRIVATE", ...BROKER_USERS],
+    grants: ["PRIVATE", ...ORG_REQUESTERS],
     conditions: "private: own consents; broker: consents of own customers (LEG-04)",
   },
   "request.viewOwn": {
-    grants: ["PRIVATE", ...BROKER_USERS],
+    grants: ["PRIVATE", ...ORG_REQUESTERS],
     conditions:
       "broker: customers of the organization; operator only own ones unless seesAllClients (VIS-13)",
   },
   "request.cancel": {
-    grants: ["PRIVATE", ...BROKER_USERS, "BO_SUPERVISOR"],
+    grants: ["PRIVATE", ...ORG_REQUESTERS, "BO_SUPERVISOR"],
     conditions: "requester or BO supervisor, only before acceptance",
   },
   "request.viewQuoteData": {
@@ -74,10 +79,10 @@ export const PERMISSIONS = {
     conditions: "agency only when winning and payment confirmed (VIS-01, VIS-02)",
   },
   "brokerCustomer.manage": {
-    grants: BROKER_USERS,
+    grants: ORG_REQUESTERS,
     conditions: "same visibility as request.viewOwn",
   },
-  "request.bulkUpload": { grants: BROKER_USERS },
+  "request.bulkUpload": { grants: ORG_REQUESTERS },
 
   // Verification and auction
   "backOffice.dashboard": {
@@ -158,17 +163,17 @@ export const PERMISSIONS = {
 
   // Acceptance, payment, issuance
   "offers.viewPresented": {
-    grants: ["PRIVATE", ...BROKER_USERS, "BROKER_CLIENT_LINK"],
+    grants: ["PRIVATE", ...ORG_REQUESTERS, "BROKER_CLIENT_LINK"],
     conditions: "PRES rules; link only for the offers the broker sent",
   },
   "aiComparison.use": { grants: ["PRIVATE"], conditions: "PRES-06" },
-  "customerLink.send": { grants: BROKER_USERS },
+  "customerLink.send": { grants: ORG_REQUESTERS },
   "offer.accept": {
     grants: ["PRIVATE", "BROKER_CLIENT_LINK"],
     conditions: "accept, sign, pay; own request; GAR-04",
   },
   "reconfirmation.request": {
-    grants: ["PRIVATE", ...BROKER_USERS],
+    grants: ["PRIVATE", ...ORG_REQUESTERS],
     conditions: "requester only (GAR-06)",
   },
   "issuance.manage": {
@@ -179,7 +184,7 @@ export const PERMISSIONS = {
   "refund.request": { grants: ["BO_SUPPORT", "BO_ACCOUNTING", "BO_SUPERVISOR"] },
   "refund.approve": { grants: ["BO_SUPERVISOR"], conditions: "PAG-05" },
   "withdrawal.request": {
-    grants: ["PRIVATE", ...BROKER_USERS],
+    grants: ["PRIVATE", ...ORG_REQUESTERS],
     conditions:
       "own policy, within withdrawal.days (PAG-04); broker operator own customers (VIS-13)",
   },

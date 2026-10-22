@@ -208,12 +208,12 @@ describe("broker plan, step 4: lots from Excel (ADR 0014)", () => {
     expect(await scheduler.run()).toMatchObject({ reminded: 0, submitted: 0 });
   });
 
-  it("only a broker uploads lots", async () => {
-    await acceptAllLegal(h, "agenzia-uno-owner");
-    const agency = {
-      token: await h.tokenFor("agenzia-uno-owner"),
-      context: membershipId("agenzia-uno-owner", "agenzia-uno"),
+  it("only a requester organization uploads lots (a broker or, ADR 0015, an agency)", async () => {
+    await acceptAllLegal(h, "bo-verifier");
+    const staff = {
+      token: await h.tokenFor("bo-verifier"),
+      context: membershipId("bo-verifier", "astax"),
     };
-    expect((await r.call(agency, "/broker/batches")).status).toBe(403);
+    expect((await r.call(staff, "/broker/batches")).status).toBe(403);
   });
 });

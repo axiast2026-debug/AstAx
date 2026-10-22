@@ -142,7 +142,7 @@ export async function createInvoice(
 
 /**
  * Decision 24, CONT-05: on the first day of the month, one invoice B to each
- * broker for the fees (FEE-03) of the policies issued for its customers up
+ * broker (and, ADR 0015, each agency that requested quotes) for the fees (FEE-03) of the policies issued for its customers up
  * to the end of the month before and not billed yet; payment by transfer at
  * `invoicing.brokerPaymentTermDays`. Each policy is billed once (it keeps
  * the invoice): running it again adds nothing.
@@ -160,8 +160,9 @@ export async function issueBrokerInvoices(
     ["invoicing.brokerPaymentTermDays"],
     now,
   );
+  // ADR 0015: an agency that requested quotes for its customers owes the same fee.
   const brokers = await tx.organization.findMany({
-    where: { type: "BROKER" },
+    where: { type: { in: ["BROKER", "AGENCY"] } },
     orderBy: { id: "asc" },
   });
   const created: string[] = [];
@@ -193,7 +194,7 @@ export async function issueBrokerInvoices(
       encrypt,
       {
         series: "B",
-        recipientType: "BROKER",
+        recipientType: broker.type === "AGENCY" ? "AGENCY" : "BROKER",
         ownerUserId: null,
         ownerOrganizationId: broker.id,
         recipient: {

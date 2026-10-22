@@ -18,6 +18,7 @@ import { ProblemError } from "../http/problem.js";
 import { CLOCK, DB, FIELD_CIPHER } from "../infra/tokens.js";
 import { CustomersService } from "./customers.service.js";
 import { ReferenceService } from "./reference.service.js";
+import { isOrgRequester } from "./request-support.js";
 import { RequestsService } from "./requests.service.js";
 import { readXlsx, writeXlsx, XlsxError } from "./xlsx.js";
 
@@ -48,9 +49,7 @@ export class BatchesService {
 
   private broker(auth: AuthContext) {
     const membership = auth.membership;
-    if (!membership || membership.organizationType !== "BROKER") {
-      throw new ProblemError("FORBIDDEN");
-    }
+    if (!isOrgRequester(membership)) throw new ProblemError("FORBIDDEN");
     return membership;
   }
 

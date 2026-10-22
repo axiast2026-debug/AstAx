@@ -59,6 +59,11 @@ export interface SelectionInput {
   alreadyInvited: readonly { organizationId: string; companies: readonly string[] }[];
   /** ASTA-06: agencies the back office left out of the preview. */
   excluded: readonly string[];
+  /**
+   * ADR 0015, Dan's answer 3B: the companies of the agency that requested the
+   * quote. The other agencies are invited only for their other companies.
+   */
+  excludedCompanies?: readonly string[];
   /** False for the reopening of a deserted auction: no rotation (ASTA-08). */
   rotation: boolean;
 }
@@ -78,10 +83,14 @@ export interface Selection {
   rejected: { organizationId: string; reasons: RejectionReason[] }[];
 }
 
-/** Companies the agency may offer with: its mandates, within its filter. */
-function companiesOf(c: AgencyCandidate): string[] {
+/**
+ * Companies the agency may offer with: its mandates, within its filter, but
+ * none of the requesting agency's (ADR 0015).
+ */
+function companiesOf(c: AgencyCandidate, input: SelectionInput): string[] {
   const wanted = c.criteria?.companies ?? [];
-  return c.mandatedCompanies.filter((id) => wanted.includes(id));
+  const excluded = input.excludedCompanies ?? [];
+  return c.mandatedCompanies.filter((id) => wanted.includes(id) && !excluded.includes(id));
 }
 
 function rejections(c: AgencyCandidate, input: SelectionInput): RejectionReason[] {
@@ -99,7 +108,7 @@ function rejections(c: AgencyCandidate, input: SelectionInput): RejectionReason[
     ? workingOverlapMinutes(input.calendar, input.openedAt, input.closeAt, c.receptionHours)
     : 0;
   if (overlap < input.minReceptionOverlapMinutes) reasons.push("RECEPTION_HOURS");
-  if (companiesOf(c).length === 0) reasons.push("NO_COMPANY");
+  if (companiesOf(c, input).length === 0) reasons.push("NO_COMPANY");
   if (
     c.distribution === "BY_MEMBER_FILTERS" &&
     !c.memberCriteria.some((m) => filterMismatches(m, input.request).length === 0)
@@ -144,11 +153,11 @@ export function selectAgencies(input: SelectionInput): Selection {
     // when none adds one, simply the first in rotation order.
     const index = Math.max(
       0,
-      remaining.findIndex((c) => companiesOf(c).some((id) => !covered.has(id))),
+      remaining.findIndex((c) => companiesOf(c, input).some((id) => !covered.has(id))),
     );
     const [chosen] = remaining.splice(index, 1);
     if (!chosen) break;
-    const companies = companiesOf(chosen);
+    const companies = companiesOf(chosen, input);
     const newCompanies = companies.filter((id) => !covered.has(id));
     for (const id of companies) covered.add(id);
     selected.push({ organizationId: chosen.organizationId, companies, newCompanies });

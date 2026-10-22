@@ -75,6 +75,8 @@ export function linksFor(actor: Actor): MenuItem[] {
  */
 const AGENCY_MENU: MenuItem[] = [
   item("incomingRequests", "/richieste-in-arrivo", "request.viewQuoteData"),
+  // ADR 0015: the agency asks quotes for its own customers too.
+  item("myRequests", "/richieste", "request.viewOwn"),
   item("results", "/risultati", "ranking.view"),
   item("toIssue", "/da-emettere", "issuance.manage"),
   item("issuedPolicies", "/polizze", "issuance.manage"),
@@ -86,6 +88,9 @@ const AGENCY_MENU: MenuItem[] = [
 export const AGENCY_LINKS: MenuItem[] = [
   item("dashboard", "/", "request.viewQuoteData"),
   item("myOffers", "/le-mie-offerte", "offer.submit"),
+  item("customers", "/clienti", "brokerCustomer.manage"),
+  item("batches", "/lotti", "request.bulkUpload"),
+  item("renewals", "/rinnovi", "request.viewOwn"),
   item("filters", "/filtri", "agencyFilters.manage"),
   item("accounting", "/contabilita", "accounting.agencyStatement"),
   item("team", "/team", "team.manage"),
@@ -95,6 +100,7 @@ export const AGENCY_LINKS: MenuItem[] = [
 /** 05 — agency operator (sub-agent): the same sections, with its own data only. */
 const SUB_AGENT_MENU: MenuItem[] = [
   item("incomingRequests", "/richieste-in-arrivo", "request.viewQuoteData"),
+  item("myRequests", "/richieste", "request.viewOwn"),
   item("myResults", "/risultati", "ranking.view"),
   item("toIssue", "/da-emettere", "issuance.manage"),
   item("metrics", "/metriche", "ranking.view"),
@@ -105,6 +111,8 @@ const SUB_AGENT_MENU: MenuItem[] = [
 export const SUB_AGENT_LINKS: MenuItem[] = [
   item("personalDashboard", "/", "request.viewQuoteData"),
   item("myOffers", "/le-mie-offerte", "offer.submit"),
+  item("customers", "/clienti", "brokerCustomer.manage"),
+  item("batches", "/lotti", "request.bulkUpload"),
   item("myFilters", "/filtri", "memberFilters.manageOwn"),
 ];
 

@@ -11,6 +11,7 @@ import {
   type DbTransaction,
   type Invitation,
   type QuoteRequest,
+  requesterExclusions,
 } from "@astax/db";
 import {
   addCalendarDays,
@@ -352,9 +353,15 @@ export class AgencyService {
           include: { company: true },
         }),
       ]);
-      const products = await tx.insuranceProduct.findMany({
-        where: { organizationId: m.organizationId, active: true },
-      });
+      // ADR 0015, answer 3B: not the companies of the agency that requested the quote.
+      const excluded = (
+        await asSystem(tx, () => requesterExclusions(tx, request.ownerOrganizationId))
+      ).companies;
+      const products = (
+        await tx.insuranceProduct.findMany({
+          where: { organizationId: m.organizationId, active: true },
+        })
+      ).filter((p) => !excluded.includes(p.companyId));
       // OFF-02: the same person may already work on this auction for another agency.
       const elsewhere = await asSystem(tx, async () => {
         const other = await tx.claim.findFirst({
@@ -448,7 +455,9 @@ export class AgencyService {
               ),
             }
           : null,
-        companies: mandates.map((x) => ({ id: x.companyId, name: x.company.name })),
+        companies: mandates
+          .filter((x) => !excluded.includes(x.companyId))
+          .map((x) => ({ id: x.companyId, name: x.company.name })),
         products: products.map((p) => ({ id: p.id, companyId: p.companyId, name: p.name })),
         documents: documents.map((d) => ({ id: d.id, kind: d.kind, driverIndex: d.driverIndex })),
         previousOffer:

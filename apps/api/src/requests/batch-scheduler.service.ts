@@ -202,9 +202,9 @@ export class BatchSchedulerService implements OnApplicationBootstrap, OnApplicat
           userId,
           status: "ACTIVE",
           user: { status: "ACTIVE" },
-          organization: { status: "ACTIVE", type: "BROKER" },
+          organization: { status: "ACTIVE", type: { in: ["BROKER", "AGENCY"] } },
         },
-        include: { user: true },
+        include: { user: true, organization: { select: { type: true } } },
       }),
     );
     if (!membership) return null;
@@ -217,7 +217,7 @@ export class BatchSchedulerService implements OnApplicationBootstrap, OnApplicat
     const actor: Actor = {
       kind: "MEMBER",
       role: membership.role,
-      organizationType: "BROKER",
+      organizationType: membership.organization.type,
       flags,
     };
     return {
@@ -227,7 +227,7 @@ export class BatchSchedulerService implements OnApplicationBootstrap, OnApplicat
       membership: {
         id: membership.id,
         organizationId: membership.organizationId,
-        organizationType: "BROKER",
+        organizationType: membership.organization.type,
         role: membership.role,
         flags,
       },

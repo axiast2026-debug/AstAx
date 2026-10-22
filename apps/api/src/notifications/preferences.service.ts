@@ -36,6 +36,8 @@ const RECIPIENTS: Record<"PRIVATE" | "BROKER" | "AGENCY" | "STAFF", readonly str
     "affected_users",
   ],
   AGENCY: [
+    // ADR 0015: the agency requests quotes for its own customers too.
+    "requester",
     "invited_agency_users",
     "invited_agency_users_without_offer",
     "participating_agency_users",

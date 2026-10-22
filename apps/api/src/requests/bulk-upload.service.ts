@@ -10,6 +10,7 @@ import type { AuthContext } from "../auth/auth-context.js";
 import { ProblemError } from "../http/problem.js";
 import { CLOCK, DB, FIELD_CIPHER } from "../infra/tokens.js";
 import { CustomersService } from "./customers.service.js";
+import { isOrgRequester } from "./request-support.js";
 import { RequestsService } from "./requests.service.js";
 
 /** Uncompressed, for the whole ZIP (a guard against archives that explode). */
@@ -103,8 +104,7 @@ export class BulkUploadService {
 
   async run(auth: AuthContext, body: Uint8Array) {
     const membership = auth.membership;
-    if (!membership || membership.organizationType !== "BROKER")
-      throw new ProblemError("FORBIDDEN");
+    if (!isOrgRequester(membership)) throw new ProblemError("FORBIDDEN");
     const { csv, files } = this.unpack(body);
     // Rule 7: the limit of rows is a parameter (requests.bulkMaxRows).
     const now = this.clock.now();

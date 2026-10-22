@@ -15,6 +15,7 @@ import {
   type Offer,
   type QuoteRequest,
   requestRequirements,
+  requesterExclusions,
 } from "@astax/db";
 import {
   AgencyFilterCriteriaSchema,
@@ -307,6 +308,16 @@ export class OffersService {
       }),
     ]);
     if (!mandate) errors.push({ path: "companyId", issue: "COMPANY_NOT_MANDATED" });
+    // ADR 0015, answer 3B: never with a company of the agency that requested the quote.
+    const out = await asSystem(tx, async () => {
+      const request = await tx.quoteRequest.findUniqueOrThrow({
+        where: { id: auction.quoteRequestId },
+      });
+      return requesterExclusions(tx, request.ownerOrganizationId);
+    });
+    if (out.companies.includes(payload.companyId)) {
+      errors.push({ path: "companyId", issue: "COMPANY_OF_THE_REQUESTER" });
+    }
     if (!product) errors.push({ path: "productId", issue: "PRODUCT_NOT_FOUND" });
     if (
       !guaranteeDateAccepted(payload.guaranteeUntil, dbDateToCalendarDate(auction.minGuaranteeDate))

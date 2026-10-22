@@ -69,7 +69,8 @@
     "listsHolidays": "Elenchi e festività",
     "onboardingQueue": "Ingressi",
     "batches": "Lotti",
-    "metrics": "Metriche"
+    "metrics": "Metriche",
+    "myRequests": "Le mie richieste"
   },
   "home": {
     "welcome": "Ciao {name}",

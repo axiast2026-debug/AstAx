@@ -126,12 +126,12 @@ describe("phase 7 broker bulk upload", () => {
     expect(logged?.after).toMatchObject({ rows: 2, newCustomers: 2, documents: 3 });
   });
 
-  it("is only for brokers", async () => {
-    await acceptAllLegal(h, "agenzia-uno-owner");
-    const agency: Who = {
-      token: await h.tokenFor("agenzia-uno-owner"),
-      context: membershipId("agenzia-uno-owner", "agenzia-uno"),
+  it("is only for the requester organizations (a broker or, ADR 0015, an agency)", async () => {
+    await acceptAllLegal(h, "bo-verifier");
+    const staff: Who = {
+      token: await h.tokenFor("bo-verifier"),
+      context: membershipId("bo-verifier", "astax"),
     };
-    expect((await r.call(agency, "/broker/bulk-uploads", { body: {} })).status).toBe(403);
+    expect((await r.call(staff, "/broker/bulk-uploads", { body: {} })).status).toBe(403);
   });
 });

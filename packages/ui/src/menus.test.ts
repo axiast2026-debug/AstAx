@@ -53,6 +53,7 @@ describe("menus by role (docs/specifiche 02-07)", () => {
     // Dan, 2026-10-21 (docs/piano-agenzie.md, B).
     expect(keys(member("OWNER", "AGENCY"))).toEqual([
       "incomingRequests",
+      "myRequests",
       "results",
       "toIssue",
       "issuedPolicies",
@@ -62,6 +63,9 @@ describe("menus by role (docs/specifiche 02-07)", () => {
     expect(linksFor(member("OWNER", "AGENCY")).map((l) => l.key)).toEqual([
       "dashboard",
       "myOffers",
+      "customers",
+      "batches",
+      "renewals",
       "filters",
       "accounting",
       "team",
@@ -80,6 +84,7 @@ describe("menus by role (docs/specifiche 02-07)", () => {
   it("sub-agent: personal menu, «Da emettere» only if enabled (spec 05)", () => {
     expect(keys(member("OPERATOR", "AGENCY"))).toEqual([
       "incomingRequests",
+      "myRequests",
       "myResults",
       "metrics",
       "profile",
@@ -87,6 +92,8 @@ describe("menus by role (docs/specifiche 02-07)", () => {
     expect(linksFor(member("OPERATOR", "AGENCY")).map((l) => l.key)).toEqual([
       "personalDashboard",
       "myOffers",
+      "customers",
+      "batches",
       "myFilters",
     ]);
     expect(keys(member("OPERATOR", "AGENCY", { canIssue: true }))).toContain("toIssue");

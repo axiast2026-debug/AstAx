@@ -154,6 +154,31 @@ export async function conflictedAgencies(
   return agencies.map((a) => a.id);
 }
 
+/**
+ * Who and what is left out of the auctions of a requester organization:
+ * - the agency a section E intermediary works for (Dan's answer 2A);
+ * - ADR 0015, answer 3B: when an agency requests, the companies of its
+ *   verified mandates, and the agency itself (a sub-agent's requests are its
+ *   agency's, answer 5).
+ */
+export async function requesterExclusions(
+  tx: DbTransaction,
+  requesterOrganizationId: string | null,
+): Promise<{ agencies: string[]; companies: string[] }> {
+  if (!requesterOrganizationId) return { agencies: [], companies: [] };
+  const requester = await tx.organization.findUnique({ where: { id: requesterOrganizationId } });
+  const agencies = await conflictedAgencies(tx, requesterOrganizationId);
+  if (requester?.type !== "AGENCY") return { agencies, companies: [] };
+  const mandates = await tx.agencyMandate.findMany({
+    where: { organizationId: requesterOrganizationId, verifiedAt: { not: null } },
+    select: { companyId: true },
+  });
+  return {
+    agencies: [...agencies, requesterOrganizationId],
+    companies: mandates.map((m) => m.companyId),
+  };
+}
+
 export async function loadAgencyCandidates(
   tx: DbTransaction,
   day: Date,

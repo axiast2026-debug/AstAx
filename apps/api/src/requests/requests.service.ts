@@ -70,6 +70,7 @@ import {
   extractionOf,
   ownerOf,
   requesterScope,
+  seesAllClients,
   settingsAt,
   sha256Of,
 } from "./request-support.js";
@@ -356,7 +357,7 @@ export class RequestsService {
             { path: "customerId", issue: "required" },
           ]);
         const membership = auth.membership;
-        const seesAll = membership?.role === "OWNER" || membership?.flags.seesAllClients === true;
+        const seesAll = membership ? seesAllClients(membership) : false;
         const customer = await tx.customer.findFirst({
           where: {
             id: input.customerId,

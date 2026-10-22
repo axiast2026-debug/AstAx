@@ -41,7 +41,9 @@ export default async function RenewalsPage({
   searchParams: Promise<{ errore?: string; preparati?: string; nonAncora?: string }>;
 }) {
   const viewer = await requireViewer();
-  if (viewer.activeMembership?.organization.type !== "BROKER") notFound();
+  // ADR 0015: the renewals of the customers of a broker or of an agency.
+  const type = viewer.activeMembership?.organization.type;
+  if (type !== "BROKER" && type !== "AGENCY") notFound();
   const t = await getTranslations("renewals");
   const query = await searchParams;
   const { status, body } = await api<{

@@ -200,7 +200,8 @@ export async function seedReference(tx: DbTransaction, repoRoot: string): Promis
         moment: doc.moment,
         channel: doc.channel,
       },
-      update: {},
+      // Who signs a document is decided here (ADR 0015 widened the declaration to agencies).
+      update: { audiences: doc.audiences },
     });
     await tx.legalDocumentVersion.upsert({
       where: { documentId_number: { documentId: document.id, number: 1 } },

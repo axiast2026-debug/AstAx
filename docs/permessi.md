@@ -29,10 +29,10 @@ Abilitazioni aggiuntive di un'appartenenza, decise dal titolare:
 
 | Azione | Chi | Condizioni |
 | --- | --- | --- |
-| Creare e inviare una richiesta | `PRIVATE`; `OWNER` e `OPERATOR` di broker | Consenso presente (LEG-04) |
+| Creare e inviare una richiesta | `PRIVATE`; `OWNER` e `OPERATOR` di broker; `OWNER`, `SUPERVISOR` e `OPERATOR` di agenzia per i propri clienti ([ADR 0015](adr/0015-agenzia-richiedente.md)) | Consenso presente (LEG-04) |
 | Strumenti di sviluppo (far scattare un timer, offerte di prova, orologio in avanti) | `BO_VERIFIER`, `BO_SUPERVISOR`, `ADMIN` | Solo con `DEV_TOOLS=true`, mai in produzione (regola 13) |
 | Revocare il consenso alla condivisione con le agenzie | `PRIVATE` (propri consensi); `OWNER` e `OPERATOR` di broker (consensi dei propri clienti) | LEG-04: da allora non si aprono nuove aste per il cliente |
-| Vedere la propria richiesta, la cronologia, i propri documenti | `PRIVATE`; broker | Broker: clienti dell'organizzazione; `OPERATOR` solo i propri, salvo `seesAllClients` |
+| Vedere la propria richiesta, la cronologia, i propri documenti | `PRIVATE`; broker; agenzia richiedente | Broker e agenzia: clienti dell'organizzazione; `OPERATOR` solo i propri, salvo `seesAllClients`; il `SUPERVISOR` di agenzia li vede tutti |
 | Annullare una richiesta | Richiedente; `BO_SUPERVISOR` | Solo prima dell'accettazione |
 | Vedere i dati del preventivo e i documenti del cliente | Utenti di un'agenzia invitata; `BO_*`; `ADMIN` | `OPERATOR`: solo richieste nei propri filtri. Registrazione (VIS-09) e filigrana (VIS-10) per le agenzie |
 | Vedere telefono ed email del cliente | Richiedente; agenzia vincitrice; `BO_*`; `ADMIN` | Agenzia: solo dopo la conferma del pagamento (VIS-02) |

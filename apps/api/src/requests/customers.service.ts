@@ -12,7 +12,7 @@ import { actorOf, AuditService } from "../audit/audit.service.js";
 import type { AuthContext } from "../auth/auth-context.js";
 import { ProblemError } from "../http/problem.js";
 import { CLOCK, DB, FIELD_CIPHER } from "../infra/tokens.js";
-import { customerScope } from "./request-support.js";
+import { customerScope, isOrgRequester } from "./request-support.js";
 import { customerName } from "./requests.service.js";
 
 export type NewCustomerInput =
@@ -38,8 +38,7 @@ export class CustomersService {
 
   async create(auth: AuthContext, input: NewCustomerInput) {
     const membership = auth.membership;
-    if (!membership || membership.organizationType !== "BROKER")
-      throw new ProblemError("FORBIDDEN");
+    if (!isOrgRequester(membership)) throw new ProblemError("FORBIDDEN");
     if (
       input.kind === "PERSON" &&
       !isValidFiscalCode(input.fiscalCode, romeCalendarDate(this.clock.now()))

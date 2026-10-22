@@ -20,7 +20,7 @@ import { actorOf, AuditService } from "../audit/audit.service.js";
 import type { AuthContext } from "../auth/auth-context.js";
 import { ProblemError } from "../http/problem.js";
 import { CLOCK, DB, FIELD_CIPHER, OBJECT_STORAGE } from "../infra/tokens.js";
-import { requesterScope } from "../requests/request-support.js";
+import { isOrgRequester, requesterScope } from "../requests/request-support.js";
 
 /**
  * Process 10, spec 03 «Rinnova in asta», spec 02 «Rinnovi», proposal E: the
@@ -126,7 +126,7 @@ export class RenewalsService {
 
   /** Spec 02 «Rinnovi»: the ends of the next days, with the automatic renewal and the draft. */
   async brokerRenewals(auth: AuthContext) {
-    if (auth.membership?.organizationType !== "BROKER") throw new ProblemError("NOT_FOUND");
+    if (!isOrgRequester(auth.membership)) throw new ProblemError("NOT_FOUND");
     const now = this.clock.now();
     return withContext(this.db, auth.db, async (tx) => {
       const s = await settingsAt(tx, ["renewal.brokerHorizonDays", "renewal.daysBefore"], now);
@@ -186,7 +186,7 @@ export class RenewalsService {
 
   /** The automatic renewal of one customer's policy, on or off. */
   async setAutoRenewal(auth: AuthContext, policyId: string, enabled: boolean) {
-    if (auth.membership?.organizationType !== "BROKER") throw new ProblemError("NOT_FOUND");
+    if (!isOrgRequester(auth.membership)) throw new ProblemError("NOT_FOUND");
     return withContext(this.db, auth.db, async (tx) => {
       const [policy] = await this.ownPolicies(tx, auth, { id: policyId });
       if (!policy) return this.denied(auth, "Policy", policyId);
@@ -213,7 +213,7 @@ export class RenewalsService {
    * asta»); one transaction per policy, so a long list never times out.
    */
   async bulk(auth: AuthContext, period: string) {
-    if (auth.membership?.organizationType !== "BROKER") throw new ProblemError("NOT_FOUND");
+    if (!isOrgRequester(auth.membership)) throw new ProblemError("NOT_FOUND");
     const { from, to } = monthBounds(period);
     const now = this.clock.now();
     const { open, notYet } = await withContext(this.db, auth.db, async (tx) => {

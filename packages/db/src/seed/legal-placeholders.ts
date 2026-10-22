@@ -73,8 +73,9 @@ export const LEGAL_PLACEHOLDERS: readonly LegalPlaceholder[] = [
     // Dan, 2026-10-21 (docs/piano-broker.md, answer 3): one declaration in place
     // of the consent of every customer; to be confirmed by the lawyer (LEG-04).
     key: "broker-clients-declaration",
-    title: "Dichiarazione del broker sul consenso dei propri clienti",
-    audiences: ["BROKER"],
+    title: "Dichiarazione dell'intermediario sul consenso dei propri clienti",
+    // ADR 0015: the agencies that request quotes too.
+    audiences: ["BROKER", "AGENCY"],
     moment: "ONBOARDING",
     channel: "BROKER",
   },

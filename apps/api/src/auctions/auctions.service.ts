@@ -13,6 +13,7 @@ import {
   type AuctionSettingsSnapshot,
   type DbClient,
   type DbTransaction,
+  requesterExclusions,
 } from "@astax/db";
 import { backOfficeMayInvite, bestOfferPerCompany } from "@astax/shared/domain";
 import { dbDateToCalendarDate } from "@astax/shared/format";
@@ -21,7 +22,7 @@ import { actorOf, AuditService } from "../audit/audit.service.js";
 import type { AuthContext } from "../auth/auth-context.js";
 import { ProblemError } from "../http/problem.js";
 import { CLOCK, DB, WORKFLOW_SIGNALS } from "../infra/tokens.js";
-import { requesterScope } from "../requests/request-support.js";
+import { isOrgRequester, requesterScope } from "../requests/request-support.js";
 import { OffersService } from "./offers.service.js";
 import type { WorkflowSignals } from "./workflow-signals.js";
 
@@ -471,6 +472,14 @@ export class AuctionsService {
           { path: "organizationIds", issue: "NOT_AN_ACTIVE_AGENCY" },
         ]);
       }
+      // ADR 0015: never the requesting agency, nor the one a section E intermediary works for.
+      const request = await tx.quoteRequest.findUniqueOrThrow({ where: { id: a.quoteRequestId } });
+      const out = await requesterExclusions(tx, request.ownerOrganizationId);
+      if (input.organizationIds.some((id) => out.agencies.includes(id))) {
+        throw new ProblemError("CONFLICT", "The requester's agency cannot be invited", [
+          { path: "organizationIds", issue: "REQUESTER_AGENCY" },
+        ]);
+      }
       // ASTA-04, rule 7: at most the invitations allowed for one auction, from its parameters.
       if (input.organizationIds.length > snapshot["invitations.max"]) {
         throw new ProblemError("VALIDATION_FAILED", undefined, [
@@ -515,7 +524,7 @@ export class AuctionsService {
   }
 }
 
-/** A private user, or a member of a broker: the roles that make requests. */
+/** A private user, or a member of a broker or an agency (ADR 0015): the roles that make requests. */
 function isRequester(auth: AuthContext): boolean {
-  return auth.kind === "PRIVATE" || auth.membership?.organizationType === "BROKER";
+  return auth.kind === "PRIVATE" || isOrgRequester(auth.membership);
 }

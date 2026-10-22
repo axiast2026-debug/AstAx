@@ -20,15 +20,37 @@ export function ownerOf(auth: AuthContext): OwnerColumns {
 }
 
 /**
+ * ADR 0015: an organization that requests quotes for its own customers, on
+ * the channel BROKER: a broker, or since Dan's plan of 2026-10-21 an agency.
+ */
+export function isOrgRequester(
+  membership: AuthContext["membership"],
+): membership is NonNullable<AuthContext["membership"]> {
+  return membership?.organizationType === "BROKER" || membership?.organizationType === "AGENCY";
+}
+
+/**
+ * VIS-13: who sees every customer of the organization: the owner, an agency's
+ * supervisors, and the members the owner allowed.
+ */
+export function seesAllClients(membership: NonNullable<AuthContext["membership"]>): boolean {
+  return (
+    membership.role === "OWNER" ||
+    (membership.organizationType === "AGENCY" && membership.role === "SUPERVISOR") ||
+    membership.flags.seesAllClients
+  );
+}
+
+/**
  * Requests the caller may see as requester (permission request.viewOwn): a
- * private user their own; a broker the organization's, an operator only the
- * ones of their own customers unless allowed to see all (VIS-13).
+ * private user their own; a broker or an agency the organization's, an
+ * operator only the ones of their own customers unless allowed to see all (VIS-13).
  */
 export function requesterScope(auth: AuthContext): Prisma.QuoteRequestWhereInput {
   if (auth.kind === "PRIVATE") return { channel: "PRIVATE", ownerUserId: auth.userId };
   const membership = auth.membership;
-  if (!membership || membership.organizationType !== "BROKER") throw new ProblemError("FORBIDDEN");
-  const seesAll = membership.role === "OWNER" || membership.flags.seesAllClients;
+  if (!isOrgRequester(membership)) throw new ProblemError("FORBIDDEN");
+  const seesAll = seesAllClients(membership);
   return {
     channel: "BROKER",
     ownerOrganizationId: membership.organizationId,
@@ -36,11 +58,11 @@ export function requesterScope(auth: AuthContext): Prisma.QuoteRequestWhereInput
   };
 }
 
-/** Broker customers the caller may see and manage (brokerCustomer.manage, VIS-13). */
+/** Customers of a broker or an agency the caller may see and manage (brokerCustomer.manage, VIS-13). */
 export function customerScope(auth: AuthContext): Prisma.CustomerWhereInput {
   const membership = auth.membership;
-  if (!membership || membership.organizationType !== "BROKER") throw new ProblemError("FORBIDDEN");
-  const seesAll = membership.role === "OWNER" || membership.flags.seesAllClients;
+  if (!isOrgRequester(membership)) throw new ProblemError("FORBIDDEN");
+  const seesAll = seesAllClients(membership);
   return {
     ownerOrganizationId: membership.organizationId,
     ...(seesAll ? {} : { ownerMembershipId: membership.id }),
