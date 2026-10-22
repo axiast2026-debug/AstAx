@@ -3,12 +3,11 @@ import type { FieldCipher } from "@astax/adapters/crypto";
 import type { ObjectStoragePort } from "@astax/adapters/storage";
 import {
   asSystem,
+  auctionWorkingTime,
   isUniqueViolation,
-  loadWorkingCalendar,
   settingsAt,
   withContext,
   type Auction,
-  type AuctionSettingsSnapshot,
   type DbClient,
   type DbTransaction,
   type Invitation,
@@ -21,8 +20,6 @@ import {
   isGuaranteed,
   PackageRequirementsSchema,
   romeInstant,
-  workingClock,
-  workingMsBetween,
   type QuoteData,
 } from "@astax/shared/domain";
 import { dbDateToCalendarDate, formatDateTime, romeCalendarDate } from "@astax/shared/format";
@@ -267,7 +264,7 @@ export class AgencyService {
         await Promise.all(
           all
             .filter((i) => i.auction.status === "OPEN")
-            .map(async (i) => [i.auctionId, await this.workingTime(tx, i.auction, now)] as const),
+            .map(async (i) => [i.auctionId, await auctionWorkingTime(tx, i.auction, now)] as const),
         ),
       );
       const rows = all.flatMap((i) => {
@@ -333,26 +330,6 @@ export class AgencyService {
           return open(a) - open(b) || a.scheduledCloseAt.localeCompare(b.scheduledCloseAt);
         });
     });
-  }
-
-  /** ASTA-02: the working time of an open round, with the calendar of its opening (ASTA-09). */
-  private async workingTime(
-    tx: DbTransaction,
-    auction: { openedAt: Date; scheduledCloseAt: Date; settingsSnapshot: unknown },
-    now: Date,
-  ) {
-    const snapshot = auction.settingsSnapshot as AuctionSettingsSnapshot;
-    const calendar = await loadWorkingCalendar(tx, snapshot["calendar.workingHours"], snapshot);
-    const clock = workingClock(calendar, now, auction.scheduledCloseAt);
-    return {
-      serverNow: now.toISOString(),
-      workingSecondsLeft: Math.round(clock.msLeft / 1000),
-      totalWorkingSeconds: Math.round(
-        workingMsBetween(calendar, auction.openedAt, auction.scheduledCloseAt) / 1000,
-      ),
-      pausedUntil: clock.pausedUntil?.toISOString() ?? null,
-      runsUntil: clock.runsUntil?.toISOString() ?? null,
-    };
   }
 
   /**
@@ -480,7 +457,7 @@ export class AgencyService {
         auctionStatus: auction.status,
         scheduledCloseAt: auction.scheduledCloseAt.toISOString(),
         // ASTA-02: the working time from the server, for the ring.
-        live: auction.status === "OPEN" ? await this.workingTime(tx, auction, now) : null,
+        live: auction.status === "OPEN" ? await auctionWorkingTime(tx, auction, now) : null,
         minGuaranteeDate: dbDateToCalendarDate(auction.minGuaranteeDate),
         invitation: invitation.status,
         claim: claim

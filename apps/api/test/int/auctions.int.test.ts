@@ -456,6 +456,17 @@ describe("fase 3: claims and offers (OFF-01..07, BC-02, BC-04, BC-05)", () => {
     expect(JSON.stringify(status)).not.toMatch(/(?<![0-9a-f])499(00|,00)?(?![0-9a-f])/);
   });
 
+  it("VIS-03 the private customer's list: offers and working time, never the invited agencies or a price", async () => {
+    const listed = await r.json<{ id: string; auction: Record<string, unknown> | null }[]>(
+      await r.call(elena, "/requests"),
+      200,
+    );
+    const row = listed.find((x) => x.id === requestId);
+    expect(row?.auction).toMatchObject({ status: "OPEN", offers: 3, bestPremiumCents: null });
+    expect(row?.auction).not.toHaveProperty("invited");
+    expect(JSON.stringify(row)).not.toMatch(/(?<![0-9a-f])499(00|,00)?(?![0-9a-f])/);
+  });
+
   it("ASTA-02 VIS-03 the requester's clock: working seconds from the server, and only the arrival time of each envelope", async () => {
     const status = await r.json<{
       serverNow: string;

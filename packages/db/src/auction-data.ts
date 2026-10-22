@@ -8,6 +8,8 @@ import {
   type FilterableRequest,
   type PackageRequirements,
   type WorkingCalendar,
+  workingClock,
+  workingMsBetween,
 } from "@astax/shared/domain";
 import { romeCalendarDate } from "@astax/shared/format";
 import {
@@ -97,6 +99,30 @@ export async function loadWorkingCalendar(
   return {
     hours,
     holidays: new Set(holidays.map((h) => h.date.toISOString().slice(0, 10))),
+  };
+}
+
+/**
+ * ASTA-02: the working time of an open round, with the calendar of its
+ * opening (ASTA-09), counted from the server's clock: what the time rings
+ * of the requester, the agency and the broker's list show.
+ */
+export async function auctionWorkingTime(
+  tx: DbTransaction,
+  auction: { openedAt: Date; scheduledCloseAt: Date; settingsSnapshot: unknown },
+  now: Date,
+) {
+  const snapshot = auction.settingsSnapshot as AuctionSettingsSnapshot;
+  const calendar = await loadWorkingCalendar(tx, snapshot["calendar.workingHours"], snapshot);
+  const clock = workingClock(calendar, now, auction.scheduledCloseAt);
+  return {
+    serverNow: now.toISOString(),
+    workingSecondsLeft: Math.round(clock.msLeft / 1000),
+    totalWorkingSeconds: Math.round(
+      workingMsBetween(calendar, auction.openedAt, auction.scheduledCloseAt) / 1000,
+    ),
+    pausedUntil: clock.pausedUntil?.toISOString() ?? null,
+    runsUntil: clock.runsUntil?.toISOString() ?? null,
   };
 }
 

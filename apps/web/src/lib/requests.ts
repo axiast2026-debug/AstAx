@@ -1,6 +1,7 @@
 import "server-only";
 import type { PersonData, QuoteData, QuoteDraft, QuoteDraftSection } from "@astax/shared/domain";
 import { notFound } from "next/navigation";
+import type { WorkingTime } from "@/components/countdown-ring";
 import { api } from "./auth";
 
 /** Shapes of the API answers used by the request pages (apps/api, requests module). */
@@ -77,6 +78,20 @@ export interface RequestSummary {
   /** ADR 0014: the lot's code, and the day a draft of a lot leaves by itself. */
   batch?: string | null;
   scheduledSubmitAt?: string | null;
+  /** Who in the office made the request (the broker's work table). */
+  operator?: string | null;
+  /** The latest round: counters during the auction (VIS-03), the lowest premium after it. */
+  auction?: {
+    status: string;
+    kind: string;
+    scheduledCloseAt: string;
+    live: WorkingTime | null;
+    offers: number;
+    /** Only for the broker's requests. */
+    invited?: number;
+    bestPremiumCents: number | null;
+    bestGuaranteeUntil: string | null;
+  } | null;
 }
 
 export async function requestOptions(): Promise<RequestOptions> {
