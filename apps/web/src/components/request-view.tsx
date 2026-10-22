@@ -1,15 +1,10 @@
-import {
-  formatDate,
-  formatDateTime,
-  formatEuroCents,
-  formatTime,
-  formatWeekdayDate,
-} from "@astax/shared/format";
-import { Badge, Button, Card, CardTitle, GuaranteeChip, Icon } from "@astax/ui";
+import { formatDate, formatDateTime, formatEuroCents } from "@astax/shared/format";
+import { Badge, Button, buttonVariants, Card, CardTitle, GuaranteeChip, Icon } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { realtimeTicket } from "@/app/actions";
 import { askReconfirmation, cancelRequest } from "@/app/request-actions";
+import { AuctionLive, type LiveAuction } from "@/components/auction-live";
 import { Countdown } from "@/components/countdown";
 import { LiveRefresh } from "@/components/live-refresh";
 import { BrokerOffersPanel } from "@/components/broker-offers-panel";
@@ -35,6 +30,7 @@ export async function StatusBadge({ status }: { status: string }) {
 
 interface AuctionStatus {
   status: string;
+  serverNow: string;
   /** GAR-06: reconfirmations used and allowed. */
   reconfirmation?: {
     used: number;
@@ -44,15 +40,17 @@ interface AuctionStatus {
     /** When a request «Scaduta» without actions closes by itself. */
     autoCancelAt?: string | null;
   };
-  auction: {
-    round: number;
-    kind: string;
-    status: string;
-    scheduledCloseAt: string;
-    closedAt: string | null;
-    offers: number | null;
-    invitedAgencies?: number;
-  } | null;
+  auction:
+    | ({
+        round: number;
+        kind: string;
+        status: string;
+        scheduledCloseAt: string;
+        closedAt: string | null;
+        offers: number | null;
+        invitedAgencies?: number;
+      } & Partial<Omit<LiveAuction, "round" | "kind" | "scheduledCloseAt" | "offers">>)
+    | null;
 }
 
 interface PresentedOffer {
@@ -83,9 +81,11 @@ async function AuctionPanel({
   requestId,
   base,
   presented,
+  timeline,
 }: {
   requestId: string;
   base: string;
+  timeline: RequestDetail["timeline"];
   /** Phase 5: the offers are in the offers panel, where the requester chooses (PRES-02…08). */
   presented: boolean;
 }) {
@@ -101,33 +101,40 @@ async function AuctionPanel({
       ? []
       : (await api<{ offers: PresentedOffer[] }>(`/requests/${requestId}/offers`)).body.offers;
 
-  // Momento 4, GAR-07: the agencies answer in sealed envelopes; only how many, never a price.
-  if (open && a.kind === "RECONFIRMATION") {
-    const answers = a.offers ?? 0;
+  // Momento 2 (and the reconfirmation of Momento 4): the time ring, the envelopes, the diary.
+  if (open && a.workingSecondsLeft !== undefined && a.totalWorkingSeconds !== undefined) {
     return (
-      <section className="on-dark flex flex-col gap-3 rounded-3xl bg-night-900 px-4 py-6 text-white lg:px-8">
-        <h2 className="font-display text-screen font-extrabold">{t("reconfirmationTitle")}</h2>
-        <p className="text-body font-bold">
-          {t("reconfirmationDeadline", {
-            day: formatWeekdayDate(a.scheduledCloseAt),
-            time: formatTime(a.scheduledCloseAt),
-          })}
-        </p>
-        <div className="flex flex-wrap items-center gap-2">
-          {Array.from({ length: Math.min(answers, 8) }, (_, i) => (
-            <span
-              key={i}
-              aria-hidden
-              className="inline-flex size-10 items-center justify-center rounded-lg bg-night-800"
-            >
-              <Icon name="envelope" size={24} />
-            </span>
-          ))}
-          <span className="text-label font-semibold">
-            {t("reconfirmationAnswers", { count: answers })}
-          </span>
-        </div>
-        <p className="text-table text-night-300">{t("reconfirmationIntro")}</p>
+      <AuctionLive
+        auction={{
+          ...a,
+          workingSecondsLeft: a.workingSecondsLeft,
+          totalWorkingSeconds: a.totalWorkingSeconds,
+          pausedUntil: a.pausedUntil ?? null,
+          runsUntil: a.runsUntil ?? null,
+          envelopesAt: a.envelopesAt ?? [],
+        }}
+        serverNow={status.serverNow}
+        timeline={timeline}
+        requestId={requestId}
+        isPrivate={base === "/preventivi"}
+      />
+    );
+  }
+
+  // Momento 2, ASTA-08: no valid offer, even after the reopening.
+  if (!open && status.status === "DESERTED") {
+    return (
+      <section className="flex flex-col items-center gap-3 rounded-2xl bg-white p-6 text-center shadow-[inset_0_0_0_1px_var(--color-warm-200)] lg:flex-row lg:text-left">
+        <span className="inline-flex size-16 shrink-0 items-center justify-center rounded-2xl bg-warm-100 text-warm-600">
+          <Icon name="envelopeOpen" size={32} />
+        </span>
+        <span className="flex flex-col gap-2 lg:items-start">
+          <h2 className="text-section font-bold">{t("desertedTitle")}</h2>
+          <p className="text-table">{t("desertedText")}</p>
+          <Link href="/assistenza" className={buttonVariants({ variant: "outline" })}>
+            {t("desertedHelp")}
+          </Link>
+        </span>
       </section>
     );
   }
@@ -335,7 +342,12 @@ export async function RequestView({
       ) : null}
 
       {AUCTION_STATUSES.includes(detail.status) ? (
-        <AuctionPanel requestId={detail.id} base={base} presented={presented} />
+        <AuctionPanel
+          requestId={detail.id}
+          base={base}
+          presented={presented}
+          timeline={detail.timeline}
+        />
       ) : null}
       {base === "/preventivi" && detail.status === "ACCEPTED" ? (
         <NextOfferCard requestId={detail.id} />

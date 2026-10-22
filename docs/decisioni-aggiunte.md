@@ -34,6 +34,7 @@ Le specifiche lasciavano aperti alcuni dettagli che il codice deve per forza dec
 | 16 | Controllo del PDF | Dopo la chiusura, mai prima. Non esclude da solo: segnala al back office, che decide finché il cliente non ha accettato. Le coperture dichiarate non conformi invece escludono subito. | OFF-06, OFF-09 | `documents.confidenceThreshold` |
 | 17 | Libreria prodotti dell'agenzia | L'agenzia carica una volta, per ogni compagnia e prodotto, il set informativo (DIP, DIP aggiuntivo, condizioni). Nel modulo offerta sceglie il prodotto; al cliente arrivano quei documenti. | LEG-05 | — |
 | 18 | Migliore offerta per compagnia | Calcolata tra le offerte ancora garantite dell'ultimo giro chiuso; se una compagnia non ne ha, si mostra la migliore scaduta in grigio. | PRES-02 | — |
+| 18c | Ora di arrivo delle buste (Dan, 2026-10-22) | Durante l'asta il richiedente vede, oltre al conto alla rovescia e al numero di offerte, l'ora di arrivo di ogni busta nel diario dell'asta (proposta P2 del nuovo design). Solo l'ora: mai prezzo, compagnia o agenzia. Il conto alla rovescia segue le ore lavorative e l'ora del server. | VIS-03, ASTA-02 | — |
 | 18b | Verifica automatica | L'obiettivo delle specifiche è l'80% di verifiche automatiche. Le richieste verdi si possono approvare da sole, ma il parametro resta spento durante il pilota: all'inizio il back office controlla tutto. | ASTA-01 | `verification.autoApproveGreen` |
 
 ## Pagamenti, fee e contabilità

@@ -27,8 +27,8 @@ test.describe.serial("S07 — busta chiusa", () => {
 
     // The requester: countdown and number of offers (VIS-03).
     await customer.goto(url);
-    await expect(customer.getByRole("heading", { name: "Asta" })).toBeVisible();
-    await expect(customer.getByText("Chiude tra")).toBeVisible();
+    await expect(customer.getByRole("heading", { name: "Asta in corso" })).toBeVisible();
+    await expect(customer.getByText(/^Chiude .+ alle \d{2}:\d{2}$/)).toBeVisible();
 
     // Three invited synthetic agencies send their offers.
     await card.getByRole("button", { name: "Invia 3 offerte di prova" }).click();
@@ -40,7 +40,9 @@ test.describe.serial("S07 — busta chiusa", () => {
 
     await expect(async () => {
       await customer.reload();
-      await expect(customer.locator("dd", { hasText: /^3$/ })).toBeVisible({ timeout: 1000 });
+      await expect(customer.getByText("3 buste arrivate", { exact: true })).toBeAttached({
+        timeout: 1000,
+      });
     }).toPass({ timeout: 30_000 });
     expect(await customer.locator("main").innerText()).not.toContain("€");
 

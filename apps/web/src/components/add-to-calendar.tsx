@@ -6,9 +6,9 @@ const icsTime = (iso: string) => iso.replace(/[-:]/g, "").replace(/\.\d{3}/, "")
 const icsText = (text: string) => text.replace(/[\\;,]/g, (c) => `\\${c}`).replace(/\n/g, "\\n");
 
 /**
- * Proposal P4: the end of the guaranteed price in the customer's own
- * calendar, as a file made on the device (nothing leaves it): an event in the
- * last half hour, ending at 23:59:59 in Rome of the guarantee day (GAR-02).
+ * Proposal P4: a deadline in the customer's own calendar, as a file made on
+ * the device (nothing leaves it): an event in its last half hour, such as the
+ * end of a guaranteed price (23:59:59 in Rome, GAR-02) or an auction's closing.
  */
 export function AddToCalendar({
   expiresAt,
@@ -16,12 +16,15 @@ export function AddToCalendar({
   summary,
   description,
   label,
+  alarmBefore = "PT12H",
 }: {
   expiresAt: string;
   uid: string;
   summary: string;
   description: string;
   label: string;
+  /** How long before the end the calendar warns (iCalendar duration). */
+  alarmBefore?: string;
 }) {
   const download = () => {
     const end = new Date(expiresAt);
@@ -38,7 +41,7 @@ export function AddToCalendar({
       `SUMMARY:${icsText(summary)}`,
       `DESCRIPTION:${icsText(description)}`,
       "BEGIN:VALARM",
-      "TRIGGER:-PT12H",
+      `TRIGGER:-${alarmBefore}`,
       "ACTION:DISPLAY",
       `DESCRIPTION:${icsText(summary)}`,
       "END:VALARM",

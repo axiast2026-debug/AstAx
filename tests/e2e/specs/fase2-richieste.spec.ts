@@ -94,7 +94,7 @@ test.describe.serial("fase 2: richiesta e verifica", () => {
     await expect(
       customer
         .getByText("La richiesta è pronta")
-        .or(customer.getByRole("heading", { name: "Asta" })),
+        .or(customer.getByRole("heading", { name: "Asta in corso" })),
     ).toBeVisible();
   });
 

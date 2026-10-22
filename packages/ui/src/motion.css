@@ -92,6 +92,46 @@
   }
 }
 
+/* An envelope arrives with a light bounce: 0 → 70% → 100%. */
+@keyframes astax-arrive {
+  0% {
+    transform: translateY(-32px) scale(0.85);
+    opacity: 0;
+  }
+  70% {
+    transform: translateY(3px) scale(1.02);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* The «live» dot: a ring that widens and fades, every 1.6 s. */
+@keyframes astax-live {
+  from {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  to {
+    transform: scale(2.75);
+    opacity: 0;
+  }
+}
+
+.arrive {
+  animation: astax-arrive var(--motion-arrive) cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.live-ring {
+  animation: astax-live var(--motion-live) var(--motion-out) infinite;
+}
+
+/* The phases of the time ring swap with a fade, never a flash. */
+.ring-phase {
+  transition: opacity var(--motion-state) var(--motion-in-out);
+}
+
 /* Tap: the control goes down to 97% in 120 ms. */
 .press {
   transition: transform var(--motion-tap) var(--motion-out);
@@ -132,6 +172,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .arrive {
+    animation: astax-fade var(--motion-state) linear both;
+  }
+  .live-ring {
+    animation: none;
+  }
   .unlock {
     animation: astax-fade-out var(--motion-state) linear both;
   }

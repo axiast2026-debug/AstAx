@@ -179,6 +179,41 @@ export function workingMinutesBetween(calendar: WorkingCalendar, from: Date, to:
   return Math.round(total / MINUTE_MS);
 }
 
+/** Working milliseconds between two instants (zero when `to` is not after `from`). */
+export function workingMsBetween(calendar: WorkingCalendar, from: Date, to: Date): number {
+  if (to <= from) return 0;
+  let total = 0;
+  for (const interval of workingIntervalsFrom(calendar, from)) {
+    if (interval.start >= to) break;
+    const end = interval.end > to ? to : interval.end;
+    total += end.getTime() - interval.start.getTime();
+  }
+  return total;
+}
+
+export interface WorkingClock {
+  /** Working time left until `end`. */
+  msLeft: number;
+  /** Outside the working hours: when the time starts counting again. */
+  pausedUntil: Date | null;
+  /** Inside the working hours: until when it keeps counting without a pause. */
+  runsUntil: Date | null;
+}
+
+/**
+ * Where an auction's time stands at `now` (ASTA-02, Momento 2): how much
+ * working time is left, and whether it is running or still until the next
+ * opening, so that a page can count down and stop by itself.
+ */
+export function workingClock(calendar: WorkingCalendar, now: Date, end: Date): WorkingClock {
+  const msLeft = workingMsBetween(calendar, now, end);
+  if (msLeft === 0) return { msLeft, pausedUntil: null, runsUntil: null };
+  const next = workingIntervalsFrom(calendar, now).next().value;
+  if (!next) throw new Error("unreachable");
+  if (next.start > now) return { msLeft, pausedUntil: next.start, runsUntil: null };
+  return { msLeft, pausedUntil: null, runsUntil: next.end < end ? next.end : end };
+}
+
 /**
  * Working intervals between `from` and `to` that also fall in `hours`, for
  * example an agency's reception hours (ASTA-05).

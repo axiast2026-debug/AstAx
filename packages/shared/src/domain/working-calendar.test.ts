@@ -4,7 +4,9 @@ import {
   endOfRomeDay,
   romeInstant,
   subtractWorkingMinutes,
+  workingClock,
   workingMinutesBetween,
+  workingMsBetween,
   workingOverlapMinutes,
   type WeeklyHours,
   type WorkingCalendar,
@@ -140,5 +142,50 @@ describe("working calendar (ASTA-02)", () => {
     expect(() => addWorkingMinutes(closed, rome("2026-11-16", "09:00"), 60)).toThrow(
       /no working time/,
     );
+  });
+});
+
+describe("the auction's clock for the requester (ASTA-02, Momento 2)", () => {
+  const close = rome("2026-11-17", "10:30");
+
+  it("ASTA-02 inside the working hours it runs until the evening closing", () => {
+    expect(workingClock(calendar, rome("2026-11-16", "18:30"), close)).toEqual({
+      msLeft: 120 * 60_000,
+      pausedUntil: null,
+      runsUntil: rome("2026-11-16", "19:00"),
+    });
+  });
+
+  it("ASTA-02 in the evening it stands still until 9:00 of the next working day", () => {
+    expect(workingClock(calendar, rome("2026-11-16", "21:15"), close)).toEqual({
+      msLeft: 90 * 60_000,
+      pausedUntil: rome("2026-11-17", "09:00"),
+      runsUntil: null,
+    });
+  });
+
+  it("ASTA-02 the last stretch runs until the closing itself", () => {
+    expect(workingClock(calendar, rome("2026-11-17", "10:00"), close)).toEqual({
+      msLeft: 30 * 60_000,
+      pausedUntil: null,
+      runsUntil: close,
+    });
+  });
+
+  it("ASTA-02 after Saturday 13:00 and over a holiday it resumes on the next working day", () => {
+    // Saturday 5 December after 13:00: Sunday, then Monday 7; Tuesday 8 is a holiday.
+    const end = rome("2026-12-09", "10:00");
+    const clock = workingClock(calendar, rome("2026-12-05", "15:00"), end);
+    expect(clock.pausedUntil).toEqual(rome("2026-12-07", "09:00"));
+    expect(clock.msLeft).toBe((10 + 1) * H * 60_000);
+  });
+
+  it("ASTA-02 nothing left at or after the closing", () => {
+    expect(workingClock(calendar, close, close)).toEqual({
+      msLeft: 0,
+      pausedUntil: null,
+      runsUntil: null,
+    });
+    expect(workingMsBetween(calendar, rome("2026-11-16", "18:30"), close)).toBe(120 * 60_000);
   });
 });

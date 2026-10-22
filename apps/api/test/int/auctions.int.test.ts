@@ -451,6 +451,33 @@ describe("fase 3: claims and offers (OFF-01..07, BC-02, BC-04, BC-05)", () => {
     expect(JSON.stringify(status)).not.toMatch(/(?<![0-9a-f])499(00|,00)?(?![0-9a-f])/);
   });
 
+  it("ASTA-02 VIS-03 the requester's clock: working seconds from the server, and only the arrival time of each envelope", async () => {
+    const status = await r.json<{
+      serverNow: string;
+      auction: {
+        workingSecondsLeft: number;
+        totalWorkingSeconds: number;
+        pausedUntil: string | null;
+        runsUntil: string | null;
+        envelopesAt: string[];
+        scheduledCloseAt: string;
+      };
+    }>(await r.call(elena, `/requests/${requestId}/auction`), 200);
+    expect(status.serverNow).toBe(h.clock.now().toISOString());
+    const a = status.auction;
+    expect(a.totalWorkingSeconds).toBeGreaterThan(0);
+    expect(a.workingSecondsLeft).toBeGreaterThan(0);
+    expect(a.workingSecondsLeft).toBeLessThanOrEqual(a.totalWorkingSeconds);
+    // Either running until a moment not after the closing, or still until the next opening.
+    expect(Number(a.runsUntil !== null) + Number(a.pausedUntil !== null)).toBe(1);
+    if (a.runsUntil)
+      expect(Date.parse(a.runsUntil)).toBeLessThanOrEqual(Date.parse(a.scheduledCloseAt));
+    // Decision of Dan (2026-10-22): one time per envelope, nothing else about the offers.
+    expect(a.envelopesAt).toHaveLength(3);
+    for (const at of a.envelopesAt)
+      expect(at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+  });
+
   it("OFF-08 an invited agency declines, with a reason from the list", async () => {
     const due = await who("agenzia-due-owner", "agenzia-due");
     await r.json(

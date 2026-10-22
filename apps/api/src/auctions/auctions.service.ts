@@ -16,7 +16,12 @@ import {
   type DbTransaction,
   requesterExclusions,
 } from "@astax/db";
-import { backOfficeMayInvite, bestOfferPerCompany } from "@astax/shared/domain";
+import {
+  backOfficeMayInvite,
+  bestOfferPerCompany,
+  workingClock,
+  workingMsBetween,
+} from "@astax/shared/domain";
 import { dbDateToCalendarDate } from "@astax/shared/format";
 import { Inject, Injectable } from "@nestjs/common";
 import { actorOf, AuditService } from "../audit/audit.service.js";
@@ -87,9 +92,12 @@ export class AuctionsService {
       const reconfirmation = await this.reconfirmationState(tx, request, this.clock.now());
       if (!auction) return { status: request.status, auction: null, reconfirmation };
       const counts = await this.counts(tx, auction.id);
+      const now = this.clock.now();
       return {
         status: request.status,
         reconfirmation,
+        // The page counts from the server's clock, never from the device's.
+        serverNow: now.toISOString(),
         auction: {
           round: auction.round,
           kind: auction.kind,
@@ -98,9 +106,41 @@ export class AuctionsService {
           closedAt: auction.closedAt?.toISOString() ?? null,
           offers: auction.status === "OPEN" ? counts.offers : null,
           ...(request.channel === "BROKER" ? { invitedAgencies: counts.invited } : {}),
+          ...(auction.status === "OPEN" ? await this.liveTime(tx, auction, now) : {}),
         },
       };
     });
+  }
+
+  /**
+   * Momento 2, ASTA-02: the working time of an open round, with the calendar
+   * of its opening (ASTA-09), and when each envelope arrived (decision of Dan,
+   * 2026-10-22: only the time, never a price, a company or an agency).
+   */
+  private async liveTime(
+    tx: DbTransaction,
+    auction: { id: string; openedAt: Date; scheduledCloseAt: Date; settingsSnapshot: unknown },
+    now: Date,
+  ) {
+    const snapshot = auction.settingsSnapshot as AuctionSettingsSnapshot;
+    const calendar = await loadWorkingCalendar(tx, snapshot["calendar.workingHours"], snapshot);
+    const clock = workingClock(calendar, now, auction.scheduledCloseAt);
+    const arrivals = await asSystem(tx, () =>
+      tx.offer.findMany({
+        where: { auctionId: auction.id, status: "SUBMITTED" },
+        select: { submittedAt: true },
+        orderBy: { submittedAt: "asc" },
+      }),
+    );
+    return {
+      workingSecondsLeft: Math.round(clock.msLeft / 1000),
+      totalWorkingSeconds: Math.round(
+        workingMsBetween(calendar, auction.openedAt, auction.scheduledCloseAt) / 1000,
+      ),
+      pausedUntil: clock.pausedUntil?.toISOString() ?? null,
+      runsUntil: clock.runsUntil?.toISOString() ?? null,
+      envelopesAt: arrivals.map((o) => o.submittedAt.toISOString()),
+    };
   }
 
   /** GAR-06: reconfirmations used and allowed, and whether one can be asked now. */
