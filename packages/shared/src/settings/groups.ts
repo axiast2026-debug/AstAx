@@ -47,6 +47,7 @@ const PAGE_OF_PREFIX: Record<string, SettingsPage> = {
   support: "system",
   organizations: "system",
   team: "system",
+  home: "system",
 };
 
 /** The group of a key: its first part («fees», «invoicing»…). */

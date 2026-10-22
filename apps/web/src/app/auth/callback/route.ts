@@ -20,6 +20,6 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
     return response;
   } catch {
-    return NextResponse.redirect(new URL("/?scaduta=1", webUrl));
+    return NextResponse.redirect(new URL("/accedi?scaduta=1", webUrl));
   }
 }

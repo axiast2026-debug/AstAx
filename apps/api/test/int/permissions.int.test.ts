@@ -985,6 +985,8 @@ const ENDPOINTS: Endpoint[] = [
  * from the link (the secret token is the proof). Tested in requests.int.test.ts.
  */
 const PUBLIC_ROUTES = [
+  // ADR 0016: the public home, read only, anonymous or aggregate data. Tested in public-home.int.test.ts.
+  "GET /public/home",
   "POST /webhooks/signature",
   "POST /webhooks/payments",
   "POST /webhooks/sdi",

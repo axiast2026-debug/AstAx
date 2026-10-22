@@ -682,7 +682,8 @@
       "privacy": "Dati personali",
       "support": "Assistenza",
       "security": "Limiti di sicurezza",
-      "batch": "Lotti dei broker"
+      "batch": "Lotti dei broker",
+      "home": "Home pubblica"
     },
     "labels": {
       "calendar_timeZone": "Fuso orario di riferimento",
@@ -780,7 +781,10 @@
       "security_failedAuthPerMinute": "Accessi non validi per IP in un minuto",
       "session_privateMaxDays": "Durata massima della sessione dei privati (giorni)",
       "batch_auctionDaysBeforeExpiry": "Lotti: giorni tra l'asta e la scadenza della polizza",
-      "batch_documentsDaysBeforeAuction": "Lotti: giorni tra la richiesta dei documenti e l'asta"
+      "batch_documentsDaysBeforeAuction": "Lotti: giorni tra la richiesta dei documenti e l'asta",
+      "home_publicData_enabled": "Dati veri nella home pubblica (asta in corso, nastro, numeri): accendere solo dopo il parere del legale",
+      "home_publicData_minClosedAuctions": "Aste chiuse nel periodo sotto le quali la home pubblica non mostra dati veri",
+      "home_publicData_windowDays": "Giorni del periodo per offerte medie e risparmio medio nella home pubblica"
     }
   },
   "communications": {

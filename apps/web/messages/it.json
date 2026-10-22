@@ -84,6 +84,10 @@
   },
   "home": {
     "welcome": "Ciao {name}",
+    "envelopes": "{count, plural, =0 {nessuna busta per ora} one {busta arrivata} other {buste arrivate}}",
+    "closes": "Chiude {when}",
+    "todayAt": "oggi alle {time}",
+    "dayAt": "{day} alle {time}",
     "privateIntro": "Da qui chiederai i tuoi preventivi e seguirai le aste.",
     "proIntro": "Da qui seguirai richieste, offerte e polizze della tua organizzazione.",
     "newQuote": "Nuovo preventivo",
@@ -851,7 +855,7 @@
       "paused": "In pausa",
       "closed": "Chiusa",
       "leftPaused": "mancano {time}",
-      "srLeft": "{hours, plural, =0 {Mancano {minutes} minuti alla chiusura dell'asta.} one {Manca # ora e {minutes} minuti alla chiusura dell'asta.} other {Mancano # ore e {minutes} minuti alla chiusura dell'asta.}}",
+      "srLeft": "{hours, plural, =0 {{minutes, plural, one {Manca un minuto alla chiusura dell'asta.} other {Mancano # minuti alla chiusura dell'asta.}}} one {Manca un'ora e {minutes} minuti alla chiusura dell'asta.} other {Mancano # ore e {minutes} minuti alla chiusura dell'asta.}}",
       "srPaused": "Asta in pausa fuori orario. Riprende {when}.",
       "srClosed": "Asta chiusa."
     },
@@ -1320,6 +1324,64 @@
     "adviceTitle": "Vuoi un parere?",
     "adviceText": "L'AI confronta prezzo, coperture, durata della garanzia e indice dei reclami delle compagnie e ti dice quale conviene. Con il confronto il compenso diventa {to} invece di {from}, solo se poi scegli un'offerta.",
     "adviceTextByOffer": "L'AI confronta prezzo, coperture, durata della garanzia e indice dei reclami delle compagnie e ti dice quale conviene. Con il confronto il compenso aumenta un po', solo se poi scegli un'offerta."
+  },
+  "publicHome": {
+    "skip": "Vai al contenuto",
+    "logo": "AstA<x>x</x>",
+    "homeLabel": "AstAx, pagina iniziale",
+    "pagesLabel": "Pagine",
+    "howItWorks": "Come funziona",
+    "proAccess": "Accesso professionisti",
+    "login": "Accedi",
+    "liveChip": "In diretta · {count, plural, one {# asta aperta ora} other {# aste aperte ora}}",
+    "hoursChip": "Le aste corrono nelle ore lavorative, ora italiana",
+    "title": "Le agenzie competono. Tu scegli.",
+    "intro": "Chiedi un preventivo RC auto: fino a {agencies} agenzie ti fanno un'offerta in busta chiusa, per {hours, plural, one {# ora lavorativa} other {# ore lavorative}}. Poi le buste si aprono tutte insieme e scegli tu.",
+    "cta": "Chiedi il preventivo",
+    "sealed": "Prezzi sigillati fino alla chiusura: nemmeno AstAx li vede. Paghi solo se compri.",
+    "nowTitle": "Un'asta in corso adesso",
+    "nowWhat": "{vehicle} · {province}",
+    "nowEnvelopes": "{count, plural, =0 {nessuna busta per ora} one {# busta arrivata} other {# buste arrivate}}",
+    "closes": "chiude {when}",
+    "todayAt": "oggi alle {time}",
+    "dayAt": "{day} alle {time}",
+    "vehicle": "Veicolo",
+    "nowSealed": "Prezzi sigillati fino alla chiusura: nemmeno AstAx li vede.",
+    "tickerLabel": "Ultimi eventi delle aste",
+    "tickerPause": "Ferma il nastro degli eventi",
+    "tickerPlay": "Fai scorrere il nastro degli eventi",
+    "tickerEnvelope": "{vehicle} · {n}ª busta arrivata",
+    "tickerClosed": "{vehicle} · asta chiusa con {count, plural, =0 {nessuna offerta} one {# offerta} other {# offerte}}",
+    "steps": {
+      "photos": {
+        "title": "Fotografa i documenti",
+        "text": "Libretto e patente: i dati li leggiamo noi, tu controlli."
+      },
+      "sealed": {
+        "title": "Le agenzie offrono",
+        "text": "In busta chiusa, per {hours, plural, one {# ora lavorativa} other {# ore lavorative}}. Nessuno vede i prezzi."
+      },
+      "opening": {
+        "title": "Le buste si aprono",
+        "text": "Tutte insieme: per ogni compagnia vedi la migliore offerta, con il prezzo garantito."
+      },
+      "choose": {
+        "title": "Scegli e paghi",
+        "text": "Firmi e paghi online. L'agenzia emette la polizza."
+      }
+    },
+    "numbersTitle": "I numeri di AstAx",
+    "numbersUpdated": "Dati reali, aggiornati alle {time}",
+    "openNow": "aste aperte ora",
+    "offersAverage": "offerte in media per asta, negli ultimi {days} giorni",
+    "savingAverage": "risparmio medio rispetto al premio attuale dichiarato dai clienti, su {policies, plural, one {# polizza} other {# polizze}} degli ultimi {days} giorni",
+    "costTitle": "Quanto costa",
+    "costText": "Chiedere il preventivo è gratis. Paghi AstAx solo se compri: <b>{fee}</b> a polizza, <b>{low}</b> se il premio è fino a {threshold}. Il confronto con AI costa <b>{ai} in più</b>, solo se lo chiedi e poi compri.",
+    "agenciesTitle": "Sei un'agenzia (RUI sezione A)?",
+    "agenciesText": "Ricevi le richieste che rientrano nei tuoi filtri, con dati e documenti già controllati dal back office. Offri in busta chiusa ed emetti entro {hours} ore lavorative dal pagamento. Paghi {fee} solo a polizza emessa.",
+    "agenciesCta": "Lavora con AstAx",
+    "footerRui": "AstAx · intermediario iscritto al RUI, sezione B, n. [DA VALIDARE — LEGALE]",
+    "footerLabel": "Link utili"
   },
   "startModeShort": {
     "ON_ISSUANCE": "Immediata, dall'emissione",

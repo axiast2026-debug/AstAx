@@ -52,7 +52,7 @@ export async function api<T>(
     const text = await response.text();
     return { status: response.status, body: (text ? JSON.parse(text) : null) as T };
   } catch (error) {
-    if (error instanceof SessionExpiredError) redirect("/?scaduta=1");
+    if (error instanceof SessionExpiredError) redirect("/accedi?scaduta=1");
     throw error;
   }
 }

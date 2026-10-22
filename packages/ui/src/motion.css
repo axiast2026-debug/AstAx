@@ -120,6 +120,26 @@
   }
 }
 
+/* The live ticker: its content twice, half a turn every 30 s. */
+@keyframes astax-ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.ticker-track {
+  animation: astax-ticker 30s linear infinite;
+}
+/* It stops under the pointer, with the keyboard and with its button (WCAG 2.2.2). */
+.ticker:hover .ticker-track,
+.ticker:focus-within .ticker-track,
+.ticker[data-paused="true"] .ticker-track {
+  animation-play-state: paused;
+}
+
 .arrive {
   animation: astax-arrive var(--motion-arrive) cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
@@ -172,6 +192,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .ticker-track {
+    animation: none;
+  }
+  .ticker-scroller {
+    overflow-x: auto;
+  }
   .arrive {
     animation: astax-fade var(--motion-state) linear both;
   }

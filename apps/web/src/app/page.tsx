@@ -1,11 +1,15 @@
-import { buttonVariants, Card, CardTitle } from "@astax/ui";
+import { Card, CardTitle } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { AppShell } from "@/components/app-shell";
+import { LoginChoice } from "@/components/login-choice";
 import { PrivateHome } from "@/components/private-home";
+import { PublicHome, type PublicHomeData } from "@/components/public-home";
 import Link from "next/link";
 import { api, sessionId, webAuth } from "@/lib/auth";
 import type { AgencyDashboard } from "@/lib/agency";
 import { requireViewer } from "@/lib/me";
+import { publicApi } from "@/lib/public-api";
+import { redirect } from "next/navigation";
 
 export default async function HomePage({
   searchParams,
@@ -13,7 +17,16 @@ export default async function HomePage({
   searchParams: Promise<{ scaduta?: string }>;
 }) {
   const session = await webAuth().session(await sessionId());
-  if (!session) return <LoginChoice expired={(await searchParams).scaduta === "1"} />;
+  if (!session) {
+    if ((await searchParams).scaduta === "1") redirect("/accedi?scaduta=1");
+    // Momento 1 (ADR 0016): the public home; without the API, the two ways in.
+    const { status, body } = await publicApi<PublicHomeData>("/public/home").catch(() => ({
+      status: 0,
+      body: null,
+    }));
+    if (status !== 200 || !body) return <LoginChoice expired={false} />;
+    return <PublicHome data={body} />;
+  }
 
   const viewer = await requireViewer();
   const t = await getTranslations("home");
@@ -82,39 +95,5 @@ async function AgencyPanel({
         {t("goIncoming")}
       </Link>
     </section>
-  );
-}
-
-async function LoginChoice({ expired }: { expired: boolean }) {
-  const t = await getTranslations("login");
-  return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-6 px-4">
-      <h1 className="text-3xl font-bold text-night-900">{t("title")}</h1>
-      {expired ? (
-        <p className="rounded-lg bg-orange-500/15 px-4 py-3 text-sm">{t("expired")}</p>
-      ) : null}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
-          <CardTitle>{t("privateTitle")}</CardTitle>
-          <p className="mt-2 text-sm text-warm-600">{t("privateText")}</p>
-          <a href="/auth/login?as=private" className={buttonVariants({ className: "mt-4 w-full" })}>
-            {t("privateButton")}
-          </a>
-        </Card>
-        <Card>
-          <CardTitle>{t("proTitle")}</CardTitle>
-          <p className="mt-2 text-sm text-warm-600">{t("proText")}</p>
-          <a
-            href="/auth/login?as=pro"
-            className={buttonVariants({ variant: "secondary", className: "mt-4 w-full" })}
-          >
-            {t("proButton")}
-          </a>
-          <Link href="/ingresso" className="mt-3 block text-center text-sm underline">
-            {t("proJoin")}
-          </Link>
-        </Card>
-      </div>
-    </main>
   );
 }

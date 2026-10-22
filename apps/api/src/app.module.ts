@@ -33,6 +33,8 @@ import {
 } from "./acceptance/acceptance.controller.js";
 import { AcceptanceEventsService } from "./acceptance/acceptance-events.service.js";
 import { AcceptanceService } from "./acceptance/acceptance.service.js";
+import { PublicHomeController } from "./public/public-home.controller.js";
+import { PublicHomeService } from "./public/public-home.service.js";
 import { CustomerLinksService } from "./acceptance/customer-links.service.js";
 import { AgencyController } from "./agency/agency.controller.js";
 import { QuoteChecksController } from "./auctions/auctions.controller.js";
@@ -120,6 +122,7 @@ export class AppModule {
       imports: [InfraModule.forRoot(config, overrides)],
       controllers: [
         HealthController,
+        PublicHomeController,
         MeController,
         LegalController,
         TeamController,
@@ -188,6 +191,7 @@ export class AppModule {
         AgencyService,
         AgencySettingsService,
         AcceptanceService,
+        PublicHomeService,
         AcceptanceEventsService,
         CustomerLinksService,
         IssuanceService,

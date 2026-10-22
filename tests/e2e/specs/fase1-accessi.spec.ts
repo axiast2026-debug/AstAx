@@ -17,7 +17,8 @@ test.describe("fase 1: accessi", () => {
   test("un privato entra con un codice ricevuto via email, senza password", async ({ page }) => {
     const email = `e2e.privato.${randomBytes(4).toString("hex")}@example.test`;
     await page.goto(WEB);
-    await page.getByRole("link", { name: "Entra con il codice" }).click();
+    // Momento 1: the public home leads the private customer in with «Chiedi il preventivo».
+    await page.getByRole("link", { name: "Chiedi il preventivo" }).click();
     await loginPrivate(page, email);
 
     // First access: the account is created and the legal texts must be accepted (LEG-02).

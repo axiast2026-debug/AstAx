@@ -682,7 +682,8 @@
       "privacy": "Të dhënat personale",
       "support": "Asistenca",
       "security": "Kufijtë e sigurisë",
-      "batch": "Lotet e brokerëve"
+      "batch": "Lotet e brokerëve",
+      "home": "Faqja kryesore publike"
     },
     "labels": {
       "calendar_timeZone": "Zona orare e referencës",
@@ -780,7 +781,10 @@
       "security_failedAuthPerMinute": "Hyrje të pavlefshme për IP në një minutë",
       "session_privateMaxDays": "Kohëzgjatja maksimale e seancës së privatëve (ditë)",
       "batch_auctionDaysBeforeExpiry": "Lotet: ditë midis ankandit dhe skadimit të policës",
-      "batch_documentsDaysBeforeAuction": "Lotet: ditë midis kërkesës së dokumenteve dhe ankandit"
+      "batch_documentsDaysBeforeAuction": "Lotet: ditë midis kërkesës së dokumenteve dhe ankandit",
+      "home_publicData_enabled": "Të dhëna reale në faqen kryesore publike (ankandi në vazhdim, shiriti, numrat): aktivizohet vetëm pas mendimit të juristit",
+      "home_publicData_minClosedAuctions": "Ankande të mbyllura në periudhë nën të cilat faqja kryesore publike nuk tregon të dhëna reale",
+      "home_publicData_windowDays": "Ditët e periudhës për ofertat mesatare dhe kursimin mesatar në faqen kryesore publike"
     }
   },
   "communications": {
