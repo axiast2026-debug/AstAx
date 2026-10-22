@@ -1,5 +1,5 @@
 import { formatDateTime } from "@astax/shared/format";
-import { Button, Card } from "@astax/ui";
+import { Button, Icon } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { createPrivateRequest } from "@/app/request-actions";
@@ -23,18 +23,34 @@ export default async function QuotesPage({
   return (
     <AppShell viewer={viewer}>
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">{t("title")}</h1>
-        <form action={createPrivateRequest}>
-          <Button type="submit">{t("new")}</Button>
-        </form>
+        <h1 className="font-display text-screen font-extrabold">{t("title")}</h1>
+        {/* With no request the empty state has the button: one, not two. */}
+        {requests.length === 0 ? null : (
+          <form action={createPrivateRequest}>
+            <Button type="submit">{t("new")}</Button>
+          </form>
+        )}
       </div>
       <div className="mt-6">
         <ErrorSummary codes={errore} />
       </div>
       {requests.length === 0 ? (
-        <Card className="mt-6">
-          <p className="text-sm">{t("empty")}</p>
-        </Card>
+        // Primo giorno of the design: what a request needs and the way to start it.
+        <div className="mt-6 flex flex-col items-center gap-3 rounded-2xl bg-white px-4 py-10 text-center shadow-[inset_0_0_0_1px_var(--color-warm-200)]">
+          <span
+            aria-hidden
+            className="inline-flex size-14 items-center justify-center rounded-2xl bg-warm-100 text-night-900"
+          >
+            <Icon name="camera" size={28} />
+          </span>
+          <h2 className="text-section font-bold">{t("emptyTitle")}</h2>
+          <p className="max-w-md text-table text-warm-800">{t("emptyText")}</p>
+          <form action={createPrivateRequest}>
+            <Button type="submit" size="lg">
+              {t("new")}
+            </Button>
+          </form>
+        </div>
       ) : (
         <ul className="mt-6 space-y-3">
           {requests.map((r) => (

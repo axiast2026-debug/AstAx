@@ -69,6 +69,11 @@ export class PublicHomeService {
           "invitations.max",
           "auction.defaultDurationWorkingHours",
           "issuance.deadlineWorkingHours",
+          "reconfirmation.maxPerRequest",
+          "auction.desertedReopen.enabled",
+          "auction.desertedReopen.workingHours",
+          "calendar.workingHours",
+          "remittance.runDay",
         ],
         now,
       );
@@ -84,6 +89,14 @@ export class PublicHomeService {
         defaultDurationWorkingHours: s["auction.defaultDurationWorkingHours"],
         agencyFeeCents: s["fees.agency.amountCents"],
         issuanceWorkingHours: s["issuance.deadlineWorkingHours"],
+        // «Come funziona», «Per le agenzie», «Domande frequenti» (pagine pubbliche).
+        maxReconfirmations: s["reconfirmation.maxPerRequest"],
+        desertedReopenWorkingHours: s["auction.desertedReopen.enabled"]
+          ? s["auction.desertedReopen.workingHours"]
+          : null,
+        workingHours: s["calendar.workingHours"],
+        remittanceDay: s["remittance.runDay"],
+        savingWindowDays: s["home.publicData.windowDays"],
       };
       const windowDays = s["home.publicData.windowDays"];
       const since = new Date(now.getTime() - windowDays * 86_400_000);
