@@ -394,7 +394,24 @@
     "documents": "Documenti",
     "noDocuments": "Nessun documento caricato.",
     "timeline": "Cronologia",
-    "cancel": "Annulla la richiesta"
+    "cancel": "Annulla la richiesta",
+    "submittedTitle": "Richiesta inviata",
+    "nextSteps": {
+      "check": {
+        "title": "Controlliamo i documenti",
+        "text": "Di solito entro poche ore lavorative. Se manca qualcosa te lo chiediamo."
+      },
+      "auction": {
+        "title": "Le agenzie offrono",
+        "text": "L'asta parte appena finiamo il controllo: le offerte arrivano in busta chiusa."
+      },
+      "offers": {
+        "title": "Scegli tu",
+        "text": "Alla chiusura vedi la migliore offerta di ogni compagnia e decidi se comprare."
+      }
+    },
+    "fromBackOffice": "Back office AstAx",
+    "integrationAfter": "L'asta parte appena il back office controlla quello che hai aggiunto."
   },
   "consentLink": {
     "brand": "AstAx",
@@ -723,7 +740,9 @@
       "afterSubmit": "Dopo l'invio controlliamo i documenti e apriamo l'asta: ti avvisiamo noi a ogni passo.",
       "submit": "Invia la richiesta",
       "continue": "Continua",
-      "brokerDeclaration": "Il consenso del cliente è coperto dalla dichiarazione che il tuo studio ha firmato all'ingresso su AstAx."
+      "brokerDeclaration": "Il consenso del cliente è coperto dalla dichiarazione che il tuo studio ha firmato all'ingresso su AstAx.",
+      "savedNote": "I dati sono salvati a ogni passaggio: puoi riprendere quando vuoi.",
+      "readFromRegistration": "Letta dal libretto: controlla che sia giusta."
     },
     "coverage": {
       "package": "Quali garanzie vuoi",
@@ -808,6 +827,14 @@
       "afterSubmit": "Dopo l'invio il back office verifica la richiesta; l'asta parte appena è approvata e dura le ore lavorative che hai scelto.",
       "submit": "Invia la richiesta",
       "closeIfApprovedNow": "Chiusura dell'asta se approvata ora"
+    },
+    "aside": {
+      "title": "La tua richiesta",
+      "vehicle": "Veicolo",
+      "auction": "Asta",
+      "auctionValue": "{hours, plural, one {# ora lavorativa} other {# ore lavorative}} dopo la verifica",
+      "cost": "Costo",
+      "costValue": "Gratis: paghi AstAx solo se compri"
     }
   },
   "auctionView": {
@@ -1399,9 +1426,9 @@
     "feeWith": "Compenso con il confronto"
   },
   "acceptance": {
-    "title": "Accettazione {code}",
+    "title": "Firma e paga · {code}",
     "back": "Torna al preventivo",
-    "summaryTitle": "1. Riepilogo",
+    "summaryTitle": "Riepilogo",
     "company": "Compagnia",
     "product": "Prodotto",
     "premium": "Premio annuo",
@@ -1411,32 +1438,42 @@
     "guarantee": "Prezzo garantito fino al",
     "change": "Cambia offerta",
     "changeNote": "Se cambi offerta, firmi di nuovo i documenti della nuova scelta.",
-    "documentsTitle": "2. Documenti da leggere",
-    "documentsIntro": "Leggi i documenti: quelli segnati sono da firmare.",
+    "documentsTitle": "Documenti da leggere",
+    "documentsIntro": "Quelli segnati sono da firmare. Si aprono in PDF.",
     "toSign": "da firmare",
     "signed": "firmato",
     "read": "Ho letto i documenti",
-    "signTitle": "3. Firma",
-    "signText": "La firma è elettronica avanzata: ti mandiamo un codice e confermi sulla pagina del servizio di firma.",
-    "sign": "Firma i documenti",
+    "signText": "La firma è elettronica avanzata: sulla pagina del servizio di firma ricevi un codice via SMS e firmi. Poi torni qui e paghi.",
     "signedAt": "Documenti firmati il {at}",
-    "payTitle": "4. Pagamento",
-    "payText": "Un solo pagamento a AstAx: premio e compenso restano separati. Carta o bonifico istantaneo.",
+    "payTitle": "Pagamento",
+    "payText": "Paghi sulla pagina sicura del servizio di pagamento, con carta o bonifico istantaneo.",
     "pay": "Paga {amount}",
-    "payAfterSign": "Dopo la firma puoi pagare.",
     "pending": "Bonifico in arrivo: lo confermiamo appena la banca lo accredita. Puoi chiudere questa pagina.",
-    "failed": "Il pagamento non è andato a buon fine. Puoi riprovare: le firme restano valide.",
-    "paidTitle": "Pagato",
+    "failed": "Non ti abbiamo addebitato nulla. Puoi riprovare: le firme restano valide.",
+    "paidTitle": "Hai pagato",
     "paidText": "Pagamento confermato il {at}. L'agenzia emette la polizza e ti contatta.",
     "issuer": "Agenzia che emette",
     "pec": "PEC",
     "deadline": "Emissione entro il {at}",
     "voided": "Questa scelta non è più valida: torna alle offerte.",
     "notStarted": "Non hai ancora scelto un'offerta.",
-    "payTextPremium": "Paghi il solo premio, con carta o bonifico istantaneo: nessun compenso a tuo carico.",
+    "payTextPremium": "Paghi il solo premio, con carta o bonifico istantaneo, sulla pagina sicura del servizio di pagamento: nessun compenso a tuo carico.",
     "credit": "Già pagato",
     "due": "Da pagare ora",
-    "refundDue": "Ti restituiamo"
+    "refundDue": "Ti restituiamo",
+    "signAndPay": "Firma e paga {amount}",
+    "feeWithAi": "Compenso AstAx (con il confronto AI)",
+    "guaranteeUntil": "Garantito fino al {date}",
+    "guaranteeDays": "{days, plural, =0 {scade oggi} one {ancora # giorno} other {ancora # giorni}}",
+    "package": "Pacchetto {name}",
+    "onePayment": "Un solo pagamento ad AstAx: il premio va all'agenzia, il compenso resta separato. Nessun altro costo. Si paga solo se compri.",
+    "failedTitle": "Il pagamento non è andato a buon fine",
+    "failedGuarantee": "L'offerta resta garantita fino al {date}.",
+    "paidAmount": "Pagato",
+    "issuedTitle": "La tua polizza è attiva",
+    "issuedText": "Polizza n. {number} · {company}, dal {from} al {to}.",
+    "issuedDocuments": "Polizza e documenti",
+    "issuedContact": "Per sinistri e assistenza: {agency}{pec}. La trovi sempre in «Polizze»."
   },
   "fakeSignature": {
     "title": "Firma di prova",
@@ -1966,5 +2003,12 @@
     "comingSoon": "In arrivo",
     "text": "Presto potrai chiedere in asta i preventivi per tutti i veicoli di un'azienda in una volta sola.",
     "meanwhile": "Nel frattempo puoi caricare i veicoli di un'azienda uno per uno da «Richieste», oppure con un lotto Excel per i rinnovi delle persone fisiche."
+  },
+  "states": {
+    "loading": "Carico la richiesta…",
+    "errorTitle": "Qualcosa non ha funzionato",
+    "errorText": "Riprova tra poco. I dati che hai inserito sono salvati.",
+    "retry": "Riprova",
+    "support": "Scrivi all’assistenza"
   }
 }

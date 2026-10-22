@@ -8,8 +8,9 @@ import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react
  * to it (fase 2 criterion: keyboard use and labels), and errors are listed at
  * the top with a link to the field.
  */
+// Design system, «Campi»: 48 px, a 3:1 border; focus night blue with a halo; errors in red.
 const INPUT =
-  "mt-1 block w-full rounded-lg border border-warm-200 bg-white px-3 py-2 text-base focus-visible:outline-2 focus-visible:outline-orange-500 aria-[invalid=true]:border-red-600";
+  "mt-1 block min-h-12 w-full rounded-lg border border-warm-600 bg-white px-3 py-2 text-base focus-visible:border-night-900 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-night-100 aria-[invalid=true]:border-2 aria-[invalid=true]:border-red-600";
 
 export function fieldId(name: string): string {
   return `f-${name.replace(/[^a-zA-Z0-9]/g, "-")}`;
@@ -31,7 +32,7 @@ export function Field({
   const id = fieldId(name);
   return (
     <div className={className}>
-      <label htmlFor={id} className="block text-sm font-medium text-night-900">
+      <label htmlFor={id} className="block text-label font-semibold text-night-900">
         {label}
       </label>
       <input
@@ -43,7 +44,7 @@ export function Field({
         {...input}
       />
       {hint ? (
-        <p id={`${id}-hint`} className="mt-1 text-xs text-warm-600">
+        <p id={`${id}-hint`} className="mt-1 text-note text-warm-600">
           {hint}
         </p>
       ) : null}
@@ -69,7 +70,7 @@ export function SelectField({
   const id = fieldId(name);
   return (
     <div className={className}>
-      <label htmlFor={id} className="block text-sm font-medium text-night-900">
+      <label htmlFor={id} className="block text-label font-semibold text-night-900">
         {label}
       </label>
       <select
@@ -97,15 +98,15 @@ export function CheckField({
 }: { label: string; name: string } & InputHTMLAttributes<HTMLInputElement>) {
   const id = fieldId(`${name}-${String(input.value ?? "")}`);
   return (
-    <div className="flex items-start gap-2">
+    <div className="flex min-h-11 items-start gap-3">
       <input
         id={id}
         name={name}
         type="checkbox"
-        className="mt-1 h-4 w-4 accent-orange-500"
+        className="mt-0.5 size-5 shrink-0 accent-night-900"
         {...input}
       />
-      <label htmlFor={id} className="text-sm text-night-900">
+      <label htmlFor={id} className="text-body text-night-900">
         {label}
       </label>
     </div>
@@ -172,7 +173,11 @@ export function hasError(codes: string | undefined, path: string): boolean {
   return (codes ?? "").split(",").some((c) => c.startsWith(`${path}:`));
 }
 
-/** Progress of the wizard: the steps, the current one marked for screen readers. */
+/**
+ * Progress of the wizard (design system, StepProgress): «Passaggio 2 di 5» and
+ * one bar per step on the phone, the list of the steps on a wide screen; done
+ * in night blue, the current one orange, the rest grey. Each step is a link.
+ */
 export async function StepNav({
   steps,
   current,
@@ -188,25 +193,48 @@ export async function StepNav({
   const index = steps.indexOf(current);
   return (
     <nav aria-label={t("label")} className="mb-6">
-      <p className="text-sm text-warm-600">
-        {t("progress", { n: index + 1, total: steps.length })}
+      <p className="text-label font-semibold text-warm-600 lg:hidden">
+        {t("progress", { n: index + 1, total: steps.length })} · {t(current)}
       </p>
-      <ol className="mt-2 flex flex-wrap gap-2">
+      <ol
+        className="mt-1 grid gap-1 lg:mt-0 lg:flex lg:flex-wrap lg:gap-2"
+        style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
+      >
         {steps.map((step, i) => (
           <li key={step}>
             <Link
               href={`${base}/${id}/${step}`}
               aria-current={step === current ? "step" : undefined}
-              className={cn(
-                "inline-block rounded-full px-3 py-1 text-xs font-medium",
-                step === current
-                  ? "bg-orange-500 text-night-950"
-                  : i < index
-                    ? "bg-night-900 text-white"
-                    : "bg-warm-100 text-night-900",
-              )}
+              className="group flex min-h-11 items-center gap-3 lg:rounded-lg lg:px-3 lg:hover:bg-warm-100"
             >
-              {t(step)}
+              <span
+                aria-hidden
+                className={cn(
+                  "h-1 w-full rounded-full lg:hidden",
+                  step === current ? "bg-orange-500" : i < index ? "bg-night-900" : "bg-warm-200",
+                )}
+              />
+              <span
+                aria-hidden
+                className={cn(
+                  "hidden size-7 shrink-0 items-center justify-center rounded-full text-note font-bold lg:inline-flex",
+                  step === current
+                    ? "bg-orange-500 text-night-900"
+                    : i < index
+                      ? "bg-night-900 text-white"
+                      : "bg-warm-100 text-warm-600",
+                )}
+              >
+                {i + 1}
+              </span>
+              <span
+                className={cn(
+                  "sr-only lg:not-sr-only lg:text-label",
+                  step === current ? "lg:font-bold" : "lg:font-medium",
+                )}
+              >
+                {t(step)}
+              </span>
             </Link>
           </li>
         ))}

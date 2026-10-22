@@ -10,6 +10,7 @@ import { LiveRefresh } from "@/components/live-refresh";
 import { BrokerOffersPanel } from "@/components/broker-offers-panel";
 import { NextOfferCard } from "@/components/next-offer-card";
 import { OffersPanel } from "@/components/offers-panel";
+import { PushSwitch } from "@/components/push-switch";
 import { api } from "@/lib/auth";
 import { ErrorSummary } from "@/components/form";
 import { holderName } from "@/lib/requests";
@@ -277,6 +278,7 @@ export async function RequestView({
   justSubmitted: boolean;
 }) {
   const t = await getTranslations("requestView");
+  const tp = await getTranslations("profile.notifications.push");
   const te = await getTranslations("timeline");
   const tk = await getTranslations("wizard.documentKinds");
   const data = detail.quoteData;
@@ -297,9 +299,55 @@ export async function RequestView({
       </div>
       <ErrorSummary codes={errors} />
       {justSubmitted ? (
-        <p role="status" className="rounded-xl bg-green-50 p-4 text-sm">
-          {t("submitted")}
-        </p>
+        <section
+          aria-labelledby="richiesta-inviata"
+          className="flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-[inset_0_0_0_1px_var(--color-warm-200)] lg:p-6"
+        >
+          <div role="status" className="flex items-start gap-3">
+            <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-green-50 text-green-700">
+              <Icon name="checkCircle" size={24} />
+            </span>
+            <span className="flex flex-col gap-1">
+              <h2 id="richiesta-inviata" className="font-display text-screen font-extrabold">
+                {t("submittedTitle")}
+              </h2>
+              <p className="text-body">{t("submitted")}</p>
+            </span>
+          </div>
+          <ol className="flex flex-col gap-3">
+            {(["check", "auction", "offers"] as const).map((step, i) => (
+              <li key={step} className="flex gap-3">
+                <span
+                  aria-hidden
+                  className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-night-900 text-note font-bold text-white"
+                >
+                  {i + 1}
+                </span>
+                <span className="flex flex-col">
+                  <span className="text-body font-semibold">{t(`nextSteps.${step}.title`)}</span>
+                  <span className="text-table text-warm-600">{t(`nextSteps.${step}.text`)}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+          {base === "/preventivi" ? (
+            <PushSwitch
+              publicKey={process.env.VAPID_PUBLIC_KEY ?? ""}
+              texts={{
+                title: tp("title"),
+                intro: tp("intro"),
+                turnOn: tp("turnOn"),
+                turnOff: tp("turnOff"),
+                unsupported: tp("unsupported"),
+                denied: tp("denied"),
+                off: tp("off"),
+                on: tp("on"),
+                busy: tp("busy"),
+                error: tp("error"),
+              }}
+            />
+          ) : null}
+        </section>
       ) : null}
 
       {detail.status === "DRAFT" ? (
@@ -315,16 +363,32 @@ export async function RequestView({
         </Card>
       ) : null}
       {detail.status === "INTEGRATION_REQUESTED" ? (
-        <Card className="border-orange-500">
-          <CardTitle>{t("integrationTitle")}</CardTitle>
-          <p className="mt-2 text-sm">{detail.lastDecision?.message}</p>
+        <section
+          role="status"
+          aria-labelledby="integrazione"
+          className="flex flex-col gap-3 rounded-2xl bg-warning-50 p-5 shadow-[inset_0_0_0_1px_var(--color-warning-700)]"
+        >
+          <h2
+            id="integrazione"
+            className="flex items-center gap-2 text-section font-bold text-warning-700"
+          >
+            <Icon name="warning" />
+            {t("integrationTitle")}
+          </h2>
+          {detail.lastDecision?.message ? (
+            <p className="text-body">
+              «{detail.lastDecision.message}»{" "}
+              <span className="text-warm-600">— {t("fromBackOffice")}</span>
+            </p>
+          ) : null}
+          <p className="text-table">{t("integrationAfter")}</p>
           <Link
             href={`${base}/${detail.id}/${firstStep}`}
-            className="mt-4 inline-block font-medium underline"
+            className={buttonVariants({ size: "lg", className: "self-start" })}
           >
             {t("complete")}
           </Link>
-        </Card>
+        </section>
       ) : null}
       {detail.status === "IN_VERIFICATION" ? (
         <Card>

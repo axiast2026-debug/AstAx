@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { saveCoverageStep } from "@/app/request-actions";
 import { CheckField, Field, hasError } from "@/components/form";
 import { extracted, latestDocument, type RequestDetail, type RequestOptions } from "@/lib/requests";
+import { ChoiceCard, StickyActions } from "./wizard-ui";
 import { centsToEuros, REQUEST_PACKAGES } from "@/lib/wizard-forms";
 
 function Hidden({ detail, base, step }: { detail: RequestDetail; base: string; step: string }) {
@@ -35,6 +36,7 @@ export async function CoverageStep({
   const t = await getTranslations("wizard.coverage");
   const tc = await getTranslations("wizard");
   const titem = await getTranslations("agency.coverage");
+  const ti = await getTranslations("wizard.intake");
   const terms = detail.draft?.request;
   // Dan, 2026-10-21: «Consigliato» or «Su misura», for the private customer and the broker.
   const shown = options.packages.filter((p) => REQUEST_PACKAGES.includes(p.code));
@@ -61,43 +63,17 @@ export async function CoverageStep({
         value={terms?.minValidityDays ?? options.defaultMinValidityDays}
       />
       <fieldset className="space-y-3">
-        <legend className="text-base font-semibold text-night-900">{t("package")}</legend>
+        <legend className="mb-3 text-section font-bold">{t("package")}</legend>
         {shown.map((p) => (
-          <div
+          <ChoiceCard
             key={p.code}
-            className="rounded-xl border border-warm-200 bg-white p-4 has-[:checked]:border-orange-500"
-          >
-            <div className="flex items-center gap-2">
-              <input
-                id={`package-${p.code}`}
-                type="radio"
-                name="request.packageCode"
-                value={p.code}
-                defaultChecked={chosen === p.code}
-                className="h-4 w-4 accent-orange-500"
-                aria-describedby={`package-${p.code}-text`}
-              />
-              <label htmlFor={`package-${p.code}`} className="font-semibold">
-                {p.name}
-              </label>
-            </div>
-            <p id={`package-${p.code}-text`} className="mt-2 text-sm text-warm-600">
-              {p.description}
-            </p>
-            {p.code === "CUSTOM" ? (
-              <fieldset className="mt-3 grid gap-2 sm:grid-cols-2">
-                <legend className="text-sm font-semibold">{t("chooseCoverages")}</legend>
-                {CHOOSABLE_COVERAGES.map((item) => (
-                  <CheckField
-                    key={item}
-                    label={titem(item)}
-                    name={`request.coverages.${item}`}
-                    defaultChecked={chosenCoverages.includes(item)}
-                  />
-                ))}
-              </fieldset>
-            ) : null}
-          </div>
+            id={`package-${p.code}`}
+            name="request.packageCode"
+            value={p.code}
+            defaultChecked={chosen === p.code}
+            label={p.name}
+            text={p.description}
+          />
         ))}
         {shown.map((p) => (
           <input
@@ -108,32 +84,38 @@ export async function CoverageStep({
           />
         ))}
       </fieldset>
-      {/* Question 1: three ways to start the cover; the date only for the first. */}
-      <fieldset className="space-y-2 rounded-xl border border-warm-200 bg-white p-4 sm:p-6">
-        <legend className="px-1 text-base font-semibold text-night-900">{t("startMode")}</legend>
-        {(["DATE", "ON_ISSUANCE", "MIDNIGHT_AFTER_DEADLINE"] as const).map((mode) => (
-          <div key={mode} className="flex items-start gap-2">
-            <input
-              id={`start-${mode}`}
-              type="radio"
-              name="request.startMode"
-              value={mode}
-              defaultChecked={startMode === mode}
-              className="mt-1 h-4 w-4 accent-orange-500"
-              aria-describedby={`start-${mode}-text`}
+      {shown.some((p) => p.code === "CUSTOM") ? (
+        <fieldset className="grid gap-2 rounded-2xl bg-white p-4 shadow-[inset_0_0_0_1px_var(--color-warm-200)] sm:grid-cols-2 sm:p-6">
+          <legend className="sr-only">{t("chooseCoverages")}</legend>
+          <p aria-hidden className="text-label font-semibold sm:col-span-2">
+            {t("chooseCoverages")}
+          </p>
+          {CHOOSABLE_COVERAGES.map((item) => (
+            <CheckField
+              key={item}
+              label={titem(item)}
+              name={`request.coverages.${item}`}
+              defaultChecked={chosenCoverages.includes(item)}
             />
-            <div>
-              <label htmlFor={`start-${mode}`} className="text-sm font-semibold">
-                {t(`startModes.${mode}.label`)}
-              </label>
-              <p id={`start-${mode}-text`} className="text-sm text-warm-600">
-                {t(`startModes.${mode}.text`)}
-              </p>
-            </div>
-          </div>
+          ))}
+        </fieldset>
+      ) : null}
+      {/* Question 1: three ways to start the cover; the date only for the first. */}
+      <fieldset className="space-y-3">
+        <legend className="mb-3 text-section font-bold">{t("startMode")}</legend>
+        {(["DATE", "ON_ISSUANCE", "MIDNIGHT_AFTER_DEADLINE"] as const).map((mode) => (
+          <ChoiceCard
+            key={mode}
+            id={`start-${mode}`}
+            name="request.startMode"
+            value={mode}
+            defaultChecked={startMode === mode}
+            label={t(`startModes.${mode}.label`)}
+            text={t(`startModes.${mode}.text`)}
+          />
         ))}
       </fieldset>
-      <div className="grid gap-4 rounded-xl border border-warm-200 bg-white p-4 sm:grid-cols-2 sm:p-6">
+      <div className="grid gap-4 rounded-2xl bg-white p-4 shadow-[inset_0_0_0_1px_var(--color-warm-200)] sm:grid-cols-2 sm:p-6">
         <Field
           label={t("startDate")}
           name="request.startDate"
@@ -156,13 +138,13 @@ export async function CoverageStep({
             defaultChecked={terms?.blackBox ?? false}
           />
         </div>
-        <p className="text-sm text-warm-600 sm:col-span-2">{t("annualOnly")}</p>
+        <p className="text-table text-warm-600 sm:col-span-2">{t("annualOnly")}</p>
       </div>
-      <div className="flex justify-end">
-        <Button type="submit" size="lg">
+      <StickyActions note={ti("savedNote")} aboveMenu={base === "/preventivi"}>
+        <Button type="submit" size="lg" full className="md:w-auto">
           {tc("saveAndContinue")}
         </Button>
-      </div>
+      </StickyActions>
     </form>
   );
 }

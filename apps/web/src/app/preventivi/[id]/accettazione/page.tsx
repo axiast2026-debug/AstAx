@@ -8,7 +8,7 @@ import { AcceptanceSteps } from "@/components/acceptance-steps";
 import { AppShell } from "@/components/app-shell";
 import { ErrorSummary } from "@/components/form";
 import { LiveRefresh } from "@/components/live-refresh";
-import type { CurrentAcceptance, Presentation } from "@/lib/acceptance";
+import type { CurrentAcceptance, PolicyRow, Presentation } from "@/lib/acceptance";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
 import { requestDetail } from "@/lib/requests";
@@ -50,11 +50,18 @@ export default async function AcceptancePage({
     );
   }
   const pending = a.status !== "PAID" && a.payment?.status === "AUTHORIZED";
+  // Once issued, the policy shows here too (design, «La tua polizza è attiva»).
+  const policy =
+    detail.status === "ISSUED"
+      ? ((await api<PolicyRow[]>("/policies")).body ?? []).find((p) => p.requestId === id)
+      : undefined;
   return (
     <AppShell viewer={viewer}>
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold">{t("title", { code: detail.code })}</h1>
+          <h1 className="font-display text-screen font-extrabold">
+            {t("title", { code: detail.code })}
+          </h1>
           {back}
         </div>
         <ErrorSummary codes={query.errore} />
@@ -69,6 +76,7 @@ export default async function AcceptancePage({
           signAction={goToSignature}
           payAction={payAcceptance}
           esito={query.esito}
+          policy={policy ?? null}
         />
       </div>
     </AppShell>

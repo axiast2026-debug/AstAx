@@ -15,7 +15,8 @@ export async function chooseOffer(page: Page, url: string, company: string): Pro
 
 export async function signDocuments(page: Page, back: RegExp = /\/accettazione$/): Promise<void> {
   await page.getByLabel("Ho letto i documenti").check();
-  await page.getByRole("button", { name: "Firma i documenti" }).click();
+  // Proposal P6: one button signs (at the provider) and then leads to «Paga».
+  await page.getByRole("button", { name: /^Firma e paga/ }).click();
   await expect(page).toHaveURL(/\/firma-di-prova\//);
   await page.getByLabel("Codice ricevuto").fill("123456");
   await page.getByRole("button", { name: "Firma", exact: true }).click();

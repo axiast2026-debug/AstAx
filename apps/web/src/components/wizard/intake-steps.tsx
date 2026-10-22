@@ -1,8 +1,7 @@
 import { CLASS_SOURCES, intakeDocuments, type Intake } from "@astax/shared/domain";
 import { formatDate } from "@astax/shared/format";
-import { Button, buttonVariants } from "@astax/ui";
+import { Button } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
-import Link from "next/link";
 import {
   confirmAndSubmit,
   saveDrivingStep,
@@ -13,6 +12,7 @@ import { CheckField, Field, hasError } from "@/components/form";
 import { api } from "@/lib/auth";
 import { extracted, latestDocument, type RequestDetail, type RequestOptions } from "@/lib/requests";
 import { PhotoUpload } from "./photo-upload";
+import { ChoiceCard, ChoiceLink, StickyActions } from "./wizard-ui";
 
 /**
  * The five screens of the private customer (Dan, 2026-10-21,
@@ -38,20 +38,15 @@ export async function VehicleTypeStep({ detail, base }: { detail: RequestDetail;
   const t = await getTranslations("wizard.intake");
   const current = intakeOf(detail).vehicleStatus;
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-3 sm:grid-cols-2">
       {(["INSURED", "NEW"] as const).map((status) => (
-        <Link
+        <ChoiceLink
           key={status}
           href={`${base}/${detail.id}/dati?stato=${status}`}
-          className={buttonVariants({
-            variant: current === status ? "primary" : "outline",
-            size: "lg",
-            className: "h-auto flex-col items-start gap-1 whitespace-normal py-5 text-left",
-          })}
-        >
-          <span className="text-lg font-semibold">{t(`status.${status}.label`)}</span>
-          <span className="text-sm font-normal">{t(`status.${status}.text`)}</span>
-        </Link>
+          label={t(`status.${status}.label`)}
+          text={t(`status.${status}.text`)}
+          selected={current === status}
+        />
       ))}
     </div>
   );
@@ -92,10 +87,10 @@ export async function IntakeDataStep({
   return (
     <div className="space-y-6">
       <section aria-labelledby="photos" className="space-y-3">
-        <h2 id="photos" className="text-lg font-semibold">
+        <h2 id="photos" className="sr-only">
           {t("photosTitle")}
         </h2>
-        <p className="text-sm text-warm-600">{t("photosIntro")}</p>
+        <p className="text-body text-warm-600">{t("photosIntro")}</p>
         {photos.map((kind) => {
           const doc = latestDocument(detail, kind, kind === "DRIVING_LICENCE" ? 0 : undefined);
           return (
@@ -119,13 +114,16 @@ export async function IntakeDataStep({
       <form action={saveIntakeStep} className="space-y-6">
         <Hidden detail={detail} base={base} />
         <input type="hidden" name="intake.vehicleStatus" value={status} />
-        <section className="grid gap-4 rounded-xl border border-warm-200 bg-white p-4 sm:grid-cols-2 sm:p-6">
-          <h2 className="text-lg font-semibold sm:col-span-2">{t("dataTitle")}</h2>
+        <section className="grid gap-4 rounded-2xl bg-white p-4 shadow-[inset_0_0_0_1px_var(--color-warm-200)] sm:grid-cols-2 sm:p-6">
+          <h2 className="text-section font-bold sm:col-span-2">{t("dataTitle")}</h2>
           <Field
             label={t("plate")}
             name="intake.plate"
             autoComplete="off"
             defaultValue={intake.plate ?? fromRegistration("plate")}
+            hint={
+              !intake.plate && fromRegistration("plate") ? t("readFromRegistration") : undefined
+            }
             invalid={hasError(errors, "plate")}
             required
           />
@@ -144,6 +142,11 @@ export async function IntakeDataStep({
             name="intake.street"
             autoComplete="street-address"
             defaultValue={intake.residence?.street ?? fromRegistration("ownerStreet")}
+            hint={
+              !intake.residence && fromRegistration("ownerStreet")
+                ? t("readFromRegistration")
+                : undefined
+            }
             required
           />
           <Field
@@ -171,22 +174,17 @@ export async function IntakeDataStep({
         </section>
 
         {status === "NEW" ? (
-          <fieldset className="space-y-3 rounded-xl border border-warm-200 bg-white p-4 sm:p-6">
-            <legend className="px-1 text-lg font-semibold">{t("classTitle")}</legend>
+          <fieldset className="space-y-3">
+            <legend className="mb-3 text-section font-bold">{t("classTitle")}</legend>
             {CLASS_SOURCES.map((kind) => (
-              <div key={kind} className="flex items-start gap-2">
-                <input
-                  id={`class-${kind}`}
-                  type="radio"
-                  name="intake.classSource"
-                  value={kind}
-                  defaultChecked={(source?.kind ?? "OWN_VEHICLE") === kind}
-                  className="mt-1 h-4 w-4 accent-orange-500"
-                />
-                <label htmlFor={`class-${kind}`} className="text-sm">
-                  {t(`classSources.${kind}`)}
-                </label>
-              </div>
+              <ChoiceCard
+                key={kind}
+                id={`class-${kind}`}
+                name="intake.classSource"
+                value={kind}
+                defaultChecked={(source?.kind ?? "OWN_VEHICLE") === kind}
+                label={t(`classSources.${kind}`)}
+              />
             ))}
             <div className="grid gap-4 sm:grid-cols-2">
               <Field
@@ -209,9 +207,11 @@ export async function IntakeDataStep({
           </fieldset>
         ) : null}
 
-        <Button type="submit" size="lg" className="w-full sm:w-auto">
-          {t("continue")}
-        </Button>
+        <StickyActions note={t("savedNote")} aboveMenu={base === "/preventivi"}>
+          <Button type="submit" size="lg" full className="md:w-auto">
+            {t("continue")}
+          </Button>
+        </StickyActions>
       </form>
     </div>
   );
@@ -234,29 +234,19 @@ export async function DrivingStep({
   return (
     <form action={saveDrivingStep} className="space-y-6">
       <Hidden detail={detail} base={base} />
-      <fieldset className="space-y-3 rounded-xl border border-warm-200 bg-white p-4 sm:p-6">
-        <legend className="px-1 text-lg font-semibold">{t("drivingTitle")}</legend>
+      <fieldset className="space-y-3">
+        <legend className="mb-3 text-section font-bold">{t("drivingTitle")}</legend>
         {(options.lists.drivingFormula ?? []).map((f) => (
-          <div key={f.code} className="flex items-start gap-2">
-            <input
-              id={`formula-${f.code}`}
-              type="radio"
-              name="intake.drivingFormula"
-              value={f.code}
-              defaultChecked={chosen === f.code}
-              required
-              className="mt-1 h-4 w-4 accent-orange-500"
-              aria-describedby={`formula-${f.code}-text`}
-            />
-            <div>
-              <label htmlFor={`formula-${f.code}`} className="text-sm font-semibold">
-                {f.label}
-              </label>
-              <p id={`formula-${f.code}-text`} className="text-sm text-warm-600">
-                {t(`driving.${f.code}`, { age: options.expertMinAge })}
-              </p>
-            </div>
-          </div>
+          <ChoiceCard
+            key={f.code}
+            id={`formula-${f.code}`}
+            name="intake.drivingFormula"
+            value={f.code}
+            defaultChecked={chosen === f.code}
+            required
+            label={f.label}
+            text={t(`driving.${f.code}`, { age: options.expertMinAge })}
+          />
         ))}
         {hasError(errors, "drivingFormula") ? (
           <p role="alert" className="text-sm text-red-700">
@@ -264,9 +254,11 @@ export async function DrivingStep({
           </p>
         ) : null}
       </fieldset>
-      <Button type="submit" size="lg" className="w-full sm:w-auto">
-        {t("continue")}
-      </Button>
+      <StickyActions note={t("savedNote")} aboveMenu={base === "/preventivi"}>
+        <Button type="submit" size="lg" full className="md:w-auto">
+          {t("continue")}
+        </Button>
+      </StickyActions>
     </form>
   );
 }
@@ -350,7 +342,7 @@ export async function ConfirmStep({
   return (
     <form action={confirmAndSubmit} className="space-y-6">
       <Hidden detail={detail} base={base} />
-      <dl className="grid gap-x-6 gap-y-2 rounded-xl border border-warm-200 bg-white p-4 text-sm sm:grid-cols-[12rem_1fr] sm:p-6">
+      <dl className="grid gap-x-6 gap-y-2 rounded-2xl bg-white p-4 text-table shadow-[inset_0_0_0_1px_var(--color-warm-200)] sm:grid-cols-[12rem_1fr] sm:p-6">
         {rows.map(([label, value]) => (
           <div key={label} className="contents">
             <dt className="text-warm-600">{label}</dt>
@@ -359,9 +351,9 @@ export async function ConfirmStep({
         ))}
       </dl>
       {consent ? (
-        <section className="rounded-xl border border-warm-200 bg-white p-4 sm:p-6">
-          <h2 className="text-base font-semibold">{consent.text.title}</h2>
-          <div className="mt-2 max-h-48 overflow-y-auto whitespace-pre-line text-sm text-night-900">
+        <section className="rounded-2xl bg-white p-4 shadow-[inset_0_0_0_1px_var(--color-warm-200)] sm:p-6">
+          <h2 className="text-section font-bold">{consent.text.title}</h2>
+          <div className="mt-2 max-h-48 overflow-y-auto whitespace-pre-line text-table text-night-900">
             {consent.text.contentMd}
           </div>
           <div className="mt-4">
@@ -369,14 +361,18 @@ export async function ConfirmStep({
           </div>
         </section>
       ) : (
-        <p className="rounded-xl border border-warm-200 bg-white p-4 text-sm sm:p-6">
+        <p className="rounded-2xl bg-white p-4 text-table shadow-[inset_0_0_0_1px_var(--color-warm-200)] sm:p-6">
           {t("brokerDeclaration")}
         </p>
       )}
-      <p className="text-sm text-warm-600">{t("afterSubmit")}</p>
-      <Button type="submit" size="lg" className="w-full sm:w-auto">
-        {t("submit")}
-      </Button>
+      <p className="rounded-xl bg-info-50 px-4 py-3 text-table text-night-900">
+        {t("afterSubmit")}
+      </p>
+      <StickyActions note={t("savedNote")} aboveMenu={base === "/preventivi"}>
+        <Button type="submit" size="lg" full className="md:w-auto">
+          {t("submit")}
+        </Button>
+      </StickyActions>
     </form>
   );
 }
