@@ -79,7 +79,8 @@
     "onboardingQueue": "Ingressi",
     "batches": "Lotti",
     "metrics": "Metriche",
-    "myRequests": "Le mie richieste"
+    "myRequests": "Le mie richieste",
+    "fleets": "Flotte aziendali"
   },
   "home": {
     "welcome": "Ciao {name}",
@@ -1824,5 +1825,11 @@
     "averageGap": "Distanza media dal primo",
     "averageIssuance": "Tempo medio di emissione",
     "hoursMinutes": "{hours} h {minutes} min"
+  },
+  "fleets": {
+    "title": "Flotte aziendali",
+    "comingSoon": "In arrivo",
+    "text": "Presto potrai chiedere in asta i preventivi per tutti i veicoli di un'azienda in una volta sola.",
+    "meanwhile": "Nel frattempo puoi caricare i veicoli di un'azienda uno per uno da «Richieste», oppure con un lotto Excel per i rinnovi delle persone fisiche."
   }
 }

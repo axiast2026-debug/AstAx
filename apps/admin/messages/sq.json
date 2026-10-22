@@ -74,7 +74,8 @@
     "onboardingQueue": "Anëtarësimet",
     "batches": "Lotet",
     "metrics": "Metrikat",
-    "myRequests": "Kërkesat e mia"
+    "myRequests": "Kërkesat e mia",
+    "fleets": "Flotat e kompanive"
   },
   "home": {
     "welcome": "Përshëndetje {name}",

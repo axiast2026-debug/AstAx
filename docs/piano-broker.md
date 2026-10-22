@@ -1,6 +1,6 @@
 # Piano: area del broker e degli intermediari di sezione E
 
-**Stato:** approvato da Dan il 2026-10-21 (risposte in fondo). Passi 1-4 fatti il 2026-10-21; gli altri da fare, nell'ordine.
+**Stato:** approvato da Dan il 2026-10-21 (risposte in fondo). Piano completo: passi 1-4 fatti il 2026-10-21, passo 5 il 2026-10-22; gli altri da fare, nell'ordine.
 
 ## Cosa ha chiesto Dan (2026-10-21)
 
@@ -79,7 +79,7 @@
 | 2. Area di lavoro per il computer | **Fatto (2026-10-21).** «Richieste» è la tabella unica di lavoro: filtri per stato (con «Da fare»), cliente, targa e decorrenza entro 7, 15, 30 o 60 giorni; colonna «Da fare» con il pulsante (Completa e invia, Integra i dati, Manda al cliente, Chiedi la riconferma) o chi si sta aspettando; in alto quante richieste aspettano il broker. Menu corto: Richieste, Clienti, Polizze, Contabilità, Team; Dashboard, Rinnovi e Impostazioni in fondo a ogni pagina. Pagina più larga sul computer. Il filtro per lotto arriva con il passo 4 |
 | 3. Sezione E nella domanda di ingresso | **Fatto (2026-10-21).** In «Lavora con AstAx» c'è la terza scelta «Sono un intermediario di sezione E»: numero RUI di sezione E e numero RUI (A o B) dell'intermediario per cui lavora. All'invio il controllo sul RUI dice anche se il registro collega l'E a quell'intermediario; il back office lo vede e approva. Una volta dentro ha l'area e le regole del broker. Se lavora per un'agenzia, quell'agenzia non viene mai invitata alle aste delle sue richieste (né all'apertura, né nelle riaperture e integrazioni di inviti, né nell'anteprima del back office) |
 | 4. Lotti con file Excel | **Fatto (2026-10-21)**, ADR 0014. Menu «Lotti»: si scarica il modello Excel (nel secondo foglio i valori ammessi), si carica il file; se una riga è sbagliata la pagina dice quale e perché e non si salva niente. Ogni riga diventa una bozza con cliente, dati essenziali, garanzie e decorrenza. 3 giorni prima dell’asta il broker riceve l’avviso «carica i documenti»; 7 giorni prima della scadenza la richiesta parte da sola verso il back office, anche senza documenti (e allora l’asta va solo alle agenzie con il nuovo filtro «Accetto anche richieste senza documenti»). Il broker può inviarla prima dalle 5 schermate. Il back office vede «Senza documenti» nella scheda. Per ora solo persone fisiche (domanda 25) |
-| 5. Flotte «in arrivo» | Da fare |
+| 5. Flotte «in arrivo» | **Fatto (2026-10-22).** Voce «Flotte aziendali» nel menu del broker, con la pagina «In arrivo» e cosa fare nel frattempo |
 
 Da sapere sul passo 1:
 

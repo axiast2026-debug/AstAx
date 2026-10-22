@@ -44,6 +44,8 @@ const BROKER_MENU: MenuItem[] = [
   item("policies", "/polizze", "request.viewOwn"),
   item("accounting", "/contabilita", "accounting.brokerStatement"),
   item("team", "/team", "team.manage"),
+  // docs/piano-broker.md F: announced, «In arrivo».
+  item("fleets", "/flotte", "request.viewOwn"),
 ];
 
 /** The broker's other pages, at the bottom of every page. */

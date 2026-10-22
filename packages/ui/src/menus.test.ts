@@ -32,6 +32,7 @@ describe("menus by role (docs/specifiche 02-07)", () => {
       "policies",
       "accounting",
       "team",
+      "fleets",
     ]);
     expect(linksFor(member("OWNER", "BROKER")).map((l) => l.key)).toEqual([
       "dashboard",

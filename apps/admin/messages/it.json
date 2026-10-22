@@ -70,7 +70,8 @@
     "onboardingQueue": "Ingressi",
     "batches": "Lotti",
     "metrics": "Metriche",
-    "myRequests": "Le mie richieste"
+    "myRequests": "Le mie richieste",
+    "fleets": "Flotte aziendali"
   },
   "home": {
     "welcome": "Ciao {name}",

@@ -22,6 +22,9 @@ test.describe("area di lavoro del broker", () => {
       await expect(menu.getByRole("link", { name, exact: true })).toBeVisible();
     }
     await expect(menu.getByRole("link", { name: "Rinnovi" })).toHaveCount(0);
+    // docs/piano-broker.md F: the fleets, announced.
+    await menu.getByRole("link", { name: "Flotte aziendali" }).click();
+    await expect(page.getByText("In arrivo")).toBeVisible({ timeout: 30_000 });
     await expect(
       page.getByRole("navigation", { name: "Altre pagine" }).getByRole("link", { name: "Rinnovi" }),
     ).toBeVisible();
