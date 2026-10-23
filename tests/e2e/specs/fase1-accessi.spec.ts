@@ -61,7 +61,8 @@ test.describe("fase 1: accessi", () => {
     // Tapped from the mail app: another browser, no session of the first one.
     const mailApp = await browser.newContext({ locale: "it-IT", timezoneId: "Europe/Rome" });
     const tap = await mailApp.newPage();
-    await tap.goto(link);
+    // The landing page submits itself at once: wait for the navigation, not for «load».
+    await tap.goto(link, { waitUntil: "commit" });
     // The landing page posts the token by itself; the first access asks for the legal texts (LEG-02).
     await expect(tap).toHaveURL(`${WEB}/documenti-legali`);
     await acceptLegalIfAsked(tap);
@@ -76,7 +77,11 @@ test.describe("fase 1: accessi", () => {
 
     // Valid once: after leaving, the same link is refused and the email form comes back.
     await tap.getByRole("button", { name: "Esci" }).click();
-    await tap.goto(link);
+    // Logout is a chain of redirects (site, Keycloak, site): wait for it to end.
+    await expect(tap).toHaveURL(`${WEB}/`);
+    await expect(tap.getByRole("link", { name: "Accedi" }).first()).toBeVisible();
+    // The landing page submits itself at once: wait for the navigation, not for «load».
+    await tap.goto(link, { waitUntil: "commit" });
     await expect(tap.getByText("Il link non vale più")).toBeVisible();
     await expect(tap.getByLabel("Email")).toBeVisible();
     await mailApp.close();
