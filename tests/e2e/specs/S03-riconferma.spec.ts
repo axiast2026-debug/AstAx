@@ -132,7 +132,12 @@ test.describe.serial("S03 — garanzie scadute e riconferma", () => {
       await expect(customer.locator("li", { hasText: "Compagnia Gamma" })).toContainText("445,00");
       await expect(customer.locator("li", { hasText: "Compagnia Alfa" })).toContainText("450,00");
       await expect(customer.locator("li", { hasText: "Compagnia Delta" })).toHaveCount(0);
-      await expect(customer.getByText(/Garantito fino al/).first()).toBeVisible();
+      await expect(
+        customer
+          .getByText(/Garantito fino al/)
+          .locator("visible=true")
+          .first(),
+      ).toBeVisible();
       await expect(customer.getByRole("button", { name: "Chiedi riconferma" })).toHaveCount(0);
     } finally {
       await moveClock(operator, "reset");

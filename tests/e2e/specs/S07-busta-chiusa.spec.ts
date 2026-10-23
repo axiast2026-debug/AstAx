@@ -54,7 +54,12 @@ test.describe.serial("S07 — busta chiusa", () => {
       await customer.reload();
       await expect(customer.getByText("Più conveniente")).toBeVisible({ timeout: 1000 });
     }).toPass({ timeout: 30_000 });
-    await expect(customer.getByText(/Garantito fino al/).first()).toBeVisible();
+    await expect(
+      customer
+        .getByText(/Garantito fino al/)
+        .locator("visible=true")
+        .first(),
+    ).toBeVisible();
     expect(await customer.locator("main").innerText()).toContain("€");
     await expect(customer.getByText("Offerte disponibili").first()).toBeVisible();
   });

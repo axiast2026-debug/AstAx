@@ -65,7 +65,10 @@ export default async function IncomingRequestPage({
 
   const open = detail.auctionStatus === "OPEN";
   const offerOpen = detail.offer?.status === "SUBMITTED";
-  const own = offerOpen ? (await api<OwnOffer>(`/offers/${detail.offer?.id}`)).body : null;
+  // BC-04: the agency's copy is read only by its author, the owner, the supervisors and the
+  // operators allowed; anyone else (a colleague's offer) sees no receipt, never an error.
+  const ownCopy = offerOpen ? await api<OwnOffer>(`/offers/${detail.offer?.id}`) : null;
+  const own = ownCopy?.status === 200 ? ownCopy.body : null;
   const mayOffer =
     open &&
     detail.invitation !== "DECLINED" &&
