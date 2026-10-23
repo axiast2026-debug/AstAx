@@ -1,6 +1,7 @@
 import { ManualClock } from "@astax/adapters/clock";
 import { describe, expect, it } from "vitest";
 import { MemorySessionStore } from "./redis-store.js";
+import * as oidc from "openid-client";
 import { WebAuth } from "./web-auth.js";
 
 /**
@@ -56,5 +57,59 @@ describe("search terms kept next to the session", () => {
     await auth.setSearch("s2", "clienti", { q: "y" });
     await auth.logout("s2").catch(() => undefined);
     expect(await store.get("search:s2")).toBeNull();
+  });
+});
+
+describe("login start (ADR 0019, magic link)", () => {
+  function offlineAuth() {
+    const clock = new ManualClock("2026-10-23T08:00:00Z");
+    const store = new MemorySessionStore(() => clock.now().getTime());
+    const auth = new WebAuth({
+      issuer: "http://keycloak.test/realms/astax",
+      clients: { private: "astax-web-private" },
+      redirectUri: "http://localhost:3000/auth/callback",
+      postLogoutRedirectUri: "http://localhost:3000/",
+      apiUrl: "http://api.test",
+      store,
+      clock,
+      // No network: the server metadata is given by hand.
+      discover: async (clientId) =>
+        new oidc.Configuration(
+          {
+            issuer: "http://keycloak.test/realms/astax",
+            authorization_endpoint:
+              "http://keycloak.test/realms/astax/protocol/openid-connect/auth",
+            token_endpoint: "http://keycloak.test/realms/astax/protocol/openid-connect/token",
+          },
+          clientId,
+        ),
+    });
+    return { auth, store };
+  }
+
+  it("SIC-05 carries the one-use token of the link on the authorization request", async () => {
+    const { auth, store } = offlineAuth();
+    const token = "abcdefghijklmnopqrstuvwxyz0123456789ABCDE-_";
+    const url = new URL(await auth.beginLogin("private", { astax_link: token }));
+    expect(url.searchParams.get("astax_link")).toBe(token);
+    expect(url.searchParams.get("client_id")).toBe("astax-web-private");
+    expect(url.searchParams.get("code_challenge_method")).toBe("S256");
+    // The pending login is kept by state, as for any other login.
+    expect(await store.get(`login:${url.searchParams.get("state")}`)).toContain('"private"');
+  });
+
+  it("starts the ordinary login without the parameter", async () => {
+    const { auth } = offlineAuth();
+    const url = new URL(await auth.beginLogin("private"));
+    expect(url.searchParams.has("astax_link")).toBe(false);
+  });
+
+  it("never lets the extra parameters override the protocol ones", async () => {
+    const { auth } = offlineAuth();
+    const url = new URL(
+      await auth.beginLogin("private", { redirect_uri: "http://evil.test/", scope: "x" }),
+    );
+    expect(url.searchParams.get("redirect_uri")).toBe("http://localhost:3000/auth/callback");
+    expect(url.searchParams.get("scope")).toBe("openid");
   });
 });

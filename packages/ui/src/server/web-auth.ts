@@ -91,8 +91,13 @@ export class WebAuth {
     return config;
   }
 
-  /** Starts the authorization code flow with PKCE; returns where to send the browser. */
-  async beginLogin(kind: LoginKind): Promise<string> {
+  /**
+   * Starts the authorization code flow with PKCE; returns where to send the browser.
+   * `extra` goes on the authorization request as it is: the magic link of the
+   * private customer passes its one-use token this way (ADR 0019), and the
+   * identity provider's login flow reads it.
+   */
+  async beginLogin(kind: LoginKind, extra: Record<string, string> = {}): Promise<string> {
     const config = await this.config(kind);
     const codeVerifier = oidc.randomPKCECodeVerifier();
     const state = oidc.randomState();
@@ -100,6 +105,7 @@ export class WebAuth {
     await this.options.store.set(`login:${state}`, JSON.stringify(pending), PENDING_TTL_SECONDS);
     return oidc
       .buildAuthorizationUrl(config, {
+        ...extra,
         redirect_uri: this.options.redirectUri,
         scope: "openid",
         code_challenge: await oidc.calculatePKCECodeChallenge(codeVerifier),
