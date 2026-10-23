@@ -1,0 +1,52 @@
+{
+  "flow": "privato-integrazione",
+  "who": "privato",
+  "phase": "prima",
+  "mainWidth": 390,
+  "screens": [
+    {
+      "index": 1,
+      "name": "home-con-integrazione",
+      "path": "/",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 2,
+      "axe": [
+        {
+          "id": "page-has-heading-one",
+          "impact": "moderate",
+          "nodes": 1,
+          "help": "Page should contain a level-one heading"
+        }
+      ],
+      "sinceLastS": 2.4
+    },
+    {
+      "index": 2,
+      "name": "richiesta-da-integrare",
+      "path": "/preventivi/01a16766-ac56-77b2-97c2-64d570affac0",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 5,
+      "axe": [],
+      "sinceLastS": 2.1
+    },
+    {
+      "index": 3,
+      "name": "schermata-da-correggere",
+      "path": "/preventivi/01a16766-ac56-77b2-97c2-64d570affac0/dati",
+      "fields": 9,
+      "requiredFields": 9,
+      "actions": 7,
+      "axe": [],
+      "sinceLastS": 2
+    }
+  ],
+  "taps": 2,
+  "typed": 0,
+  "choices": 0,
+  "files": 0,
+  "waitS": 0,
+  "wallS": 6,
+  "estimatedS": 12
+}

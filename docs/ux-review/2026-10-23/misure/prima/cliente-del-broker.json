@@ -1,0 +1,75 @@
+{
+  "flow": "cliente-del-broker",
+  "who": "cliente del broker",
+  "phase": "prima",
+  "mainWidth": 390,
+  "screens": [
+    {
+      "index": 1,
+      "name": "link-offerta",
+      "path": "/offerta/iEaRTOdkL0O6xwXiQ6XQm-csBsB7moeWXztWuwEY_sU",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 1,
+      "axe": [],
+      "sinceLastS": 1.6
+    },
+    {
+      "index": 2,
+      "name": "codice",
+      "path": "/offerta/iEaRTOdkL0O6xwXiQ6XQm-csBsB7moeWXztWuwEY_sU",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 1,
+      "axe": [],
+      "sinceLastS": 1.1
+    },
+    {
+      "index": 3,
+      "name": "offerta",
+      "path": "/offerta/iEaRTOdkL0O6xwXiQ6XQm-csBsB7moeWXztWuwEY_sU",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 2,
+      "axe": [],
+      "sinceLastS": 1
+    },
+    {
+      "index": 4,
+      "name": "firma-e-paga",
+      "path": "/offerta/iEaRTOdkL0O6xwXiQ6XQm-csBsB7moeWXztWuwEY_sU",
+      "fields": 1,
+      "requiredFields": 1,
+      "actions": 3,
+      "axe": [],
+      "sinceLastS": 1.1
+    },
+    {
+      "index": 5,
+      "name": "firmato-paga",
+      "path": "/offerta/iEaRTOdkL0O6xwXiQ6XQm-csBsB7moeWXztWuwEY_sU",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 4,
+      "axe": [],
+      "sinceLastS": 2
+    },
+    {
+      "index": 6,
+      "name": "pagato",
+      "path": "/offerta/iEaRTOdkL0O6xwXiQ6XQm-csBsB7moeWXztWuwEY_sU",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 3,
+      "axe": [],
+      "sinceLastS": 2.2
+    }
+  ],
+  "taps": 7,
+  "typed": 3,
+  "choices": 1,
+  "files": 0,
+  "waitS": 0,
+  "wallS": 9,
+  "estimatedS": 49
+}

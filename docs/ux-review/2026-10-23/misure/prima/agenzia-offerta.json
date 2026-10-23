@@ -1,0 +1,85 @@
+{
+  "flow": "agenzia-offerta",
+  "who": "agenzia (titolare)",
+  "phase": "prima",
+  "mainWidth": 1440,
+  "screens": [
+    {
+      "index": 1,
+      "name": "accesso-keycloak",
+      "path": "/realms/astax/protocol/openid-connect/auth",
+      "fields": 2,
+      "requiredFields": 0,
+      "actions": 3,
+      "axe": [],
+      "sinceLastS": 2.3
+    },
+    {
+      "index": 2,
+      "name": "dashboard-agenzia",
+      "path": "/",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 1,
+      "axe": [],
+      "sinceLastS": 2.7
+    },
+    {
+      "index": 3,
+      "name": "notifiche",
+      "path": "/notifiche",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 1,
+      "axe": [],
+      "sinceLastS": 2.2
+    },
+    {
+      "index": 4,
+      "name": "partecipa-all-asta",
+      "path": "/richieste-in-arrivo",
+      "fields": 7,
+      "requiredFields": 0,
+      "actions": 201,
+      "axe": [],
+      "sinceLastS": 17
+    },
+    {
+      "index": 5,
+      "name": "dettaglio-richiesta",
+      "path": "/richieste-in-arrivo/8ff90005-702f-4080-b906-eae3f7aef50b",
+      "fields": 2,
+      "requiredFields": 1,
+      "actions": 7,
+      "axe": [],
+      "sinceLastS": 2.9
+    },
+    {
+      "index": 6,
+      "name": "modulo-offerta",
+      "path": "/richieste-in-arrivo/8ff90005-702f-4080-b906-eae3f7aef50b",
+      "fields": 29,
+      "requiredFields": 7,
+      "actions": 8,
+      "axe": [],
+      "sinceLastS": 2.4
+    },
+    {
+      "index": 7,
+      "name": "ricevuta-busta-chiusa",
+      "path": "/richieste-in-arrivo/8ff90005-702f-4080-b906-eae3f7aef50b",
+      "fields": 27,
+      "requiredFields": 5,
+      "actions": 7,
+      "axe": [],
+      "sinceLastS": 4.7
+    }
+  ],
+  "taps": 7,
+  "typed": 6,
+  "choices": 3,
+  "files": 1,
+  "waitS": 1,
+  "wallS": 34,
+  "estimatedS": 85
+}
