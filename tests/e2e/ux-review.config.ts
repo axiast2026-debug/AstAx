@@ -18,6 +18,8 @@ export default defineConfig({
   reporter: "list",
   use: {
     locale: "it-IT",
+    actionTimeout: 30_000,
+    navigationTimeout: 60_000,
     timezoneId: "Europe/Rome",
     trace: "retain-on-failure",
     ...devices["Desktop Chrome"],

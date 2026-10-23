@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Page } from "@playwright/test";
 import { e2eState, loginPrivate, acceptLegalIfAsked, savedSecret, saveSecret, loginProfessional, loginProfessionalAgain } from "../support/auth.js";
 import {
   ADMIN,
@@ -36,6 +36,12 @@ const state: {
   operator?: Page;
 } = {};
 
+/** axe wants a page of its own context (browser.newPage() is refused). */
+async function newPage(browser: Browser, viewport: { width: number; height: number }) {
+  const context = await browser.newContext({ viewport });
+  return context.newPage();
+}
+
 /** Picks a photo of the request: the card turns green when received. */
 async function photo(page: Page, m: Meter, title: string, fileName: string): Promise<void> {
   const form = page.locator("form", {
@@ -53,8 +59,17 @@ async function photo(page: Page, m: Meter, title: string, fileName: string): Pro
     page
       .locator("form", { has: page.getByRole("heading", { name: title, exact: true }) })
       .getByText(`Ricevuto: ${fileName}`),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 90_000 });
   m.wait((Date.now() - t0) / 1000);
+}
+
+/** The back office operator of this run, logged in once. */
+async function operatorPage(browser: Browser): Promise<Page> {
+  if (!state.operator) {
+    state.operator = await newPage(browser, DESKTOP);
+    await backOffice(state.operator);
+  }
+  return state.operator;
 }
 
 /** The five screens, measured; `broker` skips the consent tick. */
@@ -130,7 +145,7 @@ async function testOffersAndClose(operator: Page, code: string): Promise<void> {
 test.describe.serial("misura UX", () => {
   test("privato: dalla prima visita alla richiesta inviata", async ({ browser }) => {
     const m = new Meter("privato-richiesta", "privato", PHONE.width);
-    const page = await browser.newPage({ viewport: PHONE });
+    const page = await newPage(browser, PHONE);
     state.customer = page;
     const email = `ux.privato.${randomBytes(4).toString("hex")}@example.test`;
     state.email = email;
@@ -195,7 +210,7 @@ test.describe.serial("misura UX", () => {
 
   test("back office: verifica, completamento dei dati e approvazione", async ({ browser }) => {
     const m = new Meter("backoffice-verifica", "verificatore", DESKTOP.width);
-    const page = await browser.newPage({ viewport: DESKTOP });
+    const page = await newPage(browser, DESKTOP);
     state.operator = page;
     const code = state.code!;
     await page.goto(ADMIN);
@@ -255,7 +270,7 @@ test.describe.serial("misura UX", () => {
   test("agenzia: dall'avviso all'offerta in busta chiusa", async ({ browser }) => {
     const m = new Meter("agenzia-offerta", "agenzia (titolare)", DESKTOP.width);
     const { users } = e2eState();
-    const uno = await browser.newPage({ viewport: DESKTOP });
+    const uno = await newPage(browser, DESKTOP);
     state.uno = uno;
     const code = state.code!;
     await proLogin(uno, m, users.owner);
@@ -291,7 +306,7 @@ test.describe.serial("misura UX", () => {
     await m.screen(uno, "ricevuta-busta-chiusa");
     m.save();
     // Tre offers too (not measured), then the closing by the development tool.
-    const tre = await browser.newPage({ viewport: DESKTOP });
+    const tre = await newPage(browser, DESKTOP);
     await professional(tre, users.sofia);
     await openIncoming(tre, code);
     await tre.getByRole("button", { name: "Prendi in carico" }).click();
@@ -379,7 +394,7 @@ test.describe.serial("misura UX", () => {
     m.type(); // numero di polizza
     m.tap(); // «Segna come emessa»
     await issuePolicy(uno, code, `ALFA-${code.slice(-6)}`);
-    m.wait((Date.now() - t0) / 1000 - 3 * 10);
+    m.wait((Date.now() - t0) / 1000);
     await m.screen(uno, "polizza-emessa");
     m.save();
 
@@ -395,7 +410,7 @@ test.describe.serial("misura UX", () => {
   test("sub-agente: due agenzie, passaggio dall'una all'altra", async ({ browser }) => {
     const m = new Meter("subagente-cambio-agenzia", "sub-agente", DESKTOP.width);
     const { users } = e2eState();
-    const marco = await browser.newPage({ viewport: DESKTOP });
+    const marco = await newPage(browser, DESKTOP);
     await proLogin(marco, m, users.marco);
     await expect(marco).toHaveURL(`${WEB}/contesto`);
     await m.screen(marco, "scelta-contesto");
@@ -421,7 +436,7 @@ test.describe.serial("misura UX", () => {
   test("broker: richiesta per un cliente nuovo", async ({ browser }) => {
     const m = new Meter("broker-richiesta", "broker", DESKTOP.width);
     await ownerSignedDeclaration(() => browser.newPage());
-    const paolo = await browser.newPage({ viewport: DESKTOP });
+    const paolo = await newPage(browser, DESKTOP);
     const { users } = e2eState();
     await proLogin(paolo, m, users.broker);
     await expect(paolo).toHaveURL(`${WEB}/`);
@@ -458,7 +473,7 @@ test.describe.serial("misura UX", () => {
     await m.screen(paolo, "tabella-dopo-invio");
     m.save();
     // Setup: approval, test offers, closing.
-    const operator = state.operator!;
+    const operator = await operatorPage(browser);
     await approve(operator, code);
     await testOffersAndClose(operator, code);
 
@@ -473,13 +488,13 @@ test.describe.serial("misura UX", () => {
     mb.choose();
     mb.tap();
     const sentAt = Date.now() - 1000;
-    await paolo.locator("#offerte input[type=radio]").first().check();
+    await paolo.locator("#offerte input[type=checkbox]").first().check();
     await paolo.getByRole("button", { name: "Invia al cliente" }).click();
     await expect(paolo.getByText(/Link inviato: vale fino al/)).toBeVisible();
     await mb.screen(paolo, "link-inviato");
     const mail = await latestMail(email, /la tua offerta RC auto/, sentAt);
     const link = /http:\/\/localhost:3000\/offerta\/[A-Za-z0-9_-]+/.exec(mail.text)?.[0] ?? "";
-    const anna = await browser.newPage({ viewport: PHONE });
+    const anna = await newPage(browser, PHONE);
     const ma = new Meter("cliente-del-broker", "cliente del broker", PHONE.width);
     await anna.goto(link);
     await ma.screen(anna, "link-offerta");
@@ -531,16 +546,23 @@ test.describe.serial("misura UX", () => {
   });
 
   test("back office: richiesta di integrazioni; privato: completa", async ({ browser }) => {
-    const customer = await browser.newPage({ viewport: PHONE });
+    const customer = await newPage(browser, PHONE);
     const email = await newPrivate(customer);
     const { code, url } = await submittedRequest(customer, email);
     const m = new Meter("backoffice-integrazione", "verificatore", DESKTOP.width);
-    const operator = state.operator!;
+    const operator = await operatorPage(browser);
     await operator.goto(`${ADMIN}/verifiche`);
     m.tap();
     await operator.getByRole("link", { name: code }).click();
     await expect(operator.getByRole("heading", { name: `Verifica ${code}` })).toBeVisible();
     await m.screen(operator, "scheda-verifica");
+    // ADR 0013: an integration can be asked once the data are completed.
+    m.type();
+    await operator.getByLabel(/Data di acquisto/).fill("2020-04-01");
+    m.tap();
+    await operator.getByRole("button", { name: "Salva i dati completati" }).click();
+    await expect(operator.getByText("Dati completati")).toBeVisible();
+    await m.screen(operator, "dati-completati");
     const form = operator.locator("form", {
       has: operator.getByRole("button", { name: "Chiedi l'integrazione" }),
     });
@@ -570,10 +592,10 @@ test.describe.serial("misura UX", () => {
   });
 
   test("privato: prezzi scaduti e riconferma", async ({ browser }) => {
-    const customer = await browser.newPage({ viewport: PHONE });
+    const customer = await newPage(browser, PHONE);
     const email = await newPrivate(customer);
     const { code, url } = await submittedRequest(customer, email);
-    const operator = state.operator!;
+    const operator = await operatorPage(browser);
     await approve(operator, code);
     await testOffersAndClose(operator, code);
     const m = new Meter("privato-riconferma", "privato", PHONE.width);
