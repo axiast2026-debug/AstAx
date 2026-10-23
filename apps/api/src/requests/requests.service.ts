@@ -341,12 +341,26 @@ export class RequestsService {
 
   /** PERSON or COMPANY: the kind of the request's customer. */
   private async customerKind(tx: DbTransaction, request: QuoteRequest) {
-    if (!request.customerId) return null;
+    return (await this.customerCard(tx, request)).kind;
+  }
+
+  /**
+   * What the customer's card already says (kind, birth date), so that the
+   * wizard asks nothing twice (UX review 2026-10-23). No contact, no name.
+   */
+  private async customerCard(
+    tx: DbTransaction,
+    request: QuoteRequest,
+  ): Promise<{ kind: "PERSON" | "COMPANY" | null; birthDate: string | null }> {
+    if (!request.customerId) return { kind: null, birthDate: null };
     const customer = await tx.customer.findUnique({
       where: { id: request.customerId },
-      include: { person: { select: { kind: true } } },
+      include: { person: { select: { kind: true, birthDate: true } } },
     });
-    return customer?.person.kind ?? null;
+    return {
+      kind: customer?.person.kind ?? null,
+      birthDate: customer?.person.birthDate?.toISOString().slice(0, 10) ?? null,
+    };
   }
 
   async detail(auth: AuthContext, id: string) {
@@ -372,6 +386,7 @@ export class RequestsService {
       ]);
       const last = verifications[0];
       const draftRequest = editable ? this.draftOf(request).request : undefined;
+      const card = await this.customerCard(tx, request);
       return {
         /**
          * ASTA-02: when the auction would close if approved now, on the working
@@ -385,13 +400,16 @@ export class RequestsService {
         status: request.status,
         channel: request.channel,
         // A company's request has no owner's birth date (question 25).
-        customerKind: await this.customerKind(tx, request),
+        customerKind: card.kind,
+        customerBirthDate: card.birthDate,
         editable,
         draft: editable ? this.draftOf(request) : null,
         missingSections: editable ? missingDraftSections(this.draftOf(request)) : [],
         quoteData,
         quoteDataVersion: request.quoteDataVersion,
         submittedAt: request.submittedAt?.toISOString() ?? null,
+        // ADR 0014: a draft of a lot leaves by itself on this day.
+        scheduledSubmitAt: request.scheduledSubmitAt?.toISOString() ?? null,
         consent: consent
           ? { method: consent.method, acceptedAt: consent.acceptedAt.toISOString() }
           : null,

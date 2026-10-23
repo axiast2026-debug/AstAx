@@ -74,7 +74,13 @@ export async function PrivateHome({ firstName }: { firstName: string }) {
         <CardTitle>{t("welcome", { name: firstName })}</CardTitle>
         <p className="mt-2 text-warm-600">{t("privateIntro")}</p>
         <form action={createPrivateRequest} className="mt-4">
-          <Button type="submit" size="lg" className="w-full sm:w-auto">
+          {/* One orange button per screen: with something in progress its card has it. */}
+          <Button
+            type="submit"
+            size="lg"
+            variant={open.length > 0 ? "outline" : "primary"}
+            className="w-full sm:w-auto"
+          >
             {t("newQuote")}
           </Button>
         </form>

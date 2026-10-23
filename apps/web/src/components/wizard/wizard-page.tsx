@@ -1,7 +1,8 @@
-import { Icon } from "@astax/ui";
+import { Button, Icon } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { cancelRequest } from "@/app/request-actions";
 import { AppShell } from "@/components/app-shell";
 import { ErrorSummary, StepNav } from "@/components/form";
 import { requireViewer } from "@/lib/me";
@@ -65,9 +66,13 @@ export async function WizardPage({
   return (
     <AppShell viewer={viewer}>
       <p className="text-table text-warm-600">
-        <Link href={`${base}/${id}`} className="inline-flex min-h-11 items-center gap-1 underline">
+        {/* A draft's page leads back here: its link goes to the list instead. */}
+        <Link
+          href={detail.status === "DRAFT" ? base : `${base}/${id}`}
+          className="inline-flex min-h-11 items-center gap-1 underline"
+        >
           <Icon name="arrowLeft" size={16} />
-          {t("backToRequest", { code: detail.code })}
+          {detail.status === "DRAFT" ? t("backToList") : t("backToRequest", { code: detail.code })}
         </Link>
       </p>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_17rem] lg:gap-x-8 lg:gap-y-2">
@@ -102,6 +107,16 @@ export async function WizardPage({
           ) : null}
           <ErrorSummary codes={errors} />
           {body}
+          {detail.status === "DRAFT" ? (
+            // The draft page now resumes the wizard: the way to drop a draft is here.
+            <form action={cancelRequest} className="mt-2">
+              <input type="hidden" name="requestId" value={id} />
+              <input type="hidden" name="base" value={base} />
+              <Button type="submit" variant="ghost" size="sm">
+                {t("cancelDraft")}
+              </Button>
+            </form>
+          ) : null}
         </div>
         <aside
           aria-labelledby="wizard-summary"

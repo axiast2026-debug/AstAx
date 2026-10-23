@@ -46,12 +46,16 @@ export interface RequestDetail {
   channel: "PRIVATE" | "BROKER";
   /** Question 25: a company customer has no owner's birth date. */
   customerKind?: "PERSON" | "COMPANY" | null;
+  /** The birth date on the customer's card (a broker's customer), to propose. */
+  customerBirthDate?: string | null;
   editable: boolean;
   draft: QuoteDraft | null;
   missingSections: QuoteDraftSection[];
   quoteData: QuoteData | null;
   quoteDataVersion: number | null;
   submittedAt: string | null;
+  /** ADR 0014: a draft of a lot leaves by itself on this day. */
+  scheduledSubmitAt?: string | null;
   consent: { method: string; acceptedAt: string } | null;
   integration: { sections: string[]; documents: string[] } | null;
   lastDecision: {

@@ -14,7 +14,13 @@ import { PushSwitch } from "@/components/push-switch";
 import { api } from "@/lib/auth";
 import { ErrorSummary } from "@/components/form";
 import { holderName } from "@/lib/requests";
-import { STEP_SECTIONS, type RequestDetail, type WizardStep } from "@/lib/requests";
+import {
+  requestOptions,
+  STEP_SECTIONS,
+  type RequestDetail,
+  type WizardStep,
+} from "@/lib/requests";
+import { resumeStep } from "@/lib/resume";
 
 const STATUS_TONE: Record<string, "neutral" | "success" | "warning" | "danger" | "dark"> = {
   DRAFT: "neutral",
@@ -282,19 +288,26 @@ export async function RequestView({
   const te = await getTranslations("timeline");
   const tk = await getTranslations("wizard.documentKinds");
   const data = detail.quoteData;
+  // The draft resumes where it stopped (UX review 2026-10-23).
+  // The package by its name, not its code (noted on 2026-10-22, fixed by the UX review).
+  const packageName = data
+    ? (await requestOptions()).packages.find((p) => p.code === data.request.packageCode)?.name
+    : undefined;
   const firstStep =
     detail.status === "INTEGRATION_REQUESTED"
       ? (steps.find((s) =>
           STEP_SECTIONS[s].some((sec) => detail.integration?.sections.includes(sec)),
         ) ?? "dati")
-      : (steps[0] ?? "tipo");
+      : resumeStep(detail.draft);
   const approved = detail.lastDecision?.decision === "APPROVED";
   const presented = ["OFFERS_AVAILABLE", "ACCEPTED", "IN_ISSUANCE"].includes(detail.status);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold">{t("title", { code: detail.code })}</h1>
+        <h1 className="font-display text-screen font-extrabold">
+          {t("title", { code: detail.code })}
+        </h1>
         <StatusBadge status={detail.status} />
       </div>
       <ErrorSummary codes={errors} />
@@ -356,7 +369,7 @@ export async function RequestView({
           <p className="mt-2 text-sm text-warm-600">{t("draftText")}</p>
           <Link
             href={`${base}/${detail.id}/${firstStep}`}
-            className="mt-4 inline-block font-medium text-night-900 underline"
+            className={buttonVariants({ size: "lg", className: "mt-4 w-full sm:w-auto" })}
           >
             {t("continue")}
           </Link>
@@ -435,7 +448,7 @@ export async function RequestView({
             <dt className="text-warm-600">{t("drivers")}</dt>
             <dd>{data.drivers.map((d) => holderName(d.person)).join(", ")}</dd>
             <dt className="text-warm-600">{t("package")}</dt>
-            <dd>{data.request.packageCode}</dd>
+            <dd>{packageName ?? data.request.packageCode}</dd>
             <dt className="text-warm-600">{t("version")}</dt>
             <dd className="tabular">{detail.quoteDataVersion}</dd>
           </dl>
@@ -447,15 +460,16 @@ export async function RequestView({
         {detail.documents.length === 0 ? (
           <p className="mt-2 text-sm">{t("noDocuments")}</p>
         ) : (
-          <ul className="mt-3 space-y-1 text-sm">
+          <ul className="mt-3 flex flex-col text-sm">
             {detail.documents.map((d) => (
-              <li key={d.id}>
+              <li key={d.id} className="flex flex-wrap items-center gap-x-2">
                 <a
                   href={`${base}/${detail.id}/documenti/${d.id}`}
-                  className="underline"
+                  className="inline-flex min-h-11 items-center gap-1.5 underline"
                   target="_blank"
                   rel="noreferrer"
                 >
+                  <Icon name="document" size={18} />
                   {tk(d.kind)}
                 </a>{" "}
                 <span className="text-warm-600">{formatDateTime(d.uploadedAt)}</span>
