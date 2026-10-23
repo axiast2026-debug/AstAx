@@ -31,24 +31,30 @@ export default async function NewBrokerRequestPage({
     : await api<CustomerRow[]>("/customers");
   return (
     <AppShell viewer={viewer}>
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
+      <h1 className="font-display text-screen font-extrabold">{t("title")}</h1>
       <p className="mt-1 text-sm text-warm-600">{t("intro")}</p>
       <div className="mt-6">
         <ErrorSummary codes={errore} />
       </div>
-      <form action={search} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <input type="hidden" name="scope" value="nuova-richiesta" />
-        <Field
-          label={t("search")}
-          name="q"
-          hint={t("searchHint")}
-          defaultValue={q}
-          className="flex-1"
-        />
-        <Button type="submit" variant="outline">
-          {t("find")}
-        </Button>
-      </form>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <form action={search} className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-end">
+          <input type="hidden" name="scope" value="nuova-richiesta" />
+          <Field
+            label={t("search")}
+            name="q"
+            hint={t("searchHint")}
+            defaultValue={q}
+            className="flex-1"
+          />
+          <Button type="submit" variant="outline">
+            {t("find")}
+          </Button>
+        </form>
+        {/* UX review 2026-10-23: a new customer is one tap away, not below the whole list. */}
+        <Link href="/clienti/nuovo?poi=richiesta" className={buttonVariants({ variant: "secondary" })}>
+          {t("newCustomer")}
+        </Link>
+      </div>
       <Card className="mt-6">
         <CardTitle>{t("choose")}</CardTitle>
         {customers.length === 0 ? (
@@ -63,7 +69,7 @@ export default async function NewBrokerRequestPage({
                 </div>
                 <form action={createBrokerRequest}>
                   <input type="hidden" name="customerId" value={c.id} />
-                  <Button type="submit" size="sm">
+                  <Button type="submit" size="sm" variant="outline">
                     {t("start")}
                   </Button>
                 </form>
@@ -72,12 +78,6 @@ export default async function NewBrokerRequestPage({
           </ul>
         )}
       </Card>
-      <Link
-        href="/clienti/nuovo?poi=richiesta"
-        className={`${buttonVariants({ variant: "secondary" })} mt-6`}
-      >
-        {t("newCustomer")}
-      </Link>
     </AppShell>
   );
 }
