@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { realtimeTicket } from "@/app/actions";
 import { AppShell } from "@/components/app-shell";
 import { LiveRefresh } from "@/components/live-refresh";
+import { StickyNotice } from "@/components/sticky-notice";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
 import {
@@ -183,16 +184,19 @@ export default async function AuctionsPage({
           {t("searchAction")}
         </Button>
       </form>
-      {query.fatto ? (
-        <p role="status" className="mt-4 rounded-lg bg-green-50 p-3 text-sm">
-          {t("done")}
-        </p>
-      ) : null}
-      {query.errore ? (
-        <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm">
-          {t("error", { code: query.errore })}
-        </p>
-      ) : null}
+      {/* The page refreshes by itself: the messages stay until closed (question 30). */}
+      <StickyNotice
+        tone="done"
+        param="fatto"
+        message={query.fatto ? t("done") : null}
+        closeLabel={t("close")}
+      />
+      <StickyNotice
+        tone="error"
+        param="errore"
+        message={query.errore ? t("error", { code: query.errore }) : null}
+        closeLabel={t("close")}
+      />
       {DEV_TOOLS ? (
         <Card className="mt-6 border-dashed border-orange-500">
           <p className="text-sm font-semibold">{t("dev.title")}</p>

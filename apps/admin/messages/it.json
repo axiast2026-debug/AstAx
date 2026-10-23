@@ -421,6 +421,7 @@
     "intro": "Aste aperte e chiuse negli ultimi 7 giorni. Prima della chiusura si vedono solo i contatori, mai i prezzi.",
     "empty": "Nessuna asta.",
     "done": "Richiesta inviata: la vedrai applicata tra pochi istanti.",
+    "close": "Chiudi il messaggio",
     "error": "Azione non riuscita ({code}).",
     "round": "Giro {round} · {kind}",
     "kind": {
