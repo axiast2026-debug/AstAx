@@ -27,14 +27,21 @@ export async function switchTo(page: Page, agency: string): Promise<void> {
   );
 }
 
-/** Opens the request from «Richieste in arrivo», once the invitation has arrived (latest round). */
+/**
+ * Opens the request from «Richieste in arrivo», once the invitation has arrived
+ * (latest round). The list refreshes by itself on the realtime channel (ADR
+ * 0008), so a click can land on a row being redrawn and go nowhere: the whole
+ * step (list, click, detail) is retried until the detail is there.
+ */
 export async function openIncoming(page: Page, code: string): Promise<void> {
   await expect(async () => {
     await page.goto(`${WEB}/richieste-in-arrivo`);
     await expect(page.getByRole("link", { name: code }).first()).toBeVisible({ timeout: 1000 });
-  }).toPass({ timeout: 60_000 });
-  await page.getByRole("link", { name: code }).first().click();
-  await expect(page.getByText("Ogni apertura di questa richiesta")).toBeVisible();
+    await page.getByRole("link", { name: code }).first().click();
+    await expect(page.getByText("Ogni apertura di questa richiesta")).toBeVisible({
+      timeout: 5000,
+    });
+  }).toPass({ timeout: 90_000 });
 }
 
 /** The offer form (OFF-04); `guaranteeDays` moves the guarantee past the minimum. */
