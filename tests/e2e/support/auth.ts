@@ -147,6 +147,16 @@ export async function loginPrivate(page: Page, email: string): Promise<void> {
 }
 
 async function readCode(email: string): Promise<string> {
+  // «scrivi il codice 123456»: never a run of digits inside the link's token.
+  return readFromLatestMail(email, /codice (\d{6})\b/, "code");
+}
+
+/** The magic link of the same email (ADR 0019): the token is the only thing in its URL. */
+export async function readMagicLink(email: string): Promise<string> {
+  return readFromLatestMail(email, /(https?:\/\/\S+\/accedi\/link\?t=[A-Za-z0-9_-]+)/, "link");
+}
+
+async function readFromLatestMail(email: string, pattern: RegExp, what: string): Promise<string> {
   for (let attempt = 0; attempt < 40; attempt += 1) {
     const list = (await (
       await fetch(`${MAILPIT_URL}/api/v1/search?query=${encodeURIComponent(`to:${email}`)}&limit=1`)
@@ -158,12 +168,12 @@ async function readCode(email: string): Promise<string> {
       ).json()) as {
         Text: string;
       };
-      const code = /\b(\d{6})\b/.exec(message.Text)?.[1];
-      if (code) return code;
+      const found = pattern.exec(message.Text)?.[1];
+      if (found) return found;
     }
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
-  throw new Error("No code email arrived in Mailpit");
+  throw new Error(`No ${what} email arrived in Mailpit`);
 }
 
 /** Accepts the legal texts in force when the app asks for them (LEG-02). */

@@ -5,7 +5,8 @@ WORKDIR /src
 COPY extensions/email-code/pom.xml .
 RUN mvn -q -B dependency:go-offline
 COPY extensions/email-code/src ./src
-RUN mvn -q -B package
+# Not quiet: the test results (MagicLinkTokensTest, SendLimitsTest) show in the build log.
+RUN mvn -B package
 
 FROM quay.io/keycloak/keycloak:26.8.1
 COPY --from=extension /src/target/astax-email-code-1.0.0.jar /opt/keycloak/providers/

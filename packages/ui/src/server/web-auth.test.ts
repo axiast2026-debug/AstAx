@@ -65,7 +65,7 @@ describe("login start (ADR 0019, magic link)", () => {
     const clock = new ManualClock("2026-10-23T08:00:00Z");
     const store = new MemorySessionStore(() => clock.now().getTime());
     const auth = new WebAuth({
-      issuer: "http://keycloak.test/realms/astax",
+      issuer: "https://keycloak.test/realms/astax",
       clients: { private: "astax-web-private" },
       redirectUri: "http://localhost:3000/auth/callback",
       postLogoutRedirectUri: "http://localhost:3000/",
@@ -76,10 +76,10 @@ describe("login start (ADR 0019, magic link)", () => {
       discover: async (clientId) =>
         new oidc.Configuration(
           {
-            issuer: "http://keycloak.test/realms/astax",
+            issuer: "https://keycloak.test/realms/astax",
             authorization_endpoint:
-              "http://keycloak.test/realms/astax/protocol/openid-connect/auth",
-            token_endpoint: "http://keycloak.test/realms/astax/protocol/openid-connect/token",
+              "https://keycloak.test/realms/astax/protocol/openid-connect/auth",
+            token_endpoint: "https://keycloak.test/realms/astax/protocol/openid-connect/token",
           },
           clientId,
         ),

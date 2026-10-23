@@ -4,7 +4,7 @@ Queste regole valgono per tutte le utenze. Le schede dei singoli ruoli descrivon
 
 ## Accesso e sicurezza
 
-- **Privato:** accesso con email o telefono e codice OTP, senza password.
+- **Privato:** accesso con email o telefono e codice OTP, senza password. L'email del codice contiene anche un link che fa entrare con un tocco: vale una volta sola e scade con il codice ([ADR 0019](../adr/0019-link-magico.md)); il codice resta come alternativa.
 - **Utenze professionali** (broker, agenzia, sub-agente, back office, amministratore): email, password e autenticazione a due fattori obbligatoria.
 - Durata della sessione impostata dall'amministratore, più breve per back office e amministratore.
 - Ogni utente vede accessi recenti e dispositivi collegati, e può disconnetterli.

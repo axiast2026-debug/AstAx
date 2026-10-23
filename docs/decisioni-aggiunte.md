@@ -76,7 +76,7 @@ Le specifiche lasciavano aperti alcuni dettagli che il codice deve per forza dec
 | # | Tema | Decisione |
 | --- | --- | --- |
 | 36 | Autenticazione e permessi | Keycloak gestisce identità, password, secondo fattore e sessioni. I permessi (ruoli per organizzazione, contesti, abilitazioni) stanno nel database di AstAx e si controllano nell'API. |
-| 37 | Accesso dei privati | Codice OTP via email o SMS con un autenticatore aggiuntivo di Keycloak. Se in fase 1 risulta troppo oneroso, Claude Code propone un'alternativa con un ADR prima di cambiarla. |
+| 37 | Accesso dei privati | Codice OTP via email o SMS con un autenticatore aggiuntivo di Keycloak. Se in fase 1 risulta troppo oneroso, Claude Code propone un'alternativa con un ADR prima di cambiarla. Dal 2026-10-23 l'email del codice ha anche un link che fa entrare con un tocco, con le stesse regole del codice (ADR 0019, domanda 28). |
 | 38 | Cartelle in più | `packages/db` (schema Prisma e client, usato da API e worker) e `packages/config` (configurazioni condivise di TypeScript e lint). |
 | 39 | Workflow | Un workflow Temporal per richiesta e uno per polizza (rinnovo, questionario). Nei payload solo identificativi. Temporal Cloud UE o installato in proprio: si decide in fase 8 con un ADR. |
 | 40 | Tempo reale | WebSocket (Socket.IO con adattatore Redis) per contatori e cambi di stato. |
