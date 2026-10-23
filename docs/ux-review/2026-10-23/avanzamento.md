@@ -16,3 +16,4 @@ Ramo `ux/revisione-2026-10-23`. Se la sessione si interrompe, si riparte da qui.
 ## Diario
 
 - 2026-10-23: letti CLAUDE.md, stato, ADR 0013-0017, piani broker e agenzie, prova guidata, canvas (Movimento, Componenti). Creato il ramo.
+- 2026-10-23: strumento di misura in `tests/e2e/ux-review/` (config a parte `tests/e2e/ux-review.config.ts`, non in CI): conta schermate, tocchi, campi, scelte, file, attese; schermate a 390 e 1440 px in `schermate/<fase>/<flusso>/`; axe (WCAG 2.2 AA, tutti gli impatti) per schermata; risultati in `misure/<fase>/<flusso>.json`. Ambiente trovato già acceso (Docker, API stabile, worker, sito in produzione, back office in sviluppo). Controlli completi (`pnpm check`) verdi al commit 88f4115 secondo `docs/stato.md`; non rilanciati all'inizio per la memoria del PC: si rilanciano alla fine. Prima osservazione: la pagina di accesso del privato è quella di Keycloak con il tema grigio/blu di base, fuori dal sistema visivo.

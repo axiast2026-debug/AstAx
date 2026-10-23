@@ -5,5 +5,5 @@
     "types": ["node"],
     "lib": ["es2023", "dom", "dom.iterable"]
   },
-  "include": ["*.ts", "specs", "support"]
+  "include": ["*.ts", "specs", "support", "ux-review"]
 }
