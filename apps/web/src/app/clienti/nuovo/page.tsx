@@ -16,7 +16,7 @@ export default async function NewCustomerPage({
   const { errore, poi } = await searchParams;
   return (
     <AppShell viewer={viewer}>
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
+      <h1 className="font-display text-screen font-extrabold">{t("title")}</h1>
       <div className="mt-6">
         <ErrorSummary codes={errore} />
       </div>
@@ -31,18 +31,30 @@ export default async function NewCustomerPage({
           ]}
           defaultValue="PERSON"
         />
-        <Fieldset legend={t("person")}>
-          <Field label={t("surname")} name="surname" autoComplete="off" />
-          <Field label={t("givenName")} name="givenName" autoComplete="off" />
-          <Field label={t("fiscalCode")} name="fiscalCode" autoComplete="off" />
-        </Fieldset>
-        <Fieldset legend={t("company")}>
-          <Field label={t("companyName")} name="companyName" autoComplete="off" />
-          <Field label={t("vatNumber")} name="vatNumber" autoComplete="off" />
-        </Fieldset>
+        {/* Only the fields of the chosen kind (globals.css, data-shows-when). */}
+        <div data-shows-when="person">
+          <Fieldset legend={t("person")}>
+            <Field label={t("surname")} name="surname" autoComplete="off" />
+            <Field label={t("givenName")} name="givenName" autoComplete="off" />
+            <Field
+              label={t("fiscalCode")}
+              name="fiscalCode"
+              autoComplete="off"
+              autoCapitalize="characters"
+              hint={t("fiscalCodeHint")}
+              className="sm:col-span-2"
+            />
+          </Fieldset>
+        </div>
+        <div data-shows-when="company">
+          <Fieldset legend={t("company")}>
+            <Field label={t("companyName")} name="companyName" autoComplete="off" />
+            <Field label={t("vatNumber")} name="vatNumber" autoComplete="off" />
+          </Fieldset>
+        </div>
         <Fieldset legend={t("contacts")}>
-          <Field label={t("email")} name="email" type="email" autoComplete="off" />
-          <Field label={t("phone")} name="phone" type="tel" autoComplete="off" />
+          <Field label={t("email")} name="email" type="email" autoComplete="off" inputMode="email" />
+          <Field label={t("phone")} name="phone" type="tel" autoComplete="off" inputMode="tel" />
           <p className="text-sm text-warm-600 sm:col-span-2">{t("contactsNote")}</p>
         </Fieldset>
         <Button type="submit" size="lg">

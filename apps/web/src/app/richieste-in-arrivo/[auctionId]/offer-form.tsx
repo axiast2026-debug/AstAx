@@ -79,6 +79,16 @@ export async function OfferForm({
     base ? coverage[item]?.included === true : requirements[item]?.required === true;
   const rca = coverage.rca;
   const separate = rca?.limitType === "SEPARATE_LIMITS";
+  // The package minimums as a starting point (UX review 2026-10-23): the agency
+  // changes them if it offers more; an empty form asks for less typing.
+  const numberOr = (value: unknown) =>
+    typeof value === "number" && value > 0 ? String(value) : "";
+  const proposed = base
+    ? { singleLimit: "", capital: "" }
+    : {
+        singleLimit: numberOr(requirements.rca?.minSingleLimitEur),
+        capital: numberOr(requirements.driverAccident?.minCapitalEur),
+      };
   const requirementTexts = await Promise.all(
     COVERAGE_ITEMS.map((item) => requirementText(item, requirements[item])),
   );
@@ -175,7 +185,11 @@ export async function OfferForm({
             const d = coverage[item];
             const short = shortfalls?.includes(item) === true;
             return (
-              <div key={item} className="border-t border-warm-100 py-3 first:border-t-0">
+              <div
+                key={item}
+                data-coverage-item={item}
+                className="border-t border-warm-100 py-3 first:border-t-0"
+              >
                 <div className="flex items-start gap-2">
                   <span
                     className={`inline-flex size-5 shrink-0 pt-0.5 ${short ? "text-orange-700" : "text-green-700"}`}
@@ -193,7 +207,10 @@ export async function OfferForm({
                     </span>
                   </span>
                 </div>
-                <div className="mt-2 grid gap-3 sm:grid-cols-2 sm:pl-7">
+                <div
+                  data-item-fields={item === "rca" ? undefined : ""}
+                  className="mt-2 grid gap-3 sm:grid-cols-2 sm:pl-7"
+                >
                   {item === "rca" ? (
                     <>
                       <div>
@@ -213,24 +230,30 @@ export async function OfferForm({
                           <option value="SEPARATE_LIMITS">{t("separateLimits")}</option>
                         </select>
                       </div>
-                      <Field
-                        label={t("singleLimitEur")}
-                        name="coverage.rca.singleLimitEur"
-                        inputMode="numeric"
-                        defaultValue={num(rca, "singleLimitEur")}
-                      />
-                      <Field
-                        label={t("bodilyInjuryEur")}
-                        name="coverage.rca.bodilyInjuryPerClaimEur"
-                        inputMode="numeric"
-                        defaultValue={num(rca, "bodilyInjuryPerClaimEur")}
-                      />
-                      <Field
-                        label={t("propertyDamageEur")}
-                        name="coverage.rca.propertyDamagePerClaimEur"
-                        inputMode="numeric"
-                        defaultValue={num(rca, "propertyDamagePerClaimEur")}
-                      />
+                      <div data-shows-when="single-limit">
+                        <Field
+                          label={t("singleLimitEur")}
+                          name="coverage.rca.singleLimitEur"
+                          inputMode="numeric"
+                          defaultValue={num(rca, "singleLimitEur") || proposed.singleLimit}
+                        />
+                      </div>
+                      <div data-shows-when="separate-limits">
+                        <Field
+                          label={t("bodilyInjuryEur")}
+                          name="coverage.rca.bodilyInjuryPerClaimEur"
+                          inputMode="numeric"
+                          defaultValue={num(rca, "bodilyInjuryPerClaimEur")}
+                        />
+                      </div>
+                      <div data-shows-when="separate-limits">
+                        <Field
+                          label={t("propertyDamageEur")}
+                          name="coverage.rca.propertyDamagePerClaimEur"
+                          inputMode="numeric"
+                          defaultValue={num(rca, "propertyDamagePerClaimEur")}
+                        />
+                      </div>
                     </>
                   ) : (
                     <>
@@ -260,7 +283,7 @@ export async function OfferForm({
                           label={t("capitalEur")}
                           name="coverage.driverAccident.capitalEur"
                           inputMode="numeric"
-                          defaultValue={num(d, "capitalEur")}
+                          defaultValue={num(d, "capitalEur") || proposed.capital}
                         />
                       ) : null}
                       {item === "theftFire" || item === "naturalEventsVandalism" ? (

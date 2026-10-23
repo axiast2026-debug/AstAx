@@ -3,3 +3,23 @@
 
 /* Classes used by the shared components. */
 @source "../../../../packages/ui/src";
+
+/*
+ * Progressive disclosure without scripts (UX review 2026-10-23): a block
+ * marked `data-shows-when` appears only while its radio, checkbox or option
+ * is chosen. Browsers without :has() keep everything visible.
+ */
+@supports selector(:has(*)) {
+  form:not(:has(#package-CUSTOM:checked)) [data-shows-when="package-custom"],
+  form:not(:has(#start-DATE:checked)) [data-shows-when="start-date"],
+  form:not(:has(#f-coverage-rca-limitType option[value="SEPARATE_LIMITS"]:checked))
+    [data-shows-when="separate-limits"],
+  form:has(#f-coverage-rca-limitType option[value="SEPARATE_LIMITS"]:checked)
+    [data-shows-when="single-limit"],
+  form:not(:has(#f-kind option[value="COMPANY"]:checked)) [data-shows-when="company"],
+  form:has(#f-kind option[value="COMPANY"]:checked) [data-shows-when="person"],
+  [data-coverage-item]:not(:has(input[type="checkbox"][name$=".included"]:checked))
+    [data-item-fields] > :not(:first-child) {
+    display: none;
+  }
+}
