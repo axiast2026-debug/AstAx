@@ -5,13 +5,19 @@
  * camera on a phone and sends the form as soon as a file is chosen. No
  * `capture`: the phone offers camera, gallery or a file (a PDF of the registration).
  */
-export function AutoSubmitFile({ id }: { id: string }) {
+export function AutoSubmitFile({
+  id,
+  accept = "image/jpeg,image/png,image/webp,application/pdf",
+}: {
+  id: string;
+  accept?: string;
+}) {
   return (
     <input
       id={id}
       name="file"
       type="file"
-      accept="image/jpeg,image/png,image/webp,application/pdf"
+      accept={accept}
       required
       className="sr-only"
       onChange={(event) => event.currentTarget.form?.requestSubmit()}
