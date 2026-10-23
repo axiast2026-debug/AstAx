@@ -59,16 +59,25 @@ async function photo(page: Page, m: Meter, title: string, fileName: string): Pro
   const t0 = clock.now().getTime();
   m.tap(); // «Scatta una foto»
   m.file();
-  await form.locator('input[type="file"]').setInputFiles({
-    name: fileName,
-    mimeType: fileName.endsWith(".pdf") ? "application/pdf" : "image/jpeg",
-    buffer: fileName.endsWith(".pdf") ? PDF : JPEG,
-  });
-  await expect(
+  const received = () =>
     page
       .locator("form", { has: page.getByRole("heading", { name: title, exact: true }) })
-      .getByText(`Ricevuto: ${fileName}`),
-  ).toBeVisible({ timeout: 90_000 });
+      .getByText(`Ricevuto: ${fileName}`);
+  // On this slow PC the page may not be hydrated yet when the file is picked
+  // (the change event then sends nothing): a second pick after 30 s.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await form.locator('input[type="file"]').setInputFiles({
+      name: fileName,
+      mimeType: fileName.endsWith(".pdf") ? "application/pdf" : "image/jpeg",
+      buffer: fileName.endsWith(".pdf") ? PDF : JPEG,
+    });
+    const ok = await received()
+      .waitFor({ state: "visible", timeout: 30_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (ok) break;
+  }
+  await expect(received()).toBeVisible({ timeout: 60_000 });
   m.wait((clock.now().getTime() - t0) / 1000);
 }
 
@@ -405,7 +414,7 @@ test.describe.serial("misura UX", () => {
     const t0 = clock.now().getTime();
     m.file(3);
     // One tap per file when the file leaves by itself; two with a «Carica» button.
-    m.tap((await uno.getByRole("button", { name: "Carica" }).count()) > 0 ? 6 : 3);
+    m.tap((await uno.locator("form button", { hasText: /^Carica$/ }).count()) > 0 ? 6 : 3);
     m.type(); // numero di polizza
     m.tap(); // «Segna come emessa»
     await issuePolicy(uno, code, `ALFA-${code.slice(-6)}`);
