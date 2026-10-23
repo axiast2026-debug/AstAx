@@ -12,7 +12,11 @@
     "proText": "Entri con email, password e codice dell'app di autenticazione.",
     "proButton": "Accesso professionisti",
     "expired": "La sessione è scaduta. Accedi di nuovo.",
-    "proJoin": "Non sei ancora su AstAx? Chiedi di entrare"
+    "proJoin": "Non sei ancora su AstAx? Chiedi di entrare",
+    "linkTitle": "Un attimo: ti facciamo entrare",
+    "linkText": "Hai aperto il link dell'email. Se la pagina non va avanti da sola, tocca il pulsante.",
+    "linkButton": "Entra in AstAx",
+    "linkNote": "Il link vale una volta sola. Se non funziona più, torna alla pagina di accesso e chiedi un nuovo codice."
   },
   "shell": {
     "notifications": "Notifiche",

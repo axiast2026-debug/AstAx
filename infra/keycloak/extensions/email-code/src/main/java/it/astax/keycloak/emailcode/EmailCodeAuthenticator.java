@@ -3,14 +3,14 @@ package it.astax.keycloak.emailcode;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.text.MessageFormat;
-import java.util.HexFormat;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Pattern;
 import org.jboss.logging.Logger;
@@ -31,10 +31,10 @@ import org.keycloak.theme.Theme;
 
 /**
  * Passwordless login for private customers: the user types an email address,
- * receives a one-time code and types it back. Only accounts with the realm role
- * astax-private may log in this way: professional and staff accounts must use
- * password and TOTP (SIC-05). A private account is created on its first verified
- * login, never before.
+ * receives a one-time code and types it back, or taps the magic link in the same
+ * email (ADR 0019). Only accounts with the realm role astax-private may log in
+ * this way: professional and staff accounts must use password and TOTP (SIC-05).
+ * A private account is created on its first verified login, never before.
  */
 public class EmailCodeAuthenticator implements Authenticator {
 
@@ -47,8 +47,20 @@ public class EmailCodeAuthenticator implements Authenticator {
   private static final String NOTE_EXPIRES = "astax.emailCode.expiresAt";
   private static final String NOTE_ATTEMPTS = "astax.emailCode.attempts";
   private static final String NOTE_SENDS = "astax.emailCode.sends";
+  /** The link token of the current code, so it can be revoked when the code is used instead. */
+  private static final String NOTE_LINK = "astax.emailCode.link";
   /** Codes one login attempt may request: stops the form being used to flood a mailbox. */
   private static final int MAX_SENDS_PER_LOGIN = 3;
+
+  /**
+   * The web app starts the login from the magic link with this extra parameter
+   * on the authorization request; Keycloak keeps it as a client note with its
+   * prefix (AuthorizationEndpoint.LOGIN_SESSION_NOTE_ADDITIONAL_REQ_PARAMS_PREFIX).
+   */
+  static final String LINK_PARAM = "astax_link";
+  private static final String LINK_CLIENT_NOTE = "client_request_param_" + LINK_PARAM;
+  /** Landing page of the web app that consumes the link (apps/web, «Entra dal link»). */
+  static final String LINK_PATH = "/accedi/link";
 
   private static final String EMAIL_FORM = "astax-email-code-email.ftl";
   private static final String CODE_FORM = "astax-email-code-code.ftl";
@@ -57,7 +69,16 @@ public class EmailCodeAuthenticator implements Authenticator {
 
   @Override
   public void authenticate(AuthenticationFlowContext context) {
-    clearNotes(context.getAuthenticationSession());
+    AuthenticationSessionModel auth = context.getAuthenticationSession();
+    String linkToken = auth.getClientNote(LINK_CLIENT_NOTE);
+    if (linkToken != null) {
+      // Read once: a restart of this login must not find it again.
+      auth.removeClientNote(LINK_CLIENT_NOTE);
+      clearNotes(auth);
+      loginFromLink(context, linkToken);
+      return;
+    }
+    clearNotes(auth);
     context.challenge(context.form().createForm(EMAIL_FORM));
   }
 
@@ -66,7 +87,7 @@ public class EmailCodeAuthenticator implements Authenticator {
     MultivaluedMap<String, String> form = context.getHttpRequest().getDecodedFormParameters();
     if (form.containsKey("restart")) {
       // Keeps the count of codes already sent in this login attempt.
-      clearCode(context.getAuthenticationSession());
+      clearCode(context);
       context.challenge(context.form().createForm(EMAIL_FORM));
     } else if (form.containsKey("code")) {
       verifyCode(context, form.getFirst("code"));
@@ -76,10 +97,10 @@ public class EmailCodeAuthenticator implements Authenticator {
   }
 
   /**
-   * No account is created here: only a verified code creates one. Otherwise anyone
-   * could reserve someone else's address as private and block a team invitation.
-   * Addresses that may not log in this way get the same page and no code, so the
-   * form does not reveal which addresses belong to professionals.
+   * No account is created here: only a verified code or link creates one. Otherwise
+   * anyone could reserve someone else's address as private and block a team
+   * invitation. Addresses that may not log in this way get the same page and no
+   * email, so the form does not reveal which addresses belong to professionals.
    */
   private void sendCode(AuthenticationFlowContext context, String rawEmail) {
     String email = rawEmail == null ? "" : rawEmail.trim().toLowerCase(Locale.ROOT);
@@ -88,7 +109,7 @@ public class EmailCodeAuthenticator implements Authenticator {
       return;
     }
     AuthenticationSessionModel auth = context.getAuthenticationSession();
-    int sends = parseOr(auth.getAuthNote(NOTE_SENDS), 0) + 1;
+    int sends = SendLimits.parseOr(auth.getAuthNote(NOTE_SENDS), 0) + 1;
     if (sends > MAX_SENDS_PER_LOGIN) {
       emailError(context, "astaxEmailCodeTooManySends");
       return;
@@ -99,8 +120,9 @@ public class EmailCodeAuthenticator implements Authenticator {
     RealmModel realm = context.getRealm();
     Settings settings = Settings.of(context.getAuthenticatorConfig());
     // Phase 8: a limit per address across login attempts (security.emailCodesPerAddressPerHour).
-    // Counted for every address, so the answer says nothing about who has an account.
-    if (!withinHourlyLimit(session, email, settings.maxCodesPerHour())) {
+    // The link travels in the same email, so the same limit covers it.
+    if (!new SendLimits(new KeycloakStore(session), Time::currentTimeMillis)
+        .allowSend(email, settings.maxCodesPerHour())) {
       emailError(context, "astaxEmailCodeTooManySends");
       return;
     }
@@ -108,21 +130,27 @@ public class EmailCodeAuthenticator implements Authenticator {
     boolean allowed = existing == null || isPrivate(realm, existing);
 
     String code = newCode(settings.codeLength());
+    long ttlSeconds = settings.ttlMinutes() * 60L;
     auth.setAuthNote(NOTE_EMAIL, email);
     auth.setAuthNote(NOTE_BLOCKED, Boolean.toString(!allowed));
-    auth.setAuthNote(NOTE_HASH, sha256(code));
-    auth.setAuthNote(NOTE_EXPIRES, Long.toString(Time.currentTimeMillis() + settings.ttlMinutes() * 60_000L));
+    auth.setAuthNote(NOTE_HASH, MagicLinkTokens.sha256(code));
+    auth.setAuthNote(NOTE_EXPIRES, Long.toString(Time.currentTimeMillis() + ttlSeconds * 1000L));
     auth.setAuthNote(NOTE_ATTEMPTS, "0");
 
     if (allowed) {
+      // Same expiry as the code; valid once; nothing but the token in the URL (rule 8).
+      MagicLinkTokens tokens = magicLinks(session);
+      String token = tokens.issue(email, ttlSeconds);
+      auth.setAuthNote(NOTE_LINK, token);
       try {
-        sendCodeEmail(session, realm, email, code, settings.ttlMinutes());
+        sendCodeEmail(session, realm, email, code, settings.ttlMinutes(), linkUrl(auth, token));
       } catch (EmailException | IOException e) {
         // Exception types only: messages may contain the address (SIC-06).
         Throwable cause = e.getCause();
         LOG.warnf("Email code not sent: %s caused by %s", e.getClass().getSimpleName(),
             cause == null ? "-" : cause.getClass().getName());
-        clearCode(auth);
+        tokens.revoke(token);
+        clearCode(context);
         emailError(context, "astaxEmailCodeSendFailed");
         return;
       }
@@ -131,33 +159,37 @@ public class EmailCodeAuthenticator implements Authenticator {
   }
 
   /**
-   * Codes sent to one address in the current hour, kept in Keycloak's cluster-wide
-   * store under a hash of the address (no address in the key, SIC-06).
+   * The link points to the web app that started this login: its origin comes from
+   * the redirect URI, which Keycloak has already checked against the client's
+   * registered ones. The token is the only thing in the URL.
    */
-  private static boolean withinHourlyLimit(KeycloakSession session, String email, int maxPerHour) {
-    SingleUseObjectProvider store = session.singleUseObjects();
-    long hour = Time.currentTimeMillis() / 3_600_000L;
-    String key = "astax-email-code:" + sha256(email) + ":" + hour;
-    Map<String, String> current = store.get(key);
-    int count = current == null ? 0 : parseOr(current.get("count"), 0);
-    if (count >= maxPerHour) return false;
-    Map<String, String> next = Map.of("count", Integer.toString(count + 1));
-    if (current == null) store.put(key, 3_600L, next);
-    else store.replace(key, next);
-    return true;
+  static String linkUrl(AuthenticationSessionModel auth, String token) {
+    URI redirect = URI.create(auth.getRedirectUri());
+    String origin = redirect.getScheme() + "://" + redirect.getAuthority();
+    return origin + LINK_PATH + "?t=" + token;
   }
 
   /** Texts come from the email theme (messages_it.properties), never from the code. */
   private static void sendCodeEmail(
-      KeycloakSession session, RealmModel realm, String email, String code, int ttlMinutes)
+      KeycloakSession session, RealmModel realm, String email, String code, int ttlMinutes, String link)
       throws EmailException, IOException {
     Locale locale = session.getContext().resolveLocale(null);
     Properties messages = session.theme().getTheme(Theme.Type.EMAIL).getEnhancedMessages(realm, locale);
-    Object[] args = {code, Integer.toString(ttlMinutes)};
+    Object[] args = {code, Integer.toString(ttlMinutes), link};
     String subject = new MessageFormat(messages.getProperty("astaxEmailCodeSubject"), locale).format(args);
     String text = new MessageFormat(messages.getProperty("astaxEmailCodeBody"), locale).format(args);
     String html = new MessageFormat(messages.getProperty("astaxEmailCodeBodyHtml"), locale).format(args);
     session.getProvider(EmailSenderProvider.class).send(realm.getSmtpConfig(), email, subject, text, html);
+  }
+
+  /** The magic link: the token is consumed here, so a second tap finds nothing (ADR 0019). */
+  private void loginFromLink(AuthenticationFlowContext context, String token) {
+    Optional<MagicLinkTokens.Claims> claims = magicLinks(context.getSession()).consume(token);
+    if (claims.isEmpty()) {
+      emailError(context, "astaxEmailCodeLinkInvalid");
+      return;
+    }
+    completeLogin(context, claims.get().email());
   }
 
   private void verifyCode(AuthenticationFlowContext context, String rawCode) {
@@ -170,22 +202,23 @@ public class EmailCodeAuthenticator implements Authenticator {
       return;
     }
     if (Time.currentTimeMillis() > Long.parseLong(expires)) {
-      clearCode(auth);
+      clearCode(context);
       emailError(context, "astaxEmailCodeExpired");
       return;
     }
     Settings settings = Settings.of(context.getAuthenticatorConfig());
-    int attempts = parseOr(auth.getAuthNote(NOTE_ATTEMPTS), 0) + 1;
+    int attempts = SendLimits.parseOr(auth.getAuthNote(NOTE_ATTEMPTS), 0) + 1;
     auth.setAuthNote(NOTE_ATTEMPTS, Integer.toString(attempts));
 
     String code = rawCode == null ? "" : rawCode.replaceAll("\\s", "");
     boolean matches =
         !Boolean.parseBoolean(auth.getAuthNote(NOTE_BLOCKED))
             && MessageDigest.isEqual(
-                sha256(code).getBytes(StandardCharsets.US_ASCII), hash.getBytes(StandardCharsets.US_ASCII));
+                MagicLinkTokens.sha256(code).getBytes(StandardCharsets.US_ASCII),
+                hash.getBytes(StandardCharsets.US_ASCII));
     if (!matches) {
       if (attempts >= settings.maxAttempts()) {
-        clearCode(auth);
+        clearCode(context);
         emailError(context, "astaxEmailCodeTooManyAttempts");
       } else {
         Response challenge =
@@ -194,18 +227,23 @@ public class EmailCodeAuthenticator implements Authenticator {
       }
       return;
     }
+    // The code was used: the link of the same email is no longer needed (valid once, either way).
+    clearNotes(auth);
+    completeLogin(context, email);
+  }
 
+  /** A verified code or link: the account exists from here, never before. */
+  private void completeLogin(AuthenticationFlowContext context, String email) {
     RealmModel realm = context.getRealm();
     UserModel user = context.getSession().users().getUserByEmail(realm, email);
     if (user == null) {
-      // First access of a private customer: the account exists only from a verified code.
+      // First access of a private customer: the account exists only from a verified code or link.
       user = context.getSession().users().addUser(realm, email);
       user.setEnabled(true);
       user.setEmail(email);
       RoleModel role = realm.getRole(PRIVATE_ROLE);
       if (role != null) user.grantRole(role);
     }
-    clearNotes(auth);
     if (!isPrivate(realm, user)) {
       emailError(context, "astaxEmailCodeWrong");
       return;
@@ -225,26 +263,30 @@ public class EmailCodeAuthenticator implements Authenticator {
     context.failureChallenge(AuthenticationFlowError.INVALID_USER, challenge);
   }
 
-  /** Forgets the current code; the count of codes sent in this login attempt stays. */
+  private static MagicLinkTokens magicLinks(KeycloakSession session) {
+    return new MagicLinkTokens(new KeycloakStore(session), Time::currentTimeMillis);
+  }
+
+  /** Forgets the current code and its link; the count of codes sent in this login attempt stays. */
+  private static void clearCode(AuthenticationFlowContext context) {
+    AuthenticationSessionModel auth = context.getAuthenticationSession();
+    String link = auth.getAuthNote(NOTE_LINK);
+    if (link != null) magicLinks(context.getSession()).revoke(link);
+    clearCode(auth);
+  }
+
   private static void clearCode(AuthenticationSessionModel auth) {
     auth.removeAuthNote(NOTE_EMAIL);
     auth.removeAuthNote(NOTE_BLOCKED);
     auth.removeAuthNote(NOTE_HASH);
     auth.removeAuthNote(NOTE_EXPIRES);
     auth.removeAuthNote(NOTE_ATTEMPTS);
+    auth.removeAuthNote(NOTE_LINK);
   }
 
   private static void clearNotes(AuthenticationSessionModel auth) {
     clearCode(auth);
     auth.removeAuthNote(NOTE_SENDS);
-  }
-
-  private static int parseOr(String value, int fallback) {
-    try {
-      return value == null ? fallback : Integer.parseInt(value);
-    } catch (NumberFormatException e) {
-      return fallback;
-    }
   }
 
   private static String newCode(int length) {
@@ -253,12 +295,30 @@ public class EmailCodeAuthenticator implements Authenticator {
     return code.toString();
   }
 
-  private static String sha256(String value) {
-    try {
-      byte[] digest = MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
-      return HexFormat.of().formatHex(digest);
-    } catch (NoSuchAlgorithmException e) {
-      throw new IllegalStateException(e);
+  /** Keycloak's cluster-wide store with expiry, behind the interfaces the pure classes use. */
+  private record KeycloakStore(KeycloakSession session) implements MagicLinkTokens.Store, SendLimits.Store {
+    private SingleUseObjectProvider provider() {
+      return session.singleUseObjects();
+    }
+
+    @Override
+    public Map<String, String> get(String key) {
+      return provider().get(key);
+    }
+
+    @Override
+    public void put(String key, long lifespanSeconds, Map<String, String> notes) {
+      provider().put(key, lifespanSeconds, notes);
+    }
+
+    @Override
+    public boolean replace(String key, Map<String, String> notes) {
+      return provider().replace(key, notes);
+    }
+
+    @Override
+    public Map<String, String> remove(String key) {
+      return provider().remove(key);
     }
   }
 

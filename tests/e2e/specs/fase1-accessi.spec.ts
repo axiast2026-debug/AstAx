@@ -7,6 +7,7 @@ import {
   loginProfessional,
   loginProfessionalAgain,
   mailCount,
+  readMagicLink,
   saveSecret,
 } from "../support/auth.js";
 
@@ -40,6 +41,50 @@ test.describe("fase 1: accessi", () => {
     // «Assistenza» in the top bar: the page arrives in a later phase, it is not a 404.
     await page.getByRole("link", { name: "Assistenza" }).first().click();
     await expect(page.getByRole("heading", { name: "Assistenza" })).toBeVisible();
+  });
+
+  test("un privato entra con un tocco dal link nell'email; il link usato di nuovo non vale più", async ({
+    page,
+    browser,
+  }) => {
+    const email = `e2e.link.${randomBytes(4).toString("hex")}@example.test`;
+    await page.goto(`${WEB}/auth/login?as=private`);
+    await page.getByLabel("Email").fill(email);
+    await page.getByRole("button", { name: "Inviami il codice" }).click();
+    await expect(page.getByText("Scrivi il codice")).toBeVisible();
+
+    // ADR 0019: the same email carries a one-use link; its URL holds the token and nothing else (rule 8).
+    const link = await readMagicLink(email);
+    expect(new URL(link).search).toMatch(/^\?t=[A-Za-z0-9_-]{43}$/);
+    expect(link).not.toContain(email.split("@")[0]);
+
+    // Tapped from the mail app: another browser, no session of the first one.
+    const mailApp = await browser.newContext({ locale: "it-IT", timezoneId: "Europe/Rome" });
+    const tap = await mailApp.newPage();
+    // The landing page submits itself at once: wait for the navigation, not for «load».
+    await tap.goto(link, { waitUntil: "commit" });
+    // The landing page posts the token by itself; the first access asks for the legal texts (LEG-02).
+    await expect(tap).toHaveURL(`${WEB}/documenti-legali`);
+    await acceptLegalIfAsked(tap);
+    await expect(tap).toHaveURL(`${WEB}/`);
+    await expect(
+      tap
+        .getByRole("navigation", { name: "Menu principale" })
+        .getByRole("link", { name: "Profilo" }),
+    ).toBeVisible();
+    await tap.getByRole("link", { name: "Profilo" }).first().click();
+    await expect(tap.getByText(email)).toBeVisible();
+
+    // Valid once: after leaving, the same link is refused and the email form comes back.
+    await tap.getByRole("button", { name: "Esci" }).click();
+    // Logout is a chain of redirects (site, Keycloak, site): wait for it to end.
+    await expect(tap).toHaveURL(`${WEB}/`);
+    await expect(tap.getByRole("link", { name: "Accedi" }).first()).toBeVisible();
+    // The landing page submits itself at once: wait for the navigation, not for «load».
+    await tap.goto(link, { waitUntil: "commit" });
+    await expect(tap.getByText("Il link non vale più")).toBeVisible();
+    await expect(tap.getByLabel("Email")).toBeVisible();
+    await mailApp.close();
   });
 
   test("l'email di un professionista nella pagina dei privati non riceve codici e non entra", async ({
