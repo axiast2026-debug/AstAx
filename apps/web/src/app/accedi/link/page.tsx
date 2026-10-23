@@ -41,13 +41,8 @@ export default async function MagicLinkPage({
         </Button>
         <p className="text-note text-warm-600">{t("linkNote")}</p>
       </form>
-      <script
-        nonce={nonce}
-        // Submits once the page is there; the button stays for who has no script.
-        dangerouslySetInnerHTML={{
-          __html: "document.getElementById('magic-link').requestSubmit();",
-        }}
-      />
+      {/* Submits the form once the page is there (public/magic-link.js); no inline script, as the CSP and the Semgrep rule ask. */}
+      <script nonce={nonce} src="/magic-link.js" />
     </PublicPage>
   );
 }
