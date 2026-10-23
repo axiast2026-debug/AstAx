@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { e2eState, loginPrivate, acceptLegalIfAsked, savedSecret, saveSecret, loginProfessional, loginProfessionalAgain } from "../support/auth.js";
+import { e2eState, acceptLegalIfAsked, savedSecret, saveSecret, loginProfessional, loginProfessionalAgain } from "../support/auth.js";
 import {
   ADMIN,
   approve,
@@ -11,10 +11,19 @@ import {
   submittedRequest,
   WEB,
 } from "../support/auction.js";
-import { inviteByHand, issuePolicy, moveClock, openIncoming, professional, sendOffer } from "../support/agency.js";
-import { birthDateOf, brokerLogin, newFiscalCode, ownerSignedDeclaration } from "../support/broker.js";
+import { issuePolicy, moveClock, openIncoming, professional, sendOffer } from "../support/agency.js";
+import { birthDateOf, newFiscalCode, ownerSignedDeclaration } from "../support/broker.js";
 import { codeFromMail, latestMail, requestCode } from "../support/requests.js";
 import { DESKTOP, Meter, PHONE } from "./meter.js";
+import { SystemClock } from "@astax/adapters/clock";
+
+const clock = new SystemClock();
+
+/** A value a previous flow of this run must have set. */
+function required<T>(value: T | undefined): T {
+  if (value === undefined) throw new Error("A previous flow of this run did not run");
+  return value;
+}
 
 /**
  * UX review, measurement of the flows (docs/ux-review/2026-10-23). Each test
@@ -47,7 +56,7 @@ async function photo(page: Page, m: Meter, title: string, fileName: string): Pro
   const form = page.locator("form", {
     has: page.getByRole("heading", { name: title, exact: true }),
   });
-  const t0 = Date.now();
+  const t0 = clock.now().getTime();
   m.tap(); // «Scatta una foto»
   m.file();
   await form.locator('input[type="file"]').setInputFiles({
@@ -60,7 +69,7 @@ async function photo(page: Page, m: Meter, title: string, fileName: string): Pro
       .locator("form", { has: page.getByRole("heading", { name: title, exact: true }) })
       .getByText(`Ricevuto: ${fileName}`),
   ).toBeVisible({ timeout: 90_000 });
-  m.wait((Date.now() - t0) / 1000);
+  m.wait((clock.now().getTime() - t0) / 1000);
 }
 
 /** The back office operator of this run, logged in once. */
@@ -91,8 +100,12 @@ async function fiveScreens(
   await photo(page, m, "Attestato di rischio (facoltativo)", files.attestato);
   await expect(page.getByLabel("Targa")).not.toHaveValue("");
   await m.screen(page, "dati-e-foto-letti");
-  m.type();
-  await page.getByLabel("Data di nascita del proprietario").fill(birthDate);
+  // Typed only when the app could not propose it (licence read by the bot, customer card).
+  const birth = page.getByLabel("Data di nascita del proprietario");
+  if ((await birth.inputValue()) === "") {
+    m.type();
+    await birth.fill(birthDate);
+  }
   m.tap();
   await page.getByRole("button", { name: "Continua" }).click();
   await expect(page).toHaveURL(/\/guida$/);
@@ -112,10 +125,10 @@ async function fiveScreens(
     await page.getByLabel(/Ho letto e accetto il trattamento/).check();
   }
   m.tap();
-  const t0 = Date.now();
+  const t0 = clock.now().getTime();
   await page.getByRole("button", { name: "Invia la richiesta" }).click();
   await expect(page.getByText("Richiesta inviata. La verifichiamo")).toBeVisible();
-  m.wait((Date.now() - t0) / 1000);
+  m.wait((clock.now().getTime() - t0) / 1000);
   await m.screen(page, "richiesta-inviata");
 }
 
@@ -138,7 +151,8 @@ async function proLogin(page: Page, m: Meter, email: string, where = `${WEB}/aut
 async function testOffersAndClose(operator: Page, code: string): Promise<void> {
   const card = await auctionCard(operator, code);
   await card.getByRole("button", { name: "Invia 3 offerte di prova" }).click();
-  await expect(operator.getByText("Richiesta inviata")).toBeVisible();
+  // The status message may vanish at once with the live refresh: the closing checks the offers.
+  await operator.waitForLoadState("networkidle").catch(() => undefined);
   await fireUntil(operator, code, "Chiusa");
 }
 
@@ -212,7 +226,7 @@ test.describe.serial("misura UX", () => {
     const m = new Meter("backoffice-verifica", "verificatore", DESKTOP.width);
     const page = await newPage(browser, DESKTOP);
     state.operator = page;
-    const code = state.code!;
+    const code = required(state.code);
     await page.goto(ADMIN);
     await m.screen(page, "accesso-back-office");
     m.tap();
@@ -240,10 +254,10 @@ test.describe.serial("misura UX", () => {
       m.type();
       await page.getByLabel(/Data di acquisto/).fill("2020-04-01");
       m.tap();
-      const t0 = Date.now();
+      const t0 = clock.now().getTime();
       await page.getByRole("button", { name: "Salva i dati completati" }).click();
       await expect(page.getByText("Dati completati")).toBeVisible();
-      m.wait((Date.now() - t0) / 1000);
+      m.wait((clock.now().getTime() - t0) / 1000);
       await m.screen(page, "dati-completati");
     }
     await expect(page.getByRole("heading", { name: "Agenzie da invitare" })).toBeVisible();
@@ -254,12 +268,12 @@ test.describe.serial("misura UX", () => {
     m.save();
     // Setup for the agencies: Uno and Tre invited whatever the automatic choice.
     for (const agency of ["Agenzia Uno", "Agenzia Tre"]) {
-      await inviteByHand(page, await auctionCard(page, code), agency);
+      await invite(page, code, agency);
     }
     // The customer's side of the auction (Momento 2).
-    const customer = state.customer!;
+    const customer = required(state.customer);
     const mc = new Meter("privato-asta-in-corso", "privato", PHONE.width);
-    await customer.goto(state.url!);
+    await customer.goto(required(state.url));
     await expect(customer.getByText("Asta in corso")).toBeVisible({ timeout: 60_000 });
     await mc.screen(customer, "asta-in-corso");
     await customer.goto(WEB);
@@ -272,7 +286,7 @@ test.describe.serial("misura UX", () => {
     const { users } = e2eState();
     const uno = await newPage(browser, DESKTOP);
     state.uno = uno;
-    const code = state.code!;
+    const code = required(state.code);
     await proLogin(uno, m, users.owner);
     await m.screen(uno, "dashboard-agenzia");
     m.tap();
@@ -300,9 +314,9 @@ test.describe.serial("misura UX", () => {
     m.file(); // PDF
     m.choose(); // vincolante
     m.tap();
-    const t0 = Date.now();
+    const t0 = clock.now().getTime();
     await sendOffer(uno, "Compagnia Alfa", "520,00", 4);
-    m.wait((Date.now() - t0) / 1000);
+    m.wait((clock.now().getTime() - t0) / 1000);
     await m.screen(uno, "ricevuta-busta-chiusa");
     m.save();
     // Tre offers too (not measured), then the closing by the development tool.
@@ -312,13 +326,13 @@ test.describe.serial("misura UX", () => {
     await tre.getByRole("button", { name: "Prendi in carico" }).click();
     await sendOffer(tre, "Compagnia Beta", "505,00", 2);
     await tre.close();
-    await fireUntil(state.operator!, code, "Chiusa");
+    await fireUntil(required(state.operator), code, "Chiusa");
   });
 
-  test("privato: apertura, confronto AI, scelta, firma e pagamento", async ({}) => {
+  test("privato: apertura, confronto AI, scelta, firma e pagamento", async () => {
     const m = new Meter("privato-acquisto", "privato", PHONE.width);
-    const page = state.customer!;
-    const url = state.url!;
+    const page = required(state.customer);
+    const url = required(state.url);
     await expect(async () => {
       await page.goto(url);
       await expect(page.locator("#offerte li", { hasText: /Compagnia/ })).toHaveCount(2, {
@@ -330,20 +344,20 @@ test.describe.serial("misura UX", () => {
     await page.getByRole("link", { name: "Confronta con AI" }).click();
     await m.screen(page, "confronto-ai-proposta");
     m.tap();
-    const t0 = Date.now();
+    const t0 = clock.now().getTime();
     await page.getByRole("button", { name: "Confronta con AI" }).click();
     await expect(page.getByRole("heading", { name: "Suggerimento generato con AI" })).toBeVisible();
-    m.wait((Date.now() - t0) / 1000);
+    m.wait((clock.now().getTime() - t0) / 1000);
     await m.screen(page, "suggerimento-ai");
     await page.goto(url);
     m.tap();
-    const t1 = Date.now();
+    const t1 = clock.now().getTime();
     await page
       .locator("li", { hasText: "Compagnia Alfa" })
       .getByRole("button", { name: "Scegli questa offerta" })
       .click();
     await expect(page).toHaveURL(/\/accettazione$/, { timeout: 90_000 });
-    m.wait((Date.now() - t1) / 1000);
+    m.wait((clock.now().getTime() - t1) / 1000);
     await m.screen(page, "firma-e-paga");
     m.choose();
     await page.getByLabel("Ho letto i documenti").check();
@@ -354,11 +368,11 @@ test.describe.serial("misura UX", () => {
     m.type();
     m.tap();
     await page.getByLabel("Codice ricevuto").fill("123456");
-    const t2 = Date.now();
+    const t2 = clock.now().getTime();
     await page.getByRole("button", { name: "Firma", exact: true }).click();
     await expect(page).toHaveURL(/\/accettazione$/);
     await expect(page.getByText(/Documenti firmati il/)).toBeVisible();
-    m.wait((Date.now() - t2) / 1000);
+    m.wait((clock.now().getTime() - t2) / 1000);
     await m.screen(page, "firmato-paga");
     m.tap();
     await page.getByRole("button", { name: /^Paga 555,00/ }).click();
@@ -367,19 +381,19 @@ test.describe.serial("misura UX", () => {
     m.type();
     m.tap();
     await page.getByLabel("Numero della carta").fill("4242 4242 4242 4242");
-    const t3 = Date.now();
+    const t3 = clock.now().getTime();
     await page.getByRole("button", { name: "Paga con carta" }).click();
     await expect(page).toHaveURL(/\/accettazione\?esito=/);
-    m.wait((Date.now() - t3) / 1000);
+    m.wait((clock.now().getTime() - t3) / 1000);
     await expect(page.getByRole("heading", { name: "Pagato" })).toBeVisible();
     await m.screen(page, "pagato");
     m.save();
   });
 
-  test("agenzia: esito ed emissione; privato: polizza emessa", async ({}) => {
+  test("agenzia: esito ed emissione; privato: polizza emessa", async () => {
     const m = new Meter("agenzia-emissione", "agenzia (titolare)", DESKTOP.width);
-    const uno = state.uno!;
-    const code = state.code!;
+    const uno = required(state.uno);
+    const code = required(state.code);
     await uno.goto(`${WEB}/risultati`);
     await m.screen(uno, "risultati");
     m.tap();
@@ -388,18 +402,19 @@ test.describe.serial("misura UX", () => {
     m.tap();
     await uno.locator("tr", { hasText: code }).getByRole("link").first().click();
     await m.screen(uno, "dettaglio-da-emettere");
-    const t0 = Date.now();
+    const t0 = clock.now().getTime();
     m.file(3);
-    m.tap(6); // pick and «Carica», three times
+    // One tap per file when the file leaves by itself; two with a «Carica» button.
+    m.tap((await uno.getByRole("button", { name: "Carica" }).count()) > 0 ? 6 : 3);
     m.type(); // numero di polizza
     m.tap(); // «Segna come emessa»
     await issuePolicy(uno, code, `ALFA-${code.slice(-6)}`);
-    m.wait((Date.now() - t0) / 1000);
+    m.wait((clock.now().getTime() - t0) / 1000);
     await m.screen(uno, "polizza-emessa");
     m.save();
 
     const mc = new Meter("privato-polizza", "privato", PHONE.width);
-    const page = state.customer!;
+    const page = required(state.customer);
     await page.goto(`${WEB}/polizze`);
     await mc.screen(page, "le-mie-polizze");
     await page.goto(WEB);
@@ -487,7 +502,7 @@ test.describe.serial("misura UX", () => {
     await mb.screen(paolo, "confronto-offerte");
     mb.choose();
     mb.tap();
-    const sentAt = Date.now() - 1000;
+    const sentAt = clock.now().getTime() - 1000;
     await paolo.locator("#offerte input[type=checkbox]").first().check();
     await paolo.getByRole("button", { name: "Invia al cliente" }).click();
     await expect(paolo.getByText(/Link inviato: vale fino al/)).toBeVisible();
@@ -499,7 +514,7 @@ test.describe.serial("misura UX", () => {
     await anna.goto(link);
     await ma.screen(anna, "link-offerta");
     ma.tap();
-    const codeAt = Date.now() - 1000;
+    const codeAt = clock.now().getTime() - 1000;
     await anna.getByRole("button", { name: "Mandami il codice" }).click();
     await ma.screen(anna, "codice");
     ma.type();
@@ -509,10 +524,10 @@ test.describe.serial("misura UX", () => {
     await expect(anna.locator("li", { hasText: /Compagnia/ })).toHaveCount(1);
     await ma.screen(anna, "offerta");
     ma.tap();
-    const t0 = Date.now();
+    const t0 = clock.now().getTime();
     await anna.getByRole("button", { name: "Scegli questa offerta" }).click();
     await expect(anna.getByText("Nessun compenso")).toBeVisible({ timeout: 90_000 });
-    ma.wait((Date.now() - t0) / 1000);
+    ma.wait((clock.now().getTime() - t0) / 1000);
     await ma.screen(anna, "firma-e-paga");
     ma.choose();
     ma.tap();
@@ -629,3 +644,18 @@ test.describe.serial("misura UX", () => {
     await customer.close();
   });
 });
+
+/**
+ * The back office invites an agency by hand (ASTA-06). The status message can
+ * vanish at once when the live refresh of the page follows the invitation, so
+ * only the sending is awaited: if the invitation did not reach the agency,
+ * its flow fails at «Partecipa all'asta» with a clear message.
+ */
+async function invite(operator: Page, code: string, agency: string): Promise<void> {
+  const card = await auctionCard(operator, code);
+  const form = card.locator("form", { has: operator.getByRole("button", { name: "Invita" }) });
+  await form.getByLabel("Agenzia", { exact: true }).selectOption({ label: agency });
+  await form.getByLabel("Motivo").fill("Misura UX");
+  await form.getByRole("button", { name: "Invita" }).click();
+  await operator.waitForLoadState("networkidle").catch(() => undefined);
+}

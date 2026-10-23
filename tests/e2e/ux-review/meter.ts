@@ -1,6 +1,10 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { AxeBuilder } from "@axe-core/playwright";
+import { SystemClock } from "@astax/adapters/clock";
+
+/** Real time, as the Keycloak login of the support helpers (rule 6 applies to the app). */
+const clock = new SystemClock();
 import type { Page } from "@playwright/test";
 
 /**
@@ -54,8 +58,8 @@ export class Meter {
   private choices = 0;
   private files = 0;
   private waitS = 0;
-  private readonly startedAt = Date.now();
-  private lastAt = Date.now();
+  private readonly startedAt = clock.now().getTime();
+  private lastAt = clock.now().getTime();
 
   constructor(
     readonly flow: string,
@@ -133,7 +137,7 @@ export class Meter {
       fullPage: true,
     });
     await page.setViewportSize(main);
-    const now = Date.now();
+    const now = clock.now().getTime();
     this.screens.push({
       index,
       name,
@@ -188,7 +192,7 @@ export class Meter {
       choices: this.choices,
       files: this.files,
       waitS: Math.round(this.waitS),
-      wallS: Math.round((Date.now() - this.startedAt) / 1000),
+      wallS: Math.round((clock.now().getTime() - this.startedAt) / 1000),
       estimatedS: this.estimate(),
     };
     writeFileSync(join(this.dir("misure"), `${this.flow}.json`), JSON.stringify(measure, null, 2));
