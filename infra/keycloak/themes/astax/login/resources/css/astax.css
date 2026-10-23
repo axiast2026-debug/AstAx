@@ -34,18 +34,17 @@ body#keycloak-bg,
   grid-template-columns: minmax(0, 28rem);
 }
 
-/* The name of the service instead of the Keycloak logo. */
-#kc-header-wrapper,
+/* The realm's display name (#kc-header-wrapper, «AstAx») as text, not the Keycloak logo. */
 .pf-v5-c-login__header {
   color: #fff;
 }
-.pf-v5-c-brand {
-  display: none;
-}
-.pf-v5-c-login__header::before {
-  content: "AstAx";
+#kc-header-wrapper.pf-v5-c-brand {
   display: block;
+  height: auto;
+  width: auto;
   padding: 0.5rem 0 1rem;
+  background: none;
+  text-indent: 0;
   font-size: 1.75rem;
   font-weight: 800;
   letter-spacing: -0.02em;

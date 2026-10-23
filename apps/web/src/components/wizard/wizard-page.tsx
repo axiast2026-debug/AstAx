@@ -1,4 +1,4 @@
-import { Button, Icon } from "@astax/ui";
+import { Button, buttonVariants, Icon } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -31,6 +31,9 @@ export async function WizardPage({
   if (!detail.editable) redirect(`${base}/${id}`);
   const t = await getTranslations("wizard");
   const errors = typeof query.errore === "string" ? query.errore : undefined;
+  // A draft of a lot (ADR 0014) keeps its page, which says the day it leaves by itself.
+  const plainDraft = detail.status === "DRAFT" && !detail.scheduledSubmitAt;
+  const askCancel = query.annulla === "1";
 
   let body;
   // Dan, 2026-10-21 (ADR 0013, docs/piano-broker.md B): the five screens, for both.
@@ -68,11 +71,11 @@ export async function WizardPage({
       <p className="text-table text-warm-600">
         {/* A draft's page leads back here: its link goes to the list instead. */}
         <Link
-          href={detail.status === "DRAFT" ? base : `${base}/${id}`}
+          href={plainDraft ? base : `${base}/${id}`}
           className="inline-flex min-h-11 items-center gap-1 underline"
         >
           <Icon name="arrowLeft" size={16} />
-          {detail.status === "DRAFT" ? t("backToList") : t("backToRequest", { code: detail.code })}
+          {plainDraft ? t("backToList") : t("backToRequest", { code: detail.code })}
         </Link>
       </p>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_17rem] lg:gap-x-8 lg:gap-y-2">
@@ -107,15 +110,35 @@ export async function WizardPage({
           ) : null}
           <ErrorSummary codes={errors} />
           {body}
-          {detail.status === "DRAFT" ? (
-            // The draft page now resumes the wizard: the way to drop a draft is here.
-            <form action={cancelRequest} className="mt-2">
-              <input type="hidden" name="requestId" value={id} />
-              <input type="hidden" name="base" value={base} />
-              <Button type="submit" variant="ghost" size="sm">
+          {plainDraft ? (
+            // The draft page now resumes the wizard: the way to drop a draft is here,
+            // in two steps, so that a stray tap near «Continua» drops nothing.
+            askCancel ? (
+              <form
+                action={cancelRequest}
+                className="mt-2 flex flex-wrap items-center gap-3 rounded-xl bg-warning-50 p-4 text-table"
+              >
+                <input type="hidden" name="requestId" value={id} />
+                <input type="hidden" name="base" value={base} />
+                <span className="flex-1 font-semibold">{t("cancelDraftConfirm")}</span>
+                <Button type="submit" variant="danger" size="sm">
+                  {t("cancelDraftYes")}
+                </Button>
+                <Link
+                  href={`${base}/${id}/${step}`}
+                  className={buttonVariants({ variant: "ghost", size: "sm" })}
+                >
+                  {t("cancelDraftNo")}
+                </Link>
+              </form>
+            ) : (
+              <Link
+                href={`${base}/${id}/${step}?annulla=1`}
+                className={buttonVariants({ variant: "ghost", size: "sm", className: "mt-2" })}
+              >
                 {t("cancelDraft")}
-              </Button>
-            </form>
+              </Link>
+            )
           ) : null}
         </div>
         <aside

@@ -85,7 +85,6 @@ export default async function CustomerOfferPage({
                   autoComplete="one-time-code"
                   pattern="\d{6}"
                   maxLength={6}
-                  className="font-display text-section tabular"
                   required
                 />
                 <Button type="submit" size="lg" full>
@@ -123,7 +122,6 @@ export default async function CustomerOfferPage({
                   return (
                     <li
                       key={o.id}
-                      aria-disabled={o.block ? true : undefined}
                       className={`${card} ${o.block === "EXPIRED" ? "bg-warm-100 text-warm-600" : ""} ${
                         isChosen ? "shadow-[inset_0_0_0_2px_var(--color-night-900)]" : ""
                       }`}

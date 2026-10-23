@@ -229,9 +229,9 @@ export class CustomersService {
   }
 }
 
-/** Birth date and sex a valid fiscal code says, for the person's card. */
-function decodedPerson(fiscalCode: string, today: string): { birthDate?: Date; sex?: string } {
+/** The birth date a valid fiscal code says, for the person's card (nothing else: data minimisation). */
+function decodedPerson(fiscalCode: string, today: string): { birthDate?: Date } {
   const decoded = decodeFiscalCode(fiscalCode, today);
   if (!decoded) return {};
-  return { birthDate: new Date(`${decoded.birthDate}T00:00:00Z`), sex: decoded.sex };
+  return { birthDate: new Date(`${decoded.birthDate}T00:00:00Z`) };
 }

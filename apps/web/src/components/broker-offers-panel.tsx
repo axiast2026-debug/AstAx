@@ -36,6 +36,17 @@ export async function BrokerOffersPanel({ requestId }: { requestId: string }) {
   const cheapestId = p.offers.find((o) => o.block !== "EXPIRED")?.id;
   const paid = current.acceptance?.status === "PAID";
   const selectable = p.offers.filter((o) => !o.block);
+  const head = (o: (typeof p.offers)[number]) => (
+    <>
+      <span className="flex min-w-0 flex-1 flex-col gap-1">
+        <span className="text-body font-bold">{o.company}</span>
+        <span className="text-table text-warm-600">{o.product}</span>
+      </span>
+      <span className="font-display text-screen font-extrabold whitespace-nowrap tabular">
+        {formatEuroCents(o.annualGrossPremiumCents)}
+      </span>
+    </>
+  );
   return (
     <section id="offerte" aria-labelledby="offerte-title" className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
@@ -68,7 +79,6 @@ export async function BrokerOffersPanel({ requestId }: { requestId: string }) {
             return (
               <li
                 key={o.id}
-                aria-disabled={o.block ? true : undefined}
                 className={`${card} ${o.block === "EXPIRED" ? "bg-warm-100 text-warm-600" : ""} ${
                   o.id === cheapestId ? "shadow-[inset_0_0_0_2px_var(--color-green-700)]" : ""
                 }`}
@@ -84,8 +94,8 @@ export async function BrokerOffersPanel({ requestId }: { requestId: string }) {
                     {inLink ? <Badge tone="dark">{t("inLink")}</Badge> : null}
                   </div>
                 ) : null}
-                <label className="flex cursor-pointer items-start gap-3">
-                  {chosen ? (
+                {chosen ? (
+                  <label className="flex cursor-pointer items-start gap-3">
                     <input
                       type="checkbox"
                       name="offerId"
@@ -93,15 +103,11 @@ export async function BrokerOffersPanel({ requestId }: { requestId: string }) {
                       aria-label={t("select", { offer: `${o.company} · ${o.product}` })}
                       className="mt-1 size-5 shrink-0 accent-night-900"
                     />
-                  ) : null}
-                  <span className="flex min-w-0 flex-1 flex-col gap-1">
-                    <span className="text-body font-bold">{o.company}</span>
-                    <span className="text-table text-warm-600">{o.product}</span>
-                  </span>
-                  <span className="font-display text-screen font-extrabold whitespace-nowrap tabular">
-                    {formatEuroCents(o.annualGrossPremiumCents)}
-                  </span>
-                </label>
+                    {head(o)}
+                  </label>
+                ) : (
+                  <div className="flex items-start gap-3">{head(o)}</div>
+                )}
                 <GuaranteeChip
                   size="sm"
                   state={o.block === "EXPIRED" ? "expired" : "ok"}

@@ -33,3 +33,6 @@ infra/**/*.tfvars
 .DS_Store
 Thumbs.db
 *.log
+
+# Schermate della revisione UX (decine di MB; quelle utili sono in immagini/)
+docs/ux-review/**/schermate/

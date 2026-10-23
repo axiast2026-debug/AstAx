@@ -20,7 +20,11 @@ export default async function NewCustomerPage({
       <div className="mt-6">
         <ErrorSummary codes={errore} />
       </div>
-      <form action={createCustomer} className="space-y-6">
+      <form
+        action={createCustomer}
+        className="space-y-6"
+        data-has-errors={errore ? "" : undefined}
+      >
         {poi === "richiesta" ? <input type="hidden" name="then" value="request" /> : null}
         <SelectField
           label={t("kind")}

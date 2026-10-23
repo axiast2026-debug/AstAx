@@ -94,7 +94,7 @@ export async function OfferForm({
   );
 
   return (
-    <form action={sendOffer} className="space-y-6">
+    <form action={sendOffer} className="space-y-6" data-has-errors={errors ? "" : undefined}>
       <input type="hidden" name="auctionId" value={detail.auctionId} />
       {own ? <input type="hidden" name="offerId" value={own.id} /> : null}
       <Fieldset legend={t("priceTitle")}>

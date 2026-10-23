@@ -551,6 +551,9 @@
     "backToRequest": "Torna alla richiesta {code}",
     "backToList": "Torna alle richieste",
     "cancelDraft": "Annulla questa bozza",
+    "cancelDraftConfirm": "Vuoi davvero annullare questa bozza? I dati salvati si perdono.",
+    "cancelDraftYes": "Sì, annulla",
+    "cancelDraftNo": "No, continua",
     "titles": {
       "tipo": "Che veicolo vuoi assicurare?",
       "dati": "Foto dei documenti e pochi dati",

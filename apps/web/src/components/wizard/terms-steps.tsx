@@ -49,7 +49,11 @@ export async function CoverageStep({
     extracted(latestDocument(detail, "RISK_CERTIFICATE"), "expiryDate");
   const startMode = terms?.startMode ?? "DATE";
   return (
-    <form action={saveCoverageStep} className="space-y-6">
+    <form
+      action={saveCoverageStep}
+      className="space-y-6"
+      data-has-errors={errors ? "" : undefined}
+    >
       <Hidden detail={detail} base={base} step="copertura" />
       {/* Duration and validity keep their values until step 4. */}
       <input
