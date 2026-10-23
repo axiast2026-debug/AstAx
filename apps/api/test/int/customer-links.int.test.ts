@@ -89,7 +89,12 @@ beforeAll(async () => {
   );
   await r.json(await r.call(broker, `/requests/${requestId}/consent/link`, { body: {} }), 200);
   const consentToken = /\/consenso\/([A-Za-z0-9_-]+)/.exec(lastMail(EMAIL)?.text ?? "")?.[1] ?? "";
-  await r.json(await h.call(`/consent-links/${consentToken}/code`, { body: {} }), 204);
+  // Decision 42: the code leaves with the first opening of the consent link too.
+  const consentPage = await r.json<{ code: { sent: boolean } | null }>(
+    await h.call(`/consent-links/${consentToken}`),
+    200,
+  );
+  expect(consentPage.code?.sent).toBe(true);
   await r.json(
     await h.call(`/consent-links/${consentToken}/confirm`, { body: { code: r.lastCode(EMAIL) } }),
     200,
@@ -162,16 +167,37 @@ describe("fase 5: the broker's customer on the link (decision 26)", () => {
     expect(token.length).toBeGreaterThan(40);
   });
 
-  it("before the code the page shows only who sends it and the vehicle; a wrong code is refused", async () => {
-    const before = await r.json<{ verified: boolean; broker: string; offers?: unknown }>(
-      await h.call(`/customer-links/${token}`),
-      200,
-    );
+  it("decision 42: the first opening sends the code on its own; a reopening within its validity does not; SIC-05 «un altro codice» waits otp.resendWaitSeconds", async () => {
+    type Page = {
+      verified: boolean;
+      broker: string;
+      offers?: unknown;
+      serverNow: string;
+      code: { sent: boolean; limited: boolean; resendAt: string | null } | null;
+    };
+    const sentBefore = h.email.sent.length;
+    const before = await r.json<Page>(await h.call(`/customer-links/${token}`), 200);
     expect(before.verified).toBe(false);
     expect(before.offers).toBeUndefined();
     expect(JSON.stringify(before)).not.toContain(EMAIL);
     expect(JSON.stringify(before)).not.toContain("MC789EF");
+    // The code left with the opening, to the customer's own contacts (rule 8: never in the page).
+    expect(before.code).toMatchObject({ sent: true, limited: false });
+    expect(h.email.sent.length).toBe(sentBefore + 1);
+    expect(h.email.sent.at(-1)?.to).toBe(EMAIL);
+    expect(h.email.sent.at(-1)?.text).toMatch(/\b\d{6}\b/);
+    expect(JSON.stringify(before)).not.toContain(r.lastCode(EMAIL));
+    // The wait before another code, counted from the server's clock (otp.resendWaitSeconds).
+    expect(Date.parse(before.code?.resendAt ?? "") - Date.parse(before.serverNow)).toBe(60_000);
+    // Reopened at once: the same code, no new message; asking for another one is refused.
+    const again = await r.json<Page>(await h.call(`/customer-links/${token}`), 200);
+    expect(again.code).toMatchObject({ sent: true, resendAt: before.code?.resendAt });
+    expect(h.email.sent.length).toBe(sentBefore + 1);
+    expect((await h.call(`/customer-links/${token}/code`, { body: {} })).status).toBe(429);
+    // After the wait «Mandami un altro codice» works and replaces the first code.
+    h.clock.set(new Date(h.clock.now().getTime() + 60_000));
     await r.json(await h.call(`/customer-links/${token}/code`, { body: {} }), 204);
+    expect(h.email.sent.length).toBe(sentBefore + 2);
     const wrong = await h.call(`/customer-links/${token}/confirm`, { body: { code: "000000" } });
     expect(wrong.status).toBe(400);
     const accept = await h.call(`/customer-links/${token}/acceptance`, {
@@ -388,6 +414,11 @@ describe("fase 5: the broker's customer on the link (decision 26)", () => {
     h.clock.set(new Date("2026-12-06T08:00:00Z"));
     try {
       expect((await h.call(`/customer-links/${token}/code`, { body: {} })).status).toBe(409);
+      // Decision 42: an ended link sends nothing when opened.
+      const sentBefore = h.email.sent.length;
+      const opened = await r.json<{ code: unknown }>(await h.call(`/customer-links/${token}`), 200);
+      expect(opened.code).toBeNull();
+      expect(h.email.sent.length).toBe(sentBefore);
       const accept = await h.call(`/customer-links/${token}/acceptance`, {
         body: { offerId: offers[1] },
         ...withProof(),

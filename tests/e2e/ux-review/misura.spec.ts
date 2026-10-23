@@ -531,12 +531,10 @@ test.describe.serial("misura UX", () => {
     const link = /http:\/\/localhost:3000\/offerta\/[A-Za-z0-9_-]+/.exec(mail.text)?.[0] ?? "";
     const anna = await newPage(browser, PHONE);
     const ma = new Meter("cliente-del-broker", "cliente del broker", PHONE.width);
+    // Decision 42: the code leaves with the opening; one tap and one screen less.
+    const codeAt = clock.now().getTime() - 1000;
     await anna.goto(link);
     await ma.screen(anna, "link-offerta");
-    ma.tap();
-    const codeAt = clock.now().getTime() - 1000;
-    await anna.getByRole("button", { name: "Mandami il codice" }).click();
-    await ma.screen(anna, "codice");
     ma.type();
     ma.tap();
     await anna.getByLabel("Codice ricevuto").fill(await codeFromMail(email, codeAt));

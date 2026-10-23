@@ -130,7 +130,7 @@ Dettagli tecnici: [`busta-chiusa.md`](busta-chiusa.md).
 - **SIC-02** Ogni lettura e scrittura è limitata all'organizzazione e al contesto attivo. La sicurezza a livello di riga di PostgreSQL è la seconda linea di difesa.
 - **SIC-03** Codice fiscale, partita IVA, telefono, email e IBAN sono cifrati per campo. La ricerca esatta usa un indice cieco (HMAC).
 - **SIC-04** Il registro attività è solo in aggiunta: il database rifiuta modifiche e cancellazioni, ogni voce contiene l'hash della precedente, le copie finiscono in un archivio non modificabile.
-- **SIC-05** Utenze professionali: password e secondo fattore obbligatorio. Privati: accesso con codice OTP. Durata della sessione per ruolo dai parametri.
+- **SIC-05** Utenze professionali: password e secondo fattore obbligatorio. Privati: accesso con codice OTP. Durata della sessione per ruolo dai parametri. Sui link del cliente del broker il codice parte da solo alla prima apertura, mai due volte entro la sua validità, con gli stessi limiti di attesa e di invii per destinazione (decisione 42).
 - **SIC-06** Log, errori, analisi e payload di Temporal contengono solo identificativi: mai dati personali, prezzi o documenti.
 - **SIC-07** I segreti stanno solo nel gestore dei segreti, mai nel repository.
 - **SIC-08** Sviluppo e collaudo usano solo dati sintetici.

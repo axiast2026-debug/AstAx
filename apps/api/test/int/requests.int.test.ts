@@ -535,15 +535,25 @@ describe("fase 2: broker requests and the customer's consent", () => {
     expect(h.email.sent.some((m) => m.to === "393330000042@sms.astax.test")).toBe(true);
     const token = /\/consenso\/([A-Za-z0-9_-]+)/.exec(email?.text ?? "")?.[1] ?? "";
 
-    const summary = await json<{ status: string; broker: string; text: { contentMd: string } }>(
-      await h.call(`/consent-links/${token}`),
-      200,
-    );
+    const sentBefore = h.email.sent.length;
+    const summary = await json<{
+      status: string;
+      broker: string;
+      text: { contentMd: string };
+      code: { sent: boolean } | null;
+    }>(await h.call(`/consent-links/${token}`), 200);
     expect(summary.status).toBe("SENT");
     expect(JSON.stringify(summary)).not.toContain("anna.riva@example.test");
     expect(JSON.stringify(summary)).not.toContain("3330000042");
-
-    await json(await h.call(`/consent-links/${token}/code`, { body: {} }), 204);
+    // Decision 42: the code left with the opening, by email and SMS, never in the page.
+    expect(summary.code?.sent).toBe(true);
+    expect(h.email.sent.slice(sentBefore).map((m) => m.to)).toEqual([
+      "anna.riva@example.test",
+      "393330000042@sms.astax.test",
+    ]);
+    expect(JSON.stringify(summary)).not.toContain(lastCode("anna.riva@example.test"));
+    // Asked again at once: SIC-05, otp.resendWaitSeconds.
+    expect((await h.call(`/consent-links/${token}/code`, { body: {} })).status).toBe(429);
     const confirmed = await json<{ method: string }>(
       await h.call(`/consent-links/${token}/confirm`, {
         body: { code: lastCode("anna.riva@example.test") },
@@ -670,8 +680,15 @@ describe("fase 2: broker requests and the customer's consent", () => {
     const email = [...h.email.sent].reverse().find((m) => m.to === "mario.prova@example.test");
     const token = /\/consenso\/([A-Za-z0-9_-]+)/.exec(email?.text ?? "")?.[1] ?? "";
     await json(await call(asPaolo(), `/requests/${request.id}/cancel`, { body: {} }), 200);
-    const summary = await json<{ status: string }>(await h.call(`/consent-links/${token}`), 200);
+    const sentBefore = h.email.sent.length;
+    const summary = await json<{ status: string; code: unknown }>(
+      await h.call(`/consent-links/${token}`),
+      200,
+    );
     expect(summary.status).toBe("REVOKED");
+    // Decision 42: a link no longer usable sends nothing when opened.
+    expect(summary.code).toBeNull();
+    expect(h.email.sent.length).toBe(sentBefore);
     expect((await h.call(`/consent-links/${token}/code`, { body: {} })).status).toBe(409);
   });
 

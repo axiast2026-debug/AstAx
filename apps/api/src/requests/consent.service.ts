@@ -41,6 +41,25 @@ export interface ClientInfo {
   userAgent: string | null;
 }
 
+/** What the page of a link shows about the code: on its way, or not (decision 42). */
+export interface LinkCodeStatus {
+  /** A code valid now was sent to the customer's own contacts. */
+  sent: boolean;
+  /** No code could leave: too many codes or wrong attempts in the window (SIC-05). */
+  limited: boolean;
+  /** When «Mandami un altro codice» may be used (otp.resendWaitSeconds). */
+  resendAt: string | null;
+}
+
+/** A code issued in a transaction, to send once it is committed. */
+export interface PendingCode {
+  purpose: OtpPurpose;
+  subjectId: string;
+  code: string;
+  minutes: number;
+  contacts: { email: string | null; phone: string | null };
+}
+
 /**
  * LEG-04: the consent to share the request with the invited agencies.
  * - A private user confirms it with a code sent by AstAx (auth.otp).
@@ -198,6 +217,103 @@ export class ConsentService {
       data: { codeHash: this.codeHash(challenge.id, code) },
     });
     return { code, minutes: settings["otp.validityMinutes"] };
+  }
+
+  /**
+   * The code still valid for a subject, with when a new one may be asked
+   * (SIC-05, otp.resendWaitSeconds); null when there is none.
+   */
+  async liveChallenge(
+    tx: DbTransaction,
+    purpose: OtpPurpose,
+    subjectId: string,
+    now: Date,
+  ): Promise<{ expiresAt: Date; resendAt: Date } | null> {
+    const settings = await settingsAt(tx, ["otp.validityMinutes", "otp.resendWaitSeconds"], now);
+    const last = await tx.otpChallenge.findFirst({
+      where: { subjectId, purpose, consumedAt: null, expiresAt: { gt: now } },
+      orderBy: { expiresAt: "desc" },
+    });
+    if (!last) return null;
+    const issuedAt =
+      last.issuedAt?.getTime() ??
+      last.expiresAt.getTime() - settings["otp.validityMinutes"] * MINUTE_MS;
+    return {
+      expiresAt: last.expiresAt,
+      resendAt: new Date(issuedAt + settings["otp.resendWaitSeconds"] * 1000),
+    };
+  }
+
+  /**
+   * Decision 42 (UX review B2): the code leaves on its own when the customer
+   * opens a link, if no code of theirs is still valid. One opening at a time
+   * per subject (the caller locks the link's row); the limits of SIC-05 and
+   * security.codesPerDestinationPerHour hold as for «Mandami un altro codice».
+   * Returns what the page shows and, when a code was issued, what to deliver
+   * after the transaction.
+   */
+  async codeOnOpening(
+    tx: DbTransaction,
+    purpose: OtpPurpose,
+    subjectId: string,
+    owner: { ownerUserId: string | null; ownerOrganizationId: string | null },
+    customerId: string,
+    now: Date,
+  ): Promise<{ status: LinkCodeStatus; pending: PendingCode | null }> {
+    const live = await this.liveChallenge(tx, purpose, subjectId, now);
+    if (live) {
+      return {
+        status: { sent: true, limited: false, resendAt: live.resendAt.toISOString() },
+        pending: null,
+      };
+    }
+    let challenge: { code: string; minutes: number };
+    try {
+      challenge = await this.newChallenge(tx, purpose, subjectId, owner, now);
+    } catch (error) {
+      // Too many wrong attempts in the last window: the customer waits.
+      if (error instanceof ProblemError && error.code === "RATE_LIMITED") {
+        return { status: { sent: false, limited: true, resendAt: null }, pending: null };
+      }
+      throw error;
+    }
+    const settings = await settingsAt(tx, ["otp.resendWaitSeconds"], now);
+    return {
+      status: {
+        sent: true,
+        limited: false,
+        resendAt: new Date(now.getTime() + settings["otp.resendWaitSeconds"] * 1000).toISOString(),
+      },
+      pending: {
+        purpose,
+        subjectId,
+        code: challenge.code,
+        minutes: challenge.minutes,
+        contacts: await this.contactsOf(tx, customerId),
+      },
+    };
+  }
+
+  /**
+   * Sends a code issued by codeOnOpening or by a «Mandami il codice». When the
+   * destination has had its codes for the hour (security.codesPerDestinationPerHour)
+   * the code is voided, so that the next opening tries again, and false comes back.
+   */
+  async deliver(pending: PendingCode, ids: Record<string, string>): Promise<boolean> {
+    try {
+      await this.sendCode(pending.contacts, pending.purpose, pending.code, pending.minutes, ids);
+      return true;
+    } catch (error) {
+      if (!(error instanceof ProblemError && error.code === "RATE_LIMITED")) throw error;
+      const now = this.clock.now();
+      await withContext(this.db, SYSTEM_CONTEXT, (tx) =>
+        tx.otpChallenge.updateMany({
+          where: { subjectId: pending.subjectId, purpose: pending.purpose, consumedAt: null },
+          data: { consumedAt: now },
+        }),
+      );
+      return false;
+    }
   }
 
   /** True when the code is right; counts wrong attempts and consumes the code. */
@@ -542,37 +658,68 @@ export class ConsentService {
     return link;
   }
 
-  /** What the customer sees: who asks, for which vehicle, the text. Never contacts. */
+  /** Usable only while the request can still change: never after submission or cancellation. */
+  private linkUsable(link: { status: string; quoteRequest: { status: string } }): boolean {
+    return (
+      link.status === "SENT" &&
+      (EDITABLE_STATUSES as readonly string[]).includes(link.quoteRequest.status)
+    );
+  }
+
+  /**
+   * What the customer sees: who asks, for which vehicle, the text. Never
+   * contacts. Decision 33: on a usable link the code leaves with the first
+   * opening, unless one is still valid; `code` says what the page shows.
+   */
   async linkSummary(token: string) {
     const now = this.clock.now();
-    return withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
+    const opened = await withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
       const link = await this.linkByToken(tx, token, now);
       const organization = await tx.organization.findUniqueOrThrow({
         where: { id: link.ownerOrganizationId },
       });
+      const usable = this.linkUsable(link);
+      let code: { status: LinkCodeStatus; pending: PendingCode | null } | null = null;
+      if (usable) {
+        // The row lock makes two openings at once send one code.
+        await tx.consentLink.update({ where: { id: link.id }, data: { updatedAt: now } });
+        code = await this.codeOnOpening(
+          tx,
+          "LINK_CONSENT",
+          link.id,
+          { ownerUserId: null, ownerOrganizationId: link.ownerOrganizationId },
+          link.customerId,
+          now,
+        );
+      }
       return {
-        status:
-          link.status === "SENT" &&
-          !(EDITABLE_STATUSES as readonly string[]).includes(link.quoteRequest.status)
-            ? "REVOKED"
-            : link.status,
-        broker: organization.legalName,
-        vehicle: this.vehicleLabel(link.quoteRequest),
-        expiresAt: link.expiresAt.toISOString(),
-        text: await this.consentText(tx, now),
+        summary: {
+          status: usable || link.status !== "SENT" ? link.status : ("REVOKED" as const),
+          broker: organization.legalName,
+          vehicle: this.vehicleLabel(link.quoteRequest),
+          expiresAt: link.expiresAt.toISOString(),
+          serverNow: now.toISOString(),
+          text: await this.consentText(tx, now),
+          code: code?.status ?? null,
+        },
+        linkId: link.id,
+        pending: code?.pending ?? null,
       };
     });
+    if (opened.pending) {
+      const delivered = await this.deliver(opened.pending, { consentLinkId: opened.linkId });
+      if (!delivered) opened.summary.code = { sent: false, limited: true, resendAt: null };
+      else this.logger.info({ consentLinkId: opened.linkId }, "consent link code sent on opening");
+    }
+    return opened.summary;
   }
 
+  /** «Mandami un altro codice»: with the limits of SIC-05. */
   async sendLinkCode(token: string): Promise<void> {
     const now = this.clock.now();
     const prepared = await withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
       const link = await this.linkByToken(tx, token, now);
-      // Only while the request can still change: never after submission or cancellation.
-      if (
-        link.status !== "SENT" ||
-        !(EDITABLE_STATUSES as readonly string[]).includes(link.quoteRequest.status)
-      ) {
+      if (!this.linkUsable(link)) {
         throw new ProblemError("CONFLICT", "The link is no longer valid");
       }
       const challenge = await this.newChallenge(
@@ -583,14 +730,16 @@ export class ConsentService {
         now,
       );
       return {
-        ...challenge,
-        linkId: link.id,
+        purpose: "LINK_CONSENT" as const,
+        subjectId: link.id,
+        code: challenge.code,
+        minutes: challenge.minutes,
         contacts: await this.contactsOf(tx, link.customerId),
       };
     });
-    await this.sendCode(prepared.contacts, "LINK_CONSENT", prepared.code, prepared.minutes, {
-      consentLinkId: prepared.linkId,
-    });
+    if (!(await this.deliver(prepared, { consentLinkId: prepared.subjectId }))) {
+      throw new ProblemError("RATE_LIMITED", "Too many codes to this destination");
+    }
   }
 
   async confirmLink(token: string, code: string, client: ClientInfo) {

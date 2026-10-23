@@ -16,12 +16,21 @@ const cookieOf = (token: string) =>
   `astax_offerta_${createHash("sha256").update(token).digest("hex").slice(0, 16)}`;
 export const PROOF_HEADER = "x-astax-link-proof";
 
+/** The code of a link (decision 42): sent with the opening, or why not. */
+export interface LinkCodeStatus {
+  sent: boolean;
+  limited: boolean;
+  resendAt: string | null;
+}
+
 export interface LinkPage {
   state: "ACTIVE" | "EXPIRED" | "REVOKED";
   broker: string;
   vehicle: string;
   expiresAt: string;
+  serverNow: string;
   verified: boolean;
+  code?: LinkCodeStatus | null;
   offers?: OfferRow[];
   acceptance?: AcceptanceView | null;
 }

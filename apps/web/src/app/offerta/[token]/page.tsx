@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { AcceptanceSteps } from "@/components/acceptance-steps";
 import { ErrorSummary, Field } from "@/components/form";
 import { PendingButton } from "@/components/pending-button";
+import { ResendCodeButton } from "@/components/resend-code-button";
 import { linkProof, PROOF_HEADER, TOKEN, type LinkPage } from "@/lib/customer-link";
 import { publicApi } from "@/lib/public-api";
 import {
@@ -71,38 +72,39 @@ export default async function CustomerOfferPage({
           </section>
         ) : !link.verified ? (
           <section className={card}>
+            {/* Decision 42: the code left with the opening; the page asks for it at once. */}
             <p className="text-body">{t("intro", { at: formatDateTime(link.expiresAt) })}</p>
-            {query.codice ? (
-              <form action={confirmOfferCode} className="flex flex-col gap-4">
-                <p role="status" className="rounded-xl bg-green-50 px-4 py-3 text-table">
-                  {t("codeSent")}
-                </p>
-                <input type="hidden" name="token" value={token} />
-                <Field
-                  label={t("code")}
-                  name="code"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  pattern="\d{6}"
-                  maxLength={6}
-                  required
-                />
-                <Button type="submit" size="lg" full>
-                  {t("confirm")}
-                </Button>
-              </form>
+            {link.code?.sent || query.codice ? (
+              <p role="status" className="rounded-xl bg-green-50 px-4 py-3 text-table">
+                {t("codeSent")}
+              </p>
+            ) : link.code?.limited ? (
+              <p role="status" className="rounded-xl bg-orange-50 px-4 py-3 text-table">
+                {t("codeLimited")}
+              </p>
             ) : null}
+            <form action={confirmOfferCode} className="flex flex-col gap-4">
+              <input type="hidden" name="token" value={token} />
+              <Field
+                label={t("code")}
+                name="code"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="\d{6}"
+                maxLength={6}
+                required
+              />
+              <Button type="submit" size="lg" full>
+                {t("confirm")}
+              </Button>
+            </form>
             <form action={sendOfferCode}>
               <input type="hidden" name="token" value={token} />
-              {query.codice ? (
-                <Button type="submit" variant="ghost" size="sm">
-                  {t("sendAgain")}
-                </Button>
-              ) : (
-                <Button type="submit" size="lg" full>
-                  {t("sendCode")}
-                </Button>
-              )}
+              <ResendCodeButton
+                resendAt={link.code?.resendAt ?? null}
+                serverNow={link.serverNow}
+                label={t("sendAgain")}
+              />
             </form>
           </section>
         ) : (

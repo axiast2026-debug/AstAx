@@ -3,6 +3,8 @@ import { Button, Card, CardTitle } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { ErrorSummary, Field } from "@/components/form";
+import { ResendCodeButton } from "@/components/resend-code-button";
+import type { LinkCodeStatus } from "@/lib/customer-link";
 import { publicApi } from "@/lib/public-api";
 import { confirmLink, sendLinkCode } from "../actions";
 
@@ -11,6 +13,8 @@ interface LinkSummary {
   broker: string;
   vehicle: string;
   expiresAt: string;
+  serverNow: string;
+  code: LinkCodeStatus | null;
   text: { title: string; contentMd: string; validated: boolean };
 }
 
@@ -71,35 +75,42 @@ export default async function ConsentLinkPage({
           <p className="text-sm text-warm-600">
             {t("expires", { at: formatDateTime(link.expiresAt) })}
           </p>
-          <form action={sendLinkCode}>
+          {/* Decision 42: the code left with the opening; the page asks for it at once. */}
+          <form
+            action={confirmLink}
+            className="rounded-xl border border-warm-200 bg-white p-4 sm:p-6"
+          >
             <input type="hidden" name="token" value={token} />
-            <Button type="submit" variant="secondary">
-              {query.codice === "inviato" ? t("sendAgain") : t("sendCode")}
-            </Button>
-          </form>
-          {query.codice === "inviato" ? (
-            <form
-              action={confirmLink}
-              className="rounded-xl border border-warm-200 bg-white p-4 sm:p-6"
-            >
-              <input type="hidden" name="token" value={token} />
+            {link.code?.sent || query.codice === "inviato" ? (
               <p role="status" className="text-sm">
                 {t("codeSent")}
               </p>
-              <Field
-                label={t("code")}
-                name="code"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                className="mt-3 max-w-xs"
-                required
-              />
-              <Button type="submit" className="mt-3">
-                {t("confirm")}
-              </Button>
-            </form>
-          ) : null}
+            ) : link.code?.limited ? (
+              <p role="status" className="text-sm font-semibold text-orange-700">
+                {t("codeLimited")}
+              </p>
+            ) : null}
+            <Field
+              label={t("code")}
+              name="code"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              className="mt-3 max-w-xs"
+              required
+            />
+            <Button type="submit" className="mt-3">
+              {t("confirm")}
+            </Button>
+          </form>
+          <form action={sendLinkCode}>
+            <input type="hidden" name="token" value={token} />
+            <ResendCodeButton
+              resendAt={link.code?.resendAt ?? null}
+              serverNow={link.serverNow}
+              label={t("sendAgain")}
+            />
+          </form>
         </div>
       )}
     </main>

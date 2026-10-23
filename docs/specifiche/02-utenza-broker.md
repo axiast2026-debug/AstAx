@@ -48,6 +48,7 @@ Elenco con colonne: cliente, targa, pacchetto, stato, chiusura dell'asta o scade
 - Durante l'asta: conto alla rovescia, numero di offerte, numero di agenzie invitate, senza nomi.
 - Dopo la chiusura, tabella con la migliore offerta di ogni compagnia: premio lordo, compagnia, pacchetto, franchigie, garantito fino al, giorni rimasti, preventivo PDF. La più bassa ha un'etichetta, le scadute sono in grigio.
 - Azioni: invia al cliente il confronto o l'offerta scelta, con il link per firmare e pagare; chiedi riconferma se tutte le garanzie sono scadute; annulla.
+- Link al cliente (decisione 42, revisione UX del 2026-10-23): quando il cliente apre il link, il codice di accesso parte da solo ai suoi contatti, senza un suo tocco; la pagina chiede subito il codice. Riaprire il link mentre il codice è ancora valido non ne manda un altro; «Mandami un altro codice» si attiva dopo l'attesa di `otp.resendWaitSeconds`, con i limiti di invio in vigore (SIC-05). Lo stesso vale per il link del consenso. Il legale deve confermare che l'invio è la continuazione di una richiesta del cliente (`docs/punti-aperti.md`).
 - Dopo l'accettazione: agenzia emittente e contatti, stato dell'emissione, documenti firmati, polizza e quietanza.
 - Quota di provvigione del broker su quella polizza.
 

@@ -70,6 +70,7 @@ Le specifiche lasciavano aperti alcuni dettagli che il codice deve per forza dec
 | 33 | «N su M» | M è il numero di offerte valide, non di agenzie invitate. | CLA-03 | — |
 | 34 | Codici | Richiesta `AX-AAAA-NNNNNN`; fatture con serie per anno (P privati, A agenzie, B broker). | — | — |
 | 35 | Conservazione | Richieste non concluse cancellate dopo 12 mesi; contratti e contabilità 10 anni, da validare con legale e DPO. | LEG-06 | `retention.*` |
+| 42 | Codice automatico sui link (Dan, 2026-10-23, domanda 29) | Quando il cliente del broker apre il link dell'offerta o del consenso, il codice parte da solo ai suoi contatti, se non ne ha uno ancora valido; la pagina chiede subito il codice. Due aperture insieme mandano un codice solo. «Mandami un altro codice» rispetta l'attesa e i limiti di oggi; il link scaduto, revocato o già confermato non manda nulla. Da confermare con il legale (`docs/punti-aperti.md`). | SIC-05 | `otp.resendWaitSeconds`, `otp.validityMinutes`, `security.codesPerDestinationPerHour` |
 
 ## Scelte tecniche
 

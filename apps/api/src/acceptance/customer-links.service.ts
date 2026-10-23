@@ -21,7 +21,12 @@ import type { ApiConfig } from "../config/config.js";
 import { ProblemError } from "../http/problem.js";
 import { CLOCK, CONFIG, DB, LOGGER, OBJECT_STORAGE } from "../infra/tokens.js";
 import { NotificationService } from "../notifications/notification.service.js";
-import { ConsentService, type ClientInfo } from "../requests/consent.service.js";
+import {
+  ConsentService,
+  type ClientInfo,
+  type LinkCodeStatus,
+  type PendingCode,
+} from "../requests/consent.service.js";
 import { AcceptanceService, ACCEPTANCE_TX } from "./acceptance.service.js";
 
 const TOKEN = /^[A-Za-z0-9_-]{40,60}$/;
@@ -280,10 +285,15 @@ export class CustomerLinksService {
     return { userId: null, membershipId: null, organizationId: null, ...client };
   }
 
-  /** What the page shows: before the code only who sends it and for which vehicle. */
+  /**
+   * What the page shows: before the code only who sends it and for which
+   * vehicle. Decision 42 (UX review B2): on an active link the code leaves
+   * with the first opening, unless one is still valid; `code` says what the
+   * page shows. Nothing leaves once the code was confirmed.
+   */
   async summary(token: string, proof: string | undefined) {
     const now = this.clock.now();
-    return withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
+    const opened = await withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
       const link = await this.linkOf(tx, token);
       const organization = await tx.organization.findUniqueOrThrow({
         where: { id: link.ownerOrganizationId },
@@ -294,27 +304,58 @@ export class CustomerLinksService {
         broker: organization.legalName,
         vehicle: await this.vehicle(tx, link.quoteRequest, false),
         expiresAt: link.expiresAt.toISOString(),
+        serverNow: now.toISOString(),
       };
       const live = await tx.acceptance.findFirst({
         where: { customerLinkId: link.id, status: { not: "VOIDED" } },
       });
       const paid = live?.status === "PAID";
       if (!this.proofMatches(link, proof) || (base.state !== "ACTIVE" && !paid)) {
-        return { ...base, verified: false as const };
+        let code: { status: LinkCodeStatus; pending: PendingCode | null } | null = null;
+        if (base.state === "ACTIVE" && link.quoteRequest.customerId) {
+          // The row lock makes two openings at once send one code.
+          await tx.customerLink.update({ where: { id: link.id }, data: { updatedAt: now } });
+          code = await this.consents.codeOnOpening(
+            tx,
+            "CUSTOMER_LINK",
+            link.id,
+            { ownerUserId: null, ownerOrganizationId: link.ownerOrganizationId },
+            link.quoteRequest.customerId,
+            now,
+          );
+        }
+        return {
+          page: { ...base, verified: false as const, code: code?.status ?? null },
+          pending: code?.pending ?? null,
+        };
       }
       const { rows } = await this.acceptance.rows(tx, link.quoteRequest, this.offerIdsOf(link));
       return {
-        ...base,
-        verified: true as const,
-        offers: rows.map((r) => {
-          const visible = this.acceptance.publicRow(r);
-          return { ...visible, feeWithAiCents: null };
-        }),
-        acceptance: live ? await this.acceptance.view(tx, live.id) : null,
+        page: {
+          ...base,
+          verified: true as const,
+          offers: rows.map((r) => {
+            const visible = this.acceptance.publicRow(r);
+            return { ...visible, feeWithAiCents: null };
+          }),
+          acceptance: live ? await this.acceptance.view(tx, live.id) : null,
+        },
+        pending: null,
       };
     });
+    const page = opened.page;
+    if (opened.pending && page.verified === false) {
+      const ids = { customerLinkId: page.linkId };
+      if (await this.consents.deliver(opened.pending, ids)) {
+        this.logger.info(ids, "customer link code sent on opening");
+      } else {
+        page.code = { sent: false, limited: true, resendAt: null };
+      }
+    }
+    return page;
   }
 
+  /** «Mandami un altro codice»: with the limits of SIC-05. */
   async sendCode(token: string): Promise<void> {
     const now = this.clock.now();
     const prepared = await withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
@@ -332,18 +373,16 @@ export class CustomerLinksService {
         now,
       );
       return {
-        ...challenge,
-        linkId: link.id,
+        purpose: "CUSTOMER_LINK" as const,
+        subjectId: link.id,
+        code: challenge.code,
+        minutes: challenge.minutes,
         contacts: await this.consents.contactsOf(tx, link.quoteRequest.customerId),
       };
     });
-    await this.consents.sendCode(
-      prepared.contacts,
-      "CUSTOMER_LINK",
-      prepared.code,
-      prepared.minutes,
-      { customerLinkId: prepared.linkId },
-    );
+    if (!(await this.consents.deliver(prepared, { customerLinkId: prepared.subjectId }))) {
+      throw new ProblemError("RATE_LIMITED", "Too many codes to this destination");
+    }
   }
 
   async confirmCode(token: string, code: string, client: ClientInfo) {

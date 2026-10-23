@@ -73,11 +73,13 @@ test.describe.serial("S02 — broker: il cliente compra dal link", () => {
     expect(mail.text).toContain("610,00");
     const link = /http:\/\/localhost:3000\/offerta\/[A-Za-z0-9_-]+/.exec(mail.text)?.[0] ?? "";
     const anna = await browser.newPage();
+    // Decision 42: the code leaves with the opening, with no tap; the page asks for it at once.
+    const codeAt = clock.now().getTime() - 1000;
     await anna.goto(link);
     // Before the code the page shows no price.
     await expect(anna.getByText("610,00")).toHaveCount(0);
-    const codeAt = clock.now().getTime() - 1000;
-    await anna.getByRole("button", { name: "Mandami il codice" }).click();
+    await expect(anna.getByRole("button", { name: "Mandami il codice" })).toHaveCount(0);
+    await expect(anna.getByRole("button", { name: "Mandami un altro codice" })).toBeDisabled();
     await anna.getByLabel("Codice ricevuto").fill(await codeFromMail(email, codeAt));
     await anna.getByRole("button", { name: "Vedi l'offerta" }).click();
 

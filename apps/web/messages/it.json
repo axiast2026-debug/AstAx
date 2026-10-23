@@ -436,14 +436,17 @@
     "fromBackOffice": "Back office AstAx",
     "integrationAfter": "L'asta parte appena il back office controlla quello che hai aggiunto."
   },
+  "linkCode": {
+    "resendIn": "Puoi chiederne un altro tra {seconds} secondi."
+  },
   "consentLink": {
     "brand": "AstAx",
     "title": "{broker} ti chiede il consenso per un preventivo RC auto",
-    "intro": "Il preventivo riguarda {vehicle}. Leggi il testo e conferma con il codice che ti mandiamo. Telefono ed email non vengono condivisi con le agenzie.",
+    "intro": "Il preventivo riguarda {vehicle}. Leggi il testo e conferma con il codice che ti abbiamo appena mandato. Telefono ed email non vengono condivisi con le agenzie.",
     "expires": "Il link vale fino al {at}.",
-    "sendCode": "Mandami il codice",
-    "sendAgain": "Mandami un nuovo codice",
+    "sendAgain": "Mandami un altro codice",
     "codeSent": "Ti abbiamo mandato un codice di 6 cifre via email o SMS.",
+    "codeLimited": "Hai ricevuto troppi codici nell'ultima ora, o hai sbagliato troppe volte: aspetta qualche minuto e poi chiedi un altro codice.",
     "code": "Codice ricevuto",
     "confirm": "Confermo il consenso",
     "doneTitle": "Grazie, consenso confermato",
@@ -1571,10 +1574,10 @@
   "customerOffer": {
     "brand": "AstAx",
     "title": "{broker} ti ha inviato l'offerta per {vehicle}",
-    "intro": "Per vedere l'offerta ti mandiamo un codice ai contatti che hai dato al tuo broker. Il link vale fino al {at}.",
-    "sendCode": "Mandami il codice",
-    "sendAgain": "Mandami un nuovo codice",
-    "codeSent": "Ti abbiamo mandato un codice di 6 cifre.",
+    "intro": "Per vedere l'offerta serve il codice che ti abbiamo appena mandato ai contatti che hai dato al tuo broker. Il link vale fino al {at}.",
+    "sendAgain": "Mandami un altro codice",
+    "codeSent": "Ti abbiamo mandato un codice di 6 cifre via email o SMS.",
+    "codeLimited": "Hai ricevuto troppi codici nell'ultima ora, o hai sbagliato troppe volte: aspetta qualche minuto e poi chiedi un altro codice.",
     "code": "Codice ricevuto",
     "confirm": "Vedi l'offerta",
     "expiredTitle": "Link non più valido",
