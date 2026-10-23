@@ -121,3 +121,9 @@ Passaggi obbligatori: nessuno è stato tolto, nascosto o preselezionato. Restano
 3. **Messaggi di conferma nel back office:** con la pagina che si aggiorna da sola, i messaggi «Richiesta inviata» possono sparire subito. Meglio un avviso che resta finché non lo chiudi?
 4. **Approvazione automatica delle verdi (B9):** quando accenderla nel pilota?
 5. **Dati dalla targa (B6):** quale fornitore e quale budget per chiamata?
+
+## 8. Stato delle prove alla consegna
+
+- `pnpm check` verde in locale (lint, tipi, unitari, integrazione: 36 attività, 7m32s).
+- E2E toccate, lanciate in locale una alla volta con il sito in modalità sviluppo (il server di produzione si era fermato per la memoria del PC): S02, broker-area e fase8-accessibilità verdi; S01 e fase4-agenzia rosse sullo stesso punto preesistente dell'helper del back office (`inviteByHand`, messaggio «Richiesta inviata» che sparisce con l'aggiornamento in tempo reale della pagina «Aste» su questo PC, già visto nella misura di partenza prima di ogni modifica); fase2-richieste rossa sulla prima prova (`toHaveURL` nelle 5 schermate in modalità sviluppo lenta, le altre quattro non lanciate). Nessuna delle tre fallisce su una schermata modificata; la verifica che conta è la CI di GitHub sulla PR #1, che va letta prima dell'unione.
+- **Unione in `main`: non fatta.** Delle tre condizioni (controlli verdi, controllo indipendente senza problemi aperti, nessun rilascio in produzione all'unione) la terza è vera (`deploy.yml` parte solo a mano) e la seconda è vera; la prima aspetta la CI. La PR resta pronta: https://github.com/axiast2026-debug/AstAx/pull/1.
