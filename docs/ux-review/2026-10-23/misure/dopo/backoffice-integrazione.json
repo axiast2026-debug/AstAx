@@ -1,0 +1,45 @@
+{
+  "flow": "backoffice-integrazione",
+  "who": "verificatore",
+  "phase": "dopo",
+  "mainWidth": 1440,
+  "screens": [
+    {
+      "index": 1,
+      "name": "scheda-verifica",
+      "path": "/verifiche/01a16785-3965-743d-962e-a5496062b7a4",
+      "fields": 29,
+      "requiredFields": 22,
+      "actions": 7,
+      "axe": [],
+      "sinceLastS": 9.6
+    },
+    {
+      "index": 2,
+      "name": "dati-completati",
+      "path": "/verifiche/01a16785-3965-743d-962e-a5496062b7a4",
+      "fields": 29,
+      "requiredFields": 22,
+      "actions": 7,
+      "axe": [],
+      "sinceLastS": 4.1
+    },
+    {
+      "index": 3,
+      "name": "integrazione-chiesta",
+      "path": "/verifiche",
+      "fields": 2,
+      "requiredFields": 0,
+      "actions": 53,
+      "axe": [],
+      "sinceLastS": 4.2
+    }
+  ],
+  "taps": 3,
+  "typed": 2,
+  "choices": 3,
+  "files": 0,
+  "waitS": 0,
+  "wallS": 18,
+  "estimatedS": 32
+}

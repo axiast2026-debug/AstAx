@@ -6,7 +6,12 @@ const intake = {
   vehicleStatus: "INSURED",
   plate: "GN123AB",
   ownerBirthDate: "1990-05-12",
-  residence: { street: "Via delle Prove 1", postalCode: "20121", municipalityIstat: "015146", province: "MI" },
+  residence: {
+    street: "Via delle Prove 1",
+    postalCode: "20121",
+    municipalityIstat: "015146",
+    province: "MI",
+  },
 };
 
 describe("resumeStep", () => {

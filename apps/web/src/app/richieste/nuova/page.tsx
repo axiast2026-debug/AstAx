@@ -51,7 +51,10 @@ export default async function NewBrokerRequestPage({
           </Button>
         </form>
         {/* UX review 2026-10-23: a new customer is one tap away, not below the whole list. */}
-        <Link href="/clienti/nuovo?poi=richiesta" className={buttonVariants({ variant: "secondary" })}>
+        <Link
+          href="/clienti/nuovo?poi=richiesta"
+          className={buttonVariants({ variant: "secondary" })}
+        >
           {t("newCustomer")}
         </Link>
       </div>

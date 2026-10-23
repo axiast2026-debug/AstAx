@@ -1,0 +1,35 @@
+{
+  "flow": "privato-riconferma",
+  "who": "privato",
+  "phase": "dopo",
+  "mainWidth": 390,
+  "screens": [
+    {
+      "index": 1,
+      "name": "prezzi-scaduti",
+      "path": "/preventivi/01a1678f-dfae-750c-bf39-adb5e42ab8b1",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 4,
+      "axe": [],
+      "sinceLastS": 31.1
+    },
+    {
+      "index": 2,
+      "name": "riconferma-in-corso",
+      "path": "/preventivi/01a1678f-dfae-750c-bf39-adb5e42ab8b1",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 3,
+      "axe": [],
+      "sinceLastS": 7.5
+    }
+  ],
+  "taps": 1,
+  "typed": 0,
+  "choices": 0,
+  "files": 0,
+  "waitS": 0,
+  "wallS": 39,
+  "estimatedS": 8
+}

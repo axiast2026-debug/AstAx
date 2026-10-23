@@ -13,8 +13,7 @@
  * visible alternative (ADR 0018).
  */
 @supports selector(:has(*)) {
-  form:not([data-has-errors]):not(:has(#package-CUSTOM:checked))
-    [data-shows-when="package-custom"],
+  form:not([data-has-errors]):not(:has(#package-CUSTOM:checked)) [data-shows-when="package-custom"],
   form:not([data-has-errors]):not(:has(#start-DATE:checked)) [data-shows-when="start-date"],
   form:not([data-has-errors]):not(
       :has(#f-coverage-rca-limitType option[value="SEPARATE_LIMITS"]:checked)

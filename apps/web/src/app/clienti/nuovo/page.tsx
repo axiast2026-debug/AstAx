@@ -20,11 +20,7 @@ export default async function NewCustomerPage({
       <div className="mt-6">
         <ErrorSummary codes={errore} />
       </div>
-      <form
-        action={createCustomer}
-        className="space-y-6"
-        data-has-errors={errore ? "" : undefined}
-      >
+      <form action={createCustomer} className="space-y-6" data-has-errors={errore ? "" : undefined}>
         {poi === "richiesta" ? <input type="hidden" name="then" value="request" /> : null}
         <SelectField
           label={t("kind")}
@@ -57,7 +53,13 @@ export default async function NewCustomerPage({
           </Fieldset>
         </div>
         <Fieldset legend={t("contacts")}>
-          <Field label={t("email")} name="email" type="email" autoComplete="off" inputMode="email" />
+          <Field
+            label={t("email")}
+            name="email"
+            type="email"
+            autoComplete="off"
+            inputMode="email"
+          />
           <Field label={t("phone")} name="phone" type="tel" autoComplete="off" inputMode="tel" />
           <p className="text-sm text-warm-600 sm:col-span-2">{t("contactsNote")}</p>
         </Fieldset>

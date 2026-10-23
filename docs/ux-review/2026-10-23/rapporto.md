@@ -4,7 +4,37 @@ Ramo `ux/revisione-2026-10-23`. Mandato di Dan: meno passaggi, funzioni che tolg
 
 ## 1. In cinque righe
 
-[DA COMPLETARE DOPO LA MISURA «DOPO»]
+1. **Tredici flussi misurati prima e dopo** (schermate, tocchi, campi, scelte, file, tempo stimato, axe a 390 e 1440 px): le schermate non cambiano, perché i passaggi che restano sono quelli obbligatori o del servizio; cambiano fatica e chiarezza.
+2. **Meno da scrivere e da guardare:** campi visibili sul percorso del privato 39 → 32, del broker 51 → 42, dell'agenzia 67 → 47; la data di nascita non si scrive più (3 → 2 campi scritti per il privato, 8 → 7 per il broker); l'emissione passa da 9 a 6 tocchi.
+3. **Ripresa e feedback:** una bozza si riapre al passo giusto; «Scegli questa offerta» dice che sta preparando i documenti; i PDF dell'emissione partono alla scelta.
+4. **Estetica e accessibilità:** pagina di accesso nei colori AstAx; pannello del broker e pagina del cliente nel nuovo design; aree da 44 px, bordi 3:1, un h1 per pagina; axe «dopo» senza alcuna segnalazione su 72 schermate (prima: 8, tutte «page-has-heading-one»).
+5. **Dieci proposte di corsia B** (link magico nell'email del codice, codice automatico per il cliente del broker, offerta senza presa in carico esplicita, dati dalla targa, approvazione automatica delle verdi…) e cinque domande per Dan. Il controllo indipendente non ha trovato bloccanti; le sue correzioni sono applicate.
+
+### Numeri prima e dopo per ogni flusso
+
+| Flusso | Schermate | Tocchi | Campi scritti | Scelte | File | Campi visibili in tutto | Tempo stimato | Problemi axe |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Privato: dalla prima visita alla richiesta inviata | 13 | 13 | 3 → **2** | 2 | 3 | 39 → **32** | 112 s → **109 s** | 2 → **0** |
+| Privato: asta in corso | 2 | 0 | 0 | 0 | 0 | 0 | 6 s | 1 → **0** |
+| Privato: apertura, confronto AI, scelta, firma, pagamento | 8 | 7 | 2 | 1 | 0 | 3 | 52 s | 0 |
+| Privato: polizza emessa | 2 | 0 | 0 | 0 | 0 | 0 | 6 s | 1 → **0** |
+| Privato: prezzi scaduti e riconferma | 2 | 1 | 0 | 0 | 0 | 0 | 8 s | 0 |
+| Privato: integrazione chiesta | 3 | 2 | 0 | 0 | 0 | 9 | 12 s | 1 → **0** |
+| Broker: richiesta per un cliente nuovo | 12 | 13 | 8 → **7** | 1 | 3 | 51 → **42** | 139 s → **133 s** | 1 → **0** |
+| Broker: confronto e invio al cliente | 3 | 1 | 0 | 1 | 0 | 6 → **4** | 13 s | 0 |
+| Cliente del broker: dal link al pagamento | 6 | 7 | 3 | 1 | 0 | 1 | 49 s | 0 |
+| Agenzia: dall'avviso all'offerta | 7 | 7 | 6 | 3 | 1 | 67 → **47** | 85 s | 0 |
+| Agenzia: esito ed emissione | 4 | 9 → **6** | 1 | 0 | 3 | 7 | 65 s → **61 s** | 0 |
+| Sub-agente: cambio di agenzia | 4 | 4 | 3 | 1 | 0 | 3 | 38 s | 0 |
+| Back office: verifica e approvazione | 7 | 7 | 4 | 0 | 0 | 64 | 56 s | 2 → **0** |
+| Back office: richiesta di integrazioni | 3 | 3 | 2 | 3 | 0 | 60 | 32 s | 0 |
+
+- Privato: dalla prima visita alla richiesta inviata: copertura: 15 → 8 campi
+- Broker: richiesta per un cliente nuovo: nuovo-cliente: 8 → 6 campi; copertura: 15 → 8 campi
+- Broker: confronto e invio al cliente: confronto-offerte: 3 → 2 campi; link-inviato: 3 → 2 campi
+- Agenzia: dall'avviso all'offerta: modulo-offerta: 29 → 19 campi; ricevuta-busta-chiusa: 27 → 17 campi
+
+Nota sui conteggi: «campi visibili» conta anche gli input di file nascosti dietro un pulsante (`sr-only`), per esempio i 3 dell'emissione; il tempo stimato cambia poco perché i passaggi obbligatori (foto, consenso, firma, pagamento) restano quelli.
 
 ## 2. Come abbiamo misurato
 
@@ -51,7 +81,7 @@ Un commit per modifica sul ramo `ux/revisione-2026-10-23`. Nessuna dipendenza nu
 | --- | --- | --- | --- |
 | A1 (problema 2, 13) | La bozza ripartiva dal primo passo e la home aveva due pulsanti arancio | `resumeStep` (`apps/web/src/lib/resume.ts`): aprire una bozza porta al primo passo ancora da compilare; la pagina della richiesta di una bozza reindirizza lì (non per le bozze dei lotti, che partono da sole); nella procedura «Torna alle richieste» e «Annulla questa bozza». In home «Nuovo preventivo» diventa contornato quando c'è qualcosa in corso. L'API dice `scheduledSubmitAt` nel dettaglio | `resume.test.ts` (4 casi); misura «dopo»: dalla home una bozza si riprende con 1 tocco invece di 2 |
 | A2 (problema 3) | Data di nascita scritta due volte | Proposta dalla patente letta dal bot («Letta dalla patente: controlla che sia giusta») o, per il cliente del broker, dalla sua scheda; la scheda del nuovo cliente prende data di nascita e sesso dal codice fiscale | `intake.int.test.ts` (il dettaglio della richiesta porta `customerBirthDate`); misura «dopo»: privato 3 → 2 campi scritti, broker 8 → 7 |
-| A3 (problemi 4, 5, 9) | Troppi campi visibili | CSS `:has()` senza script (`globals.css`, `data-shows-when`; i browser senza `:has()` vedono tutto): garanzie «Su misura» solo con quel pacchetto, data solo con «Da una data che scelgo», persona o società nel nuovo cliente, massimali separati solo se scelti, dettagli di una garanzia solo se inclusa. Il modulo dell'offerta parte dai minimi del pacchetto (massimale unico, capitale infortuni) | misura «dopo»: copertura 15 → 5 campi, modulo dell'offerta 29 → 12, nuovo cliente 8 → 5 |
+| A3 (problemi 4, 5, 9) | Troppi campi visibili | CSS `:has()` senza script (`globals.css`, `data-shows-when`; i browser senza `:has()` vedono tutto): garanzie «Su misura» solo con quel pacchetto, data solo con «Da una data che scelgo», persona o società nel nuovo cliente, massimali separati solo se scelti, dettagli di una garanzia solo se inclusa. Il modulo dell'offerta parte dai minimi del pacchetto (massimale unico, capitale infortuni) | misura «dopo»: copertura 15 → 8 campi, modulo dell'offerta 29 → 19, nuovo cliente 8 → 6 |
 | A4 (problema 6) | «Scegli questa offerta» muto | `PendingButton` con «Preparo i documenti da firmare…» e spinner (pulsazione con «riduci movimento»); lo stesso sulla pagina del cliente dal link | schermata `dopo-scelta-attesa-390.png` |
 | A5 (problema 7) | Due tocchi per ogni PDF dell'emissione | Il file parte appena scelto (`AutoSubmitFile`, già usato per le foto); link da 44 px; titolo nel carattere dei titoli. Helper e2e `issuePolicy` aggiornato | misura «dopo»: emissione 9 → 6 tocchi |
 | A6 (problema 8) | Pannello del broker e pagina del cliente nel vecchio stile | Le stesse schede delle offerte del privato: prezzo in Inter Tight, chip della garanzia, «Più conveniente», link da 44 px, un solo pulsante arancio per schermata; su «Nuova richiesta» il pulsante «Nuovo cliente» accanto alla ricerca | schermate `dopo-broker-offerte-1440.png`, `dopo-cliente-link-390.png`; S02 invariato |

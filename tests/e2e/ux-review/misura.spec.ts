@@ -1,6 +1,13 @@
 import { randomBytes } from "node:crypto";
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { e2eState, acceptLegalIfAsked, savedSecret, saveSecret, loginProfessional, loginProfessionalAgain } from "../support/auth.js";
+import {
+  e2eState,
+  acceptLegalIfAsked,
+  savedSecret,
+  saveSecret,
+  loginProfessional,
+  loginProfessionalAgain,
+} from "../support/auth.js";
 import {
   ADMIN,
   approve,
@@ -11,7 +18,7 @@ import {
   submittedRequest,
   WEB,
 } from "../support/auction.js";
-import { issuePolicy, moveClock, openIncoming, professional, sendOffer } from "../support/agency.js";
+import { issuePolicy, openIncoming, professional, sendOffer } from "../support/agency.js";
 import { birthDateOf, newFiscalCode, ownerSignedDeclaration } from "../support/broker.js";
 import { codeFromMail, latestMail, requestCode } from "../support/requests.js";
 import { DESKTOP, Meter, PHONE } from "./meter.js";
@@ -190,11 +197,15 @@ test.describe.serial("misura UX", () => {
     const code6 = await (async () => {
       for (let i = 0; i < 40; i += 1) {
         const list = (await (
-          await fetch(`http://127.0.0.1:8025/api/v1/search?query=${encodeURIComponent(`to:${email}`)}&limit=1`)
+          await fetch(
+            `http://127.0.0.1:8025/api/v1/search?query=${encodeURIComponent(`to:${email}`)}&limit=1`,
+          )
         ).json()) as { messages: { ID: string }[] };
         const latest = list.messages[0];
         if (latest) {
-          const msg = (await (await fetch(`http://127.0.0.1:8025/api/v1/message/${latest.ID}`)).json()) as { Text: string };
+          const msg = (await (
+            await fetch(`http://127.0.0.1:8025/api/v1/message/${latest.ID}`)
+          ).json()) as { Text: string };
           const c = /\b(\d{6})\b/.exec(msg.Text)?.[1];
           if (c) return c;
         }
@@ -624,7 +635,7 @@ test.describe.serial("misura UX", () => {
     await testOffersAndClose(operator, code);
     const m = new Meter("privato-riconferma", "privato", PHONE.width);
     try {
-      await moveClock(operator, 45 * 24 * 60);
+      await moveClockQuietly(operator, 45 * 24 * 60);
       await expect(async () => {
         await customer.goto(url);
         if (await customer.getByRole("button", { name: "Chiedi riconferma" }).isVisible()) return;
@@ -648,7 +659,7 @@ test.describe.serial("misura UX", () => {
       await m.screen(customer, "riconferma-in-corso");
       m.save();
     } finally {
-      await moveClock(operator, "reset");
+      await moveClockQuietly(operator, "reset");
     }
     await customer.close();
   });
@@ -666,5 +677,17 @@ async function invite(operator: Page, code: string, agency: string): Promise<voi
   await form.getByLabel("Agenzia", { exact: true }).selectOption({ label: agency });
   await form.getByLabel("Motivo").fill("Misura UX");
   await form.getByRole("button", { name: "Invita" }).click();
+  await operator.waitForLoadState("networkidle").catch(() => undefined);
+}
+
+/** The development clock (rule 13), without waiting for a status message the live refresh may hide. */
+async function moveClockQuietly(operator: Page, minutes: number | "reset"): Promise<void> {
+  await operator.goto(`${ADMIN}/aste`);
+  if (minutes === "reset") {
+    await operator.getByRole("button", { name: "Riporta l'orologio a oggi" }).click();
+  } else {
+    await operator.getByLabel("Minuti").fill(String(minutes));
+    await operator.getByRole("button", { name: /Sposta avanti l'orologio/ }).click();
+  }
   await operator.waitForLoadState("networkidle").catch(() => undefined);
 }

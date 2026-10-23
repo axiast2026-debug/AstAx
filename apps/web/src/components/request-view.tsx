@@ -14,12 +14,7 @@ import { PushSwitch } from "@/components/push-switch";
 import { api } from "@/lib/auth";
 import { ErrorSummary } from "@/components/form";
 import { holderName } from "@/lib/requests";
-import {
-  requestOptions,
-  STEP_SECTIONS,
-  type RequestDetail,
-  type WizardStep,
-} from "@/lib/requests";
+import { requestOptions, STEP_SECTIONS, type RequestDetail, type WizardStep } from "@/lib/requests";
 import { resumeStep } from "@/lib/resume";
 
 const STATUS_TONE: Record<string, "neutral" | "success" | "warning" | "danger" | "dark"> = {

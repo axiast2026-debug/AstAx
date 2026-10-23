@@ -1,0 +1,42 @@
+agenzia-emissione | schermate 4 | tocchi 6 | campi 1 | scelte 0 | file 3 | attesa 4 s | stima 61 s
+  campi/schermata: risultati=0, polizze-da-emettere=0, dettaglio-da-emettere=7, polizza-emessa=0
+  axe: nessuna
+agenzia-offerta | schermate 7 | tocchi 7 | campi 6 | scelte 3 | file 1 | attesa 1 s | stima 85 s
+  campi/schermata: accesso-keycloak=2, dashboard-agenzia=0, notifiche=0, partecipa-all-asta=7, dettaglio-richiesta=2, modulo-offerta=19, ricevuta-busta-chiusa=17
+  axe: nessuna
+backoffice-integrazione | schermate 3 | tocchi 3 | campi 2 | scelte 3 | file 0 | attesa 0 s | stima 32 s
+  campi/schermata: scheda-verifica=29, dati-completati=29, integrazione-chiesta=2
+  axe: nessuna
+backoffice-verifica | schermate 7 | tocchi 7 | campi 4 | scelte 0 | file 0 | attesa 0 s | stima 56 s
+  campi/schermata: accesso-back-office=0, accesso-keycloak=2, cruscotto=0, coda-verifiche=2, scheda-verifica=29, dati-completati=29, approvata=2
+  axe: nessuna
+broker-acquisto | schermate 3 | tocchi 1 | campi 0 | scelte 1 | file 0 | attesa 0 s | stima 13 s
+  campi/schermata: confronto-offerte=2, link-inviato=2, cliente-ha-pagato=0
+  axe: nessuna
+broker-richiesta | schermate 12 | tocchi 13 | campi 7 | scelte 1 | file 3 | attesa 4 s | stima 133 s
+  campi/schermata: accesso-keycloak=2, richieste-del-broker=0, scegli-il-cliente=1, nuovo-cliente=6, tipo-veicolo=0, dati-e-foto-vuoto=9, dati-e-foto-letti=9, guida=3, copertura=8, conferma=0, richiesta-inviata=0, tabella-dopo-invio=4
+  axe: nessuna
+cliente-del-broker | schermate 6 | tocchi 7 | campi 3 | scelte 1 | file 0 | attesa 0 s | stima 49 s
+  campi/schermata: link-offerta=0, codice=0, offerta=0, firma-e-paga=1, firmato-paga=0, pagato=0
+  axe: nessuna
+privato-acquisto | schermate 8 | tocchi 7 | campi 2 | scelte 1 | file 0 | attesa 3 s | stima 52 s
+  campi/schermata: offerte-aperte=0, confronto-ai-proposta=0, suggerimento-ai=0, firma-e-paga=1, firma-fornitore=1, firmato-paga=0, pagamento-fornitore=1, pagato=0
+  axe: nessuna
+privato-asta-in-corso | schermate 2 | tocchi 0 | campi 0 | scelte 0 | file 0 | attesa 0 s | stima 6 s
+  campi/schermata: asta-in-corso=0, home-con-asta=0
+  axe: nessuna
+privato-integrazione | schermate 3 | tocchi 2 | campi 0 | scelte 0 | file 0 | attesa 0 s | stima 12 s
+  campi/schermata: home-con-integrazione=0, richiesta-da-integrare=0, schermata-da-correggere=9
+  axe: nessuna
+privato-polizza | schermate 2 | tocchi 0 | campi 0 | scelte 0 | file 0 | attesa 0 s | stima 6 s
+  campi/schermata: le-mie-polizze=0, home-con-polizza=0
+  axe: nessuna
+privato-richiesta | schermate 13 | tocchi 13 | campi 2 | scelte 2 | file 3 | attesa 4 s | stima 109 s
+  campi/schermata: home-pubblica=0, email=1, codice=1, documenti-da-accettare=0, home-privato-vuota=0, tipo-veicolo=0, dati-e-foto-vuoto=9, dati-e-foto-letti=9, guida=3, copertura=8, conferma=1, richiesta-inviata=0, home-privato-in-verifica=0
+  axe: nessuna
+privato-riconferma | schermate 2 | tocchi 1 | campi 0 | scelte 0 | file 0 | attesa 0 s | stima 8 s
+  campi/schermata: prezzi-scaduti=0, riconferma-in-corso=0
+  axe: nessuna
+subagente-cambio-agenzia | schermate 4 | tocchi 4 | campi 3 | scelte 1 | file 0 | attesa 0 s | stima 38 s
+  campi/schermata: accesso-keycloak=2, scelta-contesto=0, dashboard-sub-agente=0, dopo-il-cambio=1
+  axe: nessuna
