@@ -22,8 +22,14 @@ export async function AppShell({ viewer, children }: { viewer: Viewer; children:
             {t("app.name")}
           </Link>
           {active ? <Badge tone="dark">{t(`roles.${active.role}`)}</Badge> : null}
-          <nav className="ml-auto flex items-center gap-4 text-sm">
-            <Link href="/notifiche" className="flex items-center gap-1 hover:text-orange-500">
+          <nav
+            aria-label={t("shell.account")}
+            className="ml-auto flex items-center gap-2 text-sm sm:gap-4"
+          >
+            <Link
+              href="/notifiche"
+              className="inline-flex min-h-11 items-center gap-1 px-1 hover:text-orange-500"
+            >
               {t("shell.notifications")}
               <Badge
                 className="tabular bg-orange-500 text-night-950"
@@ -32,11 +38,17 @@ export async function AppShell({ viewer, children }: { viewer: Viewer; children:
                 {unread}
               </Badge>
             </Link>
-            <Link href="/profilo" className="hover:text-orange-500">
+            <Link
+              href="/profilo"
+              className="inline-flex min-h-11 items-center px-1 hover:text-orange-500"
+            >
               {t("shell.profile")}
             </Link>
             <form action={logout}>
-              <button type="submit" className="hover:text-orange-500">
+              <button
+                type="submit"
+                className="inline-flex min-h-11 items-center px-1 hover:text-orange-500"
+              >
                 {t("shell.logout")}
               </button>
             </form>
@@ -50,7 +62,7 @@ export async function AppShell({ viewer, children }: { viewer: Viewer; children:
               <li key={entry.key}>
                 <Link
                   href={entry.href}
-                  className="block rounded-lg px-3 py-2 text-sm hover:bg-warm-100"
+                  className="flex min-h-11 items-center rounded-lg px-3 py-2 text-sm hover:bg-warm-100"
                 >
                   {t(`menu.${entry.key}`)}
                 </Link>

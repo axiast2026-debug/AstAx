@@ -40,8 +40,8 @@ export async function CompletionForm({
       <input
         name={name}
         defaultValue={value === undefined || value === null ? "" : String(value)}
-        className={`mt-1 block w-full rounded-md border px-2 py-1.5 ${
-          missing.has(path) ? "border-red-600 bg-red-50" : "border-warm-200"
+        className={`mt-1 block min-h-11 w-full rounded-md border px-2 py-1.5 ${
+          missing.has(path) ? "border-red-600 bg-red-50" : "border-warm-600"
         }`}
         {...props}
       />
@@ -57,8 +57,8 @@ export async function CompletionForm({
         name={name}
         defaultValue={typeof value === "string" ? value : ""}
         required
-        className={`mt-1 block w-full rounded-md border px-2 py-1.5 ${
-          missing.has(path) ? "border-red-600 bg-red-50" : "border-warm-200"
+        className={`mt-1 block min-h-11 w-full rounded-md border px-2 py-1.5 ${
+          missing.has(path) ? "border-red-600 bg-red-50" : "border-warm-600"
         }`}
       >
         <option value="" />

@@ -48,7 +48,11 @@ const DOCUMENT_KINDS = [
   "CONSENT_FORM",
   "OTHER",
 ] as const;
-const INPUT = "mt-1 block w-full rounded-lg border border-warm-200 bg-white px-3 py-2 text-sm";
+const INPUT =
+  "mt-1 block min-h-11 w-full rounded-lg border border-warm-600 bg-white px-3 py-2 text-sm focus-visible:border-night-900 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-night-100";
+/** A checkbox with its label: 44 px to the finger (WCAG 2.5.8), 20 px to the eye. */
+const CHECK_ROW = "flex min-h-11 items-center gap-3";
+const CHECK = "size-5 shrink-0 accent-night-900";
 
 /**
  * The verification card (spec 06 «Scheda di verifica»): documents on the left,
@@ -182,7 +186,7 @@ export default async function VerificationCardPage({
                   href={`/verifiche/${card.id}/documenti/${doc.id}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="font-medium underline"
+                  className="inline-flex min-h-11 items-center font-medium underline"
                 >
                   {t(`documentKinds.${doc.kind}`)}
                   {doc.driverIndex === null ? "" : ` ${doc.driverIndex + 1}`}
@@ -202,7 +206,9 @@ export default async function VerificationCardPage({
                               : "",
                           )}
                         >
-                          <dt className="min-w-0 break-words text-warm-600">{name}</dt>
+                          <dt className="min-w-0 break-words text-warm-600">
+                            {t.has(`readFields.${name}`) ? t(`readFields.${name}`) : name}
+                          </dt>
                           <dd className="min-w-0 break-words">{String(f.value ?? "")}</dd>
                           <dd className="tabular">
                             {t("confidence", { value: Math.round(f.confidence * 100) })}
@@ -480,12 +486,12 @@ export default async function VerificationCardPage({
                     <legend className="font-medium">{t("reasons")}</legend>
                     <div className="mt-2 grid gap-1 sm:grid-cols-2">
                       {card.reasons.integration.map((r) => (
-                        <label key={r.code} className="flex items-center gap-2">
+                        <label key={r.code} className={CHECK_ROW}>
                           <input
                             type="checkbox"
                             name="reasonCodes"
                             value={r.code}
-                            className="h-4 w-4"
+                            className={CHECK}
                           />
                           {r.it}
                         </label>
@@ -496,8 +502,8 @@ export default async function VerificationCardPage({
                     <legend className="font-medium">{t("sectionsToChange")}</legend>
                     <div className="mt-2 grid gap-1 sm:grid-cols-3">
                       {SECTIONS.map((s) => (
-                        <label key={s} className="flex items-center gap-2">
-                          <input type="checkbox" name="sections" value={s} className="h-4 w-4" />
+                        <label key={s} className={CHECK_ROW}>
+                          <input type="checkbox" name="sections" value={s} className={CHECK} />
                           {t(`sections.${s}`)}
                         </label>
                       ))}
@@ -507,8 +513,8 @@ export default async function VerificationCardPage({
                     <legend className="font-medium">{t("documentsToUpload")}</legend>
                     <div className="mt-2 grid gap-1 sm:grid-cols-2">
                       {DOCUMENT_KINDS.map((k) => (
-                        <label key={k} className="flex items-center gap-2">
-                          <input type="checkbox" name="documents" value={k} className="h-4 w-4" />
+                        <label key={k} className={CHECK_ROW}>
+                          <input type="checkbox" name="documents" value={k} className={CHECK} />
                           {t(`documentKinds.${k}`)}
                         </label>
                       ))}

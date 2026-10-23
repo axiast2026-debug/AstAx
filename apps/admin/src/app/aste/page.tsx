@@ -123,7 +123,7 @@ const TONE = {
   CLOSED: "neutral",
   CANCELLED: "danger",
 } as const;
-const INPUT = "rounded-lg border border-warm-200 bg-white px-2 py-1 text-sm";
+const INPUT = "min-h-11 rounded-lg border border-warm-600 bg-white px-2 py-1 text-sm";
 
 /**
  * The back office list of auctions (spec 06 «Aste»), in real time: counters

@@ -56,7 +56,7 @@ export async function AppShell({ viewer, children }: { viewer: Viewer; children:
                 id="context-switch"
                 name="membershipId"
                 defaultValue={active.id}
-                className="rounded-md bg-night-800 px-2 py-1 text-white"
+                className="min-h-11 rounded-md bg-night-800 px-2 py-1 text-white"
               >
                 {viewer.me.memberships.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -66,14 +66,20 @@ export async function AppShell({ viewer, children }: { viewer: Viewer; children:
               </select>
               <button
                 type="submit"
-                className="rounded-md border border-orange-500 px-2 py-1 text-orange-500 hover:bg-orange-500 hover:text-night-950"
+                className="min-h-11 rounded-md border border-orange-500 px-3 py-1 text-orange-500 hover:bg-orange-500 hover:text-night-950"
               >
                 {t("shell.switchAction")}
               </button>
             </form>
           ) : null}
-          <nav aria-label={t("shell.account")} className="ml-auto flex items-center gap-4 text-sm">
-            <Link href="/notifiche" className="flex items-center gap-1 hover:text-orange-500">
+          <nav
+            aria-label={t("shell.account")}
+            className="ml-auto flex items-center gap-2 text-sm sm:gap-4"
+          >
+            <Link
+              href="/notifiche"
+              className="inline-flex min-h-11 items-center gap-1 px-1 hover:text-orange-500"
+            >
               {t("shell.notifications")}
               <Badge
                 className="tabular bg-orange-500 text-night-950"
@@ -82,14 +88,23 @@ export async function AppShell({ viewer, children }: { viewer: Viewer; children:
                 {unread}
               </Badge>
             </Link>
-            <Link href="/assistenza" className="hidden hover:text-orange-500 sm:inline">
+            <Link
+              href="/assistenza"
+              className="hidden min-h-11 items-center px-1 hover:text-orange-500 sm:inline-flex"
+            >
               {t("shell.support")}
             </Link>
-            <Link href="/profilo" className="hidden hover:text-orange-500 sm:inline">
+            <Link
+              href="/profilo"
+              className="hidden min-h-11 items-center px-1 hover:text-orange-500 sm:inline-flex"
+            >
               {t("shell.profile")}
             </Link>
             <form action={logout}>
-              <button type="submit" className="hover:text-orange-500">
+              <button
+                type="submit"
+                className="inline-flex min-h-11 items-center px-1 hover:text-orange-500"
+              >
                 {t("shell.logout")}
               </button>
             </form>
@@ -110,7 +125,7 @@ export async function AppShell({ viewer, children }: { viewer: Viewer; children:
               <li key={entry.key} className="shrink-0">
                 <Link
                   href={entry.href}
-                  className="block rounded-lg px-3 py-2 text-sm hover:bg-warm-100"
+                  className="flex min-h-11 items-center rounded-lg px-3 py-2 text-sm hover:bg-warm-100"
                 >
                   {t(`menu.${entry.key}`)}
                 </Link>
@@ -128,7 +143,10 @@ export async function AppShell({ viewer, children }: { viewer: Viewer; children:
           <ul className="flex flex-wrap gap-x-6 gap-y-2 border-t border-warm-200 pt-4 text-sm">
             {links.map((l) => (
               <li key={l.key}>
-                <Link href={l.href} className="underline hover:text-orange-600">
+                <Link
+                  href={l.href}
+                  className="inline-flex min-h-11 items-center underline hover:text-orange-700"
+                >
                   {t(`menu.${l.key}`)}
                 </Link>
               </li>
@@ -146,7 +164,7 @@ export async function AppShell({ viewer, children }: { viewer: Viewer; children:
               <li key={entry.key}>
                 <Link
                   href={entry.href}
-                  className="block px-1 py-3 text-center text-xs font-medium text-night-900"
+                  className="flex min-h-12 items-center justify-center px-1 py-2 text-center text-xs font-medium text-night-900"
                 >
                   {t(`menu.${entry.key}`)}
                 </Link>
