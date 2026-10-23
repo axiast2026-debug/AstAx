@@ -1,0 +1,85 @@
+{
+  "flow": "backoffice-verifica",
+  "who": "verificatore",
+  "phase": "dopo",
+  "mainWidth": 1440,
+  "screens": [
+    {
+      "index": 1,
+      "name": "accesso-back-office",
+      "path": "/",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 1,
+      "axe": [],
+      "sinceLastS": 2.9
+    },
+    {
+      "index": 2,
+      "name": "accesso-keycloak",
+      "path": "/realms/astax/protocol/openid-connect/auth",
+      "fields": 2,
+      "requiredFields": 0,
+      "actions": 3,
+      "axe": [],
+      "sinceLastS": 2.3
+    },
+    {
+      "index": 3,
+      "name": "cruscotto",
+      "path": "/",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 5,
+      "axe": [],
+      "sinceLastS": 4.1
+    },
+    {
+      "index": 4,
+      "name": "coda-verifiche",
+      "path": "/verifiche",
+      "fields": 2,
+      "requiredFields": 0,
+      "actions": 54,
+      "axe": [],
+      "sinceLastS": 4.5
+    },
+    {
+      "index": 5,
+      "name": "scheda-verifica",
+      "path": "/verifiche/01a1678c-fbb7-7188-90e2-eeb7b3a0482d",
+      "fields": 29,
+      "requiredFields": 22,
+      "actions": 7,
+      "axe": [],
+      "sinceLastS": 3.1
+    },
+    {
+      "index": 6,
+      "name": "dati-completati",
+      "path": "/verifiche/01a1678c-fbb7-7188-90e2-eeb7b3a0482d",
+      "fields": 29,
+      "requiredFields": 22,
+      "actions": 7,
+      "axe": [],
+      "sinceLastS": 3
+    },
+    {
+      "index": 7,
+      "name": "approvata",
+      "path": "/verifiche",
+      "fields": 2,
+      "requiredFields": 0,
+      "actions": 53,
+      "axe": [],
+      "sinceLastS": 3.3
+    }
+  ],
+  "taps": 7,
+  "typed": 4,
+  "choices": 0,
+  "files": 0,
+  "waitS": 0,
+  "wallS": 23,
+  "estimatedS": 56
+}

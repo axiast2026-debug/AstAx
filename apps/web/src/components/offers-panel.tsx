@@ -5,7 +5,7 @@ import {
   formatEuroCents,
   formatWeekdayDate,
 } from "@astax/shared/format";
-import { Badge, Button, buttonVariants, GuaranteeChip, Icon } from "@astax/ui";
+import { Badge, buttonVariants, GuaranteeChip, Icon } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { cookies } from "next/headers";
 import Link from "next/link";
@@ -15,6 +15,7 @@ import { AddToCalendar } from "@/components/add-to-calendar";
 import { AiCompareSheet } from "@/components/ai-compare-sheet";
 import { GuaranteeTimeLeft } from "@/components/guarantee-time-left";
 import { OffersReveal } from "@/components/offers-reveal";
+import { PendingButton } from "@/components/pending-button";
 import { UNLOCK_AT } from "@/components/offers-reveal-timing";
 import type { CurrentAcceptance, OfferRow, Presentation } from "@/lib/acceptance";
 import { guaranteeState } from "@/lib/guarantee";
@@ -521,9 +522,13 @@ export async function OffersPanel({ requestId }: { requestId: string }) {
                     <form action={chooseOffer}>
                       <input type="hidden" name="requestId" value={requestId} />
                       <input type="hidden" name="offerId" value={o.id} />
-                      <Button type="submit" variant="secondary">
-                        {t("choose")}
-                      </Button>
+                      <PendingButton
+                        variant="secondary"
+                        size="md"
+                        full={false}
+                        label={t("choose")}
+                        busy={t("choosing")}
+                      />
                     </form>
                   ) : null}
                   {o.id === chosenId ? (

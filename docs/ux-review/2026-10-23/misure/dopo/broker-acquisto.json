@@ -1,0 +1,45 @@
+{
+  "flow": "broker-acquisto",
+  "who": "broker e suo cliente",
+  "phase": "dopo",
+  "mainWidth": 1440,
+  "screens": [
+    {
+      "index": 1,
+      "name": "confronto-offerte",
+      "path": "/richieste/01a16783-827f-7190-a33d-f96d19a8c6bb",
+      "fields": 2,
+      "requiredFields": 0,
+      "actions": 6,
+      "axe": [],
+      "sinceLastS": 3.9
+    },
+    {
+      "index": 2,
+      "name": "link-inviato",
+      "path": "/richieste/01a16783-827f-7190-a33d-f96d19a8c6bb",
+      "fields": 2,
+      "requiredFields": 0,
+      "actions": 6,
+      "axe": [],
+      "sinceLastS": 2.2
+    },
+    {
+      "index": 3,
+      "name": "cliente-ha-pagato",
+      "path": "/richieste/01a16783-827f-7190-a33d-f96d19a8c6bb",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 8,
+      "axe": [],
+      "sinceLastS": 12.2
+    }
+  ],
+  "taps": 1,
+  "typed": 0,
+  "choices": 1,
+  "files": 0,
+  "waitS": 0,
+  "wallS": 18,
+  "estimatedS": 13
+}

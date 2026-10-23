@@ -312,6 +312,7 @@
     "surname": "Cognome",
     "givenName": "Nome",
     "fiscalCode": "Codice fiscale",
+    "fiscalCodeHint": "Dal codice fiscale ricaviamo la data di nascita: non la chiederemo più.",
     "companyName": "Ragione sociale",
     "vatNumber": "Partita IVA",
     "contacts": "Contatti",
@@ -548,6 +549,11 @@
     "optional": "Facoltativo",
     "saveAndContinue": "Salva e continua",
     "backToRequest": "Torna alla richiesta {code}",
+    "backToList": "Torna alle richieste",
+    "cancelDraft": "Annulla questa bozza",
+    "cancelDraftConfirm": "Vuoi davvero annullare questa bozza? I dati salvati si perdono.",
+    "cancelDraftYes": "Sì, annulla",
+    "cancelDraftNo": "No, continua",
     "titles": {
       "tipo": "Che veicolo vuoi assicurare?",
       "dati": "Foto dei documenti e pochi dati",
@@ -764,7 +770,9 @@
       "continue": "Continua",
       "brokerDeclaration": "Il consenso del cliente è coperto dalla dichiarazione che il tuo studio ha firmato all'ingresso su AstAx.",
       "savedNote": "I dati sono salvati a ogni passaggio: puoi riprendere quando vuoi.",
-      "readFromRegistration": "Letta dal libretto: controlla che sia giusta."
+      "readFromRegistration": "Letta dal libretto: controlla che sia giusta.",
+      "readFromLicence": "Letta dalla patente: controlla che sia giusta.",
+      "fromCustomerCard": "Dalla scheda del cliente: controlla che sia giusta."
     },
     "coverage": {
       "package": "Quali garanzie vuoi",
@@ -1350,6 +1358,7 @@
     "coverage": "Coperture",
     "fee": "Il nostro compenso: {fee}, pagato insieme al premio solo se scegli un'offerta.",
     "choose": "Scegli questa offerta",
+    "choosing": "Preparo i documenti da firmare…",
     "chosen": "Scelta",
     "continueAcceptance": "Continua con firma e pagamento",
     "compare": "Confronta con AI",
@@ -1585,6 +1594,8 @@
     "opened": "Il cliente ha aperto il link.",
     "expired": "Il link è scaduto.",
     "inLink": "nel link",
+    "select": "Manda al cliente {offer}",
+    "sendHint": "Puoi mandarne più di una: il cliente sceglie dal link.",
     "status": "Il cliente {status}.",
     "noneSelected": "Scegli almeno un'offerta."
   },

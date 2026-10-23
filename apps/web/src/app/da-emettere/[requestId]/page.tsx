@@ -1,12 +1,13 @@
 import { startTexts } from "@/lib/start";
 import { formatDateTime, formatEuroCents } from "@astax/shared/format";
-import { Badge, Button, Card, CardTitle } from "@astax/ui";
+import { Badge, Button, buttonVariants, Card, CardTitle, Icon } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { Countdown } from "@/components/countdown";
-import { ErrorSummary, Field } from "@/components/form";
+import { ErrorSummary, Field, fieldId } from "@/components/form";
+import { AutoSubmitFile } from "@/components/wizard/auto-submit-file";
 import type { IssuanceDetail } from "@/lib/acceptance";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
@@ -43,8 +44,13 @@ export default async function IssuancePage({
     <AppShell viewer={viewer}>
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold">{t("title", { code: d.code })}</h1>
-          <Link href="/da-emettere" className="text-sm underline">
+          <h1 className="font-display text-screen font-extrabold">
+            {t("title", { code: d.code })}
+          </h1>
+          <Link
+            href="/da-emettere"
+            className="inline-flex min-h-11 items-center text-table underline"
+          >
             {t("back")}
           </Link>
         </div>
@@ -107,13 +113,23 @@ export default async function IssuancePage({
           <ul className="mt-2 space-y-1 text-sm">
             {d.signedDocuments.map((doc, i) => (
               <li key={doc.id}>
-                <a href={docHref(doc.id)} target="_blank" rel="noopener" className="underline">
+                <a
+                  href={docHref(doc.id)}
+                  target="_blank"
+                  rel="noopener"
+                  className="inline-flex min-h-11 items-center underline"
+                >
                   {t("signedDocument", { n: i + 1 })}
                 </a>
               </li>
             ))}
             <li>
-              <a href={docHref("receipt")} target="_blank" rel="noopener" className="underline">
+              <a
+                href={docHref("receipt")}
+                target="_blank"
+                rel="noopener"
+                className="inline-flex min-h-11 items-center underline"
+              >
                 {t("receipt")}
               </a>
             </li>
@@ -143,7 +159,7 @@ export default async function IssuancePage({
                         href={docHref(u.documentId)}
                         target="_blank"
                         rel="noopener"
-                        className="underline"
+                        className="inline-flex min-h-11 items-center underline"
                       >
                         {t("open")}
                       </a>
@@ -153,22 +169,23 @@ export default async function IssuancePage({
                   )}
                 </div>
                 {open ? (
+                  // UX review 2026-10-23: the PDF leaves as soon as it is chosen, one tap per file.
                   <form action={uploadIssuanceDocument} className="flex flex-wrap items-end gap-3">
                     <input type="hidden" name="requestId" value={requestId} />
                     <input type="hidden" name="kind" value={u.kind} />
-                    <label className="grid gap-1">
-                      <span className="sr-only">{t("file", { kind: tk(u.kind) })}</span>
-                      <input
-                        type="file"
-                        name="file"
-                        accept="application/pdf"
-                        required
-                        aria-label={t("file", { kind: tk(u.kind) })}
-                      />
-                    </label>
-                    <Button type="submit" size="sm" variant="outline">
+                    <label
+                      htmlFor={fieldId(`file-${u.kind}`)}
+                      className={buttonVariants({
+                        variant: u.documentId ? "ghost" : "outline",
+                        size: "md",
+                        className: "cursor-pointer",
+                      })}
+                    >
+                      <Icon name="document" size={18} />
                       {u.documentId ? t("replace") : t("upload")}
-                    </Button>
+                      <span className="sr-only"> · {t("file", { kind: tk(u.kind) })}</span>
+                    </label>
+                    <AutoSubmitFile id={fieldId(`file-${u.kind}`)} accept="application/pdf" />
                   </form>
                 ) : null}
               </li>

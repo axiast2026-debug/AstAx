@@ -49,7 +49,7 @@ export async function CoverageStep({
     extracted(latestDocument(detail, "RISK_CERTIFICATE"), "expiryDate");
   const startMode = terms?.startMode ?? "DATE";
   return (
-    <form action={saveCoverageStep} className="space-y-6">
+    <form action={saveCoverageStep} className="space-y-6" data-has-errors={errors ? "" : undefined}>
       <Hidden detail={detail} base={base} step="copertura" />
       {/* Duration and validity keep their values until step 4. */}
       <input
@@ -85,7 +85,11 @@ export async function CoverageStep({
         ))}
       </fieldset>
       {shown.some((p) => p.code === "CUSTOM") ? (
-        <fieldset className="grid gap-2 rounded-2xl bg-white p-4 shadow-[inset_0_0_0_1px_var(--color-warm-200)] sm:grid-cols-2 sm:p-6">
+        // Only with «Su misura» chosen (globals.css, data-shows-when): fewer fields on the screen.
+        <fieldset
+          data-shows-when="package-custom"
+          className="grid gap-2 rounded-2xl bg-white p-4 shadow-[inset_0_0_0_1px_var(--color-warm-200)] sm:grid-cols-2 sm:p-6"
+        >
           <legend className="sr-only">{t("chooseCoverages")}</legend>
           <p aria-hidden className="text-label font-semibold sm:col-span-2">
             {t("chooseCoverages")}
@@ -116,14 +120,16 @@ export async function CoverageStep({
         ))}
       </fieldset>
       <div className="grid gap-4 rounded-2xl bg-white p-4 shadow-[inset_0_0_0_1px_var(--color-warm-200)] sm:grid-cols-2 sm:p-6">
-        <Field
-          label={t("startDate")}
-          name="request.startDate"
-          type="date"
-          hint={t("startDateHint")}
-          defaultValue={startMode === "DATE" ? proposedStart : undefined}
-          invalid={hasError(errors, "request.startDate")}
-        />
+        <div data-shows-when="start-date">
+          <Field
+            label={t("startDate")}
+            name="request.startDate"
+            type="date"
+            hint={t("startDateHint")}
+            defaultValue={startMode === "DATE" ? proposedStart : undefined}
+            invalid={hasError(errors, "request.startDate")}
+          />
+        </div>
         <Field
           label={t("currentPremium")}
           name="request.currentPremium"

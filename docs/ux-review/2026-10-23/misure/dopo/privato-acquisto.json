@@ -1,0 +1,95 @@
+{
+  "flow": "privato-acquisto",
+  "who": "privato",
+  "phase": "dopo",
+  "mainWidth": 390,
+  "screens": [
+    {
+      "index": 1,
+      "name": "offerte-aperte",
+      "path": "/preventivi/01a1678c-fbb7-7188-90e2-eeb7b3a0482d",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 8,
+      "axe": [],
+      "sinceLastS": 4.1
+    },
+    {
+      "index": 2,
+      "name": "confronto-ai-proposta",
+      "path": "/preventivi/01a1678c-fbb7-7188-90e2-eeb7b3a0482d",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 10,
+      "axe": [],
+      "sinceLastS": 1.4
+    },
+    {
+      "index": 3,
+      "name": "suggerimento-ai",
+      "path": "/preventivi/01a1678c-fbb7-7188-90e2-eeb7b3a0482d",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 7,
+      "axe": [],
+      "sinceLastS": 2.6
+    },
+    {
+      "index": 4,
+      "name": "firma-e-paga",
+      "path": "/preventivi/01a1678c-fbb7-7188-90e2-eeb7b3a0482d/accettazione",
+      "fields": 1,
+      "requiredFields": 1,
+      "actions": 6,
+      "axe": [],
+      "sinceLastS": 2.2
+    },
+    {
+      "index": 5,
+      "name": "firma-fornitore",
+      "path": "/firma-di-prova/sig-2459dc26-fc77-454c-a8f2-08d7b6d5f515",
+      "fields": 1,
+      "requiredFields": 1,
+      "actions": 1,
+      "axe": [],
+      "sinceLastS": 0.8
+    },
+    {
+      "index": 6,
+      "name": "firmato-paga",
+      "path": "/preventivi/01a1678c-fbb7-7188-90e2-eeb7b3a0482d/accettazione",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 8,
+      "axe": [],
+      "sinceLastS": 1.7
+    },
+    {
+      "index": 7,
+      "name": "pagamento-fornitore",
+      "path": "/pagamento-di-prova/pay-01a1678f-510e-70c8-88fd-83d6acf82a27-1",
+      "fields": 1,
+      "requiredFields": 1,
+      "actions": 2,
+      "axe": [],
+      "sinceLastS": 0.8
+    },
+    {
+      "index": 8,
+      "name": "pagato",
+      "path": "/preventivi/01a1678c-fbb7-7188-90e2-eeb7b3a0482d/accettazione",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 6,
+      "axe": [],
+      "sinceLastS": 1.5
+    }
+  ],
+  "taps": 7,
+  "typed": 2,
+  "choices": 1,
+  "files": 0,
+  "waitS": 3,
+  "wallS": 15,
+  "estimatedS": 52
+}

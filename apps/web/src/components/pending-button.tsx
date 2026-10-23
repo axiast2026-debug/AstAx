@@ -13,12 +13,16 @@ export function PendingButton({
   name,
   value,
   variant,
+  size = "lg",
+  full = true,
 }: {
   label: string;
   busy: string;
   name?: string;
   value?: string;
-  variant?: "primary" | "outline";
+  variant?: "primary" | "secondary" | "outline";
+  size?: "sm" | "md" | "lg";
+  full?: boolean;
 }) {
   const { pending } = useFormStatus();
   return (
@@ -28,7 +32,7 @@ export function PendingButton({
       value={value}
       disabled={pending}
       aria-busy={pending || undefined}
-      className={buttonVariants({ variant, size: "lg", full: true })}
+      className={buttonVariants({ variant, size, full })}
     >
       {pending ? (
         <>

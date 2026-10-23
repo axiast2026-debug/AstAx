@@ -84,6 +84,10 @@ export async function IntakeDataStep({
     ...(status === "INSURED" ? ["RISK_CERTIFICATE"] : []),
   ];
   const source = intake.classSource;
+  // One datum asked once (UX review 2026-10-23): the owner's birth date from the
+  // licence the bot read, or, for a broker's customer, from the customer's card.
+  const fromLicence = extracted(latestDocument(detail, "DRIVING_LICENCE", 0), "birthDate");
+  const proposedBirthDate = fromLicence ?? detail.customerBirthDate ?? undefined;
   return (
     <div className="space-y-6">
       <section aria-labelledby="photos" className="space-y-3">
@@ -128,11 +132,17 @@ export async function IntakeDataStep({
             required
           />
           {detail.customerKind === "COMPANY" ? null : (
+            // Proposed from the licence read by the bot, or from the broker's customer card.
             <Field
               label={t("ownerBirthDate")}
               name="intake.ownerBirthDate"
               type="date"
-              defaultValue={intake.ownerBirthDate}
+              defaultValue={intake.ownerBirthDate ?? proposedBirthDate}
+              hint={
+                !intake.ownerBirthDate && proposedBirthDate
+                  ? t(fromLicence ? "readFromLicence" : "fromCustomerCard")
+                  : undefined
+              }
               invalid={hasError(errors, "ownerBirthDate")}
               required
             />

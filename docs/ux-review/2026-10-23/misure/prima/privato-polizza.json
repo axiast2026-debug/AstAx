@@ -1,0 +1,42 @@
+{
+  "flow": "privato-polizza",
+  "who": "privato",
+  "phase": "prima",
+  "mainWidth": 390,
+  "screens": [
+    {
+      "index": 1,
+      "name": "le-mie-polizze",
+      "path": "/polizze",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 4,
+      "axe": [],
+      "sinceLastS": 1.9
+    },
+    {
+      "index": 2,
+      "name": "home-con-polizza",
+      "path": "/",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 2,
+      "axe": [
+        {
+          "id": "page-has-heading-one",
+          "impact": "moderate",
+          "nodes": 1,
+          "help": "Page should contain a level-one heading"
+        }
+      ],
+      "sinceLastS": 1.6
+    }
+  ],
+  "taps": 0,
+  "typed": 0,
+  "choices": 0,
+  "files": 0,
+  "waitS": 0,
+  "wallS": 3,
+  "estimatedS": 6
+}

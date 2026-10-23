@@ -224,6 +224,13 @@ describe("broker plan (Dan, 2026-10-21): single vehicle with the essential data"
         201,
       )
     ).id;
+    // UX review 2026-10-23: the card's birth date (from the fiscal code) is proposed, not asked again.
+    const detail = await r.json<{ customerKind: string; customerBirthDate: string | null }>(
+      await r.call(broker, `/requests/${id}`),
+      200,
+    );
+    expect(detail.customerKind).toBe("PERSON");
+    expect(detail.customerBirthDate).toBe("1987-02-14");
     await r.json(await put(broker, id, "intake", { ...intake, plate: "DC789EF" }), 200);
     await r.json(await put(broker, id, "request", terms), 200);
     await r.json(

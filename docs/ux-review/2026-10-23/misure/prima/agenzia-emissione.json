@@ -1,0 +1,55 @@
+{
+  "flow": "agenzia-emissione",
+  "who": "agenzia (titolare)",
+  "phase": "prima",
+  "mainWidth": 1440,
+  "screens": [
+    {
+      "index": 1,
+      "name": "risultati",
+      "path": "/risultati",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 4,
+      "axe": [],
+      "sinceLastS": 2.4
+    },
+    {
+      "index": 2,
+      "name": "polizze-da-emettere",
+      "path": "/da-emettere",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 60,
+      "axe": [],
+      "sinceLastS": 3.2
+    },
+    {
+      "index": 3,
+      "name": "dettaglio-da-emettere",
+      "path": "/da-emettere/01a1675e-9cb2-724d-ada7-51c61e666b39",
+      "fields": 7,
+      "requiredFields": 5,
+      "actions": 10,
+      "axe": [],
+      "sinceLastS": 1.3
+    },
+    {
+      "index": 4,
+      "name": "polizza-emessa",
+      "path": "/da-emettere/01a1675e-9cb2-724d-ada7-51c61e666b39",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 8,
+      "axe": [],
+      "sinceLastS": 5.2
+    }
+  ],
+  "taps": 9,
+  "typed": 1,
+  "choices": 0,
+  "files": 3,
+  "waitS": 4,
+  "wallS": 12,
+  "estimatedS": 65
+}

@@ -3,3 +3,32 @@
 
 /* Classes used by the shared components. */
 @source "../../../../packages/ui/src";
+
+/*
+ * Progressive disclosure without scripts (UX review 2026-10-23): a block
+ * marked `data-shows-when` appears only while its radio, checkbox or option
+ * is chosen. Browsers without :has() keep everything visible; so does a form
+ * sent back with errors (data-has-errors), so that every error link reaches
+ * its field. Never a consent, a legal tick or a required datum without a
+ * visible alternative (ADR 0018).
+ */
+@supports selector(:has(*)) {
+  form:not([data-has-errors]):not(:has(#package-CUSTOM:checked)) [data-shows-when="package-custom"],
+  form:not([data-has-errors]):not(:has(#start-DATE:checked)) [data-shows-when="start-date"],
+  form:not([data-has-errors]):not(
+      :has(#f-coverage-rca-limitType option[value="SEPARATE_LIMITS"]:checked)
+    )
+    [data-shows-when="separate-limits"],
+  form:not([data-has-errors]):has(#f-coverage-rca-limitType option[value="SEPARATE_LIMITS"]:checked)
+    [data-shows-when="single-limit"],
+  form:not([data-has-errors]):not(:has(#f-kind option[value="COMPANY"]:checked))
+    [data-shows-when="company"],
+  form:not([data-has-errors]):has(#f-kind option[value="COMPANY"]:checked)
+    [data-shows-when="person"],
+  form:not([data-has-errors])
+    [data-coverage-item]:not(:has(input[type="checkbox"][name$=".included"]:checked))
+    [data-item-fields]
+    > :not(:first-child) {
+    display: none;
+  }
+}

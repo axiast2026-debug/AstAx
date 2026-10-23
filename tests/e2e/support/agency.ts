@@ -105,13 +105,13 @@ export async function issuePolicy(page: Page, code: string, policyNumber: string
     ["Quietanza", "POLICY_RECEIPT"],
     ["Certificato di assicurazione", "INSURANCE_CERTIFICATE"],
   ] as const) {
+    // UX review 2026-10-23: the file leaves as soon as it is chosen, no «Carica» button.
     const field = page.getByLabel(`File PDF: ${kind}`);
     await field.setInputFiles({
       name: `${kind}.pdf`,
       mimeType: "application/pdf",
       buffer: Buffer.from(`%PDF-1.4 e2e\n${kind}\n`),
     });
-    await page.locator("form", { has: field }).getByRole("button", { name: "Carica" }).click();
     await expect(page).toHaveURL(new RegExp(`caricato=${kindCode}`));
     await expect(
       page.locator("li", { hasText: kind }).getByText("caricato", { exact: true }),

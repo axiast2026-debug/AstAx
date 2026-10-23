@@ -2,6 +2,7 @@ import type { Clock } from "@astax/adapters/clock";
 import type { FieldCipher } from "@astax/adapters/crypto";
 import { withContext, type DbClient } from "@astax/db";
 import {
+  decodeFiscalCode,
   isValidFiscalCode,
   isValidVatNumber,
   normalizeFiscalCodeInput,
@@ -79,6 +80,8 @@ export class CustomersService {
                 givenName: input.givenName,
                 fiscalCodeEnc: this.cipher.encrypt(normalizeFiscalCodeInput(input.fiscalCode)),
                 fiscalCodeHash: this.cipher.blindIndex("fiscalCode", input.fiscalCode),
+                // Read once from the fiscal code: the wizard proposes it (UX review 2026-10-23).
+                ...decodedPerson(input.fiscalCode, romeCalendarDate(this.clock.now())),
               }
             : {
                 ...owner,
@@ -224,4 +227,11 @@ export class CustomersService {
       };
     });
   }
+}
+
+/** The birth date a valid fiscal code says, for the person's card (nothing else: data minimisation). */
+function decodedPerson(fiscalCode: string, today: string): { birthDate?: Date } {
+  const decoded = decodeFiscalCode(fiscalCode, today);
+  if (!decoded) return {};
+  return { birthDate: new Date(`${decoded.birthDate}T00:00:00Z`) };
 }

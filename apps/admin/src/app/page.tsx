@@ -1,4 +1,4 @@
-import { buttonVariants, Card, CardTitle } from "@astax/ui";
+import { buttonVariants, Card } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { AppShell } from "@/components/app-shell";
 import { sessionId, webAuth } from "@/lib/auth";
@@ -27,7 +27,9 @@ export default async function HomePage({
   return (
     <AppShell viewer={viewer}>
       <Card>
-        <CardTitle>{t("welcome", { name: viewer.me.firstName })}</CardTitle>
+        <h1 className="font-display text-screen font-extrabold">
+          {t("welcome", { name: viewer.me.firstName })}
+        </h1>
         <p className="mt-2 text-warm-600">{t("intro")}</p>
       </Card>
       {can(viewer.actor, "admin.reports.view") ? <AdminDashboard query={query} /> : null}
@@ -41,7 +43,7 @@ async function Login({ expired }: { expired: boolean }) {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-4">
       <Card>
-        <CardTitle>{t("title")}</CardTitle>
+        <h1 className="font-display text-screen font-extrabold">{t("title")}</h1>
         {expired ? (
           <p className="mt-3 rounded-lg bg-orange-500/15 px-3 py-2 text-sm">{t("expired")}</p>
         ) : null}

@@ -1,0 +1,42 @@
+{
+  "flow": "privato-asta-in-corso",
+  "who": "privato",
+  "phase": "prima",
+  "mainWidth": 390,
+  "screens": [
+    {
+      "index": 1,
+      "name": "asta-in-corso",
+      "path": "/preventivi/01a1675e-9cb2-724d-ada7-51c61e666b39",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 4,
+      "axe": [],
+      "sinceLastS": 2.8
+    },
+    {
+      "index": 2,
+      "name": "home-con-asta",
+      "path": "/",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 2,
+      "axe": [
+        {
+          "id": "page-has-heading-one",
+          "impact": "moderate",
+          "nodes": 1,
+          "help": "Page should contain a level-one heading"
+        }
+      ],
+      "sinceLastS": 1.8
+    }
+  ],
+  "taps": 0,
+  "typed": 0,
+  "choices": 0,
+  "files": 0,
+  "waitS": 0,
+  "wallS": 5,
+  "estimatedS": 6
+}

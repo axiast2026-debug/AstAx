@@ -1,0 +1,165 @@
+/*
+ * AstAx look for the Keycloak login pages (UX review 2026-10-23): the same
+ * colours, type and sizes as the site (packages/ui/src/styles.css). Night
+ * blue ground, white card, orange button with night-blue text (never white
+ * on orange), fields of 48 px with a 3:1 border and a visible focus.
+ * Loaded after the parent theme's styles.css (theme.properties, «styles»).
+ */
+:root {
+  --astax-night-900: #0b1b33;
+  --astax-night-800: #16294a;
+  --astax-orange-400: #ff8240;
+  --astax-orange-500: #ff6a1a;
+  --astax-warm-50: #faf8f5;
+  --astax-warm-200: #e4ddd3;
+  --astax-warm-600: #6b6258;
+  --astax-red-700: #a51f1f;
+  --keycloak-bg-logo-url: none;
+  --keycloak-logo-url: none;
+  --keycloak-card-top-color: var(--astax-orange-500);
+  --pf-v5-global--FontFamily--sans-serif: Inter, ui-sans-serif, system-ui, sans-serif;
+  --pf-v5-global--primary-color--100: var(--astax-night-900);
+  --pf-v5-global--link--Color: var(--astax-night-900);
+}
+
+body#keycloak-bg,
+.login-pf body,
+.login-pf {
+  background: var(--astax-night-900);
+  color: var(--astax-night-900);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.pf-v5-c-login__container {
+  grid-template-columns: minmax(0, 28rem);
+}
+
+/* The realm's display name (#kc-header-wrapper, «AstAx») as text, not the Keycloak logo. */
+.pf-v5-c-login__header {
+  color: #fff;
+}
+#kc-header-wrapper.pf-v5-c-brand {
+  display: block;
+  height: auto;
+  width: auto;
+  padding: 0.5rem 0 1rem;
+  background: none;
+  text-indent: 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #fff;
+  text-align: center;
+}
+
+.pf-v5-c-login__main {
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 16px 40px rgb(5 13 26 / 0.4);
+}
+.pf-v5-c-login__main-header {
+  border-top: 0;
+}
+.pf-v5-c-login__main-header .pf-v5-c-title,
+#kc-page-title {
+  font-size: 1.75rem;
+  line-height: 2.125rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--astax-night-900);
+}
+.pf-v5-c-login__main-body p {
+  color: var(--astax-warm-600);
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+.pf-v5-c-form__label,
+.pf-v5-c-form__label-text {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--astax-night-900);
+}
+.pf-v5-c-form-control,
+.pf-v5-c-form-control input,
+input.pf-v5-c-form-control {
+  min-height: 3rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--astax-warm-600);
+  font-size: 1rem;
+  --pf-v5-c-form-control--BorderColor: var(--astax-warm-600);
+  --pf-v5-c-form-control--after--BorderBottomColor: var(--astax-warm-600);
+  --pf-v5-c-form-control--focus--after--BorderBottomColor: var(--astax-night-900);
+}
+.pf-v5-c-form-control:focus-within,
+input.pf-v5-c-form-control:focus {
+  outline: none;
+  border-color: var(--astax-night-900);
+  box-shadow: 0 0 0 4px #e6ecf5;
+}
+
+/* Buttons: the main one orange with night-blue text, 52 px; the second one outlined. */
+.pf-v5-c-button {
+  min-height: 3.25rem;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: transform 120ms cubic-bezier(0.2, 0, 0, 1);
+}
+.pf-v5-c-button.pf-m-primary {
+  background: var(--astax-orange-500);
+  color: var(--astax-night-900);
+  --pf-v5-c-button--m-primary--BackgroundColor: var(--astax-orange-500);
+  --pf-v5-c-button--m-primary--Color: var(--astax-night-900);
+  --pf-v5-c-button--m-primary--hover--BackgroundColor: var(--astax-orange-400);
+  --pf-v5-c-button--m-primary--hover--Color: var(--astax-night-900);
+  --pf-v5-c-button--m-primary--focus--BackgroundColor: var(--astax-orange-400);
+  --pf-v5-c-button--m-primary--focus--Color: var(--astax-night-900);
+  --pf-v5-c-button--m-primary--active--BackgroundColor: var(--astax-orange-400);
+  --pf-v5-c-button--m-primary--active--Color: var(--astax-night-900);
+}
+.pf-v5-c-button.pf-m-primary:hover,
+.pf-v5-c-button.pf-m-primary:focus {
+  background: var(--astax-orange-400);
+  color: var(--astax-night-900);
+}
+.pf-v5-c-button.pf-m-secondary,
+.pf-v5-c-button.pf-m-default {
+  background: #fff;
+  color: var(--astax-night-900);
+  box-shadow: inset 0 0 0 1px var(--astax-night-900);
+  --pf-v5-c-button--m-secondary--Color: var(--astax-night-900);
+  --pf-v5-c-button--m-secondary--BorderColor: var(--astax-night-900);
+  --pf-v5-c-button--m-secondary--hover--Color: var(--astax-night-900);
+  --pf-v5-c-button--m-secondary--hover--BorderColor: var(--astax-night-900);
+}
+.pf-v5-c-button:focus-visible {
+  outline: 2px solid var(--astax-night-900);
+  outline-offset: 2px;
+}
+.pf-v5-c-button:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pf-v5-c-button {
+    transition: none;
+  }
+  .pf-v5-c-button:active {
+    transform: none;
+  }
+}
+
+/* Messages: errors in red, the rest calm. */
+.pf-v5-c-alert.pf-m-danger {
+  --pf-v5-c-alert--BorderTopColor: var(--astax-red-700);
+  --pf-v5-c-alert__icon--Color: var(--astax-red-700);
+}
+.pf-v5-c-login__main-footer,
+#kc-info {
+  color: var(--astax-warm-600);
+}
+a {
+  color: var(--astax-night-900);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}

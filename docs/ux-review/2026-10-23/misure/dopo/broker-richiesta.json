@@ -1,0 +1,135 @@
+{
+  "flow": "broker-richiesta",
+  "who": "broker",
+  "phase": "dopo",
+  "mainWidth": 1440,
+  "screens": [
+    {
+      "index": 1,
+      "name": "accesso-keycloak",
+      "path": "/realms/astax/protocol/openid-connect/auth",
+      "fields": 2,
+      "requiredFields": 0,
+      "actions": 3,
+      "axe": [],
+      "sinceLastS": 4.4
+    },
+    {
+      "index": 2,
+      "name": "richieste-del-broker",
+      "path": "/",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 0,
+      "axe": [],
+      "sinceLastS": 2.5
+    },
+    {
+      "index": 3,
+      "name": "scegli-il-cliente",
+      "path": "/richieste/nuova",
+      "fields": 1,
+      "requiredFields": 0,
+      "actions": 98,
+      "axe": [],
+      "sinceLastS": 3.7
+    },
+    {
+      "index": 4,
+      "name": "nuovo-cliente",
+      "path": "/clienti/nuovo",
+      "fields": 6,
+      "requiredFields": 0,
+      "actions": 1,
+      "axe": [],
+      "sinceLastS": 1.2
+    },
+    {
+      "index": 5,
+      "name": "tipo-veicolo",
+      "path": "/richieste/01a16783-827f-7190-a33d-f96d19a8c6bb/tipo",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 9,
+      "axe": [],
+      "sinceLastS": 1.7
+    },
+    {
+      "index": 6,
+      "name": "dati-e-foto-vuoto",
+      "path": "/richieste/01a16783-827f-7190-a33d-f96d19a8c6bb/dati",
+      "fields": 9,
+      "requiredFields": 9,
+      "actions": 8,
+      "axe": [],
+      "sinceLastS": 1.3
+    },
+    {
+      "index": 7,
+      "name": "dati-e-foto-letti",
+      "path": "/richieste/01a16783-827f-7190-a33d-f96d19a8c6bb/dati",
+      "fields": 9,
+      "requiredFields": 9,
+      "actions": 8,
+      "axe": [],
+      "sinceLastS": 4.4
+    },
+    {
+      "index": 8,
+      "name": "guida",
+      "path": "/richieste/01a16783-827f-7190-a33d-f96d19a8c6bb/guida",
+      "fields": 3,
+      "requiredFields": 3,
+      "actions": 8,
+      "axe": [],
+      "sinceLastS": 1.8
+    },
+    {
+      "index": 9,
+      "name": "copertura",
+      "path": "/richieste/01a16783-827f-7190-a33d-f96d19a8c6bb/copertura",
+      "fields": 8,
+      "requiredFields": 0,
+      "actions": 8,
+      "axe": [],
+      "sinceLastS": 1.4
+    },
+    {
+      "index": 10,
+      "name": "conferma",
+      "path": "/richieste/01a16783-827f-7190-a33d-f96d19a8c6bb/conferma",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 8,
+      "axe": [],
+      "sinceLastS": 1.8
+    },
+    {
+      "index": 11,
+      "name": "richiesta-inviata",
+      "path": "/richieste/01a16783-827f-7190-a33d-f96d19a8c6bb",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 4,
+      "axe": [],
+      "sinceLastS": 1.7
+    },
+    {
+      "index": 12,
+      "name": "tabella-dopo-invio",
+      "path": "/richieste",
+      "fields": 4,
+      "requiredFields": 0,
+      "actions": 118,
+      "axe": [],
+      "sinceLastS": 5.1
+    }
+  ],
+  "taps": 13,
+  "typed": 7,
+  "choices": 1,
+  "files": 3,
+  "waitS": 4,
+  "wallS": 31,
+  "estimatedS": 133
+}

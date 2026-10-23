@@ -1,0 +1,55 @@
+{
+  "flow": "subagente-cambio-agenzia",
+  "who": "sub-agente",
+  "phase": "dopo",
+  "mainWidth": 1440,
+  "screens": [
+    {
+      "index": 1,
+      "name": "accesso-keycloak",
+      "path": "/realms/astax/protocol/openid-connect/auth",
+      "fields": 2,
+      "requiredFields": 0,
+      "actions": 3,
+      "axe": [],
+      "sinceLastS": 2.8
+    },
+    {
+      "index": 2,
+      "name": "scelta-contesto",
+      "path": "/contesto",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 2,
+      "axe": [],
+      "sinceLastS": 3
+    },
+    {
+      "index": 3,
+      "name": "dashboard-sub-agente",
+      "path": "/",
+      "fields": 0,
+      "requiredFields": 0,
+      "actions": 2,
+      "axe": [],
+      "sinceLastS": 1.1
+    },
+    {
+      "index": 4,
+      "name": "dopo-il-cambio",
+      "path": "/",
+      "fields": 1,
+      "requiredFields": 0,
+      "actions": 1,
+      "axe": [],
+      "sinceLastS": 2.1
+    }
+  ],
+  "taps": 4,
+  "typed": 3,
+  "choices": 1,
+  "files": 0,
+  "waitS": 0,
+  "wallS": 9,
+  "estimatedS": 38
+}
