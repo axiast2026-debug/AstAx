@@ -71,7 +71,9 @@ export async function PrivateHome({ firstName }: { firstName: string }) {
   return (
     <div className="space-y-6">
       <Card>
-        <CardTitle>{t("welcome", { name: firstName })}</CardTitle>
+        <h1 className="font-display text-screen font-extrabold">
+          {t("welcome", { name: firstName })}
+        </h1>
         <p className="mt-2 text-warm-600">{t("privateIntro")}</p>
         <form action={createPrivateRequest} className="mt-4">
           {/* One orange button per screen: with something in progress its card has it. */}

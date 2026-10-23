@@ -51,7 +51,14 @@ export default async function HomePage({
         />
       ) : null}
       <Card>
-        <CardTitle>{t("welcome", { name: viewer.me.firstName })}</CardTitle>
+        {/* One level-one heading per page: the agency dashboard has its own. */}
+        {dashboard ? (
+          <CardTitle>{t("welcome", { name: viewer.me.firstName })}</CardTitle>
+        ) : (
+          <h1 className="font-display text-screen font-extrabold">
+            {t("welcome", { name: viewer.me.firstName })}
+          </h1>
+        )}
         <p className="mt-2 text-warm-600">{t("proIntro")}</p>
       </Card>
     </AppShell>
