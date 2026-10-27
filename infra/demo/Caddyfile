@@ -1,0 +1,40 @@
+# AstAx online demo (ADR 0020). Cloudflare proxies every name; Caddy gets the
+# Let's Encrypt certificates by itself and sends each name to its service.
+{
+	email noreply@{$DOMAIN}
+}
+
+(demo) {
+	header {
+		# Out of the search engines: it is a demo with invented data.
+		X-Robots-Tag "noindex, nofollow"
+		-Server
+	}
+	encode zstd gzip
+}
+
+demo.{$DOMAIN} {
+	import demo
+	reverse_proxy web:3000
+}
+
+bo.{$DOMAIN} {
+	import demo
+	reverse_proxy admin:3000
+}
+
+accesso.{$DOMAIN} {
+	import demo
+	# Only the public parts of Keycloak: no administration console from outside.
+	@admin path /admin /admin/*
+	respond @admin 404
+	reverse_proxy keycloak:8080
+}
+
+api.{$DOMAIN} {
+	import demo
+	# The documentation of the API stays inside (ADR 0020 keeps it visible only on the server).
+	@docs path /docs /docs/* /openapi.json
+	respond @docs 404
+	reverse_proxy api:4000
+}

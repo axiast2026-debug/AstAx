@@ -19,8 +19,13 @@ import {
   sendTestOffers,
 } from "./actions";
 
-/** Development tools: only with DEV_TOOLS=true, never in production (rule 13). */
-const DEV_TOOLS = process.env.DEV_TOOLS === "true" && process.env.NODE_ENV !== "production";
+/**
+ * Development tools: only with DEV_TOOLS=true (rule 13). Not NODE_ENV: the
+ * production build of Next.js always says production, also on the online demo
+ * (ADR 0020). The API is the real guard: its development endpoints answer 404
+ * when DEV_TOOLS is off or NODE_ENV is production.
+ */
+const DEV_TOOLS = process.env.DEV_TOOLS === "true";
 
 interface AuctionRow {
   auctionId: string;

@@ -21,7 +21,9 @@ const configSchema = z
     SEALED_BIDS_MASTER_KEY: hexKey.optional(),
     /** Phase 8 (docs/adattatori.md): the fake (rule 9) or the real provider of each port. */
     AWS_REGION: z.string().min(1).default("eu-south-1"),
-    EMAIL_PROVIDER: z.enum(["fake", "ses"]).default("fake"),
+    EMAIL_PROVIDER: z.enum(["fake", "ses", "resend"]).default("fake"),
+    /** ADR 0020: the key of Resend, only with EMAIL_PROVIDER=resend (the online demo). */
+    RESEND_API_KEY: z.string().min(1).optional(),
     STORAGE_PROVIDER: z.enum(["fake", "aws"]).default("fake"),
     /** The real IVASS register arrives in part B of phase 8: until then only the fake. */
     RUI_PROVIDER: z.enum(["fake"]).default("fake"),
@@ -89,6 +91,10 @@ const configSchema = z
   .refine((c) => c.AI_PROVIDER !== "bedrock" || !!c.BEDROCK_MODEL_ID, {
     message: "AI_PROVIDER=bedrock needs BEDROCK_MODEL_ID",
     path: ["AI_PROVIDER"],
+  })
+  .refine((c) => c.EMAIL_PROVIDER !== "resend" || Boolean(c.RESEND_API_KEY), {
+    message: "EMAIL_PROVIDER=resend needs RESEND_API_KEY",
+    path: ["EMAIL_PROVIDER"],
   })
   .refine((c) => !(c.NODE_ENV === "production" && c.DEV_TOOLS), {
     message: "DEV_TOOLS must be false in production",

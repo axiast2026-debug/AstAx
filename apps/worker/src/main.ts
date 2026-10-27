@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { DEV_CLOCK_OFFSET_KEY, OffsetClock, SystemClock } from "@astax/adapters/clock";
 import { LocalFieldCipher } from "@astax/adapters/crypto";
 import { BedrockDocumentReader, FakeDocumentReader } from "@astax/adapters/document-reader";
-import { MailpitEmailSender, SesEmailSender } from "@astax/adapters/email";
+import { MailpitEmailSender, ResendEmailSender, SesEmailSender } from "@astax/adapters/email";
 import { MailpitWebPush, revokingGone, VapidWebPush } from "@astax/adapters/web-push";
 import { AwsKms, CloudTrailKmsEvents, KMS_KEYS, LocalKms } from "@astax/adapters/kms";
 import {
@@ -89,7 +89,13 @@ const email =
         from,
         ...(config.SES_CONFIGURATION_SET ? { configurationSet: config.SES_CONFIGURATION_SET } : {}),
       })
-    : new MailpitEmailSender(config.MAILPIT_URL, from);
+    : config.EMAIL_PROVIDER === "resend"
+      ? new ResendEmailSender({ apiKey: config.RESEND_API_KEY ?? "", from })
+      : new MailpitEmailSender(config.MAILPIT_URL, from);
+// The fake SMS and push land in Mailpit as emails: with a real email provider
+// (the online demo, ADR 0020) they still go to Mailpit, never out.
+const fakeChannel =
+  config.EMAIL_PROVIDER === "fake" ? email : new MailpitEmailSender(config.MAILPIT_URL, from);
 const sms =
   config.SMS_PROVIDER === "aws"
     ? new AwsSmsSender({
@@ -97,7 +103,7 @@ const sms =
         originator: config.SMS_ORIGINATOR,
         ...(config.SMS_CONFIGURATION_SET ? { configurationSet: config.SMS_CONFIGURATION_SET } : {}),
       })
-    : new MailpitSmsSender(email);
+    : new MailpitSmsSender(fakeChannel);
 const storage = storageFor(config);
 // SIC-04: the archive of the audit log copies, a bucket of its own.
 const auditArchive = storageFor({ ...config, S3_BUCKET: config.AUDIT_ARCHIVE_BUCKET });
@@ -110,7 +116,7 @@ const push = revokingGone(
         privateKey: config.VAPID_PRIVATE_KEY,
         subject: config.VAPID_SUBJECT,
       })
-    : new MailpitWebPush(email),
+    : new MailpitWebPush(fakeChannel),
   (endpoint) => revokePushSubscription(db, endpoint, clock.now()),
 );
 const notifier = new WorkerNotifier(email, logger, { db, clock, cipher: fieldCipher, push });

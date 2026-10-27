@@ -1,6 +1,11 @@
 import { OffsetClock, SystemClock, type Clock } from "@astax/adapters/clock";
 import { LocalFieldCipher } from "@astax/adapters/crypto";
-import { MailpitEmailSender, SesEmailSender, type EmailSender } from "@astax/adapters/email";
+import {
+  MailpitEmailSender,
+  ResendEmailSender,
+  SesEmailSender,
+  type EmailSender,
+} from "@astax/adapters/email";
 import { KeycloakAdmin } from "@astax/adapters/identity";
 import {
   BedrockDocumentReader,
@@ -177,7 +182,15 @@ export class InfraModule {
               ? { configurationSet: config.SES_CONFIGURATION_SET }
               : {}),
           })
-        : new MailpitEmailSender(config.MAILPIT_URL, from));
+        : config.EMAIL_PROVIDER === "resend"
+          ? new ResendEmailSender({ apiKey: config.RESEND_API_KEY ?? "", from })
+          : new MailpitEmailSender(config.MAILPIT_URL, from));
+    // The fake SMS and push land in Mailpit as emails: with a real email
+    // provider (the online demo, ADR 0020) they still go to Mailpit, never out.
+    const fakeChannel =
+      config.EMAIL_PROVIDER === "fake"
+        ? emailSender
+        : new MailpitEmailSender(config.MAILPIT_URL, from);
     const smsSender =
       overrides.smsSender ??
       (config.SMS_PROVIDER === "aws"
@@ -188,7 +201,7 @@ export class InfraModule {
               ? { configurationSet: config.SMS_CONFIGURATION_SET }
               : {}),
           })
-        : new MailpitSmsSender(emailSender));
+        : new MailpitSmsSender(fakeChannel));
     // Vehicle data: the fake until the Openapi sandbox (part B of phase 8).
     const plateLookup =
       overrides.plateLookup ??
@@ -255,7 +268,7 @@ export class InfraModule {
                     privateKey: config.VAPID_PRIVATE_KEY ?? "",
                     subject: config.VAPID_SUBJECT,
                   })
-                : new MailpitWebPush(emailSender),
+                : new MailpitWebPush(fakeChannel),
               (endpoint) => revokePushSubscription(db, endpoint, clock.now()),
             ),
         },

@@ -42,7 +42,9 @@ const configSchema = z
      * or the real one. The release gate refuses a fake in production.
      */
     AWS_REGION: z.string().min(1).default("eu-south-1"),
-    EMAIL_PROVIDER: z.enum(["fake", "ses"]).default("fake"),
+    EMAIL_PROVIDER: z.enum(["fake", "ses", "resend"]).default("fake"),
+    /** ADR 0020: the key of Resend, only with EMAIL_PROVIDER=resend (the online demo). */
+    RESEND_API_KEY: z.string().min(1).optional(),
     /** "aws": the documents' bucket with the task's role; "fake": SeaweedFS or memory. */
     STORAGE_PROVIDER: z.enum(["fake", "aws"]).default("fake"),
     /** Namirial and Fabrick arrive in part B of phase 8: until then only the fakes. */
@@ -134,6 +136,10 @@ const configSchema = z
   .refine((c) => c.PUSH_PROVIDER !== "vapid" || (c.VAPID_PUBLIC_KEY && c.VAPID_PRIVATE_KEY), {
     message: "PUSH_PROVIDER=vapid needs VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY",
     path: ["PUSH_PROVIDER"],
+  })
+  .refine((c) => c.EMAIL_PROVIDER !== "resend" || Boolean(c.RESEND_API_KEY), {
+    message: "EMAIL_PROVIDER=resend needs RESEND_API_KEY",
+    path: ["EMAIL_PROVIDER"],
   })
   .refine((c) => !(c.NODE_ENV === "production" && c.DEV_TOOLS), {
     message: "DEV_TOOLS must be false in production",

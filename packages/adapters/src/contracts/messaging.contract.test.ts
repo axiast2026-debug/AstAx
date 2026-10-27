@@ -3,6 +3,7 @@ import type { SendEmailCommand } from "@aws-sdk/client-sesv2";
 import { describe, expect, it } from "vitest";
 import { EmailSendError, InMemoryEmailSender, type EmailSender } from "../email/email-sender.js";
 import { SesEmailSender } from "../email/ses-email-sender.js";
+import { ResendEmailSender } from "../email/resend-email-sender.js";
 import { AwsSmsSender, e164, SmsSendError } from "../sms/aws-sms-sender.js";
 import { InMemorySmsSender, type SmsPort } from "../sms/sms-sender.js";
 
@@ -63,6 +64,57 @@ describe("email contract — fake and SES (simulated)", () => {
       .catch((e: unknown) => e);
     expect(error).toBeInstanceOf(EmailSendError);
     expect(String((error as Error).message)).not.toContain("example.test");
+  });
+});
+
+describe("email contract — Resend (simulated, ADR 0020)", () => {
+  const calls: { url: string; init: RequestInit }[] = [];
+  const answering = (status: number): typeof fetch =>
+    (async (url: string | URL | Request, init?: RequestInit) => {
+      calls.push({ url: String(url), init: init ?? {} });
+      return new Response("{}", { status });
+    }) as typeof fetch;
+  emailContract(
+    () =>
+      new ResendEmailSender({
+        apiKey: "re_test_key",
+        from: { email: "noreply@astaxapp.com", name: "AstAx demo" },
+        fetch: answering(200),
+      }),
+    "giulia.neri@example.test",
+  );
+
+  it("Resend: bearer key, sender and text; a failure keeps the status only", async () => {
+    const call = calls[0];
+    expect(call?.url).toBe("https://api.resend.com/emails");
+    expect(new Headers(call?.init.headers).get("authorization")).toBe("Bearer re_test_key");
+    expect(JSON.parse(String(call?.init.body))).toMatchObject({
+      from: "AstAx demo <noreply@astaxapp.com>",
+      to: ["giulia.neri@example.test"],
+      subject: "Prova di contratto AstAx",
+      text: "Testo di prova.",
+    });
+    const resend = new ResendEmailSender({
+      apiKey: "re_test_key",
+      from: { email: "noreply@astaxapp.com", name: "AstAx" },
+      fetch: answering(422),
+    });
+    const error = await resend
+      .send({ to: "a@example.test", subject: "s", text: "t" })
+      .catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(EmailSendError);
+    expect((error as EmailSendError).status).toBe(422);
+    expect(String((error as Error).message)).not.toContain("example.test");
+    const offline = new ResendEmailSender({
+      apiKey: "re_test_key",
+      from: { email: "noreply@astaxapp.com", name: "AstAx" },
+      fetch: (async () => {
+        throw new TypeError("network down");
+      }) as typeof fetch,
+    });
+    await expect(offline.send({ to: "a@example.test", subject: "s", text: "t" })).rejects.toEqual(
+      new EmailSendError(0),
+    );
   });
 });
 

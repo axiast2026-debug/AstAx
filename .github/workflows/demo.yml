@@ -1,0 +1,72 @@
+# Online demo (ADR 0020): builds the images of one commit of main and publishes
+# them in the GitHub package astax-demo, one tag per service. Manual only; it
+# deploys nothing: the server is brought up to date with infra/demo/deploy.sh.
+# The images hold no secret and no address: the configuration comes at start.
+name: Demo images
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: demo-images
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/astax-demo
+
+jobs:
+  gate:
+    name: gate
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - name: The branch is main
+        run: test "${GITHUB_REF}" = "refs/heads/main"
+      - name: The CI of this commit is green
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          conclusion=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${GITHUB_SHA}&status=completed" \
+            --jq '.workflow_runs[0].conclusion // ""')
+          echo "CI of ${GITHUB_SHA}: ${conclusion:-none}"
+          test "$conclusion" = "success"
+      - id: tag
+        run: echo "tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+
+  images:
+    name: images
+    needs: gate
+    # The server is ARM (Hetzner CAX21): the images are built on ARM.
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        include:
+          - { name: api, file: infra/docker/node-service.Dockerfile, app: api, context: . }
+          - { name: worker, file: infra/docker/node-service.Dockerfile, app: worker, context: . }
+          - { name: web, file: infra/docker/next-app.Dockerfile, app: web, context: . }
+          - { name: admin, file: infra/docker/next-app.Dockerfile, app: admin, context: . }
+          - { name: tools, file: infra/docker/tools.Dockerfile, app: tools, context: . }
+          - {
+              name: keycloak,
+              file: infra/keycloak/Dockerfile,
+              app: keycloak,
+              context: infra/keycloak,
+            }
+    steps:
+      - uses: actions/checkout@v5
+      - name: Log in to the GitHub registry
+        run: echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Build and push ${{ matrix.name }}
+        env:
+          TAG: ${{ needs.gate.outputs.tag }}
+        run: |
+          docker build -f ${{ matrix.file }} --build-arg APP=${{ matrix.app }} \
+            --label org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY} \
+            -t "${IMAGE}:${{ matrix.name }}-${TAG}" ${{ matrix.context }}
+          docker push "${IMAGE}:${{ matrix.name }}-${TAG}"

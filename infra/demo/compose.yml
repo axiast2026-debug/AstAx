@@ -1,0 +1,203 @@
+# AstAx online demo on one Hetzner server (ADR 0020). Synthetic data and fake
+# providers only (rules 9 and 11); not production: the release gate refuses it.
+# Run from the repository root on the server:
+#   docker compose --env-file /opt/astax/demo.env -f infra/demo/compose.yml up -d
+# Only Caddy listens outside, on 80 and 443, and the firewall lets in Cloudflare only.
+name: astax-demo
+
+x-app: &app
+  env_file: /opt/astax/demo.env
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "3" }
+
+services:
+  postgres:
+    <<: *app
+    image: postgres:18.6
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?missing demo.env}
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - ../postgres/init:/docker-entrypoint-initdb.d:ro
+      - /opt/astax/backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d astax"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 768m
+
+  redis:
+    <<: *app
+    image: redis:8.10.2
+    command:
+      [
+        "redis-server",
+        "--requirepass",
+        "${REDIS_PASSWORD:?missing demo.env}",
+        "--maxmemory",
+        "128mb",
+      ]
+    healthcheck:
+      test: ["CMD-SHELL", 'redis-cli -a "$$REDIS_PASSWORD" --no-auth-warning ping | grep PONG']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 192m
+
+  keycloak:
+    <<: *app
+    image: ghcr.io/axiast2026-debug/astax-demo:keycloak-${IMAGE_TAG:?missing demo.env}
+    # Production mode behind Caddy; the realm of the repository is imported once,
+    # then deploy.sh sets its addresses and its SMTP (ADR 0020).
+    command: ["start", "--import-realm"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HTTP_ENABLED: "true"
+      KC_HTTP_PORT: "8080"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HOSTNAME: https://accesso.${DOMAIN}
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HEALTH_ENABLED: "true"
+      JAVA_OPTS_KC_HEAP: "-XX:MaxRAMPercentage=65"
+    volumes:
+      - ../keycloak/import:/opt/keycloak/data/import:ro
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.0\r\n\r\n' >&3 && grep -q UP <&3",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    mem_limit: 1g
+
+  temporal:
+    <<: *app
+    image: temporalio/temporal:1.9.1
+    command:
+      [
+        "server",
+        "start-dev",
+        "--ip",
+        "0.0.0.0",
+        "--headless",
+        "--db-filename",
+        "/home/temporal/temporal.db",
+        "--namespace",
+        "astax",
+      ]
+    volumes:
+      - temporal-data:/home/temporal
+    healthcheck:
+      test: ["CMD", "temporal", "operator", "cluster", "health", "--address", "127.0.0.1:7233"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    mem_limit: 512m
+
+  storage:
+    <<: *app
+    image: chrislusf/seaweedfs:4.48
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        mkdir -p /etc/seaweedfs &&
+        printf '{"identities":[{"name":"astax","credentials":[{"accessKey":"%s","secretKey":"%s"}],"actions":["Admin","Read","Write","List","Tagging"]}]}'
+        "$$S3_ACCESS_KEY" "$$S3_SECRET_KEY" > /etc/seaweedfs/s3.json &&
+        exec weed server -dir=/data -ip=storage -ip.bind=0.0.0.0 -master.volumeSizeLimitMB=64
+        -volume.max=0 -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json
+    volumes:
+      - storage-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9333/cluster/status"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    mem_limit: 384m
+
+  # The fake SMS and push land here as emails, never outside (ADR 0020). Not
+  # published: it is reached only through an SSH tunnel.
+  mailpit:
+    <<: *app
+    image: axllent/mailpit:v1.31.6
+    ports:
+      - "127.0.0.1:8025:8025"
+    mem_limit: 96m
+
+  api:
+    <<: *app
+    image: ghcr.io/axiast2026-debug/astax-demo:api-${IMAGE_TAG:?missing demo.env}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      keycloak: { condition: service_healthy }
+      temporal: { condition: service_healthy }
+      storage: { condition: service_healthy }
+    mem_limit: 640m
+
+  worker:
+    <<: *app
+    image: ghcr.io/axiast2026-debug/astax-demo:worker-${IMAGE_TAG:?missing demo.env}
+    depends_on:
+      postgres: { condition: service_healthy }
+      temporal: { condition: service_healthy }
+      storage: { condition: service_healthy }
+    mem_limit: 640m
+
+  web:
+    <<: *app
+    image: ghcr.io/axiast2026-debug/astax-demo:web-${IMAGE_TAG:?missing demo.env}
+    # The production build of Next.js; the API behind it is the demo's (ADR 0020).
+    environment:
+      NODE_ENV: production
+    depends_on: [api]
+    mem_limit: 448m
+
+  admin:
+    <<: *app
+    image: ghcr.io/axiast2026-debug/astax-demo:admin-${IMAGE_TAG:?missing demo.env}
+    environment:
+      NODE_ENV: production
+    depends_on: [api]
+    mem_limit: 384m
+
+  caddy:
+    image: caddy:2.10.2
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on: [web, admin, api, keycloak]
+    mem_limit: 128m
+
+  # One-off tasks: migrations, seed and test users (deploy.sh). Not a service.
+  tools:
+    <<: *app
+    image: ghcr.io/axiast2026-debug/astax-demo:tools-${IMAGE_TAG:?missing demo.env}
+    restart: "no"
+    profiles: [tools]
+    mem_limit: 1g
+
+volumes:
+  postgres-data:
+  temporal-data:
+  storage-data:
+  caddy-data:

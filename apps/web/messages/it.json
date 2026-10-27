@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "AstAx",
-    "tagline": "Preventivi RC auto all'asta: le agenzie competono, tu scegli."
+    "tagline": "Preventivi RC auto all'asta: le agenzie competono, tu scegli.",
+    "demoNotice": "DEMO di AstAx: usa solo dati inventati. Nessun pagamento, firma o polizza è vera."
   },
   "login": {
     "title": "Accedi ad AstAx",
