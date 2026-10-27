@@ -30,7 +30,8 @@ PasswordAuthentication no
 KbdInteractiveAuthentication no
 PermitRootLogin prohibit-password
 EOF
-systemctl reload ssh
+# Ubuntu 26.04 starts sshd per connection (ssh.socket): the new rules apply at the next login.
+systemctl try-reload-or-restart ssh.service 2>/dev/null || true
 
 # Docker from its official repository.
 if ! command -v docker >/dev/null; then
@@ -72,6 +73,7 @@ Requires=docker.service
 
 [Service]
 Type=oneshot
+RemainAfterExit=yes
 ExecStart=/etc/astax-cloudflare.sh
 
 [Install]
