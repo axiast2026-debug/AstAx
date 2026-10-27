@@ -46,3 +46,30 @@ export class InMemoryEmailSender implements EmailSender {
     this.sent.push(message);
   }
 }
+
+/**
+ * Names reserved for tests and examples (RFC 2606, RFC 6761): never a real
+ * mailbox. The synthetic users of the seed live there (rule 11).
+ */
+const RESERVED = /\.(test|example|invalid|localhost)$|(^|\.)example\.(com|net|org)$/i;
+
+export function isReservedTestAddress(address: string): boolean {
+  const domain = address.slice(address.lastIndexOf("@") + 1).trim();
+  return RESERVED.test(domain);
+}
+
+/**
+ * ADR 0020: with a real provider on the online demo, a message to a reserved
+ * test address goes to the fake mailbox instead, so no email to an invented
+ * user ever leaves the server.
+ */
+export class TestAddressRouter implements EmailSender {
+  constructor(
+    private readonly real: EmailSender,
+    private readonly fake: EmailSender,
+  ) {}
+
+  async send(message: EmailMessage): Promise<void> {
+    await (isReservedTestAddress(message.to) ? this.fake : this.real).send(message);
+  }
+}

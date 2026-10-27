@@ -4,7 +4,12 @@ import { fileURLToPath } from "node:url";
 import { DEV_CLOCK_OFFSET_KEY, OffsetClock, SystemClock } from "@astax/adapters/clock";
 import { LocalFieldCipher } from "@astax/adapters/crypto";
 import { BedrockDocumentReader, FakeDocumentReader } from "@astax/adapters/document-reader";
-import { MailpitEmailSender, ResendEmailSender, SesEmailSender } from "@astax/adapters/email";
+import {
+  MailpitEmailSender,
+  ResendEmailSender,
+  SesEmailSender,
+  TestAddressRouter,
+} from "@astax/adapters/email";
 import { MailpitWebPush, revokingGone, VapidWebPush } from "@astax/adapters/web-push";
 import { AwsKms, CloudTrailKmsEvents, KMS_KEYS, LocalKms } from "@astax/adapters/kms";
 import {
@@ -90,7 +95,11 @@ const email =
         ...(config.SES_CONFIGURATION_SET ? { configurationSet: config.SES_CONFIGURATION_SET } : {}),
       })
     : config.EMAIL_PROVIDER === "resend"
-      ? new ResendEmailSender({ apiKey: config.RESEND_API_KEY ?? "", from })
+      ? // ADR 0020: invented users (.test addresses) stay on Mailpit.
+        new TestAddressRouter(
+          new ResendEmailSender({ apiKey: config.RESEND_API_KEY ?? "", from }),
+          new MailpitEmailSender(config.MAILPIT_URL, from),
+        )
       : new MailpitEmailSender(config.MAILPIT_URL, from);
 // The fake SMS and push land in Mailpit as emails: with a real email provider
 // (the online demo, ADR 0020) they still go to Mailpit, never out.

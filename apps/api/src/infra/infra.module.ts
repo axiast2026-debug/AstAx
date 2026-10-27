@@ -3,6 +3,7 @@ import { LocalFieldCipher } from "@astax/adapters/crypto";
 import {
   MailpitEmailSender,
   ResendEmailSender,
+  TestAddressRouter,
   SesEmailSender,
   type EmailSender,
 } from "@astax/adapters/email";
@@ -183,7 +184,11 @@ export class InfraModule {
               : {}),
           })
         : config.EMAIL_PROVIDER === "resend"
-          ? new ResendEmailSender({ apiKey: config.RESEND_API_KEY ?? "", from })
+          ? // ADR 0020: invented users (.test addresses) stay on Mailpit.
+            new TestAddressRouter(
+              new ResendEmailSender({ apiKey: config.RESEND_API_KEY ?? "", from }),
+              new MailpitEmailSender(config.MAILPIT_URL, from),
+            )
           : new MailpitEmailSender(config.MAILPIT_URL, from));
     // The fake SMS and push land in Mailpit as emails: with a real email
     // provider (the online demo, ADR 0020) they still go to Mailpit, never out.
