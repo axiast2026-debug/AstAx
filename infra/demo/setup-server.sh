@@ -13,6 +13,17 @@ apt-get upgrade -yq
 apt-get install -yq ca-certificates curl git ufw unattended-upgrades fail2ban
 dpkg-reconfigure -f noninteractive unattended-upgrades
 
+# 4 GB of swap: the CAX11 has 4 GB of memory, and a slow page beats a stopped service.
+if ! swapon --show | grep -q /swapfile; then
+  fallocate -l 4G /swapfile
+  chmod 600 /swapfile
+  mkswap /swapfile >/dev/null
+  swapon /swapfile
+  grep -q '^/swapfile ' /etc/fstab || echo '/swapfile none swap sw 0 0' >>/etc/fstab
+fi
+echo 'vm.swappiness=20' >/etc/sysctl.d/90-astax-swap.conf
+sysctl -q -p /etc/sysctl.d/90-astax-swap.conf
+
 # SSH: keys only, never passwords.
 cat >/etc/ssh/sshd_config.d/10-astax.conf <<'EOF'
 PasswordAuthentication no

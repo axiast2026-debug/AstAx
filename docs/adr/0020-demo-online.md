@@ -1,7 +1,7 @@
 # 0020 — Demo online su un server Hetzner
 
 - **Data:** 2026-10-27
-- **Stato:** accettata (Dan, 2026-10-27: server CAX21, dominio `astaxapp.com` su Cloudflare, strumenti di sviluppo solo nel back office, accesso con il solo link, email vere con Resend; «crea»)
+- **Stato:** accettata (Dan, 2026-10-27: server CAX11 (prima scelta CAX21, ma per 8 GB Hetzner proponeva circa 45 € al mese), dominio `astaxapp.com` su Cloudflare, strumenti di sviluppo solo nel back office, accesso con il solo link, email vere con Resend; «crea»)
 - **Riferimenti:** `docs/piano-demo-online.md`; ADR 0002, 0003, 0008; regole 3, 7, 9, 11, 12 e 13 di CLAUDE.md; criteri della fase 8
 
 ## Contesto
@@ -10,7 +10,7 @@ Dan vuole far provare AstAx a soci e agenti prima del collaudo su AWS della fase
 
 ## Decisione
 
-1. **Un server, un Compose a sé.** Server Hetzner CAX21 (ARM, 4 vCPU, 8 GB, backup di Hetzner), Ubuntu 24.04. La demo ha il suo file `infra/demo/compose.yml`, separato da quello di sviluppo: stessi servizi (PostgreSQL, Redis, Keycloak, Temporal, SeaweedFS, API, worker, sito, back office), nessuna porta aperta tranne quelle del proxy, un limite di memoria per ogni servizio.
+1. **Un server, un Compose a sé.** Server Hetzner CAX11 (ARM, 2 vCPU, 4 GB, backup di Hetzner), Ubuntu 24.04, con 4 GB di swap su disco. La demo ha il suo file `infra/demo/compose.yml`, separato da quello di sviluppo: stessi servizi (PostgreSQL, Redis, Keycloak, Temporal, SeaweedFS, API, worker, sito, back office), nessuna porta aperta tranne quelle del proxy, un limite di memoria stretto per ogni servizio (circa 3,4 GB in tutto).
 2. **Le immagini della fase 8, costruite da GitHub.** Un'azione manuale (`.github/workflows/demo.yml`) costruisce su un runner ARM le stesse immagini di `deploy.yml` dal commit di `main` con la CI verde e le pubblica su GitHub Container Registry (`ghcr.io/axiast2026-debug/astax-demo`, un pacchetto solo con un'etichetta per servizio), pubbliche come il repository. Le immagini non contengono segreti né indirizzi (nessuna variabile `NEXT_PUBLIC_`): la configurazione arriva tutta all'avvio. Il server non compila niente.
 3. **La demo non è produzione, per costruzione.** API, worker e attrezzi (migrazioni, seed) girano con `NODE_ENV=development`, `DEV_TOOLS=true` e i fornitori finti: le pagine di prova di firma e pagamento, l'orologio spostabile e le offerte di prova funzionano, e il blocco della produzione (`release:check`) rifiuta questa configurazione com'è già oggi. Il sito e il back office girano dalle loro build di produzione di Next.js.
 4. **Strumenti di sviluppo solo nel back office** (risposta 3A). Il back office li mostra quando `DEV_TOOLS=true`, senza più guardare `NODE_ENV`, che nella build di produzione di Next.js vale sempre `production`. Il controllo vero resta nell'API (regola 3): gli endpoint di sviluppo rispondono 404 se `DEV_TOOLS` è spento o se `NODE_ENV` è `production`. In produzione la variabile del back office resta spenta e, se anche fosse accesa, i pulsanti non farebbero niente.
@@ -38,4 +38,5 @@ Dan vuole far provare AstAx a soci e agenti prima del collaudo su AWS della fase
 - `EMAIL_PROVIDER` accetta `resend` accanto a `ses`: il blocco della produzione lo conta come fornitore vero.
 - La documentazione dell'API (`/docs`) e la console di amministrazione di Keycloak (`/admin`) esistono sulla demo, ma Caddy le rifiuta da fuori: si raggiungono solo dal server.
 - Tutte le immagini della demo stanno in un solo pacchetto di GitHub, `astax-demo`, con un'etichetta per servizio (`api-<commit>`, `web-<commit>`…): Dan lo rende pubblico una volta sola, e il server le scarica senza chiavi.
-- La demo costa circa 8–10 € al mese più il dominio; si spegne quando parte il collaudo su AWS.
+- La demo costa circa 5 € al mese più il dominio; si spegne quando parte il collaudo su AWS.
+- Con 4 GB e lo swap la demo è più lenta, soprattutto alla prima apertura dopo l'inattività; il «Rescale» di Hetzner porta a un server più grande senza cambiare la configurazione (si alzano solo i limiti di memoria).

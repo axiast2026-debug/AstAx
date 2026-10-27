@@ -3,6 +3,7 @@
 # Run from the repository root on the server:
 #   docker compose --env-file /opt/astax/demo.env -f infra/demo/compose.yml up -d
 # Only Caddy listens outside, on 80 and 443, and the firewall lets in Cloudflare only.
+# Sized for a Hetzner CAX11 (2 ARM vCPU, 4 GB) with 4 GB of swap: about 3.4 GB of limits.
 name: astax-demo
 
 x-app: &app
@@ -28,7 +29,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
-    mem_limit: 768m
+    mem_limit: 384m
 
   redis:
     <<: *app
@@ -39,14 +40,14 @@ services:
         "--requirepass",
         "${REDIS_PASSWORD:?missing demo.env}",
         "--maxmemory",
-        "128mb",
+        "64mb",
       ]
     healthcheck:
       test: ["CMD-SHELL", 'redis-cli -a "$$REDIS_PASSWORD" --no-auth-warning ping | grep PONG']
       interval: 5s
       timeout: 3s
       retries: 20
-    mem_limit: 192m
+    mem_limit: 128m
 
   keycloak:
     <<: *app
@@ -82,7 +83,7 @@ services:
       timeout: 5s
       retries: 30
       start_period: 60s
-    mem_limit: 1g
+    mem_limit: 768m
 
   temporal:
     <<: *app
@@ -106,7 +107,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 30
-    mem_limit: 512m
+    mem_limit: 320m
 
   storage:
     <<: *app
@@ -126,7 +127,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 30
-    mem_limit: 384m
+    mem_limit: 192m
 
   # The fake SMS and push land here as emails, never outside (ADR 0020). Not
   # published: it is reached only through an SSH tunnel.
@@ -135,7 +136,7 @@ services:
     image: axllent/mailpit:v1.31.6
     ports:
       - "127.0.0.1:8025:8025"
-    mem_limit: 96m
+    mem_limit: 64m
 
   api:
     <<: *app
@@ -146,7 +147,7 @@ services:
       keycloak: { condition: service_healthy }
       temporal: { condition: service_healthy }
       storage: { condition: service_healthy }
-    mem_limit: 640m
+    mem_limit: 448m
 
   worker:
     <<: *app
@@ -155,7 +156,7 @@ services:
       postgres: { condition: service_healthy }
       temporal: { condition: service_healthy }
       storage: { condition: service_healthy }
-    mem_limit: 640m
+    mem_limit: 448m
 
   web:
     <<: *app
@@ -164,7 +165,7 @@ services:
     environment:
       NODE_ENV: production
     depends_on: [api]
-    mem_limit: 448m
+    mem_limit: 320m
 
   admin:
     <<: *app
@@ -172,7 +173,7 @@ services:
     environment:
       NODE_ENV: production
     depends_on: [api]
-    mem_limit: 384m
+    mem_limit: 256m
 
   caddy:
     image: caddy:2.10.2
@@ -186,7 +187,7 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
     depends_on: [web, admin, api, keycloak]
-    mem_limit: 128m
+    mem_limit: 64m
 
   # One-off tasks: migrations, seed and test users (deploy.sh). Not a service.
   tools:
@@ -194,7 +195,7 @@ services:
     image: ghcr.io/axiast2026-debug/astax-demo:tools-${IMAGE_TAG:?missing demo.env}
     restart: "no"
     profiles: [tools]
-    mem_limit: 1g
+    mem_limit: 768m
 
 volumes:
   postgres-data:

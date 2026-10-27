@@ -37,11 +37,11 @@ Un solo server, con lo stesso Docker Compose che gira sul tuo PC, in versione «
 
 | Voce | Costo |
 | --- | --- |
-| Server Hetzner da 8 GB con backup | circa 8–10 € al mese (il prezzo esatto si vede al momento dell'acquisto) |
+| Server Hetzner CAX11 (4 GB) con backup | circa 5 € al mese (il prezzo esatto si vede al momento dell'acquisto) |
 | Dominio | circa 10–15 € l'anno |
 | Cloudflare, Resend, GitHub, Sentry | 0 € |
 
-Se la demo va lenta si passa al server da 16 GB (circa 20–25 € al mese) con un clic, senza rifare niente.
+Con 4 GB la demo è un po' più lenta (soprattutto la prima pagina dopo un po' di inattività e il primo accesso): i servizi hanno limiti di memoria stretti e il server ha 4 GB di memoria di riserva sul disco. Se serve più potenza si passa a un server più grande con «Rescale» di Hetzner, senza rifare niente.
 
 ## Chi fa cosa
 
@@ -67,7 +67,7 @@ Se la demo va lenta si passa al server da 16 GB (circa 20–25 € al mese) con 
 ## Risposte di Dan (2026-10-27)
 
 1. **Dominio:** un `.com` comprato su Cloudflare. Dan voleva `astax.com`, ma è già registrato da altri dal 2004 (scade nel 2027 ed è bloccato contro i trasferimenti). Scelto **`astaxapp.com`** (libero il 2026-10-27).
-2. **Server:** A, **CAX21** (4 processori ARM, 8 GB).
+2. **Server:** A, CAX21 (4 processori ARM, 8 GB). Poi, il 2026-10-27, Hetzner proponeva per 8 GB solo un'offerta da circa 45 € al mese: Dan ha scelto il **CAX11** (2 processori ARM, 4 GB), che per la demo basta.
 3. **Strumenti di sviluppo:** A, **accesi solo nel back office**, con un interruttore «demo» separato dalla produzione che il blocco della produzione rifiuta sempre (regola 13). Va scritto un ADR prima della modifica.
 4. **Chi entra:** B, **chiunque abbia il link**, con il solo accesso di AstAx (niente Cloudflare Access). Cloudflare resta per il dominio e l'HTTPS; il firewall del server accetta solo Cloudflare; pagine escluse dai motori di ricerca. Utenti solo di prova, creati da noi.
 5. **Email:** A, **vere, con Resend**, inviate da un indirizzo del dominio della demo.
