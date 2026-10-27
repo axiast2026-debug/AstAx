@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # Online demo (ADR 0020): brings the server to the images of one commit of main.
-#   sudo /opt/astax/repo/infra/demo/deploy.sh <commit>
+#   sudo /opt/astax/repo/infra/demo/deploy.sh <commit> [<commit of the images>]
+# The second commit is for a change of infra/demo alone: the configuration of
+# the first, the images already built for the second.
 # Steps: the repository at that commit, the images, the migrations, the seed of
 # synthetic data and test users, Keycloak's addresses and SMTP, every service up.
 # It never prints a secret (rule 12) and never resets the database.
 set -euo pipefail
 
-COMMIT="${1:?usage: deploy.sh <commit of main>}"
+COMMIT="${1:?usage: deploy.sh <commit of main> [<commit of the images>]}"
 ENV_FILE=/opt/astax/demo.env
 REPO=/opt/astax/repo
 [ -e "$ENV_FILE" ] || { echo "Run make-env.sh first."; exit 1; }
@@ -14,9 +16,9 @@ REPO=/opt/astax/repo
 cd "$REPO"
 git fetch -q origin main
 git checkout -q --detach "$COMMIT"
-TAG=$(git rev-parse --short=12 HEAD)
+TAG=$(git rev-parse --short=12 "${2:-HEAD}")
 sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=$TAG/" "$ENV_FILE"
-echo "Demo at commit $TAG."
+echo "Demo at commit $(git rev-parse --short=12 HEAD), images of $TAG."
 
 compose() { docker compose --env-file "$ENV_FILE" -f infra/demo/compose.yml "$@"; }
 
