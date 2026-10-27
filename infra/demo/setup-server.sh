@@ -61,8 +61,13 @@ for range in $(curl -fsSL https://www.cloudflare.com/ips-v4); do
   iptables -A ASTAX-WEB -s "$range" -j RETURN
 done
 iptables -A ASTAX-WEB -j DROP
-iptables -C DOCKER-USER -p tcp -m multiport --dports 80,443 -j ASTAX-WEB 2>/dev/null \
-  || iptables -I DOCKER-USER -p tcp -m multiport --dports 80,443 -j ASTAX-WEB
+# Only what comes in from the internet interface: the containers' own calls to
+# port 443 outside (Let's Encrypt, Resend) must not pass through this filter.
+ext=$(ip -4 route show default | awk '{print $5; exit}')
+rule=(-i "$ext" -p tcp -m multiport --dports 80,443 -j ASTAX-WEB)
+# An older rule without the interface blocked those calls: take it away.
+while iptables -D DOCKER-USER -p tcp -m multiport --dports 80,443 -j ASTAX-WEB 2>/dev/null; do :; done
+iptables -C DOCKER-USER "${rule[@]}" 2>/dev/null || iptables -I DOCKER-USER "${rule[@]}"
 EOF
 chmod 700 /etc/astax-cloudflare.sh
 cat >/etc/systemd/system/astax-cloudflare.service <<'EOF'
