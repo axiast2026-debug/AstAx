@@ -17,6 +17,17 @@ Claude Code aggiorna questo file alla fine di ogni sessione di lavoro e alla chi
 
 Stati possibili: Da iniziare, In corso, In verifica (criteri controllati, in attesa della revisione di Dan), Chiusa.
 
+## In coda (Dan, 2026-10-28)
+
+Da fare subito dopo i miglioramenti della procedura del privato chiesti da Dan il 2026-10-28, in quest'ordine:
+
+1. Unire in `main` il codice automatico al cliente del broker (ramo `feat/codice-automatico-link`, già provato, da aggiornare con `main`).
+2. B3 della revisione UX: offerta senza presa in carico esplicita.
+3. B4: «Partecipa all'asta» con asta aperta di base, pagine e filtri ricordati per persona.
+4. B5: notifiche del back office per urgenza.
+
+Poi, da decidere: B6 (dati dalla targa, serve l'account del fornitore), B7 (controllo della foto), B8 (promemoria della chiusura, testo da validare), B10 (scorciatoie).
+
 ## Ultima sessione
 
 **2026-10-23 — link magico nell'email del codice** (ramo `feat/link-magico`, proposta B1 della revisione UX; Dan, domanda 28: sì, con le stesse regole del codice; [ADR 0019](adr/0019-link-magico.md)). L'email del codice del privato ha ora anche un pulsante «Entra in AstAx»: un token di 32 byte casuali, salvato in Keycloak solo come hash con la scadenza del codice (`otp.validityMinutes`), consumato con una rimozione atomica (vale una volta), stesso limite di invii per indirizzo (`security.emailCodesPerAddressPerHour`). Il link apre `/accedi/link?t=<token>` nel sito (solo il token nell'URL): la pagina manda il token con un POST a `/auth/link`, da sola o con il pulsante, e parte il normale accesso dei privati con il parametro `astax_link`, che l'estensione `astax-email-code` legge e consuma; l'accesso finisce nel registro da `/auth/callback` come oggi. Il codice resta come alternativa. Prove: `MagicLinkTokensTest` e `SendLimitsTest` (usato due volte, scaduto, limiti; girano con Maven nella build dell'immagine, che senza di loro non si costruisce), `web-auth.test.ts` (parametro sulla richiesta di accesso), `magic-link.test.ts`, e2e in `fase1-accessi.spec.ts` (ingresso dal link da un altro browser, secondo uso rifiutato). Dopo il pull: `docker compose --env-file .env -f infra/docker-compose.yml build keycloak` e `pnpm infra:up`. Da sapere: le prove sono state fatte con il PC a corto di memoria; la suite e2e completa la fa la CI.
