@@ -572,11 +572,12 @@
       "INVALID_DATE": "Data non valida: scrivila come gg/mm/aaaa.",
       "INVALID_QUOTE_TYPE": "Scegli la tipologia del preventivo.",
       "ANIA_NOT_FOUND": "ANIA non ha dati per questa targa.",
-      "ANIA_PROVIDER_ERROR": "ANIA non risponde: riprova tra poco.",
+      "ANIA_PROVIDER_ERROR": "ANIA non risponde o il portale è cambiato: riprova tra poco; se continua, avvisa Dan.",
       "ANIA_INVALID_PLATE": "ANIA non accetta questa targa.",
       "NO_PLATE": "La richiesta non ha una targa.",
       "TO_COMPLETE": "Completa i dati prima dell'approvazione.",
-      "CONSENT_REVOKED": "Il cliente ha revocato il consenso: l'asta non può partire."
+      "CONSENT_REVOKED": "Il cliente ha revocato il consenso: l'asta non può partire.",
+      "ANIA_SESSION_EXPIRED": "La sessione del portale ANIA è scaduta: serve un nuovo login (lo fa Dan dal suo PC). Intanto puoi continuare senza ANIA."
     },
     "queue": {
       "filters": "Filtro delle pratiche",

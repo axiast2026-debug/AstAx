@@ -590,7 +590,7 @@ export class VerificationService {
       return { plate, owner: ownerOf(quoteData), roundId: round.id, round: round.round };
     });
     // The reader may take seconds: outside the transaction.
-    const result = await this.ania.read({ plate, owner });
+    const result = await this.ania.read({ plate, owner, requestId: id, operatorId: auth.userId });
     if (!result.found) {
       throw new ProblemError("CONFLICT", undefined, [
         { path: "plate", issue: `ANIA_${result.reason}` },

@@ -59,8 +59,13 @@ const configSchema = z
     KMS_OFFER_OWNER_KEY_ID: z.string().min(1).optional(),
     AI_PROVIDER: z.enum(["fake", "bedrock"]).default("fake"),
     PLATE_PROVIDER: z.enum(["fake", "openapi"]).default("fake"),
-    /** The real ANIA reader lives in a private repository (docs/piano-back-office-verifica.md). */
-    ANIA_PROVIDER: z.enum(["fake"]).default("fake"),
+    /**
+     * http: the real ANIA bot (private repository) on the internal network,
+     * with the written consent of Allianz (Dan, 2026-10-28).
+     */
+    ANIA_PROVIDER: z.enum(["fake", "http"]).default("fake"),
+    ANIA_BOT_URL: z.url().optional(),
+    ANIA_BOT_TOKEN: z.string().min(32).optional(),
     OPENAPI_AUTOMOTIVE_URL: z.url().default("https://test.automotive.openapi.com"),
     OPENAPI_AUTOMOTIVE_TOKEN: z.string().min(1).optional(),
     SDI_PROVIDER: z.enum(["fake", "openapi"]).default("fake"),
@@ -119,6 +124,10 @@ const configSchema = z
       path: ["KMS_PROVIDER"],
     },
   )
+  .refine((c) => c.ANIA_PROVIDER !== "http" || (!!c.ANIA_BOT_URL && !!c.ANIA_BOT_TOKEN), {
+    message: "ANIA_PROVIDER=http needs ANIA_BOT_URL and ANIA_BOT_TOKEN",
+    path: ["ANIA_PROVIDER"],
+  })
   .refine((c) => c.PLATE_PROVIDER !== "openapi" || !!c.OPENAPI_AUTOMOTIVE_TOKEN, {
     message: "PLATE_PROVIDER=openapi needs OPENAPI_AUTOMOTIVE_TOKEN",
     path: ["PLATE_PROVIDER"],

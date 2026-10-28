@@ -48,7 +48,7 @@ export async function AgencySheet({
       rows: [
         {
           key: "make",
-          ania: s?.make ?? null,
+          ania: s ? join(s.make, s.model, s.version) : null,
           request: quoteData ? join(quoteData.vehicle.make, quoteData.vehicle.model) : null,
         },
         { key: "categoryUse", ania: s ? join(s.category, s.use) : null, request: null },

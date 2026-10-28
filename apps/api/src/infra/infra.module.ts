@@ -31,7 +31,7 @@ import {
   OpenapiPlateLookup,
   type PlateLookupPort,
 } from "@astax/adapters/vehicle-data";
-import { FakeAniaReader, type AniaReaderPort } from "@astax/adapters/ania";
+import { FakeAniaReader, HttpAniaReader, type AniaReaderPort } from "@astax/adapters/ania";
 import { AwsKms, KMS_KEYS, LocalKms } from "@astax/adapters/kms";
 import {
   BedrockAiExplainer,
@@ -293,8 +293,18 @@ export class InfraModule {
         },
         { provide: OBJECT_STORAGE, useValue: objectStorage },
         { provide: PLATE_LOOKUP, useValue: plateLookup },
-        // Only the fake until the real reader is allowed (rule 9, docs/punti-aperti.md).
-        { provide: ANIA_READER, useValue: overrides.aniaReader ?? new FakeAniaReader(clock) },
+        {
+          // The real reader: the bot of the private repository (Dan, 2026-10-28).
+          provide: ANIA_READER,
+          useValue:
+            overrides.aniaReader ??
+            (config.ANIA_PROVIDER === "http"
+              ? new HttpAniaReader({
+                  baseUrl: config.ANIA_BOT_URL ?? "",
+                  token: config.ANIA_BOT_TOKEN ?? "",
+                })
+              : new FakeAniaReader(clock)),
+        },
         {
           provide: DOCUMENT_READER,
           useValue:

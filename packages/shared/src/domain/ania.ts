@@ -35,6 +35,9 @@ export const AniaRecordSchema = z.strictObject({
     displacementCc: amount,
     maxPowerKw: amount,
     fullLoadWeightKg: amount,
+    /** From the public quote form of Prima, when the bot read it. */
+    model: text.optional(),
+    version: text.optional(),
   }),
   owner: z.strictObject({
     fiscalCode,
@@ -82,6 +85,8 @@ type Claims = NonNullable<AniaRecord["latestCertificate"]>["claims"];
 
 export interface AniaSheet {
   make: string | null;
+  model: string | null;
+  version: string | null;
   category: string | null;
   use: string | null;
   fuel: string | null;
@@ -257,6 +262,8 @@ export function aniaSheet(record: AniaRecord, rules: AniaRules): AniaSheet {
       : null;
   return {
     make: record.vehicle.description,
+    model: record.vehicle.model ?? null,
+    version: record.vehicle.version ?? null,
     category,
     use,
     fuel: record.vehicle.fuel,
