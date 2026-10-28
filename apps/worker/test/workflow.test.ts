@@ -241,9 +241,12 @@ describe("QuoteRequestWorkflow (ADR 0008)", () => {
     const r = await run({ closings: [1] });
     const history = await env.client.workflow.getHandle(workflowIdOf(r.requestId)).fetchHistory();
     const text = JSON.stringify(history);
-    for (const forbidden of ["50500", "505,00", "Compagnia", "NREGLI", "Giulia", "@example.test"]) {
+    for (const forbidden of ["505,00", "Compagnia", "NREGLI", "Giulia", "@example.test"]) {
       expect(text).not.toContain(forbidden);
     }
+    // The price as a value of its own: random identifiers and instants may
+    // hold the same digits inside a longer string.
+    expect(text).not.toMatch(/(?<![\w.])50500(?![\w.])/);
   });
 
   it("ASTA-08 S04 no valid offer: one reopening; still none: the request is deserted", async () => {
