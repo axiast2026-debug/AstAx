@@ -182,6 +182,12 @@ export async function acceptLegalIfAsked(page: Page): Promise<void> {
   if (/\/(documenti-legali|accetta-documenti)$/.test(page.url())) {
     await page.getByRole("button", { name: /accetto|pranoj/ }).click();
     await page.waitForURL((url) => !/\/(documenti-legali|accetta-documenti)$/.test(url.pathname));
+    // A private customer without a name goes on from «/» to «/benvenuto»: wait for
+    // where the redirects end (the welcome page, or a page with the menu).
+    await Promise.race([
+      page.waitForURL(/\/benvenuto$/),
+      page.getByRole("navigation").first().waitFor(),
+    ]).catch(() => undefined);
   }
   await completeProfileIfAsked(page);
 }

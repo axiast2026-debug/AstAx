@@ -154,13 +154,13 @@ export function comparisonRows(
     ...data.drivers.flatMap((d, i) => [
       row(
         "licenceNumber",
-        d.licence.number,
+        d.licence?.number,
         field("DRIVING_LICENCE", "number", i),
         `drivers.${i}.licence.number`,
       ),
       row(
         "licenceExpires",
-        d.licence.expiresOn,
+        d.licence?.expiresOn,
         field("DRIVING_LICENCE", "expiresOn", i),
         `drivers.${i}.licence.expiresOn`,
       ),

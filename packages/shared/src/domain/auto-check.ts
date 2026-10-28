@@ -163,7 +163,10 @@ export function runAutoCheck(input: AutoCheckInput): AutoCheckResult {
   const licenceRed: string[] = [];
   const licenceFields: string[] = [];
   quoteData.drivers.forEach((driver, i) => {
-    if (compareCalendarDates(driver.licence.expiresOn, quoteData.request.startDate) < 0) {
+    if (
+      driver.licence &&
+      compareCalendarDates(driver.licence.expiresOn, quoteData.request.startDate) < 0
+    ) {
       licenceRed.push("LICENCE_EXPIRED");
       licenceFields.push(`drivers.${i}.licence.expiresOn`);
     }

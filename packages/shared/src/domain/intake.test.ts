@@ -176,13 +176,15 @@ describe("ADR 0013: the request in two stages", () => {
       expect.arrayContaining([
         "policyHolder.surname",
         "policyHolder.fiscalCode",
-        "drivers.0.licence.number",
         "vehicle.make",
         "history.provenance",
         "history.claims",
         "history.classSource",
       ]),
     );
+    // Dan, 2026-10-28: the licence is no longer asked, so it is not missing.
+    expect(c.missing.filter((m) => m.startsWith("drivers.0.licence"))).toEqual([]);
+    expect(c.drivers[0]).not.toHaveProperty("licence");
   });
 });
 

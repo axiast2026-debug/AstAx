@@ -52,6 +52,7 @@ const integrationSchema = z
           "REGISTRATION_CERTIFICATE",
           "DRIVING_LICENCE",
           "RISK_CERTIFICATE",
+          "IDENTITY_DOCUMENT",
           "FISCAL_CODE_CARD",
           "CONSENT_FORM",
           "OTHER",

@@ -263,7 +263,7 @@ export default async function IncomingRequestPage({
                     {t("driver", {
                       name: holderName(d.person),
                       birth: formatDate(d.person.birthDate),
-                      licence: formatDate(d.licence.issuedOn),
+                      licence: d.licence ? formatDate(d.licence.issuedOn) : "—",
                       main: d.isMain ? "yes" : "no",
                     })}
                   </li>

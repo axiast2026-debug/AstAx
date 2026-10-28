@@ -360,6 +360,7 @@
       "REGISTRATION_CERTIFICATE": "Libretto",
       "DRIVING_LICENCE": "Patente",
       "RISK_CERTIFICATE": "Attestato di rischio",
+      "IDENTITY_DOCUMENT": "Carta d'identità",
       "FISCAL_CODE_CARD": "Codice fiscale",
       "CONSENT_FORM": "Consenso firmato",
       "OTHER": "Altro"

@@ -119,14 +119,13 @@ export async function CompletionForm({
             licence.category,
             "licenceCategory",
           )}
-          {field("licenceNumber", "drivers.0.licence.number", licence.number, { required: true })}
+          {/* Dan, 2026-10-28: optional, all four or none (question 38). */}
+          {field("licenceNumber", "drivers.0.licence.number", licence.number)}
           {field("licenceIssuedOn", "drivers.0.licence.issuedOn", licence.issuedOn, {
             type: "date",
-            required: true,
           })}
           {field("licenceExpiresOn", "drivers.0.licence.expiresOn", licence.expiresOn, {
             type: "date",
-            required: true,
           })}
         </fieldset>
         <fieldset className="grid gap-3 sm:grid-cols-2">

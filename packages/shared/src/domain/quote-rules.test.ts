@@ -323,18 +323,34 @@ describe("automatic check", () => {
     expect(runAutoCheck(checkInput({ quoteData: otherDate })).outcome).toBe("RED");
   });
 
-  it("is RED for a licence expired at the policy start", () => {
+  it("is RED for a licence expired at the policy start; without licence data nothing to check", () => {
     const quote = sampleQuoteData();
     const driver = at(quote.drivers, 0);
     const expired = {
       ...quote,
-      drivers: [{ ...driver, licence: { ...driver.licence, expiresOn: "2026-11-29" } }],
+      drivers: [
+        {
+          ...driver,
+          licence: {
+            category: "B",
+            number: "MI5550001X",
+            issuedOn: "2010-01-01",
+            expiresOn: "2026-11-29",
+          },
+        },
+      ],
     };
     const result = runAutoCheck(checkInput({ quoteData: expired }));
     expect(result.outcome).toBe("RED");
     expect(result.items.find((i) => i.code === "DRIVING_LICENCES")?.fields).toEqual([
       "drivers.0.licence.expiresOn",
     ]);
+    // Dan, 2026-10-28: no licence document; the check does not invent a problem.
+    const withoutLicence = { person: driver.person, isMain: driver.isMain };
+    const none = runAutoCheck(
+      checkInput({ quoteData: { ...quote, drivers: [withoutLicence] } }),
+    ).items.find((i) => i.code === "DRIVING_LICENCES");
+    expect(none?.outcome).toBe("GREEN");
   });
 
   it("is YELLOW for fields read below the confidence threshold, with the fields highlighted", () => {

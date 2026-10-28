@@ -5,6 +5,14 @@ import type { Completion } from "@/lib/verification";
 import { redirect } from "next/navigation";
 import { api } from "@/lib/auth";
 
+/** The licence fields of the completion: all of them, or none (question 38). */
+const LICENCE_FIELDS = [
+  "licenceCategory",
+  "licenceNumber",
+  "licenceIssuedOn",
+  "licenceExpiresOn",
+] as const;
+
 /**
  * Back office actions on a request under verification (spec 06). Errors come
  * back as codes in the `errore` parameter, never as values.
@@ -182,12 +190,17 @@ export async function completeRequest(formData: FormData): Promise<void> {
       {
         person: holder,
         isMain: true,
-        licence: {
-          category: value(formData, "licenceCategory") ?? "",
-          number: value(formData, "licenceNumber") ?? "",
-          issuedOn: value(formData, "licenceIssuedOn") ?? "",
-          expiresOn: value(formData, "licenceExpiresOn") ?? "",
-        },
+        // Dan, 2026-10-28: the licence only when the operator has it (question 38).
+        ...(LICENCE_FIELDS.some((f) => value(formData, f))
+          ? {
+              licence: {
+                category: value(formData, "licenceCategory") ?? "",
+                number: value(formData, "licenceNumber") ?? "",
+                issuedOn: value(formData, "licenceIssuedOn") ?? "",
+                expiresOn: value(formData, "licenceExpiresOn") ?? "",
+              },
+            }
+          : {}),
       },
     ],
     drivingFormula: intake.drivingFormula ?? candidate.drivingFormula ?? "FREE",

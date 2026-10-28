@@ -31,7 +31,9 @@ export function listCodeProblems(
   if (draft.history) check("provenance", draft.history.provenance, "history.provenance");
   draft.driving?.drivers.forEach((d, i) => {
     person(d.person, `driving.drivers.${i}.person`);
-    check("licenceCategory", d.licence.category, `driving.drivers.${i}.licence.category`);
+    if (d.licence) {
+      check("licenceCategory", d.licence.category, `driving.drivers.${i}.licence.category`);
+    }
   });
   for (const [i, code] of (draft.specialUses ?? []).entries())
     check("exclusionCase", code, `specialUses.${i}`);

@@ -245,9 +245,6 @@ export function quoteDataFromIntake(
           .filter(([, value]) => value === undefined)
           .map(([key]) => `drivers.0.person.${key}`)
       : []),
-    ...Object.entries(driverLicence)
-      .filter(([, value]) => value === undefined)
-      .map(([key]) => `drivers.0.licence.${key}`),
     ...["type", "make", "model", "fuel", "powerKw", "firstRegistrationDate"]
       .filter((key) => vehicle[key as keyof typeof vehicle] === undefined)
       .map((key) => `vehicle.${key}`),
@@ -265,7 +262,16 @@ export function quoteDataFromIntake(
   return {
     policyHolder: clean(holder),
     vehicleOwner: "SAME_AS_POLICY_HOLDER",
-    drivers: [{ person: clean(driver), isMain: true, licence: clean(driverLicence) }],
+    // The licence only when all of it was read (a document uploaded before 2026-10-28).
+    drivers: [
+      {
+        person: clean(driver),
+        isMain: true,
+        ...(Object.values(driverLicence).every((v) => v !== undefined)
+          ? { licence: clean(driverLicence) }
+          : {}),
+      },
+    ],
     drivingFormula: intake.drivingFormula,
     vehicle: clean(vehicle),
     history: clean(history),

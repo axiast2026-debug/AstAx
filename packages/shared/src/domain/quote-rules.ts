@@ -135,7 +135,7 @@ export function submissionProblems(
   }
   if (
     quoteData.drivers.some(
-      (d) => compareCalendarDates(d.licence.issuedOn, d.licence.expiresOn) >= 0,
+      (d) => d.licence && compareCalendarDates(d.licence.issuedOn, d.licence.expiresOn) >= 0,
     )
   ) {
     problems.push("LICENCE_DATES_INVERTED");

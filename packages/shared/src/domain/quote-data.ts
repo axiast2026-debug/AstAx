@@ -75,7 +75,9 @@ export const LicenceSchema = z.strictObject({
 export const DriverSchema = z.strictObject({
   person: NaturalPersonSchema,
   isMain: z.boolean(),
-  licence: LicenceSchema,
+  // Dan, 2026-10-28: no licence document is asked; the back office adds the data
+  // when it has them (question 38).
+  licence: LicenceSchema.optional(),
 });
 
 export const DRIVING_FORMULAS = ["FREE", "EXPERT", "EXCLUSIVE"] as const;
