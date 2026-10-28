@@ -47,7 +47,7 @@ export async function CompletionForm({
       />
     </label>
   );
-  const select = (name: string, path: string, value: unknown, list: string) => (
+  const select = (name: string, path: string, value: unknown, list: string, required = true) => (
     <label className="block text-sm">
       <span className={missing.has(path) ? "font-semibold text-red-700" : "text-warm-600"}>
         {t(`fields.${name}`)}
@@ -56,7 +56,7 @@ export async function CompletionForm({
       <select
         name={name}
         defaultValue={typeof value === "string" ? value : ""}
-        required
+        required={required}
         className={`mt-1 block min-h-11 w-full rounded-md border px-2 py-1.5 ${
           missing.has(path) ? "border-red-600 bg-red-50" : "border-warm-600"
         }`}
@@ -118,6 +118,7 @@ export async function CompletionForm({
             "drivers.0.licence.category",
             licence.category,
             "licenceCategory",
+            false,
           )}
           {/* Dan, 2026-10-28: optional, all four or none (question 38). */}
           {field("licenceNumber", "drivers.0.licence.number", licence.number)}

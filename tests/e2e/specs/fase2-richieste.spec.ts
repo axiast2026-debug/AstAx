@@ -10,6 +10,7 @@ import {
   savedSecret,
   saveSecret,
 } from "../support/auth.js";
+import { completeData } from "../support/auction.js";
 import { birthDateOf, ownerSignedDeclaration } from "../support/broker.js";
 import { latestMail, photo, privateRequestSteps, requestCode } from "../support/requests.js";
 
@@ -76,11 +77,9 @@ test.describe.serial("fase 2: richiesta e verifica", () => {
     ).toBeVisible();
     await openCard(operator, code);
     await expect(operator.getByRole("heading", { name: "Completa i dati" })).toBeVisible();
-    // The bot read the registration and the licence; the purchase date is asked by phone.
+    // The bot read the registration and the ID card; the purchase date is asked by phone.
     await expect(operator.getByLabel(/Cognome/).first()).toHaveValue("Neri");
-    await operator.getByLabel(/Data di acquisto/).fill("2020-04-01");
-    await operator.getByRole("button", { name: "Salva i dati completati" }).click();
-    await expect(operator.getByText("Dati completati")).toBeVisible();
+    await completeData(operator);
     await expect(operator.getByRole("heading", { name: "Checklist" })).toBeVisible();
     await operator.getByRole("button", { name: "Approva e apri l'asta" }).click();
     await expect(operator.getByText("Richiesta approvata")).toBeVisible();
@@ -185,9 +184,7 @@ test.describe.serial("fase 2: richiesta e verifica", () => {
     await expect(operator.getByRole("heading", { name: "Completa i dati" })).toBeVisible();
     // LEG-04: the holder is the customer Anna, with her fiscal code.
     await expect(operator.getByLabel(/Cognome/).first()).toHaveValue("Riva");
-    await operator.getByLabel(/Data di acquisto/).fill("2020-04-01");
-    await operator.getByRole("button", { name: "Salva i dati completati" }).click();
-    await expect(operator.getByText("Dati completati")).toBeVisible();
+    await completeData(operator);
     await operator.getByRole("button", { name: "Approva e apri l'asta" }).click();
     await expect(operator.getByText("Richiesta approvata")).toBeVisible();
     await page.reload();

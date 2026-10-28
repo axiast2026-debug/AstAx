@@ -197,7 +197,8 @@
       "OTP_PRIVATE": "codice del privato",
       "CHECKBOX_PRIVATE": "spunta del privato, entrato con il codice email",
       "OTP_LINK": "link e codice del cliente",
-      "UPLOADED_BY_BROKER": "caricato dal broker, da controllare"
+      "UPLOADED_BY_BROKER": "caricato dal broker, da controllare",
+      "BROKER_DECLARATION": "Dichiarazione del broker sui suoi clienti"
     },
     "fields": {
       "plate": "Targa",

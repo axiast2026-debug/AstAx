@@ -1,6 +1,6 @@
 # Piano: procedura del privato più semplice (richieste di Dan, 2026-10-28)
 
-**Stato:** Dan ha chiesto di procedere senza attendere l'approvazione del piano («una volta scritto il piano procedi senza autorizzazione»). Dove serviva una sua decisione ho scelto la strada più prudente: le scelte sono segnate **[scelta]** qui sotto e nelle domande 33–37 di `docs/domande-aperte.md`, da confermare o correggere dopo.
+**Stato:** fatto il 2026-10-28 (passi 1-8; in più: dati della patente facoltativi, domanda 38). Dan ha chiesto di procedere senza attendere l'approvazione del piano («una volta scritto il piano procedi senza autorizzazione»). Dove serviva una sua decisione ho scelto la strada più prudente: le scelte sono segnate **[scelta]** qui sotto e nelle domande 33–37 di `docs/domande-aperte.md`, da confermare o correggere dopo.
 
 Prima di questo lavoro, in coda: codice automatico al cliente del broker, poi B3, B4, B5 della revisione UX (`docs/stato.md`, «In coda»).
 
