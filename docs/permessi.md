@@ -44,7 +44,9 @@ Abilitazioni aggiuntive di un'appartenenza, decise dal titolare:
 | Azione | Chi | Condizioni |
 | --- | --- | --- |
 | Vedere la coda e la scheda di verifica | `BO_VERIFIER`, `BO_SUPERVISOR`; in lettura `BO_SUPPORT`, `ADMIN` | — |
-| Approvare, chiedere integrazione, escludere | `BO_VERIFIER`, `BO_SUPERVISOR` | Con motivo per integrazione ed esclusione |
+| Prendere in carico una pratica, fare le 5 verifiche, leggere ANIA | `BO_VERIFIER`, `BO_SUPERVISOR` | Solo chi l'ha in carico (Dan, 2026-10-28); il supervisore può prenderla al posto di un collega |
+| Rilasciare una pratica | `BO_VERIFIER`, `BO_SUPERVISOR` | Chi l'ha in carico, o il supervisore |
+| Approvare, chiedere integrazione, escludere | `BO_VERIFIER`, `BO_SUPERVISOR` | Con motivo per integrazione ed esclusione; solo chi ha in carico la pratica; l'approvazione con le 5 verifiche fatte |
 | Escludere un'agenzia dall'anteprima | `BO_VERIFIER`, `BO_SUPERVISOR` | Con motivo |
 | Vedere lo stato delle aste (senza prezzi) | `BO_*`, `ADMIN`; richiedente (contatori); agenzie invitate (il proprio invito) | Mai prezzi prima della chiusura (BC-01) |
 | Prolungare, invitare altre agenzie, annullare un'asta | `BO_VERIFIER`, `BO_SUPERVISOR` | Inviti solo nella prima metà (ASTA-06); sempre con motivo |

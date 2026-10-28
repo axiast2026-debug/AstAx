@@ -63,10 +63,7 @@ beforeAll(async () => {
     body: { versionIds: pending.map((p) => p.versionId) },
   });
   requestId = (await r.submittedPrivateRequest(customer, email)).id;
-  await r.json(
-    await r.call(verifier, `/verification/requests/${requestId}/approve`, { body: {} }),
-    200,
-  );
+  await r.json(await r.approve(verifier, requestId), 200);
   const auctionId = await openTestAuction(h, requestId, ["agenzia-uno"]);
   const detail = await r.json<{
     companies: { id: string }[];

@@ -175,10 +175,7 @@ beforeAll(async () => {
   const request = await r.submittedPrivateRequest(elena, ELENA_EMAIL);
   requestId = request.id;
   const verifier = await who("bo-verifier", "astax");
-  await r.json(
-    await r.call(verifier, `/verification/requests/${requestId}/approve`, { body: {} }),
-    200,
-  );
+  await r.json(await r.approve(verifier, requestId), 200);
   auctionId = await openAuction(requestId, [
     "agenzia-uno",
     "agenzia-due",

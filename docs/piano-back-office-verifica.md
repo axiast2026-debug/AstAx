@@ -1,6 +1,6 @@
 # Piano: verifica del back office più chiara e bot ANIA in AstAx (Dan, 2026-10-28)
 
-**Stato:** risposte di Dan del 2026-10-28 (domande 39–42 di `docs/domande-aperte.md`). Il disegno della schermata si approva prima del codice (domanda 42): https://claude.ai/artifact/1zZsouJx6sV1PqCGXF8QzM (privato, visibile a Dan). Prima di questo lavoro resta in coda: codice automatico del broker, poi B3, B4, B5 (`docs/stato.md`, «In coda»).
+**Stato:** disegno approvato da Dan il 2026-10-28 (https://claude.ai/artifact/1zZsouJx6sV1PqCGXF8QzM). Fatti i passi 1, 3, 4, 5, 6 e 8 con l'ANIA finto; resta il passo 7 (bot vero nel repository privato, con il via scritto di Allianz). Prima di questo lavoro restava in coda: codice automatico del broker, poi B3, B4, B5 (`docs/stato.md`, «In coda»).
 
 ## Cosa ha chiesto Dan
 

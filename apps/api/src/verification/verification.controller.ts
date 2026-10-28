@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Inject,
@@ -13,7 +14,12 @@ import {
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import type { Response } from "express";
 import { z } from "zod";
-import { QUOTE_DRAFT_SECTIONS } from "@astax/shared/domain";
+import {
+  QUOTE_DRAFT_SECTIONS,
+  QUOTE_TYPES,
+  VERIFICATION_STEPS,
+  type CheckInput,
+} from "@astax/shared/domain";
 import type { AuthContext } from "../auth/auth-context.js";
 import { CurrentAuth, RequirePermission } from "../auth/decorators.js";
 import { parseInput } from "../http/validation.js";
@@ -36,6 +42,11 @@ const checklistSchema = z
     note: z.string().max(500).optional(),
   })
   .refine((v) => v.correction !== undefined || v.note !== undefined, "nothing to change");
+const stepSchema = z.enum(VERIFICATION_STEPS);
+const checkSchema = z.strictObject({
+  value: z.string().trim().min(1).max(20).optional(),
+});
+const quoteTypeCheckSchema = z.strictObject({ value: z.enum(QUOTE_TYPES) });
 const correctionSchema = z.strictObject({ quoteData: z.unknown(), reason });
 const approveSchema = z.strictObject({ note: z.string().max(500).optional() });
 const integrationSchema = z
@@ -149,6 +160,54 @@ export class VerificationController {
   @RequirePermission("verification.decide")
   assign(@CurrentAuth() auth: AuthContext, @Param("id") id: string) {
     return this.verification.assign(auth, parseInput(uuid, id));
+  }
+
+  @Post("requests/:id/release")
+  @HttpCode(200)
+  @RequirePermission("verification.decide")
+  release(@CurrentAuth() auth: AuthContext, @Param("id") id: string) {
+    return this.verification.release(auth, parseInput(uuid, id));
+  }
+
+  /** One of the five checks (Dan, 2026-10-28). */
+  @Put("requests/:id/checks/:step")
+  @RequirePermission("verification.decide")
+  check(
+    @CurrentAuth() auth: AuthContext,
+    @Param("id") id: string,
+    @Param("step") step: string,
+    @Body() body: unknown,
+  ) {
+    const parsedStep = parseInput(stepSchema, step);
+    let input: CheckInput;
+    if (parsedStep === "QUOTE_TYPE") {
+      input = { step: parsedStep, value: parseInput(quoteTypeCheckSchema, body).value };
+    } else if (parsedStep === "PLATE" || parsedStep === "BIRTH_DATE") {
+      const { value } = parseInput(checkSchema, body ?? {});
+      input = value === undefined ? { step: parsedStep } : { step: parsedStep, value };
+    } else {
+      parseInput(z.strictObject({}), body ?? {});
+      input = { step: parsedStep };
+    }
+    return this.verification.recordCheck(auth, parseInput(uuid, id), input);
+  }
+
+  /** «Leggi da ANIA» with the plate of the request (Dan, 2026-10-28). */
+  @Post("requests/:id/ania")
+  @HttpCode(200)
+  @RequirePermission("verification.decide")
+  readAnia(@CurrentAuth() auth: AuthContext, @Param("id") id: string) {
+    return this.verification.readAnia(auth, parseInput(uuid, id));
+  }
+
+  @Delete("requests/:id/checks/:step")
+  @RequirePermission("verification.decide")
+  clearCheck(
+    @CurrentAuth() auth: AuthContext,
+    @Param("id") id: string,
+    @Param("step") step: string,
+  ) {
+    return this.verification.clearCheck(auth, parseInput(uuid, id), parseInput(stepSchema, step));
   }
 
   @Put("requests/:id/checklist/:code")

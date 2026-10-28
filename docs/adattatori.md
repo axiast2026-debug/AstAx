@@ -21,6 +21,7 @@ La scelta tra finto e vero è nella configurazione: `EMAIL_PROVIDER`, `SMS_PROVI
 | KMS | `AwsKms` | Scritto e provato con KMS simulato (contesto e permessi); manca l'account AWS |
 | Lettura documenti, spiegazione AI | `BedrockDocumentReader`, `BedrockAiExplainer` (Claude su Bedrock, profilo UE) | Scritti e provati con modello simulato; prompt in `packages/adapters/prompts/`; manca l'accesso a Bedrock |
 | Dati veicolo | `OpenapiPlateLookup` (IT-car, IT-insurance) | Scritto dalla specifica OpenAPI pubblica; manca il token della sandbox |
+| Banca Dati ANIA | Bot del portale agenzie, nel repository privato | Da scrivere: serve il via scritto di Allianz (`docs/punti-aperti.md`) |
 | Fatturazione SDI | `OpenapiEInvoicing` (e ricevute su `POST /webhooks/sdi`) | Scritto dalla specifica OpenAPI pubblica; manca il token della sandbox |
 | Firma FEA | Namirial | Da scrivere nella parte B: la documentazione pubblica non mostra il formato della busta e delle notifiche |
 | Pagamenti | Fabrick | Da scrivere nella parte B: la documentazione è riservata ai clienti |
@@ -57,6 +58,22 @@ export type PlateLookupResult =
 ```
 
 Finto: dati coerenti ricavati dalla targa (sempre gli stessi per la stessa targa); `ZZ000ZZ` → `NOT_FOUND`; `XX999XX` → `PROVIDER_ERROR`.
+
+## Banca Dati ANIA da targa (Dan, 2026-10-28)
+
+```ts
+export interface AniaReaderPort {
+  read(input: { plate: string; owner?: { fiscalCode: string; fullName: string } | null }): Promise<AniaReadResult>;
+}
+export type AniaReadResult =
+  | { found: true; record: AniaRecordData } // veicolo, intestatario, immatricolazioni, ultima copertura, ultimo attestato
+  | { found: false; reason: "NOT_FOUND" | "INVALID_PLATE" | "PROVIDER_ERROR" };
+```
+
+- La scheda per le agenzie e gli avvisi si ricavano dal record in `packages/shared/src/domain/ania.ts`, con le stesse regole del bot costruito per CorteXa, rifatte qui: date senza ora; categoria e uso separati (un codice non confermato dà l'avviso «verificare sul libretto di circolazione»); peso a pieno carico solo per gli autocarri; nascita, sesso e luogo dal codice fiscale; cognome e nome solo se l'avente diritto ha il codice fiscale dell'intestatario; data di acquisto dalla riga di immatricolazione più vecchia con quel codice fiscale; sinistri degli ultimi anni (`verification.ania.claimsYears`), con N.D. che rende il totale ignoto; copertura scaduta solo dal giorno dopo la scadenza, in scadenza entro `verification.ania.expiryNoticeDays`.
+- L'API controlla ogni risposta con `AniaRecordSchema`, la salva cifrata sulla verifica e nel registro scrive solo che è stata letta.
+- Finto (`FakeAniaReader`): veicolo, compagnia e scadenza come il finto dei dati veicolo; intestatario = il proprietario della richiesta; `ZZ000ZZ` → `NOT_FOUND`; `XX999XX` → `PROVIDER_ERROR`; targhe che iniziano con `NV` senza attestato.
+- Vero: il bot del portale agenzie, in un repository privato separato, acceso solo in produzione, con il via scritto di Allianz (`docs/punti-aperti.md`) e le credenziali inserite da Dan sul server. Finché manca, `ANIA_PROVIDER=fake` e `release:check` blocca la produzione.
 
 ## Lettura documenti (Claude tramite Amazon Bedrock, profilo di inferenza UE)
 

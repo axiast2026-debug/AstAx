@@ -160,7 +160,7 @@ describe("ADR 0013: the request in two stages", () => {
     expect(card.completion.candidate.missing).toContain("vehicle.purchaseDate");
     expect(card.verification.checklist.map((i) => i.code)).toEqual(["TO_COMPLETE"]);
     const early = await r.json<{ errors: { issue: string }[] }>(
-      await r.call(verifier, `/verification/requests/${requestId}/approve`, { body: {} }),
+      await r.approve(verifier, requestId),
       409,
     );
     expect(early.errors.map((e) => e.issue)).toEqual(["TO_COMPLETE"]);
@@ -190,10 +190,7 @@ describe("ADR 0013: the request in two stages", () => {
     expect(version.source).toBe("BACK_OFFICE_COMPLETION");
     expect(request.draftEnc).toBeNull();
     expect(request.quoteDataVersion).toBe(1);
-    await r.json(
-      await r.call(verifier, `/verification/requests/${requestId}/approve`, { body: {} }),
-      200,
-    );
+    await r.json(await r.approve(verifier, requestId), 200);
   });
 });
 

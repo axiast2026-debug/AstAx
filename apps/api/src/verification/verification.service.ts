@@ -1,5 +1,6 @@
 import type { Clock } from "@astax/adapters/clock";
 import type { FieldCipher } from "@astax/adapters/crypto";
+import type { AniaReaderPort } from "@astax/adapters/ania";
 import type { ObjectStoragePort } from "@astax/adapters/storage";
 import {
   recordDomainEvent,
@@ -17,6 +18,18 @@ import {
   QuoteDataSchema,
   submissionProblems,
   worstOutcome,
+  AniaRecordSchema,
+  aniaSheet,
+  aniaWarnings,
+  type AniaRecord,
+  checkProblem,
+  missingChecks,
+  VERIFICATION_STEPS,
+  normalizePlate,
+  VerificationChecksSchema,
+  type CheckInput,
+  type VerificationChecks,
+  type VerificationStep,
   type ChecklistItem,
   type QuoteData,
   type QuoteDraft,
@@ -29,7 +42,15 @@ import { actorOf, AuditService } from "../audit/audit.service.js";
 import type { AuthContext } from "../auth/auth-context.js";
 import type { ApiConfig } from "../config/config.js";
 import { ProblemError } from "../http/problem.js";
-import { CLOCK, CONFIG, DB, FIELD_CIPHER, LOGGER, OBJECT_STORAGE } from "../infra/tokens.js";
+import {
+  ANIA_READER,
+  CLOCK,
+  CONFIG,
+  DB,
+  FIELD_CIPHER,
+  LOGGER,
+  OBJECT_STORAGE,
+} from "../infra/tokens.js";
 import { NotificationService } from "../notifications/notification.service.js";
 import { AutoCheckService } from "../requests/auto-check.service.js";
 import { listCodeProblems } from "../requests/list-codes.js";
@@ -74,6 +95,7 @@ export class VerificationService {
     @Inject(NotificationService) private readonly notifications: NotificationService,
     @Inject(AuditService) private readonly audit: AuditService,
     @Inject(LOGGER) private readonly logger: Logger,
+    @Inject(ANIA_READER) private readonly ania: AniaReaderPort,
   ) {}
 
   /** Requests waiting for a decision, oldest first. */
@@ -106,8 +128,15 @@ export class VerificationService {
         autoOutcome: r.autoOutcome,
         waitingSince: r.createdAt.toISOString(),
         waitingMinutes: Math.floor((now.getTime() - r.createdAt.getTime()) / 60_000),
+        plate: r.quoteRequest.plate,
+        quoteType: checksOf(r.checks).QUOTE_TYPE?.value ?? null,
+        checksDone: VERIFICATION_STEPS.length - missingChecks(checksOf(r.checks)).length,
         assignedTo: r.assignedToUserId
-          ? { id: r.assignedToUserId, name: nameOf.get(r.assignedToUserId) ?? "" }
+          ? {
+              id: r.assignedToUserId,
+              name: nameOf.get(r.assignedToUserId) ?? "",
+              since: r.assignedAt?.toISOString() ?? null,
+            }
           : null,
       }));
     });
@@ -289,6 +318,12 @@ export class VerificationService {
             })
           : Promise.resolve(null),
       ]);
+      const holder = round?.assignedToUserId
+        ? await tx.user.findUnique({
+            where: { id: round.assignedToUserId },
+            select: { firstName: true, lastName: true },
+          })
+        : null;
       const lists = await tx.listValue.findMany({
         where: { listKey: { in: ["integrationRequestReason", "exclusionCase"] }, active: true },
         orderBy: { sortOrder: "asc" },
@@ -332,6 +367,22 @@ export class VerificationService {
               autoOutcome: round.autoOutcome,
               checklist: round.checklist,
               assignedToUserId: round.assignedToUserId,
+              assignedTo: round.assignedToUserId
+                ? {
+                    id: round.assignedToUserId,
+                    name: holder ? `${holder.firstName} ${holder.lastName}`.trim() : "",
+                    since: round.assignedAt?.toISOString() ?? null,
+                  }
+                : null,
+              checks: checksOf(round.checks),
+              ania:
+                round.aniaEnc && round.aniaReadAt
+                  ? await this.aniaView(
+                      tx,
+                      decryptJson(this.cipher, round.aniaEnc) as AniaRecord,
+                      round.aniaReadAt,
+                    )
+                  : null,
               decision: round.decision,
               reasonCodes: round.reasonCodes,
               message: round.message,
@@ -387,13 +438,60 @@ export class VerificationService {
     return { request, round };
   }
 
+  /**
+   * Dan, 2026-10-28: only the operator who holds the request decides on it.
+   * A request nobody holds becomes the caller's with the first action; one
+   * held by a colleague answers 409 (the supervisor takes it with assign).
+   */
+  private async heldRound(tx: DbTransaction, auth: AuthContext, id: string) {
+    const opened = await this.openRound(tx, id);
+    const { round } = opened;
+    if (round.assignedToUserId === auth.userId) return opened;
+    if (round.assignedToUserId === null) {
+      const now = this.clock.now();
+      // Only one of two operators acting at the same moment gets it.
+      const taken = await tx.verification.updateMany({
+        where: { id: round.id, assignedToUserId: null },
+        data: { assignedToUserId: auth.userId, assignedAt: now },
+      });
+      if (taken.count === 1) {
+        await this.audit.inTransaction(tx, actorOf(auth), {
+          action: "VERIFICATION_ASSIGNED",
+          targetType: "QuoteRequest",
+          targetId: id,
+          before: { assignedToUserId: null },
+          after: { assignedToUserId: auth.userId },
+        });
+        return { ...opened, round: { ...round, assignedToUserId: auth.userId, assignedAt: now } };
+      }
+    }
+    throw new ProblemError("CONFLICT", "A colleague holds the request", [
+      { path: "assignedTo", issue: "ASSIGNED_TO_COLLEAGUE" },
+    ]);
+  }
+
+  /** «Prendo io in carico»; a request held by a colleague only the supervisor takes over. */
   async assign(auth: AuthContext, id: string) {
     return withContext(this.db, auth.db, async (tx) => {
       const { round } = await this.openRound(tx, id);
-      await tx.verification.update({
-        where: { id: round.id },
-        data: { assignedToUserId: auth.userId },
+      if (round.assignedToUserId === auth.userId) {
+        return { assignedToUserId: auth.userId, assignedAt: round.assignedAt?.toISOString() };
+      }
+      if (round.assignedToUserId !== null && !isSupervisor(auth)) {
+        throw new ProblemError("CONFLICT", "A colleague holds the request", [
+          { path: "assignedTo", issue: "ASSIGNED_TO_COLLEAGUE" },
+        ]);
+      }
+      const now = this.clock.now();
+      const taken = await tx.verification.updateMany({
+        where: { id: round.id, assignedToUserId: round.assignedToUserId },
+        data: { assignedToUserId: auth.userId, assignedAt: now },
       });
+      if (taken.count !== 1) {
+        throw new ProblemError("CONFLICT", "A colleague holds the request", [
+          { path: "assignedTo", issue: "ASSIGNED_TO_COLLEAGUE" },
+        ]);
+      }
       await this.audit.inTransaction(tx, actorOf(auth), {
         action: "VERIFICATION_ASSIGNED",
         targetType: "QuoteRequest",
@@ -401,7 +499,178 @@ export class VerificationService {
         before: { assignedToUserId: round.assignedToUserId },
         after: { assignedToUserId: auth.userId },
       });
-      return { assignedToUserId: auth.userId };
+      return { assignedToUserId: auth.userId, assignedAt: now.toISOString() };
+    });
+  }
+
+  /** Gives the request back to the queue: its holder, or the supervisor. */
+  async release(auth: AuthContext, id: string) {
+    return withContext(this.db, auth.db, async (tx) => {
+      const { round } = await this.openRound(tx, id);
+      if (round.assignedToUserId === null) return { assignedToUserId: null };
+      if (round.assignedToUserId !== auth.userId && !isSupervisor(auth)) {
+        throw new ProblemError("CONFLICT", "A colleague holds the request", [
+          { path: "assignedTo", issue: "ASSIGNED_TO_COLLEAGUE" },
+        ]);
+      }
+      await tx.verification.update({
+        where: { id: round.id },
+        data: { assignedToUserId: null, assignedAt: null },
+      });
+      await this.audit.inTransaction(tx, actorOf(auth), {
+        action: "VERIFICATION_RELEASED",
+        targetType: "QuoteRequest",
+        targetId: id,
+        before: { assignedToUserId: round.assignedToUserId },
+        after: { assignedToUserId: null },
+      });
+      return { assignedToUserId: null };
+    });
+  }
+
+  /**
+   * One of the five checks (Dan, 2026-10-28). The corrected plate or birth
+   * date is kept with the check; the approval wants it in the data in force.
+   * The log keeps the step and whether a value was corrected, not the value.
+   */
+  async recordCheck(auth: AuthContext, id: string, input: CheckInput) {
+    const issue = checkProblem(input);
+    if (issue) {
+      throw new ProblemError("VALIDATION_FAILED", undefined, [{ path: "value", issue }]);
+    }
+    const now = this.clock.now();
+    return withContext(this.db, auth.db, async (tx) => {
+      const { round } = await this.heldRound(tx, auth, id);
+      const value =
+        "value" in input && input.value !== undefined
+          ? input.step === "PLATE"
+            ? normalizePlate(input.value)
+            : input.value
+          : undefined;
+      const checks: VerificationChecks = {
+        ...checksOf(round.checks),
+        [input.step]: {
+          at: now.toISOString(),
+          byUserId: auth.userId,
+          ...(value !== undefined ? { value } : {}),
+        },
+      };
+      await tx.verification.update({ where: { id: round.id }, data: { checks: checks as never } });
+      await this.audit.inTransaction(tx, actorOf(auth), {
+        action: "VERIFICATION_CHECK_RECORDED",
+        targetType: "QuoteRequest",
+        targetId: id,
+        after: {
+          round: round.round,
+          step: input.step,
+          corrected:
+            input.step === "PLATE" || input.step === "BIRTH_DATE" ? value !== undefined : false,
+          ...(input.step === "QUOTE_TYPE" ? { quoteType: input.value } : {}),
+        },
+      });
+      return checks;
+    });
+  }
+
+  /**
+   * «Leggi da ANIA» (Dan, 2026-10-28): the record of the plate in force (the
+   * corrected one, if any), kept encrypted on the round; the sheet and the
+   * warnings are derived from it. The log keeps that it was read, not what.
+   */
+  async readAnia(auth: AuthContext, id: string) {
+    const now = this.clock.now();
+    const { plate, owner, roundId, round } = await withContext(this.db, auth.db, async (tx) => {
+      const { request, round } = await this.heldRound(tx, auth, id);
+      const quoteData = await this.quoteDataOf(tx, request);
+      const plate =
+        checksOf(round.checks).PLATE?.value ?? quoteData?.vehicle.plate ?? request.plate;
+      if (!plate) {
+        throw new ProblemError("CONFLICT", undefined, [{ path: "plate", issue: "NO_PLATE" }]);
+      }
+      return { plate, owner: ownerOf(quoteData), roundId: round.id, round: round.round };
+    });
+    // The reader may take seconds: outside the transaction.
+    const result = await this.ania.read({ plate, owner });
+    if (!result.found) {
+      throw new ProblemError("CONFLICT", undefined, [
+        { path: "plate", issue: `ANIA_${result.reason}` },
+      ]);
+    }
+    const parsed = AniaRecordSchema.safeParse(result.record);
+    if (!parsed.success) {
+      this.logger.warn({ requestId: id }, "ANIA record not in the expected shape");
+      throw new ProblemError("CONFLICT", undefined, [
+        { path: "plate", issue: "ANIA_PROVIDER_ERROR" },
+      ]);
+    }
+    return withContext(this.db, auth.db, async (tx) => {
+      // The request may have been decided or taken over meanwhile.
+      const held = await this.heldRound(tx, auth, id);
+      if (held.round.id !== roundId) throw new ProblemError("CONFLICT");
+      await tx.verification.update({
+        where: { id: roundId },
+        data: { aniaEnc: encryptJson(this.cipher, parsed.data), aniaReadAt: now },
+      });
+      await this.audit.inTransaction(tx, actorOf(auth), {
+        action: "ANIA_READ",
+        targetType: "QuoteRequest",
+        targetId: id,
+        after: { round },
+      });
+      return this.aniaView(tx, parsed.data, now);
+    });
+  }
+
+  /** The sheet, the warnings and the name of the birth place of a stored record. */
+  private async aniaView(tx: DbTransaction, record: AniaRecord, readAt: Date) {
+    const settings = await settingsAt(
+      tx,
+      [
+        "verification.ania.claimsYears",
+        "verification.ania.expiryNoticeDays",
+        "verification.ania.ownerMinAge",
+      ],
+      readAt,
+    );
+    const rules = {
+      today: romeCalendarDate(this.clock.now()),
+      claimsYears: settings["verification.ania.claimsYears"],
+      expiryNoticeDays: settings["verification.ania.expiryNoticeDays"],
+      ownerMinAge: settings["verification.ania.ownerMinAge"],
+    };
+    const sheet = aniaSheet(record, rules);
+    const place =
+      sheet.birthPlaceCadastralCode && !sheet.bornAbroad
+        ? await tx.municipality.findUnique({
+            where: { cadastralCode: sheet.birthPlaceCadastralCode },
+          })
+        : null;
+    return {
+      plate: record.plate,
+      readAt: readAt.toISOString(),
+      sheet,
+      birthPlace: place ? { name: place.name, province: place.province } : null,
+      warnings: aniaWarnings(record, rules),
+    };
+  }
+
+  /** Takes a check back. */
+  async clearCheck(auth: AuthContext, id: string, step: VerificationStep) {
+    return withContext(this.db, auth.db, async (tx) => {
+      const { round } = await this.heldRound(tx, auth, id);
+      const checks = checksOf(round.checks);
+      if (!checks[step]) return checks;
+      const rest = Object.fromEntries(
+        Object.entries(checks).filter(([key]) => key !== step),
+      ) as VerificationChecks;
+      await tx.verification.update({ where: { id: round.id }, data: { checks: rest as never } });
+      await this.audit.inTransaction(tx, actorOf(auth), {
+        action: "VERIFICATION_CHECK_CLEARED",
+        targetType: "QuoteRequest",
+        targetId: id,
+        after: { round: round.round, step },
+      });
+      return rest;
     });
   }
 
@@ -413,7 +682,7 @@ export class VerificationService {
     input: { correction?: string; note?: string },
   ) {
     return withContext(this.db, auth.db, async (tx) => {
-      const { round } = await this.openRound(tx, id);
+      const { round } = await this.heldRound(tx, auth, id);
       const items = round.checklist as unknown as StoredChecklistItem[];
       const item = items.find((i) => i.code === code);
       if (!item) throw new ProblemError("NOT_FOUND");
@@ -452,7 +721,7 @@ export class VerificationService {
     if (!parsed.success) throw ProblemError.fromZod(parsed.error);
     const now = this.clock.now();
     return withContext(this.db, auth.db, async (tx) => {
-      const { request, round } = await this.openRound(tx, id);
+      const { request, round } = await this.heldRound(tx, auth, id);
       const before = await this.quoteDataOf(tx, request);
       const after = parsed.data;
       // ADR 0013: with the essential data only, this is the completion: version 1.
@@ -624,11 +893,41 @@ export class VerificationService {
   async approve(auth: AuthContext, id: string, note: string | undefined) {
     const now = this.clock.now();
     return withContext(this.db, auth.db, async (tx) => {
-      const { request, round } = await this.openRound(tx, id);
+      const { request, round } = await this.heldRound(tx, auth, id);
       // ADR 0013: a request with the essential data only is completed first.
       if (request.quoteDataVersion === null) {
         throw new ProblemError("CONFLICT", "Complete the data before the approval", [
           { path: "quoteData", issue: "TO_COMPLETE" },
+        ]);
+      }
+      // Dan, 2026-10-28: the approval goes only with the five checks done, and
+      // a corrected plate or birth date must be the one in the data in force.
+      const checks = checksOf(round.checks);
+      const missing = missingChecks(checks);
+      if (missing.length > 0) {
+        throw new ProblemError(
+          "CONFLICT",
+          "The checks are not complete",
+          missing.map((step) => ({ path: `checks.${step}`, issue: "CHECKS_INCOMPLETE" })),
+        );
+      }
+      const quoteData = await this.quoteDataOf(tx, request);
+      const owner =
+        quoteData?.vehicleOwner === "SAME_AS_POLICY_HOLDER"
+          ? quoteData.policyHolder
+          : quoteData?.vehicleOwner;
+      if (checks.PLATE?.value && quoteData?.vehicle.plate !== checks.PLATE.value) {
+        throw new ProblemError("CONFLICT", undefined, [
+          { path: "checks.PLATE", issue: "CORRECTION_NOT_IN_DATA" },
+        ]);
+      }
+      if (
+        checks.BIRTH_DATE?.value &&
+        owner?.kind === "PERSON" &&
+        owner.birthDate !== checks.BIRTH_DATE.value
+      ) {
+        throw new ProblemError("CONFLICT", undefined, [
+          { path: "checks.BIRTH_DATE", issue: "CORRECTION_NOT_IN_DATA" },
         ]);
       }
       if (!(await hasSharingConsent(tx, request.customerId))) {
@@ -724,7 +1023,7 @@ export class VerificationService {
   async requestIntegration(auth: AuthContext, id: string, input: IntegrationInput) {
     const now = this.clock.now();
     const sent = await withContext(this.db, auth.db, async (tx) => {
-      const { request, round } = await this.openRound(tx, id);
+      const { request, round } = await this.heldRound(tx, auth, id);
       const labels = await this.reasonLabels(tx, "integrationRequestReason", input.reasonCodes);
       const quoteData = await this.quoteDataOf(tx, request);
       if (!quoteData) throw new ProblemError("CONFLICT", "The request has no data");
@@ -787,7 +1086,7 @@ export class VerificationService {
   async exclude(auth: AuthContext, id: string, input: { reasonCode: string; message?: string }) {
     const now = this.clock.now();
     const sent = await withContext(this.db, auth.db, async (tx) => {
-      const { request, round } = await this.openRound(tx, id);
+      const { request, round } = await this.heldRound(tx, auth, id);
       const [label] = await this.reasonLabels(tx, "exclusionCase", [input.reasonCode]);
       await tx.verification.update({
         where: { id: round.id },
@@ -831,4 +1130,27 @@ export class VerificationService {
  */
 function backOfficeOnly(auth: AuthContext): void {
   if (auth.membership?.organizationType !== "ASTAX") throw new ProblemError("NOT_FOUND");
+}
+
+/** Dan, 2026-10-28: the supervisor reassigns a request held by a colleague. */
+function isSupervisor(auth: AuthContext): boolean {
+  return auth.membership?.role === "BO_SUPERVISOR" || auth.membership?.role === "ADMIN";
+}
+
+/** The checks stored on the round; a broken value counts as none. */
+function checksOf(value: unknown): VerificationChecks {
+  const parsed = VerificationChecksSchema.safeParse(value ?? {});
+  return parsed.success ? parsed.data : {};
+}
+
+/** What the request says of the vehicle owner, for the fake reader. */
+function ownerOf(quoteData: QuoteData | null): { fiscalCode: string; fullName: string } | null {
+  if (!quoteData) return null;
+  const owner =
+    quoteData.vehicleOwner === "SAME_AS_POLICY_HOLDER"
+      ? quoteData.policyHolder
+      : quoteData.vehicleOwner;
+  return owner.kind === "PERSON"
+    ? { fiscalCode: owner.fiscalCode, fullName: `${owner.surname} ${owner.givenName}` }
+    : null;
 }

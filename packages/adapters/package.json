@@ -24,6 +24,10 @@
       "types": "./dist/vehicle-data/index.d.ts",
       "default": "./dist/vehicle-data/index.js"
     },
+    "./ania": {
+      "types": "./dist/ania/index.d.ts",
+      "default": "./dist/ania/index.js"
+    },
     "./document-reader": {
       "types": "./dist/document-reader/index.d.ts",
       "default": "./dist/document-reader/index.js"

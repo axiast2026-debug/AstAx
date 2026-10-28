@@ -31,6 +31,7 @@ import {
   OpenapiPlateLookup,
   type PlateLookupPort,
 } from "@astax/adapters/vehicle-data";
+import { FakeAniaReader, type AniaReaderPort } from "@astax/adapters/ania";
 import { AwsKms, KMS_KEYS, LocalKms } from "@astax/adapters/kms";
 import {
   BedrockAiExplainer,
@@ -75,6 +76,7 @@ import {
   LOGGER,
   OBJECT_STORAGE,
   PLATE_LOOKUP,
+  ANIA_READER,
   KMS,
   SMS_SENDER,
   WEB_PUSH,
@@ -104,6 +106,7 @@ export interface InfraOverrides {
   webPush?: WebPushPort;
   objectStorage?: ObjectStoragePort;
   plateLookup?: PlateLookupPort;
+  aniaReader?: AniaReaderPort;
   documentReader?: DocumentReaderPort;
   workflowSignals?: WorkflowSignals;
   signature?: SignaturePort;
@@ -290,6 +293,8 @@ export class InfraModule {
         },
         { provide: OBJECT_STORAGE, useValue: objectStorage },
         { provide: PLATE_LOOKUP, useValue: plateLookup },
+        // Only the fake until the real reader is allowed (rule 9, docs/punti-aperti.md).
+        { provide: ANIA_READER, useValue: overrides.aniaReader ?? new FakeAniaReader(clock) },
         {
           provide: DOCUMENT_READER,
           useValue:
@@ -398,6 +403,7 @@ export class InfraModule {
         NOTIFICATION_TEMPLATES,
         OBJECT_STORAGE,
         PLATE_LOOKUP,
+        ANIA_READER,
         DOCUMENT_READER,
         KMS,
         WORKFLOW_SIGNALS,

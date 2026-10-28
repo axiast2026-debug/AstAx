@@ -17,6 +17,7 @@ import {
   newPrivate,
   submittedRequest,
   WEB,
+  fiveChecks,
 } from "../support/auction.js";
 import { issuePolicy, openIncoming, professional, sendOffer } from "../support/agency.js";
 import { birthDateOf, newFiscalCode, ownerSignedDeclaration } from "../support/broker.js";
@@ -280,7 +281,7 @@ test.describe.serial("misura UX", () => {
       m.wait((clock.now().getTime() - t0) / 1000);
       await m.screen(page, "dati-completati");
     }
-    await expect(page.getByRole("heading", { name: "Agenzie da invitare" })).toBeVisible();
+    await fiveChecks(page);
     m.tap();
     await page.getByRole("button", { name: "Approva e apri l'asta" }).click();
     await expect(page.getByText("Richiesta approvata")).toBeVisible();

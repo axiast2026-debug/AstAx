@@ -59,6 +59,8 @@ const configSchema = z
     KMS_OFFER_OWNER_KEY_ID: z.string().min(1).optional(),
     AI_PROVIDER: z.enum(["fake", "bedrock"]).default("fake"),
     PLATE_PROVIDER: z.enum(["fake", "openapi"]).default("fake"),
+    /** The real ANIA reader lives in a private repository (docs/piano-back-office-verifica.md). */
+    ANIA_PROVIDER: z.enum(["fake"]).default("fake"),
     OPENAPI_AUTOMOTIVE_URL: z.url().default("https://test.automotive.openapi.com"),
     OPENAPI_AUTOMOTIVE_TOKEN: z.string().min(1).optional(),
     SDI_PROVIDER: z.enum(["fake", "openapi"]).default("fake"),

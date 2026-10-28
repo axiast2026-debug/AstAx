@@ -82,9 +82,32 @@ export async function approve(page: Page, code: string): Promise<void> {
   const completion = page.getByRole("heading", { name: "Completa i dati" });
   if (await completion.isVisible()) await completeData(page);
   // Fase 3: the card previews the agencies the approval invites.
+  await page.getByText("Agenzie che verranno invitate").click();
   await expect(page.getByRole("heading", { name: "Agenzie da invitare" })).toBeVisible();
+  await fiveChecks(page);
   await page.getByRole("button", { name: "Approva e apri l'asta" }).click();
   await expect(page.getByText("Richiesta approvata")).toBeVisible();
+}
+
+/**
+ * Dan, 2026-10-28: the five checks of the operator, each confirmed as it is;
+ * the type of quote suggested by the data, or «Rinnovo».
+ */
+export async function fiveChecks(page: Page): Promise<void> {
+  const checks = page.getByRole("region", { name: "Le 5 verifiche" });
+  for (let i = 0; i < 2; i++) {
+    await checks.getByRole("button", { name: "Confermo", exact: true }).first().click();
+    await expect(checks.getByText(`${i + 1} di 5 fatte`)).toBeVisible();
+  }
+  for (let i = 2; i < 4; i++) {
+    await checks.getByRole("button", { name: "È corretta" }).first().click();
+    await expect(checks.getByText(`${i + 1} di 5 fatte`)).toBeVisible();
+  }
+  const type = checks.getByRole("combobox");
+  if ((await type.inputValue()) === "") await type.selectOption("RENEWAL");
+  await checks.getByLabel("Il preventivo è fattibile con questa tipologia").check();
+  await checks.getByRole("button", { name: "Confermo la tipologia" }).click();
+  await expect(checks.getByText("5 di 5 fatte")).toBeVisible();
 }
 
 /**

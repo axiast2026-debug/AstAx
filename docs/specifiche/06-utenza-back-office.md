@@ -23,11 +23,21 @@ L'area del back office è una sala di controllo: code di lavoro con le scadenze,
 
 ## Coda verifiche
 
-Elenco: codice della richiesta, richiedente (privato o broker), tempo in coda, esito del controllo automatico (verde, giallo, rosso), operatore assegnato.
+Elenco: codice della richiesta con targa e tipologia, richiedente (privato o broker), tempo in coda, esito del controllo automatico (verde, giallo, rosso), quante delle 5 verifiche sono fatte, «In carico a» con l'ora. Filtri «Tutte», «Da prendere», «Le mie»; «Prendo io in carico» dalla riga. L'elenco si aggiorna da solo (Dan, 2026-10-28).
+
+### Presa in carico (Dan, 2026-10-28)
+
+- Una pratica la prende un operatore con «Prendo io in carico» (o con la sua prima azione, se nessuno l'ha presa). In cima alla pratica tutti vedono «In carico a … dalle …».
+- Solo chi l'ha presa fa le verifiche, corregge, legge ANIA, approva, chiede un'integrazione o esclude; gli altri vedono e ricevono «in carico a un collega».
+- Il supervisore può prenderla al posto del collega; chi l'ha presa, o il supervisore, può rilasciarla. Tutto finisce nel registro attività.
 
 ### Scheda di verifica
 
-- A sinistra i documenti (libretto, patente, codice fiscale); a destra i dati estratti, affiancati a quelli ANIA.
+- In alto i documenti grandi (libretto e carta d'identità, ogni file, PDF e foto, con zoom e tutto schermo); accanto le 5 verifiche.
+- Le 5 verifiche, ognuna con chi e quando: libretto leggibile e corrispondente; documento d'identità leggibile e corrispondente; targa corretta (o corretta dal libretto); data di nascita del titolare del veicolo corretta (o corretta dai documenti); tipologia del preventivo (Rinnovo, Veicolo nuovo, Classe da un familiare, Classe da un mio veicolo venduto o rottamato) con «il preventivo è fattibile». Una correzione di targa o data diventa una nuova versione dei dati. «Approva e apri l'asta» si accende solo con le 5 verifiche fatte.
+- Scheda per le agenzie: «Leggi da ANIA» con la sola targa (in sviluppo e nella demo un ANIA finto, regola 11); i dati letti (veicolo, intestatario, nascita dal codice fiscale, classe CU, compagnia, scadenze, sinistri degli ultimi 5 anni) accanto a quelli della richiesta, con le differenze evidenziate e gli avvisi; «Porta i dati di ANIA nella richiesta» crea una nuova versione.
+- Le altre informazioni in sezioni chiuse in fondo: dati e documenti a confronto, controllo automatico, agenzie da invitare, altre correzioni, versioni, cronologia. Le decisioni stanno nella barra in basso.
+- I dati estratti dai documenti, affiancati a quelli dichiarati.
 - Checklist: ogni voce mostra l'esito automatico, la correzione manuale e una nota. Le differenze sono evidenziate, per esempio sulla residenza.
 - Regole dei casi esclusi che la richiesta fa scattare.
 - Anteprima delle agenzie selezionate: quante sono, quali compagnie coprono. L'operatore può escluderne una, con motivo.

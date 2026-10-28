@@ -63,16 +63,7 @@ async function privateCustomer(sub: string, email: string): Promise<Who> {
 
 async function requestWithRound(email: string) {
   const request = await r.submittedPrivateRequest(customer, email);
-  await r.json(
-    await r.call(
-      await who("bo-verifier", "astax"),
-      `/verification/requests/${request.id}/approve`,
-      {
-        body: {},
-      },
-    ),
-    200,
-  );
+  await r.json(await r.approve(await who("bo-verifier", "astax"), request.id), 200);
   const round = await closedRound(h, request.id, [
     {
       agency: "agenzia-uno",

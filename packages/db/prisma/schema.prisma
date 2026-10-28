@@ -835,6 +835,13 @@ model Verification {
   /// Items: code, automatic outcome, reasons, fields, correction, note.
   checklist           Json
   assignedToUserId    String?               @db.Uuid
+  /// When the operator took the request (Dan, 2026-10-28: visible to everyone).
+  assignedAt          DateTime?             @db.Timestamptz(3)
+  /// The five checks of the operator: step → who, when, corrected value.
+  checks              Json                  @default("{}")
+  /// The ANIA record read by plate, encrypted (docs/piano-back-office-verifica.md).
+  aniaEnc             String?
+  aniaReadAt          DateTime?             @db.Timestamptz(3)
   decision            VerificationDecision?
   reasonCodes         Json                  @default("[]")
   message             String?

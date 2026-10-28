@@ -543,6 +543,29 @@ const ENDPOINTS: Endpoint[] = [
   {
     action: "verification.decide",
     method: "POST",
+    path: () => `/verification/requests/${randomUUID()}/release`,
+    body: {},
+  },
+  {
+    action: "verification.decide",
+    method: "POST",
+    path: () => `/verification/requests/${randomUUID()}/ania`,
+    body: {},
+  },
+  {
+    action: "verification.decide",
+    method: "PUT",
+    path: () => `/verification/requests/${randomUUID()}/checks/REGISTRATION`,
+    body: {},
+  },
+  {
+    action: "verification.decide",
+    method: "DELETE",
+    path: () => `/verification/requests/${randomUUID()}/checks/REGISTRATION`,
+  },
+  {
+    action: "verification.decide",
+    method: "POST",
     path: () => `/verification/requests/${randomUUID()}/corrections`,
     body: {},
   },
@@ -1106,6 +1129,7 @@ describe("SIC-01 every API route is in the table", () => {
               .replace("/agency/issuance/{id}", "/agency/issuance/{requestId}")
               .replace("/draft/vehicle", "/draft/{section}")
               .replace("/checklist/DOCUMENTS", "/checklist/{code}")
+              .replace("/checks/REGISTRATION", "/checks/{step}")
               .replace("/documents/none/", "/documents/{key}/")
               .replace("/settings/invitations.max", "/settings/{key}")
               .replace("/notification-templates/auth.otp", "/notification-templates/{key}")

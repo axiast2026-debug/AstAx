@@ -132,10 +132,9 @@ beforeAll(async () => {
   });
   requestId = (await r.submittedPrivateRequest(customer, EMAIL)).id;
   await r.json(
-    await r.call(
+    await r.approve(
       { token: await h.tokenFor("bo-verifier"), context: membershipId("bo-verifier", "astax") },
-      `/verification/requests/${requestId}/approve`,
-      { body: {} },
+      requestId,
     ),
     200,
   );

@@ -179,11 +179,12 @@
       "integrazione": "Integrazione chiesta: il richiedente è stato avvisato.",
       "esclusa": "Richiesta esclusa: il richiedente è stato avvisato.",
       "corretta": "Correzione salvata in una nuova versione dei dati.",
-      "completata": "Dati completati: ora controlla i semafori e approva."
+      "completata": "Dati completati: ora controlla i semafori e approva.",
+      "ania": "Dati di ANIA portati nella richiesta, in una nuova versione."
     },
     "cardTitle": "Verifica {code}",
     "error": "Operazione non riuscita: {codes}",
-    "assignToMe": "Prendo io la verifica",
+    "assignToMe": "Prendo io in carico",
     "documents": "Documenti",
     "confidence": "{value}%",
     "comparison": "Dati dichiarati e documenti",
@@ -417,7 +418,182 @@
       "save": "Salva i dati completati",
       "callButton": "Chiama il cliente · {phone}"
     },
-    "withoutDocuments": "Senza documenti: l'asta va solo alle agenzie che lo accettano"
+    "withoutDocuments": "Senza documenti: l'asta va solo alle agenzie che lo accettano",
+    "hold": {
+      "label": "Presa in carico",
+      "nobody": "Nessuno ha ancora preso questa pratica. Chi la prende è l'unico che può decidere; la prima azione la assegna a te.",
+      "mine": "<strong>In carico a te</strong> ({name}) dalle {time}. Gli altri operatori la vedono, ma solo tu puoi decidere.",
+      "colleague": "<strong>In carico a {name}</strong> dalle {time}. Puoi guardare la pratica; decide solo chi l'ha presa.",
+      "takeOver": "Prendo io la pratica (supervisore)",
+      "release": "Rilascia la pratica"
+    },
+    "viewer": {
+      "heading": "Documenti caricati",
+      "tab": "{kind} · {count, plural, one {1 file} other {# file}}",
+      "file": "File {n} ({type})",
+      "zoomOut": "Riduci",
+      "zoomIn": "Ingrandisci",
+      "fullScreen": "Apri a tutto schermo",
+      "none": "Nessun documento caricato.",
+      "logged": "Ogni apertura di un documento viene registrata con il tuo nome, la data e l'ora.",
+      "pdf": "PDF",
+      "photo": "foto"
+    },
+    "checks": {
+      "heading": "Le 5 verifiche",
+      "count": "{done} di 5 fatte",
+      "title": "{n}. {name}",
+      "steps": {
+        "REGISTRATION": "Libretto",
+        "IDENTITY": "Carta d'identità",
+        "PLATE": "Targa",
+        "BIRTH_DATE": "Data di nascita del titolare del veicolo",
+        "QUOTE_TYPE": "Tipologia del preventivo"
+      },
+      "short": {
+        "REGISTRATION": "libretto",
+        "IDENTITY": "carta d'identità",
+        "PLATE": "targa",
+        "BIRTH_DATE": "data di nascita",
+        "QUOTE_TYPE": "tipologia"
+      },
+      "ask": {
+        "REGISTRATION": "Il libretto si apre, è leggibile e corrisponde al preventivo?",
+        "IDENTITY": "La carta d'identità si apre, è leggibile (fronte e retro) e corrisponde?"
+      },
+      "doneText": {
+        "REGISTRATION": "Leggibile e corrisponde al preventivo",
+        "IDENTITY": "Leggibile e corrisponde"
+      },
+      "doneAt": "fatto alle {time}",
+      "confirm": "Confermo",
+      "undo": "Annulla",
+      "declared": "Scritta nella richiesta",
+      "onDocument": {
+        "PLATE": "Sul libretto",
+        "BIRTH_DATE": "Sulla carta d'identità"
+      },
+      "notRead": "non letta",
+      "different": "diversa",
+      "isCorrect": "È corretta",
+      "correct": "Correggi",
+      "correctLabel": {
+        "PLATE": "Targa giusta",
+        "BIRTH_DATE": "Data giusta"
+      },
+      "placeholder": {
+        "PLATE": "AB123CD",
+        "BIRTH_DATE": "gg/mm/aaaa"
+      },
+      "correctedTo": "Corretta in {value}",
+      "sameAsDocument": "{value}: uguale sul documento",
+      "quoteTypeLabel": "Tipologia",
+      "choose": "Scegli la tipologia",
+      "quoteTypes": {
+        "RENEWAL": "Rinnovo (già assicurato)",
+        "NEW_VEHICLE": "Veicolo nuovo, prima polizza",
+        "FAMILY_CLASS": "Classe da un familiare (Bersani / RC familiare)",
+        "OWN_OTHER_VEHICLE": "Classe da un mio veicolo venduto o rottamato"
+      },
+      "feasibleLabel": "Il preventivo è fattibile con questa tipologia",
+      "feasible": "fattibile",
+      "confirmQuoteType": "Confermo la tipologia"
+    },
+    "ania": {
+      "heading": "Scheda per le agenzie",
+      "intro": "I dati che le agenzie useranno per la quotazione. Mai i contatti del cliente.",
+      "read": "Leggi da ANIA",
+      "readAgain": "Leggi di nuovo da ANIA",
+      "readAt": "Letta da ANIA alle {time} con la targa {plate}",
+      "notRead": "Non ancora letta: «Leggi da ANIA» usa la sola targa della richiesta.",
+      "toCheck": "Da controllare:",
+      "warnings": {
+        "TYPE_NOT_IDENTIFIED": "tipologia del veicolo non identificata — verificare sul libretto di circolazione.",
+        "HOLDER_NOT_OWNER": "il contraente della polizza è diverso dall'intestatario del veicolo.",
+        "ENTITLED_NOT_HOLDER": "l'avente diritto dell'attestato è diverso dal contraente.",
+        "COVER_EXPIRED": "la copertura è scaduta.",
+        "COVER_EXPIRING": "la copertura scade entro 60 giorni.",
+        "NO_CERTIFICATE": "nessun attestato di rischio presente.",
+        "CU_CLASS_MISSING": "manca la classe di assegnazione CU nell'attestato."
+      },
+      "groups": {
+        "vehicle": "Veicolo",
+        "owner": "Intestatario",
+        "history": "Storia assicurativa"
+      },
+      "fields": {
+        "make": "Marca e modello",
+        "categoryUse": "Categoria e uso",
+        "engine": "Alimentazione, cilindrata e potenza",
+        "weight": "Peso a pieno carico",
+        "firstRegistration": "Prima immatricolazione",
+        "purchase": "Data di acquisto",
+        "name": "Cognome e nome",
+        "fiscalCode": "Codice fiscale",
+        "birth": "Nascita e sesso",
+        "residence": "Residenza",
+        "cuClass": "Classe di merito CU",
+        "insurer": "Compagnia attuale",
+        "expiry": "Scadenza copertura e contratto",
+        "claims": "Sinistri ultimi 5 anni"
+      },
+      "claimsValue": "{main} principali · {shared} paritari",
+      "abroad": "nato all'estero",
+      "fromAnia": "da ANIA",
+      "fromFiscalCode": "dal codice fiscale",
+      "inRequest": "Nella richiesta: {value}",
+      "apply": "Porta i dati di ANIA nella richiesta",
+      "applyHelp": "Classe CU, compagnia, scadenza e date del veicolo diventano una nuova versione dei dati, con il registro."
+    },
+    "more": {
+      "label": "Altre informazioni",
+      "comparison": "Dati dichiarati e documenti a confronto",
+      "checklist": "Controllo automatico",
+      "agencies": "Agenzie che verranno invitate",
+      "correct": "Correggi altri dati",
+      "versions": "Versioni dei dati",
+      "timeline": "Cronologia della pratica"
+    },
+    "bar": {
+      "missing": "<strong>{count, plural, one {Manca 1 verifica} other {Mancano # verifiche}}:</strong> {steps}. «Approva e apri l'asta» si accende quando sono fatte tutte e 5.",
+      "ready": "Le 5 verifiche sono fatte: puoi approvare e aprire l'asta.",
+      "toComplete": "Completa i dati della richiesta, poi potrai approvare.",
+      "askDocument": "Chiedi un documento al cliente",
+      "exclude": "Escludi la richiesta",
+      "approve": "Approva e apri l'asta",
+      "integrationAfterCompletion": "Per chiedere un documento completa prima i dati, oppure escludi la richiesta."
+    },
+    "problems": {
+      "ASSIGNED_TO_COLLEAGUE": "La pratica è in carico a un collega: solo chi l'ha presa può decidere.",
+      "CHECKS_INCOMPLETE": "Mancano alcune delle 5 verifiche.",
+      "CORRECTION_NOT_IN_DATA": "La correzione non è ancora nei dati della richiesta: rifai la correzione.",
+      "NOT_FEASIBLE": "Spunta «Il preventivo è fattibile» per confermare la tipologia.",
+      "INVALID_PLATE": "Targa non valida.",
+      "INVALID_DATE": "Data non valida: scrivila come gg/mm/aaaa.",
+      "INVALID_QUOTE_TYPE": "Scegli la tipologia del preventivo.",
+      "ANIA_NOT_FOUND": "ANIA non ha dati per questa targa.",
+      "ANIA_PROVIDER_ERROR": "ANIA non risponde: riprova tra poco.",
+      "ANIA_INVALID_PLATE": "ANIA non accetta questa targa.",
+      "NO_PLATE": "La richiesta non ha una targa.",
+      "TO_COMPLETE": "Completa i dati prima dell'approvazione.",
+      "CONSENT_REVOKED": "Il cliente ha revocato il consenso: l'asta non può partire."
+    },
+    "queue": {
+      "filters": "Filtro delle pratiche",
+      "filter": {
+        "tutte": "Tutte · {count}",
+        "da-prendere": "Da prendere · {count}",
+        "mie": "Le mie · {count}"
+      },
+      "checks": "Verifiche",
+      "checksDone": "{done} di 5",
+      "action": "Azione",
+      "heldByMe": "<strong>Tu</strong> ({name}) dalle {time}",
+      "heldBy": "{name} dalle {time}",
+      "continue": "Continua",
+      "look": "Guarda",
+      "note": "L'elenco si aggiorna da solo: quando un collega prende una pratica, il suo nome compare subito. Il supervisore può riassegnare una pratica dalla pagina della pratica."
+    }
   },
   "auctions": {
     "title": "Aste",

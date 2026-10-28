@@ -107,5 +107,23 @@ export function requestHelpers(h: Harness) {
     return { ...created, quote, autoOutcome: submitted.autoOutcome };
   }
 
-  return { call, json, upload, sampleQuote, saveAll, lastCode, submittedPrivateRequest };
+  /** Dan, 2026-10-28: the five checks of the operator, then the approval. */
+  async function approve(who: Who, id: string, body: unknown = {}) {
+    for (const step of ["REGISTRATION", "IDENTITY", "PLATE", "BIRTH_DATE"]) {
+      await json(
+        await call(who, `/verification/requests/${id}/checks/${step}`, { method: "PUT", body: {} }),
+        200,
+      );
+    }
+    await json(
+      await call(who, `/verification/requests/${id}/checks/QUOTE_TYPE`, {
+        method: "PUT",
+        body: { value: "RENEWAL" },
+      }),
+      200,
+    );
+    return call(who, `/verification/requests/${id}/approve`, { body });
+  }
+
+  return { call, json, upload, sampleQuote, saveAll, lastCode, submittedPrivateRequest, approve };
 }

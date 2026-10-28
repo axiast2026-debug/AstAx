@@ -1,7 +1,8 @@
 "use server";
 
-import type { QuoteData } from "@astax/shared/domain";
+import { parseItalianDate, type AniaSheet, type QuoteData } from "@astax/shared/domain";
 import type { Completion } from "@/lib/verification";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { api } from "@/lib/auth";
 
@@ -46,6 +47,7 @@ async function post(id: string, path: string, payload: unknown, okStatus = 200):
 export async function assignToMe(formData: FormData): Promise<void> {
   const id = idOf(formData);
   await post(id, "assign", {});
+  revalidatePath(`/verifiche/${id}`);
   redirect(`/verifiche/${id}`);
 }
 
@@ -141,6 +143,7 @@ export async function excludeAgency(formData: FormData): Promise<void> {
   const id = idOf(formData);
   const organizationId = organizationOf(formData, id);
   await post(id, `agencies/${organizationId}/exclude`, { reason: value(formData, "reason") ?? "" });
+  revalidatePath(`/verifiche/${id}`);
   redirect(`/verifiche/${id}#agenzie`);
 }
 
@@ -148,6 +151,7 @@ export async function includeAgency(formData: FormData): Promise<void> {
   const id = idOf(formData);
   const organizationId = organizationOf(formData, id);
   await post(id, `agencies/${organizationId}/include`, {});
+  revalidatePath(`/verifiche/${id}`);
   redirect(`/verifiche/${id}#agenzie`);
 }
 
@@ -159,9 +163,10 @@ export async function includeAgency(formData: FormData): Promise<void> {
  */
 export async function completeRequest(formData: FormData): Promise<void> {
   const id = idOf(formData);
-  const { body: card } = await api<{ completion: Completion | null }>(
-    `/verification/requests/${id}`,
-  );
+  const { body: card } = await api<{
+    completion: Completion | null;
+    verification: { checks: { PLATE?: { value?: string } } } | null;
+  }>(`/verification/requests/${id}`);
   const completion = card.completion;
   if (!completion) redirect(`/verifiche/${id}?errore=CONFLICT`);
   const { intake, candidate } = completion;
@@ -205,7 +210,8 @@ export async function completeRequest(formData: FormData): Promise<void> {
     ],
     drivingFormula: intake.drivingFormula ?? candidate.drivingFormula ?? "FREE",
     vehicle: {
-      plate: intake.plate,
+      // Dan, 2026-10-28: the plate corrected from the registration certificate.
+      plate: card.verification?.checks.PLATE?.value ?? intake.plate,
       type: value(formData, "vehicleType") ?? "",
       use: value(formData, "vehicleUse") ?? "",
       make: value(formData, "make") ?? "",
@@ -250,4 +256,155 @@ export async function completeRequest(formData: FormData): Promise<void> {
   };
   await post(id, "corrections", { quoteData, reason: "Completamento dai documenti (ADR 0013)" });
   redirect(`/verifiche/${id}?fatto=completata`);
+}
+
+/** Dan, 2026-10-28: gives the request back to the queue (its holder, or the supervisor). */
+export async function release(formData: FormData): Promise<void> {
+  const id = idOf(formData);
+  await post(id, "release", {});
+  revalidatePath(`/verifiche/${id}`);
+  redirect(`/verifiche/${id}`);
+}
+
+async function put(id: string, step: string, payload: unknown): Promise<void> {
+  const { status, body } = await api(`/verification/requests/${id}/checks/${step}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  if (status !== 200) redirect(`/verifiche/${id}?errore=${encodeURIComponent(codesOf(body))}`);
+}
+
+function stepOf(formData: FormData, id: string): string {
+  const step = String(formData.get("step") ?? "");
+  if (!/^(REGISTRATION|IDENTITY|PLATE|BIRTH_DATE|QUOTE_TYPE)$/.test(step)) {
+    revalidatePath(`/verifiche/${id}`);
+    redirect(`/verifiche/${id}`);
+  }
+  return step;
+}
+
+/** One of the five checks, confirmed as it is. */
+export async function confirmCheck(formData: FormData): Promise<void> {
+  const id = idOf(formData);
+  const step = stepOf(formData, id);
+  if (step === "QUOTE_TYPE") {
+    if (formData.get("feasible") !== "1") {
+      redirect(`/verifiche/${id}?errore=NOT_FEASIBLE#verifiche`);
+    }
+    await put(id, step, { value: value(formData, "quoteType") ?? "" });
+  } else {
+    await put(id, step, {});
+  }
+  revalidatePath(`/verifiche/${id}`);
+  redirect(`/verifiche/${id}#verifiche`);
+}
+
+export async function clearCheck(formData: FormData): Promise<void> {
+  const id = idOf(formData);
+  const step = stepOf(formData, id);
+  const { status, body } = await api(`/verification/requests/${id}/checks/${step}`, {
+    method: "DELETE",
+  });
+  if (status !== 200) redirect(`/verifiche/${id}?errore=${encodeURIComponent(codesOf(body))}`);
+  revalidatePath(`/verifiche/${id}`);
+  redirect(`/verifiche/${id}#verifiche`);
+}
+
+/**
+ * The plate or the birth date corrected from the documents: a new version of
+ * the data when the request has it (as every correction), then the check
+ * with the corrected value. A request still to complete keeps the value for
+ * the completion.
+ */
+export async function correctCheck(formData: FormData): Promise<void> {
+  const id = idOf(formData);
+  const step = stepOf(formData, id);
+  const corrected = value(formData, "value");
+  if (!corrected || (step !== "PLATE" && step !== "BIRTH_DATE")) {
+    redirect(`/verifiche/${id}?errore=VALIDATION_FAILED#verifiche`);
+  }
+  const { body: card } = await api<{ quoteData: QuoteData | null }>(`/verification/requests/${id}`);
+  const data = card.quoteData;
+  if (data && step === "PLATE") {
+    const plate = corrected.replace(/[\s-]/g, "").toUpperCase();
+    if (plate !== data.vehicle.plate) {
+      await post(id, "corrections", {
+        quoteData: { ...data, vehicle: { ...data.vehicle, plate } },
+        reason: "Targa corretta dal libretto",
+      });
+    }
+  }
+  if (data && step === "BIRTH_DATE") {
+    const birthDate = parseItalianDate(corrected) ?? corrected;
+    const owner =
+      data.vehicleOwner === "SAME_AS_POLICY_HOLDER" ? data.policyHolder : data.vehicleOwner;
+    if (owner.kind === "PERSON" && owner.birthDate !== birthDate) {
+      const fix = <T extends { kind: string; fiscalCode?: string }>(person: T): T =>
+        person.kind === "PERSON" && person.fiscalCode === owner.fiscalCode
+          ? { ...person, birthDate }
+          : person;
+      await post(id, "corrections", {
+        quoteData: {
+          ...data,
+          policyHolder: fix(data.policyHolder),
+          vehicleOwner:
+            data.vehicleOwner === "SAME_AS_POLICY_HOLDER"
+              ? data.vehicleOwner
+              : fix(data.vehicleOwner),
+          drivers: data.drivers.map((d) => ({ ...d, person: fix(d.person) })),
+        },
+        reason: "Data di nascita corretta dai documenti",
+      });
+    }
+  }
+  await put(id, step, {
+    value: step === "BIRTH_DATE" ? (parseItalianDate(corrected) ?? corrected) : corrected,
+  });
+  revalidatePath(`/verifiche/${id}`);
+  redirect(`/verifiche/${id}#verifiche`);
+}
+
+/** «Leggi da ANIA» with the plate of the request. */
+export async function readAnia(formData: FormData): Promise<void> {
+  const id = idOf(formData);
+  await post(id, "ania", {});
+  revalidatePath(`/verifiche/${id}`);
+  redirect(`/verifiche/${id}#scheda`);
+}
+
+/**
+ * The insurance history read from ANIA into the data of the request: class,
+ * insurer, expiry and the dates of the vehicle, as a correction.
+ */
+export async function applyAnia(formData: FormData): Promise<void> {
+  const id = idOf(formData);
+  const { body: card } = await api<{
+    quoteData: QuoteData | null;
+    verification: { ania: { sheet: AniaSheet } | null } | null;
+  }>(`/verification/requests/${id}`);
+  const data = card.quoteData;
+  const sheet = card.verification?.ania?.sheet;
+  if (!data || !sheet) redirect(`/verifiche/${id}?errore=CONFLICT#scheda`);
+  const cuClass = Number(sheet.cuClass);
+  const corrected: QuoteData = {
+    ...data,
+    vehicle: {
+      ...data.vehicle,
+      ...(sheet.firstRegistrationDate
+        ? { firstRegistrationDate: sheet.firstRegistrationDate }
+        : {}),
+      ...(sheet.purchaseDate ? { purchaseDate: sheet.purchaseDate } : {}),
+    },
+    history: {
+      ...data.history,
+      ...(Number.isInteger(cuClass) && cuClass >= 1 ? { cuClass } : {}),
+      ...(sheet.currentInsurer?.name ? { currentInsurer: sheet.currentInsurer.name } : {}),
+      ...(sheet.coverExpiry ? { currentExpiryDate: sheet.coverExpiry } : {}),
+    },
+  };
+  if (JSON.stringify(corrected) === JSON.stringify(data)) {
+    redirect(`/verifiche/${id}?fatto=ania#scheda`);
+  }
+  await post(id, "corrections", { quoteData: corrected, reason: "Dati letti da ANIA" });
+  redirect(`/verifiche/${id}?fatto=ania#scheda`);
 }

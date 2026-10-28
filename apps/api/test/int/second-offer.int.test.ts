@@ -52,12 +52,7 @@ async function privateCustomer(sub: string, email: string, givenName: string): P
 /** S05: Elena accepts Uno's Alfa 500,00 € and pays 530,00 € (premium and fee 30,00 €). */
 async function paidRequest(customer: Who, email: string) {
   const requestId = (await r.submittedPrivateRequest(customer, email)).id;
-  await r.json(
-    await r.call(await who("bo-verifier", "astax"), `/verification/requests/${requestId}/approve`, {
-      body: {},
-    }),
-    200,
-  );
+  await r.json(await r.approve(await who("bo-verifier", "astax"), requestId), 200);
   const { offerIds } = await closedRound(h, requestId, [
     {
       agency: "agenzia-uno",

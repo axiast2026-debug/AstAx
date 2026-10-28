@@ -74,12 +74,7 @@ beforeAll(async () => {
   });
   const request = await r.submittedPrivateRequest(customer, CUSTOMER_EMAIL);
   requestId = request.id;
-  await r.json(
-    await r.call(await who("bo-verifier", "astax"), `/verification/requests/${requestId}/approve`, {
-      body: {},
-    }),
-    200,
-  );
+  await r.json(await r.approve(await who("bo-verifier", "astax"), requestId), 200);
   auctionId = await openTestAuction(h, requestId, ["agenzia-uno", "agenzia-tre"]);
 });
 

@@ -1,5 +1,5 @@
 import "server-only";
-import type { QuoteData } from "@astax/shared/domain";
+import type { AniaSheet, AniaWarning, QuoteData, VerificationChecks } from "@astax/shared/domain";
 import { notFound } from "next/navigation";
 import { api } from "./auth";
 
@@ -55,6 +55,10 @@ export interface VerificationCard {
     autoOutcome: "GREEN" | "YELLOW" | "RED";
     checklist: ChecklistItem[];
     assignedToUserId: string | null;
+    /** Dan, 2026-10-28: who holds the request, visible to everyone. */
+    assignedTo: Holder | null;
+    checks: VerificationChecks;
+    ania: AniaView | null;
     decision: string | null;
     reasonCodes: string[];
     message: string | null;
@@ -72,7 +76,25 @@ export interface QueueRow {
   autoOutcome: "GREEN" | "YELLOW" | "RED";
   waitingSince: string;
   waitingMinutes: number;
-  assignedTo: { id: string; name: string } | null;
+  plate: string | null;
+  quoteType: string | null;
+  checksDone: number;
+  assignedTo: Holder | null;
+}
+
+export interface Holder {
+  id: string;
+  name: string;
+  since: string | null;
+}
+
+/** The ANIA record read by plate, as the sheet for the agencies. */
+export interface AniaView {
+  plate: string;
+  readAt: string;
+  sheet: AniaSheet;
+  birthPlace: { name: string; province: string } | null;
+  warnings: AniaWarning[];
 }
 
 /** The card; the API logs every opening (QUOTE_DATA_VIEWED). */

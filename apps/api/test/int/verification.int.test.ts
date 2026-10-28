@@ -53,6 +53,170 @@ interface Card {
   timeline: { type: string }[];
 }
 
+describe("Dan, 2026-10-28: the request held by one operator and the five checks", () => {
+  let supervisor: Who;
+  beforeAll(async () => {
+    await acceptAllLegal(h, "bo-supervisor");
+    supervisor = {
+      token: await h.tokenFor("bo-supervisor"),
+      context: membershipId("bo-supervisor", "astax"),
+    };
+  });
+
+  const put = (who: Who, id: string, step: string, body: unknown = {}) =>
+    r.call(who, `/verification/requests/${id}/checks/${step}`, { method: "PUT", body });
+  const issues = async (response: Response, status: number) =>
+    (await r.json<{ errors: { path: string; issue: string }[] }>(response, status)).errors;
+
+  it("the first action takes the request; a colleague sees it held and cannot decide; the supervisor takes it over", async () => {
+    const request = await r.submittedPrivateRequest(davide, DAVIDE_EMAIL);
+    await r.json(await put(verifier, request.id, "REGISTRATION"), 200);
+
+    const queue = await r.json<
+      { requestId: string; checksDone: number; assignedTo: { name: string; since: string } }[]
+    >(await r.call(verifier, "/verification/queue"), 200);
+    const row = queue.find((q) => q.requestId === request.id);
+    expect(row?.assignedTo.name).toBe("Arta Hoxha");
+    expect(row?.assignedTo.since).toBeTruthy();
+    expect(row?.checksDone).toBe(1);
+    expect(await audit("VERIFICATION_ASSIGNED", request.id)).toHaveLength(1);
+
+    // The supervisor sees the holder but does not decide on a colleague's request.
+    expect(await issues(await put(supervisor, request.id, "IDENTITY"), 409)).toEqual([
+      { path: "assignedTo", issue: "ASSIGNED_TO_COLLEAGUE" },
+    ]);
+    expect(
+      (
+        await issues(
+          await r.call(supervisor, `/verification/requests/${request.id}/approve`, { body: {} }),
+          409,
+        )
+      )[0]?.issue,
+    ).toBe("ASSIGNED_TO_COLLEAGUE");
+
+    // The supervisor reassigns it to themself; the verifier cannot take it back.
+    await r.json(
+      await r.call(supervisor, `/verification/requests/${request.id}/assign`, { body: {} }),
+      200,
+    );
+    expect(
+      (
+        await issues(
+          await r.call(verifier, `/verification/requests/${request.id}/assign`, { body: {} }),
+          409,
+        )
+      )[0]?.issue,
+    ).toBe("ASSIGNED_TO_COLLEAGUE");
+    expect((await issues(await put(verifier, request.id, "IDENTITY"), 409))[0]?.issue).toBe(
+      "ASSIGNED_TO_COLLEAGUE",
+    );
+
+    // Released, the request is free again.
+    await r.json(
+      await r.call(supervisor, `/verification/requests/${request.id}/release`, { body: {} }),
+      200,
+    );
+    expect(await audit("VERIFICATION_RELEASED", request.id)).toHaveLength(1);
+    const card = await r.json<{ verification: { assignedTo: unknown; checks: object } }>(
+      await r.call(verifier, `/verification/requests/${request.id}`),
+      200,
+    );
+    expect(card.verification.assignedTo).toBeNull();
+    expect(Object.keys(card.verification.checks)).toEqual(["REGISTRATION"]);
+    await r.json(await r.approve(verifier, request.id), 200);
+  });
+
+  it("the approval goes only with the five checks; a corrected plate must be in the data", async () => {
+    const request = await r.submittedPrivateRequest(davide, DAVIDE_EMAIL);
+    await r.json(await put(verifier, request.id, "REGISTRATION"), 200);
+    await r.json(await put(verifier, request.id, "IDENTITY"), 200);
+    const missing = await issues(
+      await r.call(verifier, `/verification/requests/${request.id}/approve`, { body: {} }),
+      409,
+    );
+    expect(missing).toEqual([
+      { path: "checks.PLATE", issue: "CHECKS_INCOMPLETE" },
+      { path: "checks.BIRTH_DATE", issue: "CHECKS_INCOMPLETE" },
+      { path: "checks.QUOTE_TYPE", issue: "CHECKS_INCOMPLETE" },
+    ]);
+
+    expect(await issues(await put(verifier, request.id, "PLATE", { value: "x" }), 400)).toEqual([
+      { path: "value", issue: "INVALID_PLATE" },
+    ]);
+    expect(
+      (
+        await r.call(verifier, `/verification/requests/${request.id}/checks/QUOTE_TYPE`, {
+          method: "PUT",
+          body: { value: "OTHER" },
+        })
+      ).status,
+    ).toBe(400);
+    await r.json(await put(verifier, request.id, "PLATE", { value: "gn 124 ab" }), 200);
+    await r.json(await put(verifier, request.id, "BIRTH_DATE"), 200);
+    const checks = await r.json<Record<string, { value?: string }>>(
+      await put(verifier, request.id, "QUOTE_TYPE", { value: "RENEWAL" }),
+      200,
+    );
+    expect(checks.PLATE?.value).toBe("GN124AB");
+    expect(
+      await issues(
+        await r.call(verifier, `/verification/requests/${request.id}/approve`, { body: {} }),
+        409,
+      ),
+    ).toEqual([{ path: "checks.PLATE", issue: "CORRECTION_NOT_IN_DATA" }]);
+
+    // The check taken back and confirmed as it is: the approval goes.
+    await r.json(
+      await r.call(verifier, `/verification/requests/${request.id}/checks/PLATE`, {
+        method: "DELETE",
+      }),
+      200,
+    );
+    await r.json(await put(verifier, request.id, "PLATE"), 200);
+    await r.json(
+      await r.call(verifier, `/verification/requests/${request.id}/approve`, { body: {} }),
+      200,
+    );
+    // The log keeps the step, never the corrected value (rule 8).
+    const recorded = await audit("VERIFICATION_CHECK_RECORDED", request.id);
+    expect(recorded).toHaveLength(6);
+    expect(JSON.stringify(recorded.map((a) => a.after))).not.toContain("GN124AB");
+  });
+  it("«Leggi da ANIA»: the fake record of the plate fills the sheet; the log keeps no data; an unknown plate is told", async () => {
+    const request = await r.submittedPrivateRequest(davide, DAVIDE_EMAIL);
+    const view = await r.json<{
+      plate: string;
+      sheet: { birthDate: string; ownerFiscalCode: string; cuClass: string; make: string };
+      warnings: string[];
+    }>(await r.call(verifier, `/verification/requests/${request.id}/ania`, { body: {} }), 200);
+    const owner =
+      request.quote.vehicleOwner === "SAME_AS_POLICY_HOLDER"
+        ? request.quote.policyHolder
+        : request.quote.vehicleOwner;
+    if (owner.kind !== "PERSON") throw new Error("expected a person");
+    expect(view.plate).toBe("GN123AB");
+    expect(view.sheet.ownerFiscalCode).toBe(owner.fiscalCode);
+    expect(view.sheet.birthDate).toBe(owner.birthDate);
+    expect(view.sheet.make).toBe(request.quote.vehicle.make.toUpperCase());
+    const card = await r.json<{ verification: { ania: { sheet: { cuClass: string } } } }>(
+      await r.call(verifier, `/verification/requests/${request.id}`),
+      200,
+    );
+    expect(card.verification.ania.sheet.cuClass).toBe(view.sheet.cuClass);
+    const read = await audit("ANIA_READ", request.id);
+    expect(read).toHaveLength(1);
+    expect(JSON.stringify(read.map((a) => [a.before, a.after]))).not.toContain(owner.fiscalCode);
+
+    await r.json(await put(verifier, request.id, "PLATE", { value: "ZZ000ZZ" }), 200);
+    expect(
+      await issues(
+        await r.call(verifier, `/verification/requests/${request.id}/ania`, { body: {} }),
+        409,
+      ),
+    ).toEqual([{ path: "plate", issue: "ANIA_NOT_FOUND" }]);
+  });
+});
+
 describe("fase 2: verification queue and card", () => {
   it("the operator finds the GREEN request in the queue and opens it; card and document openings are logged", async () => {
     const request = await r.submittedPrivateRequest(davide, DAVIDE_EMAIL);
@@ -230,10 +394,7 @@ describe("fase 2: verification queue and card", () => {
       await r.call(verifier, `/verification/requests/${request.id}/assign`, { body: {} }),
       200,
     );
-    await r.json(
-      await r.call(verifier, `/verification/requests/${request.id}/approve`, { body: {} }),
-      200,
-    );
+    await r.json(await r.approve(verifier, request.id), 200);
     const events = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
       tx.domainEvent.findMany({ where: { aggregateId: request.id, type: "RequestApproved" } }),
     );
@@ -488,7 +649,7 @@ describe("fase 2: verification queue and card", () => {
     expect(await audit("CONSENT_REVOKED", customer?.customerId ?? "")).toHaveLength(1);
 
     const refused = await r.json<{ errors: { path: string; issue: string }[] }>(
-      await r.call(verifier, `/verification/requests/${request.id}/approve`, { body: {} }),
+      await r.approve(verifier, request.id),
       409,
     );
     expect(refused.errors).toContainEqual({ path: "consent", issue: "CONSENT_REVOKED" });

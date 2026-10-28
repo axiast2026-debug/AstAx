@@ -2,6 +2,7 @@ import { Button, buttonVariants, Card, CardTitle, Icon } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import type { InputHTMLAttributes } from "react";
 import { completeRequest } from "@/app/verifiche/actions";
+import type { AniaSheet } from "@astax/shared/domain";
 import type { Completion } from "@/lib/verification";
 
 /**
@@ -13,17 +14,41 @@ import type { Completion } from "@/lib/verification";
 export async function CompletionForm({
   requestId,
   completion,
+  ania = null,
 }: {
   requestId: string;
   completion: Completion;
+  /** Dan, 2026-10-28: what ANIA said fills what the documents did not. */
+  ania?: AniaSheet | null;
 }) {
   const t = await getTranslations("verification.completion");
   const { candidate, intake, lists, phone } = completion;
   const missing = new Set(candidate.missing);
-  const holder = candidate.policyHolder as Record<string, string | undefined>;
+  const read = candidate.policyHolder as Record<string, string | undefined>;
+  const holder: Record<string, string | undefined> = {
+    ...read,
+    surname: read.surname ?? ania?.surname ?? undefined,
+    givenName: read.givenName ?? ania?.givenName ?? undefined,
+    fiscalCode: read.fiscalCode ?? ania?.ownerFiscalCode ?? undefined,
+    birthDate: read.birthDate ?? ania?.birthDate ?? undefined,
+    sex: read.sex ?? ania?.sex ?? undefined,
+  };
   const licence = (candidate.drivers[0]?.licence ?? {}) as Record<string, string | undefined>;
-  const vehicle = candidate.vehicle as Record<string, string | number | boolean | undefined>;
-  const history = candidate.history as Record<string, unknown>;
+  const readVehicle = candidate.vehicle as Record<string, string | number | boolean | undefined>;
+  const vehicle: Record<string, string | number | boolean | undefined> = {
+    ...readVehicle,
+    firstRegistrationDate:
+      readVehicle.firstRegistrationDate ?? ania?.firstRegistrationDate ?? undefined,
+    purchaseDate: readVehicle.purchaseDate ?? ania?.purchaseDate ?? undefined,
+  };
+  const readHistory = candidate.history as Record<string, unknown>;
+  const aniaClass = Number(ania?.cuClass);
+  const history: Record<string, unknown> = {
+    ...readHistory,
+    cuClass: readHistory.cuClass ?? (Number.isInteger(aniaClass) ? aniaClass : undefined),
+    currentInsurer: readHistory.currentInsurer ?? ania?.currentInsurer?.name ?? undefined,
+    currentExpiryDate: readHistory.currentExpiryDate ?? ania?.coverExpiry ?? undefined,
+  };
   const label = (item: { it: string }) => item.it;
 
   const field = (
@@ -163,8 +188,16 @@ export async function CompletionForm({
             min: 1,
             max: 18,
           })}
-          {field("claimsMain", "history.claims", 0, { type: "number", min: 0, required: true })}
-          {field("claimsShared", "history.claims", 0, { type: "number", min: 0, required: true })}
+          {field("claimsMain", "history.claims", ania?.mainClaims ?? 0, {
+            type: "number",
+            min: 0,
+            required: true,
+          })}
+          {field("claimsShared", "history.claims", ania?.sharedClaims ?? 0, {
+            type: "number",
+            min: 0,
+            required: true,
+          })}
           {field("currentInsurer", "history.currentInsurer", history.currentInsurer)}
           {field("currentExpiryDate", "history.currentExpiryDate", history.currentExpiryDate, {
             type: "date",
