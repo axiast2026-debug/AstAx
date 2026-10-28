@@ -24,7 +24,11 @@ const COVERAGE = {
   legalProtection: { included: false },
   driverAccident: { included: false },
   theftFire: { included: false },
-  naturalEventsVandalism: { included: false },
+  naturalEvents: { included: false },
+  vandalism: { included: false },
+  collisionKasko: { included: false },
+  fullKasko: { included: false },
+  wildlifeCollision: { included: false },
   glass: { included: false },
 };
 

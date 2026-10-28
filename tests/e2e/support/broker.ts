@@ -75,8 +75,8 @@ export async function submittedBrokerRequest(
   await page.getByRole("button", { name: "Salva e inizia la richiesta" }).click();
   await privateRequestSteps(page, {
     libretto: "libretto-anna-riva.jpg",
-    patente: "patente-anna-riva.jpg",
-    attestato: "attestato-anna-riva.pdf",
+    identita: "identita-anna-riva.jpg",
+    plate: "AR456CD",
     ownerBirthDate: birthDateOf(fiscalCode),
     broker: true,
   });

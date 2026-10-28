@@ -56,7 +56,8 @@ function documents(): ExtractedDocument[] {
         ownerMunicipalityIstat: high(MILAN.istat),
       },
     },
-    { kind: "DRIVING_LICENCE", driverIndex: 0, fields: { number: high("MI5550001X") } },
+    // Dan, 2026-10-28: the ID card instead of the licence.
+    { kind: "IDENTITY_DOCUMENT", fields: { number: high("CA00000AA") } },
     { kind: "RISK_CERTIFICATE", fields: { cuClass: high(1) } },
   ];
 }
@@ -240,17 +241,10 @@ describe("submission", () => {
     ).toEqual(["MARKET_VALUE_REQUIRED"]);
   });
 
-  it("asks for the risk certificate only when the vehicle comes from another policy", () => {
-    const quote = sampleQuoteData();
-    expect(requiredDocuments(quote).map((d) => d.kind)).toEqual([
+  it("asks for the registration and the ID card, whatever the history (Dan, 2026-10-28)", () => {
+    expect(requiredDocuments().map((d) => d.kind)).toEqual([
       "REGISTRATION_CERTIFICATE",
-      "DRIVING_LICENCE",
-      "RISK_CERTIFICATE",
-    ]);
-    const first = { ...quote, history: { provenance: "FIRST_REGISTRATION", claims: [] } };
-    expect(requiredDocuments(first).map((d) => d.kind)).toEqual([
-      "REGISTRATION_CERTIFICATE",
-      "DRIVING_LICENCE",
+      "IDENTITY_DOCUMENT",
     ]);
   });
 });
@@ -346,16 +340,15 @@ describe("automatic check", () => {
   it("is YELLOW for fields read below the confidence threshold, with the fields highlighted", () => {
     const docs = documents();
     docs[1] = {
-      kind: "DRIVING_LICENCE",
-      driverIndex: 0,
-      fields: { number: { value: "MI5550001X", confidence: 0.6 } },
+      kind: "IDENTITY_DOCUMENT",
+      fields: { number: { value: "CA00000AA", confidence: 0.6 } },
     };
     const result = runAutoCheck(checkInput({ documents: docs }));
     expect(result.outcome).toBe("YELLOW");
     expect(result.items.find((i) => i.code === "DOCUMENTS")).toMatchObject({
       outcome: "YELLOW",
       reasons: ["LOW_CONFIDENCE"],
-      fields: ["documents.DRIVING_LICENCE.0.number"],
+      fields: ["documents.IDENTITY_DOCUMENT.number"],
     });
   });
 
@@ -377,10 +370,10 @@ describe("automatic check", () => {
 
   it("is YELLOW when a required document is missing or the plate lookup failed", () => {
     expect(
-      runAutoCheck(checkInput({ documents: documents().slice(0, 2) })).items.find(
+      runAutoCheck(checkInput({ documents: documents().slice(0, 1) })).items.find(
         (i) => i.code === "DOCUMENTS",
       )?.reasons,
-    ).toEqual(["MISSING_RISK_CERTIFICATE"]);
+    ).toEqual(["MISSING_IDENTITY_DOCUMENT"]);
     expect(runAutoCheck(checkInput({ plateLookup: null })).outcome).toBe("YELLOW");
   });
 

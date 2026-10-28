@@ -101,10 +101,15 @@ function coverageOf(formData: FormData) {
     theftFire: theftFire.included
       ? { ...theftFire, marketValue: formData.get("coverage.theftFire.marketValue") === "on" }
       : theftFire,
-    naturalEventsVandalism: withCoinsurance("naturalEventsVandalism"),
+    // Dan, 2026-10-28: natural events and vandalism apart, kasko and wild animals.
+    naturalEvents: withCoinsurance("naturalEvents"),
+    vandalism: withCoinsurance("vandalism"),
     glass: included(formData, "glass")
       ? { included: true, deductibleEur: intOf(formData, "coverage.glass.deductibleEur") }
       : { included: false },
+    collisionKasko: withCoinsurance("collisionKasko"),
+    fullKasko: withCoinsurance("fullKasko"),
+    wildlifeCollision: withCoinsurance("wildlifeCollision"),
   };
 }
 

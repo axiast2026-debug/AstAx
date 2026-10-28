@@ -107,11 +107,7 @@ describe("ADR 0013: the request in two stages", () => {
   });
 
   it("the documents: registration and ID card, also for a vehicle already insured (Dan, 2026-10-28)", () => {
-    expect(intakeDocuments(insured)).toEqual(["REGISTRATION_CERTIFICATE", "IDENTITY_DOCUMENT"]);
-    expect(intakeDocuments({ vehicleStatus: "NEW" })).toEqual([
-      "REGISTRATION_CERTIFICATE",
-      "IDENTITY_DOCUMENT",
-    ]);
+    expect(intakeDocuments()).toEqual(["REGISTRATION_CERTIFICATE", "IDENTITY_DOCUMENT"]);
   });
 
   it("the back office starts from what the bot read: holder, licence, vehicle, class", () => {

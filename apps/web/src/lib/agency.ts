@@ -119,9 +119,23 @@ export const COVERAGE_ITEMS = [
   "legalProtection",
   "driverAccident",
   "theftFire",
-  "naturalEventsVandalism",
+  "naturalEvents",
+  "vandalism",
   "glass",
+  "collisionKasko",
+  "fullKasko",
+  "wildlifeCollision",
 ] as const;
+
+/** Dan, 2026-10-28: the coverages with a coinsurance the agency declares. */
+export const COINSURANCE_ITEMS: readonly string[] = [
+  "theftFire",
+  "naturalEvents",
+  "vandalism",
+  "collisionKasko",
+  "fullKasko",
+  "wildlifeCollision",
+];
 
 /** «505,00» or «505» to cents; null when not a positive amount (rule 5: integers only). */
 export function euroToCents(value: string): number | null {

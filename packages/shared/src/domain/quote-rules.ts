@@ -150,7 +150,7 @@ export function submissionProblems(
 }
 
 export type RequiredDocumentKind =
-  "REGISTRATION_CERTIFICATE" | "DRIVING_LICENCE" | "RISK_CERTIFICATE";
+  "REGISTRATION_CERTIFICATE" | "DRIVING_LICENCE" | "RISK_CERTIFICATE" | "IDENTITY_DOCUMENT";
 
 export interface RequiredDocument {
   kind: RequiredDocumentKind;
@@ -163,18 +163,10 @@ export interface RequiredDocument {
  * registration certificate, each driver's licence and, when the vehicle
  * comes from another policy, the risk certificate (Dan's answer to question 10).
  */
-export function requiredDocuments(quoteData: QuoteData): RequiredDocument[] {
-  const required: RequiredDocument[] = [{ kind: "REGISTRATION_CERTIFICATE" }];
-  quoteData.drivers.forEach((_, driverIndex) =>
-    required.push({ kind: "DRIVING_LICENCE", driverIndex }),
-  );
-  if (
-    quoteData.history.provenance === "FROM_OTHER_COMPANY" ||
-    quoteData.history.provenance === "FAMILY_RC"
-  ) {
-    required.push({ kind: "RISK_CERTIFICATE" });
-  }
-  return required;
+export function requiredDocuments(): RequiredDocument[] {
+  // Dan, 2026-10-28: the registration and the ID card, whatever the vehicle's
+  // history; licences and the risk certificate are no longer asked.
+  return [{ kind: "REGISTRATION_CERTIFICATE" }, { kind: "IDENTITY_DOCUMENT" }];
 }
 
 /** Derived columns of `QuoteRequest`, used by filters and agency selection. */

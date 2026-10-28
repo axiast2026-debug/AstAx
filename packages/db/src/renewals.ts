@@ -14,8 +14,15 @@ export async function nextRequestCode(tx: DbTransaction, now: Date): Promise<str
   return `${prefix}-${year}-${String(row?.n ?? 0).padStart(6, "0")}`;
 }
 
-/** The documents a renewal keeps from the policy's request: the risk certificate is new. */
-const KEPT_DOCUMENTS = ["REGISTRATION_CERTIFICATE", "DRIVING_LICENCE"] as const;
+/**
+ * The documents a renewal keeps from the policy's request: the risk certificate is
+ * new. Dan, 2026-10-28: the ID card instead of the licence (older requests keep theirs).
+ */
+const KEPT_DOCUMENTS = [
+  "REGISTRATION_CERTIFICATE",
+  "IDENTITY_DOCUMENT",
+  "DRIVING_LICENCE",
+] as const;
 
 /**
  * Process 10, spec 03 «Rinnova in asta», proposal E of phase 6: the renewal

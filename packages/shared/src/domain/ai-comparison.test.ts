@@ -75,7 +75,11 @@ const PLUS: PackageRequirements = {
   legalProtection: { required: false },
   driverAccident: { required: false },
   theftFire: { required: false },
-  naturalEventsVandalism: { required: false },
+  naturalEvents: { required: false },
+  vandalism: { required: false },
+  collisionKasko: { required: false },
+  fullKasko: { required: false },
+  wildlifeCollision: { required: false },
   glass: { required: true, maxDeductibleEur: 100 },
 };
 const AS_ASKED: OfferCoverage = {
@@ -85,7 +89,11 @@ const AS_ASKED: OfferCoverage = {
   legalProtection: { included: false },
   driverAccident: { included: false },
   theftFire: { included: false },
-  naturalEventsVandalism: { included: false },
+  naturalEvents: { included: false },
+  vandalism: { included: false },
+  collisionKasko: { included: false },
+  fullKasko: { included: false },
+  wildlifeCollision: { included: false },
   glass: { included: true, deductibleEur: 100 },
 };
 

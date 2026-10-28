@@ -186,7 +186,11 @@ const complete: OfferCoverage = {
   legalProtection: { included: true },
   driverAccident: { included: true, capitalEur: 50_000 },
   theftFire: { included: true, coinsurancePct: 10, coinsuranceMinEur: 250, marketValue: true },
-  naturalEventsVandalism: { included: true, coinsurancePct: 10, coinsuranceMinEur: 250 },
+  naturalEvents: { included: true, coinsurancePct: 10, coinsuranceMinEur: 250 },
+  vandalism: { included: true, coinsurancePct: 10, coinsuranceMinEur: 250 },
+  collisionKasko: { included: false },
+  fullKasko: { included: false },
+  wildlifeCollision: { included: false },
   glass: { included: true, deductibleEur: 150 },
 };
 
@@ -235,7 +239,11 @@ describe("coverage against the package (OFF-06)", () => {
       legalProtection: { included: false },
       driverAccident: { included: false },
       theftFire: { included: false },
-      naturalEventsVandalism: { included: false },
+      naturalEvents: { included: false },
+      vandalism: { included: false },
+      collisionKasko: { included: false },
+      fullKasko: { included: false },
+      wildlifeCollision: { included: false },
       glass: { included: false },
     };
     expect(coverageShortfalls(requirementsOf("BASE"), base, legal)).toEqual([]);

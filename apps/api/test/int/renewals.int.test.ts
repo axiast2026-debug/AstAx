@@ -123,7 +123,10 @@ describe("process 10 «Rinnova in asta»", () => {
     expect(data.request?.currentPremiumCents).toBe(52_300);
     expect(data.history?.currentInsurer).toBe("Compagnia Alfa");
     expect(data.history?.currentExpiryDate).toBe(end);
-    expect(kept.map((d) => d.kind).sort()).toEqual(["DRIVING_LICENCE", "REGISTRATION_CERTIFICATE"]);
+    expect(kept.map((d) => d.kind).sort()).toEqual([
+      "IDENTITY_DOCUMENT",
+      "REGISTRATION_CERTIFICATE",
+    ]);
     const original = await system((tx) =>
       tx.document.findMany({ where: { quoteRequestId: requestId } }),
     );

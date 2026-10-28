@@ -1083,6 +1083,7 @@ describe("SIC-01 every API route is in the table", () => {
               .replace(/[0-9a-f-]{36}/g, "{id}")
               .replace("/documents/{id}/file", "/documents/{documentId}/file")
               .replace(/\/acceptance\/documents\/\{id\}$/, "/acceptance/documents/{documentId}")
+              .replace(/^(\/requests\/\{id\}\/documents\/)\{id\}$/, "$1{documentId}")
               .replace(/\/offers\/\{id\}\/quote$/, "/offers/{offerId}/quote")
               .replace("/agencies/{id}/", "/agencies/{organizationId}/")
               .replace(

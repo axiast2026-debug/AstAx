@@ -138,7 +138,22 @@ export const RequestTermsSchema = z.strictObject({
   startDate: calendarDate,
   startMode: z.enum(START_MODES).optional(),
   /** Package «CUSTOM»: the coverages chosen one by one (Dan, 2026-10-21). */
-  coverages: z.array(z.enum(CHOOSABLE_COVERAGES)).max(CHOOSABLE_COVERAGES.length).optional(),
+  // Dan, 2026-10-28: a request saved before with the old single item chose both.
+  coverages: z
+    .preprocess(
+      (value) =>
+        Array.isArray(value)
+          ? [
+              ...new Set(
+                value.flatMap((c) =>
+                  c === "naturalEventsVandalism" ? ["naturalEvents", "vandalism"] : [c],
+                ),
+              ),
+            ]
+          : value,
+      z.array(z.enum(CHOOSABLE_COVERAGES)).max(CHOOSABLE_COVERAGES.length),
+    )
+    .optional(),
   blackBox: z.boolean(),
   paymentFrequency: z.literal("ANNUAL"),
   auctionDurationHours: z.int().min(1),

@@ -73,7 +73,7 @@ export type Intake = z.infer<typeof IntakeSchema>;
  * card, for a vehicle already insured too (Dan, 2026-10-28: no driving
  * licence, no risk certificate).
  */
-export function intakeDocuments(_intake: Pick<Intake, "vehicleStatus">): string[] {
+export function intakeDocuments(): string[] {
   return ["REGISTRATION_CERTIFICATE", "IDENTITY_DOCUMENT"];
 }
 

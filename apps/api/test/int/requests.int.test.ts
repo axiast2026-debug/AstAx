@@ -130,7 +130,8 @@ async function privateRequestReady(
     201,
   );
   await json(
-    await upload(asLuca(), created.id, "DRIVING_LICENCE", `patente-${files[1]}.jpg`, 0),
+    // Dan, 2026-10-28: the ID card instead of the licence.
+    await upload(asLuca(), created.id, "IDENTITY_DOCUMENT", `identita-${files[1]}.jpg`),
     201,
   );
   await json(
@@ -366,7 +367,7 @@ describe("fase 2: a private request from draft to the verification queue", () =>
     const documents = (verification.checklist as { code: string; fields: string[] }[]).find(
       (i) => i.code === "DOCUMENTS",
     );
-    expect(documents?.fields).toContain("documents.DRIVING_LICENCE.0.number");
+    expect(documents?.fields.some((f) => f.startsWith("documents.IDENTITY_DOCUMENT."))).toBe(true);
   });
 
   it("another private user never sees Giulia's request", async () => {

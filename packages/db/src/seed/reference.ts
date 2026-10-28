@@ -34,6 +34,8 @@ const packagesFileSchema = z.object({
       code: z.enum(PACKAGE_CODES),
       name: z.string(),
       version: z.number().int().min(1),
+      /** A later version starts on its own day; the first on SEED_VALID_FROM. */
+      validFrom: z.iso.datetime().optional(),
       requirements: z.record(z.string(), z.unknown()),
       customerText: z.object({ it: z.string() }),
     }),
@@ -176,7 +178,7 @@ export async function seedReference(tx: DbTransaction, repoRoot: string): Promis
         version: pkg.version,
         requirements: pkg.requirements as never,
         customerTextIt: pkg.customerText.it,
-        validFrom: SEED_VALID_FROM,
+        validFrom: pkg.validFrom ? new Date(pkg.validFrom) : SEED_VALID_FROM,
       },
       update: {},
     });

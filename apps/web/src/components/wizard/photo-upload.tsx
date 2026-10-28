@@ -53,7 +53,8 @@ export async function PhotoUpload({
       {driverIndex === undefined ? null : (
         <input type="hidden" name="driverIndex" value={driverIndex} />
       )}
-      <input type="hidden" name="adding" value={current ? "1" : "0"} />
+      {/* An unreadable reading is taken again from scratch; otherwise a file adds a page. */}
+      <input type="hidden" name="adding" value={current && !unreadable ? "1" : "0"} />
       <div className="flex items-start gap-3">
         <span
           aria-hidden
@@ -112,7 +113,7 @@ export async function PhotoUpload({
         })}
       >
         <Icon name="camera" />
-        {current ? t("addFile") : t("take")}
+        {unreadable ? t("retake") : current ? t("addFile") : t("take")}
       </label>
       <AutoSubmitFile id={id} multiple />
     </form>

@@ -38,13 +38,14 @@ Tre pacchetti fissi rendono confrontabili le offerte: l'agenzia può offrire cop
 | Tutela legale | No | Sì | Sì |
 | Infortuni del conducente | No | No | Sì, capitale minimo 50.000 € |
 | Furto e incendio | No | No | Sì, scoperto massimo 10% con minimo 250 € |
-| Eventi naturali e atti vandalici | No | No | Sì, stesse franchigie massime |
+| Eventi naturali | No | No | Sì, stesse franchigie massime |
+| Atti vandalici | No | No | Sì, stesse franchigie massime |
 | Cristalli | No | No | Sì, franchigia massima 150 € |
 
 Regole:
 
 - La formula di guida e la scatola nera non fanno parte del pacchetto: sono dati della richiesta, uguali per tutte le offerte.
-- La kasko resta fuori dall'MVP: è troppo diversa tra compagnie per un confronto pulito.
+- ~~La kasko resta fuori dall'MVP~~ Dan, 2026-10-28 ([ADR 0021](../adr/0021-coperture-tre-scelte.md)): nella scelta «Su misura» il cliente può chiedere **kasko collisione**, **full kasko** e **collisione con animali selvatici**; l'agenzia dichiara scoperto e minimo, come per furto e incendio. Eventi naturali e atti vandalici sono due coperture separate. Il privato e il broker scelgono tra tre possibilità: «RCA obbligo di legge» (Base), «Consigliate» (Consigliato) e «Su misura».
 - Il controllo automatico confronta il PDF del preventivo con queste soglie e segnala le offerte peggiorative.
 - Rivalsa e franchigie vanno validate con 3-4 agenzie del pilota prima di fissarle: devono essere offerte comuni sul mercato.
 

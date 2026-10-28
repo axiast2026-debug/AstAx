@@ -49,8 +49,11 @@ function compact<T extends Record<string, unknown>>(value: T): T {
 
 const START_MODES = ["DATE", "ON_ISSUANCE", "MIDNIGHT_AFTER_DEADLINE"] as const;
 
-/** The packages of a request: «Consigliato» or «Su misura» (Dan, 2026-10-21). */
-export const REQUEST_PACKAGES: readonly string[] = ["RECOMMENDED", "CUSTOM"];
+/**
+ * The packages of a request (Dan, 2026-10-28): «RCA obbligo di legge» (BASE),
+ * «Consigliate» (RECOMMENDED) or «Su misura» (CUSTOM).
+ */
+export const REQUEST_PACKAGES: readonly string[] = ["BASE", "RECOMMENDED", "CUSTOM"];
 
 export function requestTermsFromForm(
   form: FormReader,

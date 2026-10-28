@@ -30,7 +30,11 @@ const FULL_COVERAGE = {
   legalProtection: { included: true },
   driverAccident: { included: true, capitalEur: 50_000 },
   theftFire: { included: true, coinsurancePct: 10, coinsuranceMinEur: 250, marketValue: true },
-  naturalEventsVandalism: { included: true, coinsurancePct: 10, coinsuranceMinEur: 250 },
+  naturalEvents: { included: true, coinsurancePct: 10, coinsuranceMinEur: 250 },
+  vandalism: { included: true, coinsurancePct: 10, coinsuranceMinEur: 250 },
+  collisionKasko: { included: false },
+  fullKasko: { included: false },
+  wildlifeCollision: { included: false },
   glass: { included: true, deductibleEur: 150 },
 } as const;
 

@@ -23,34 +23,80 @@ const coinsurance = {
   maxCoinsuranceMinEur: eur,
 };
 
-export const PackageRequirementsSchema = z.strictObject({
-  rca: z.discriminatedUnion("limitType", [
-    z.strictObject({ limitType: z.literal("LEGAL_MINIMUMS") }),
-    z.strictObject({ limitType: z.literal("SINGLE_LIMIT"), minSingleLimitEur: eur }),
-  ]),
-  recourseWaiver: z.union([
-    notRequired,
-    z.strictObject({ required: z.literal(true), minCases: z.array(RecourseWaiverCaseSchema) }),
-  ]),
-  roadsideAssistance: z.union([notRequired, z.strictObject({ required: z.literal(true) })]),
-  legalProtection: z.union([notRequired, z.strictObject({ required: z.literal(true) })]),
-  driverAccident: z.union([
-    notRequired,
-    z.strictObject({ required: z.literal(true), minCapitalEur: eur }),
-  ]),
-  theftFire: z.union([
-    notRequired,
-    z.strictObject({ required: z.literal(true), ...coinsurance, requiresMarketValue: z.boolean() }),
-  ]),
-  naturalEventsVandalism: z.union([
-    notRequired,
-    z.strictObject({ required: z.literal(true), ...coinsurance }),
-  ]),
-  glass: z.union([
-    notRequired,
-    z.strictObject({ required: z.literal(true), maxDeductibleEur: eur }),
-  ]),
-});
+/**
+ * Dan, 2026-10-28: natural events and vandalism are two coverages, and the
+ * custom package also offers collision kasko, full kasko and collision with
+ * wild animals. Packages and offers saved before carry the old single item
+ * «naturalEventsVandalism»: read, it counts for both new items; the new
+ * kasko items are absent there, so not required and not included.
+ */
+const OWN_DAMAGE_ITEMS = [
+  "naturalEvents",
+  "vandalism",
+  "collisionKasko",
+  "fullKasko",
+  "wildlifeCollision",
+] as const;
+
+function splitLegacy(absent: unknown) {
+  return (value: unknown) => {
+    if (!value || typeof value !== "object") return value;
+    const { naturalEventsVandalism: legacy, ...rest } = value as Record<string, unknown>;
+    const out: Record<string, unknown> = { ...rest };
+    if (legacy !== undefined) {
+      out.naturalEvents ??= legacy;
+      out.vandalism ??= legacy;
+    }
+    for (const item of OWN_DAMAGE_ITEMS) out[item] ??= absent;
+    return out;
+  };
+}
+
+const requiredWithCoinsurance = z.union([
+  z.strictObject({ required: z.literal(false) }),
+  z.strictObject({
+    required: z.literal(true),
+    maxCoinsurancePct: z.number().min(0).max(100),
+    maxCoinsuranceMinEur: z.number().int().nonnegative(),
+  }),
+]);
+
+export const PackageRequirementsSchema = z.preprocess(
+  splitLegacy({ required: false }),
+  z.strictObject({
+    rca: z.discriminatedUnion("limitType", [
+      z.strictObject({ limitType: z.literal("LEGAL_MINIMUMS") }),
+      z.strictObject({ limitType: z.literal("SINGLE_LIMIT"), minSingleLimitEur: eur }),
+    ]),
+    recourseWaiver: z.union([
+      notRequired,
+      z.strictObject({ required: z.literal(true), minCases: z.array(RecourseWaiverCaseSchema) }),
+    ]),
+    roadsideAssistance: z.union([notRequired, z.strictObject({ required: z.literal(true) })]),
+    legalProtection: z.union([notRequired, z.strictObject({ required: z.literal(true) })]),
+    driverAccident: z.union([
+      notRequired,
+      z.strictObject({ required: z.literal(true), minCapitalEur: eur }),
+    ]),
+    theftFire: z.union([
+      notRequired,
+      z.strictObject({
+        required: z.literal(true),
+        ...coinsurance,
+        requiresMarketValue: z.boolean(),
+      }),
+    ]),
+    naturalEvents: requiredWithCoinsurance,
+    vandalism: requiredWithCoinsurance,
+    glass: z.union([
+      notRequired,
+      z.strictObject({ required: z.literal(true), maxDeductibleEur: eur }),
+    ]),
+    collisionKasko: requiredWithCoinsurance,
+    fullKasko: requiredWithCoinsurance,
+    wildlifeCollision: requiredWithCoinsurance,
+  }),
+);
 export type PackageRequirements = z.infer<typeof PackageRequirementsSchema>;
 
 const excluded = z.strictObject({ included: z.literal(false) });
@@ -59,36 +105,49 @@ const withCoinsurance = {
   coinsuranceMinEur: eur,
 };
 
+const includedWithCoinsurance = z.union([
+  z.strictObject({ included: z.literal(false) }),
+  z.strictObject({
+    included: z.literal(true),
+    coinsurancePct: z.number().min(0).max(100),
+    coinsuranceMinEur: z.number().int().nonnegative(),
+  }),
+]);
+
 /** What the agency declares for each item of the package (OFF-04). */
-export const OfferCoverageSchema = z.strictObject({
-  rca: z.union([
-    z.strictObject({ limitType: z.literal("SINGLE_LIMIT"), singleLimitEur: eur }),
-    z.strictObject({
-      limitType: z.literal("SEPARATE_LIMITS"),
-      bodilyInjuryPerClaimEur: eur,
-      propertyDamagePerClaimEur: eur,
-    }),
-  ]),
-  recourseWaiver: z.union([
-    excluded,
-    z.strictObject({ included: z.literal(true), cases: z.array(RecourseWaiverCaseSchema) }),
-  ]),
-  roadsideAssistance: z.strictObject({ included: z.boolean() }),
-  legalProtection: z.strictObject({ included: z.boolean() }),
-  driverAccident: z.union([
-    excluded,
-    z.strictObject({ included: z.literal(true), capitalEur: eur }),
-  ]),
-  theftFire: z.union([
-    excluded,
-    z.strictObject({ included: z.literal(true), ...withCoinsurance, marketValue: z.boolean() }),
-  ]),
-  naturalEventsVandalism: z.union([
-    excluded,
-    z.strictObject({ included: z.literal(true), ...withCoinsurance }),
-  ]),
-  glass: z.union([excluded, z.strictObject({ included: z.literal(true), deductibleEur: eur })]),
-});
+export const OfferCoverageSchema = z.preprocess(
+  splitLegacy({ included: false }),
+  z.strictObject({
+    rca: z.union([
+      z.strictObject({ limitType: z.literal("SINGLE_LIMIT"), singleLimitEur: eur }),
+      z.strictObject({
+        limitType: z.literal("SEPARATE_LIMITS"),
+        bodilyInjuryPerClaimEur: eur,
+        propertyDamagePerClaimEur: eur,
+      }),
+    ]),
+    recourseWaiver: z.union([
+      excluded,
+      z.strictObject({ included: z.literal(true), cases: z.array(RecourseWaiverCaseSchema) }),
+    ]),
+    roadsideAssistance: z.strictObject({ included: z.boolean() }),
+    legalProtection: z.strictObject({ included: z.boolean() }),
+    driverAccident: z.union([
+      excluded,
+      z.strictObject({ included: z.literal(true), capitalEur: eur }),
+    ]),
+    theftFire: z.union([
+      excluded,
+      z.strictObject({ included: z.literal(true), ...withCoinsurance, marketValue: z.boolean() }),
+    ]),
+    naturalEvents: includedWithCoinsurance,
+    vandalism: includedWithCoinsurance,
+    glass: z.union([excluded, z.strictObject({ included: z.literal(true), deductibleEur: eur })]),
+    collisionKasko: includedWithCoinsurance,
+    fullKasko: includedWithCoinsurance,
+    wildlifeCollision: includedWithCoinsurance,
+  }),
+);
 export type OfferCoverage = z.infer<typeof OfferCoverageSchema>;
 
 export type CoverageItem = keyof PackageRequirements;
@@ -146,15 +205,16 @@ export function coverageShortfalls(
       short.push("theftFire");
     }
   }
-  const nv = required.naturalEventsVandalism;
-  if (nv.required) {
-    const d = declared.naturalEventsVandalism;
+  for (const item of OWN_DAMAGE_ITEMS) {
+    const r = required[item];
+    if (!r.required) continue;
+    const d = declared[item];
     if (
       !d.included ||
-      d.coinsurancePct > nv.maxCoinsurancePct ||
-      d.coinsuranceMinEur > nv.maxCoinsuranceMinEur
+      d.coinsurancePct > r.maxCoinsurancePct ||
+      d.coinsuranceMinEur > r.maxCoinsuranceMinEur
     ) {
-      short.push("naturalEventsVandalism");
+      short.push(item);
     }
   }
   const gl = required.glass;
@@ -175,9 +235,16 @@ export const CHOOSABLE_COVERAGES = [
   "legalProtection",
   "driverAccident",
   "theftFire",
-  "naturalEventsVandalism",
+  "naturalEvents",
+  "vandalism",
   "glass",
+  "collisionKasko",
+  "fullKasko",
+  "wildlifeCollision",
 ] as const satisfies readonly CoverageItem[];
+
+/** Dan, 2026-10-28: the coverages with a coinsurance (scoperto) the agency declares. */
+export const COINSURANCE_COVERAGES = ["theftFire", ...OWN_DAMAGE_ITEMS] as const;
 export type ChoosableCoverage = (typeof CHOOSABLE_COVERAGES)[number];
 
 /** The package whose requirements are the coverages the customer chose. */

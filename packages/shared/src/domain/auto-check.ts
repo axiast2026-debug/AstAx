@@ -244,7 +244,7 @@ export function runAutoCheck(input: AutoCheckInput): AutoCheckResult {
   // Documents: missing ones, and fields read below the threshold.
   const docYellow: string[] = [];
   const docFields: string[] = [];
-  for (const required of requiredDocuments(quoteData)) {
+  for (const required of requiredDocuments()) {
     if (!documentOf(input, required.kind, required.driverIndex))
       docYellow.push(`MISSING_${required.kind}`);
   }

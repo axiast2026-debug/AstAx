@@ -1131,7 +1131,7 @@ export class RequestsService {
     const documents = await tx.document.findMany({
       where: { quoteRequestId: request.id, deletedAt: null },
     });
-    const problems = intakeDocuments(intake.data).flatMap((kind) => {
+    const problems = intakeDocuments().flatMap((kind) => {
       const latest = documents
         .filter((d) => d.kind === kind)
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];

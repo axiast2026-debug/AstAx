@@ -105,17 +105,18 @@ test.describe.serial("fase 2: richiesta e verifica", () => {
     await page.getByRole("button", { name: "Nuovo preventivo" }).click();
     await page.getByRole("link", { name: /Già assicurato/ }).click();
     await photo(page, "Libretto di circolazione", "libretto-giulia-neri.jpg");
-    const licence = page.locator("form", {
-      has: page.getByRole("heading", { name: "Patente", exact: true }),
+    // Dan, 2026-10-28: the ID card instead of the licence.
+    const card = page.locator("form", {
+      has: page.getByRole("heading", { name: "Carta d'identità", exact: true }),
     });
-    await licence.locator('input[type="file"]').setInputFiles({
-      name: "patente-giulia-neri-low-confidence.jpg",
+    await card.locator('input[type="file"]').setInputFiles({
+      name: "identita-giulia-neri-low-confidence.jpg",
       mimeType: "image/jpeg",
       buffer: Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4]),
     });
-    await expect(licence.getByRole("alert")).toContainText("non si legge bene");
-    await photo(page, "Patente", "patente-giulia-neri.jpg");
-    await expect(licence.getByRole("alert")).toHaveCount(0);
+    await expect(card.getByRole("alert")).toContainText("non si legge bene");
+    await photo(page, "Carta d'identità", "identita-giulia-neri.jpg");
+    await expect(card.getByRole("alert")).toHaveCount(0);
   });
 
   async function broker(page: Page): Promise<void> {
@@ -170,8 +171,8 @@ test.describe.serial("fase 2: richiesta e verifica", () => {
     await brokerCustomer(page, { surname: "Riva", givenName: "Anna", fiscalCode, email: anna });
     await privateRequestSteps(page, {
       libretto: "libretto-anna-riva.jpg",
-      patente: "patente-anna-riva.jpg",
-      attestato: "attestato-anna-riva.pdf",
+      identita: "identita-anna-riva.jpg",
+      plate: "AR456CD",
       ownerBirthDate: birthDateOf(fiscalCode),
       broker: true,
     });

@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto";
+import { createHmac, randomInt } from "node:crypto";
 import { SystemClock } from "@astax/adapters/clock";
 import { readFileSync, writeFileSync } from "node:fs";
 import type { Page } from "@playwright/test";
@@ -197,7 +197,7 @@ export async function completeProfileIfAsked(
   if (!/\/benvenuto$/.test(page.url())) return;
   await page.getByLabel("Nome", { exact: true }).fill(person.firstName);
   await page.getByLabel("Cognome").fill(person.lastName);
-  await page.getByLabel("Cellulare").fill(`333 ${String(Date.now()).slice(-7)}`);
+  await page.getByLabel("Cellulare").fill(`333 ${String(randomInt(1_000_000, 9_999_999))}`);
   await page.getByRole("button", { name: "Continua" }).click();
   await page.waitForURL((url) => url.pathname !== "/benvenuto");
 }

@@ -19,7 +19,13 @@ export interface RequestOptions {
   maxUploadMb: number;
   lists: Record<string, ListOption[]>;
   specialUses: ListOption[];
-  packages: { code: string; name: string; version: number; description: string }[];
+  packages: {
+    code: string;
+    name: string;
+    version: number;
+    description: string;
+    requirements?: Record<string, unknown>;
+  }[];
 }
 
 export interface Extraction {

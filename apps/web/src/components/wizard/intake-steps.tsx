@@ -80,7 +80,7 @@ export async function IntakeDataStep({
     ? ((await api<MunicipalitySuggestion[]>(`/reference/municipalities?q=${municipalityCode}`))
         .body[0] ?? null)
     : null;
-  const photos = intakeDocuments({ vehicleStatus: status });
+  const photos = intakeDocuments();
   const source = intake.classSource;
   // A broker's customer card already has the birth date (not a document reading).
   const proposedBirthDate = detail.customerBirthDate ?? undefined;
@@ -295,19 +295,26 @@ export async function ConfirmStep({
         ] as [string, string][])
       : []),
     [t("drivingTitle"), formula?.label ?? ""],
-    [
-      t("summary.start"),
-      terms
-        ? terms.startMode && terms.startMode !== "DATE"
-          ? tm(`startModes.${terms.startMode}.label`)
-          : formatDate(terms.startDate)
-        : "",
-    ],
+    // Dan, 2026-10-28: the private customer chooses no start date, so none is shown.
+    ...(base === "/preventivi"
+      ? []
+      : ([
+          [
+            t("summary.start"),
+            terms
+              ? terms.startMode && terms.startMode !== "DATE"
+                ? tm(`startModes.${terms.startMode}.label`)
+                : formatDate(terms.startDate)
+              : "",
+          ],
+        ] as [string, string][])),
     [
       t("summary.coverages"),
       terms?.packageCode === "CUSTOM"
         ? [tc("rca"), ...(terms.coverages ?? []).map((c) => tc(c))].join(", ")
-        : (pkg?.name ?? ""),
+        : terms?.packageCode
+          ? tm(`packages.${terms.packageCode}.label`)
+          : (pkg?.name ?? ""),
     ],
     [
       t("summary.documents"),
@@ -321,6 +328,8 @@ export async function ConfirmStep({
           ].includes(d.kind),
         )
         .map((d) => t(`photos.${d.kind}.title`))
+        // Several files of one document count once (Dan, 2026-10-28).
+        .filter((title, index, all) => all.indexOf(title) === index)
         .join(", "),
     ],
   ];

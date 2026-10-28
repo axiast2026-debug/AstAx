@@ -7,6 +7,7 @@ import { CheckField, Field, Fieldset, fieldId, hasError, INPUT } from "@/compone
 import { PendingButton } from "@/components/pending-button";
 import {
   centsToEuroInput,
+  COINSURANCE_ITEMS,
   COVERAGE_ITEMS,
   type AgencyRequestDetail,
   type OwnOffer,
@@ -33,7 +34,11 @@ async function requirementText(item: string, r: Requirement | undefined): Promis
         ? t("capital", { eur: Number(r.minCapitalEur) })
         : t("capitalFree");
     case "theftFire":
-    case "naturalEventsVandalism":
+    case "naturalEvents":
+    case "vandalism":
+    case "collisionKasko":
+    case "fullKasko":
+    case "wildlifeCollision":
       return t("coinsurance", {
         pct: Number(r.maxCoinsurancePct),
         eur: Number(r.maxCoinsuranceMinEur),
@@ -286,7 +291,7 @@ export async function OfferForm({
                           defaultValue={num(d, "capitalEur") || proposed.capital}
                         />
                       ) : null}
-                      {item === "theftFire" || item === "naturalEventsVandalism" ? (
+                      {COINSURANCE_ITEMS.includes(item) ? (
                         <>
                           <Field
                             label={t("coinsurancePct")}

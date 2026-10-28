@@ -35,27 +35,44 @@ export async function photo(page: Page, title: string, fileName: string): Promis
     mimeType: fileName.endsWith(".pdf") ? "application/pdf" : "image/jpeg",
     buffer: fileName.endsWith(".pdf") ? PDF : JPEG,
   });
-  await expect(uploadForm(page, title).getByText(`Ricevuto: ${fileName}`)).toBeVisible();
+  // Dan, 2026-10-28: the files of a document are listed, each with «Togli».
+  await expect(uploadForm(page, title).getByText(fileName, { exact: true })).toBeVisible();
 }
 
 /**
- * The five screens of the private customer: vehicle already insured, photos
- * (registration, licence, risk certificate) and the owner's birth date, type
- * of driving, coverages («Consigliato» by default) and start, one tick, send.
- * The broker has the same screens without the tick (docs/piano-broker.md, B).
+ * Dan, 2026-10-28: «Comune» from the suggestions; the province fills itself,
+ * the CAP too, or is chosen when the municipality has several.
+ */
+export async function chooseMunicipality(page: Page, name: string, province: string) {
+  await page.getByRole("combobox", { name: "Comune" }).fill(name);
+  await page.getByRole("option", { name: `${name} (${province})` }).click();
+  await expect(page.getByLabel("Provincia (sigla)")).toHaveValue(province);
+  const cap = page.getByLabel("CAP");
+  if ((await cap.evaluate((el) => el.tagName)) === "SELECT") {
+    await cap.selectOption({ index: 1 });
+  }
+}
+
+/**
+ * The five screens of the private customer: vehicle already insured, the
+ * registration and the ID card (Dan, 2026-10-28: no licence, no risk
+ * certificate), the data typed by the customer (nothing is filled from the
+ * documents), type of driving, coverages («Consigliate» by default), one
+ * tick, send. The broker has the same screens without the tick
+ * (docs/piano-broker.md, B), and still chooses when the cover starts.
  */
 export async function privateRequestSteps(
   page: Page,
   options: {
     libretto: string;
-    patente: string;
-    attestato?: string;
+    identita: string;
+    plate: string;
     ownerBirthDate?: string;
     broker?: boolean;
   } = {
     libretto: "libretto-giulia-neri.jpg",
-    patente: "patente-giulia-neri.jpg",
-    attestato: "attestato-giulia-neri.pdf",
+    identita: "identita-giulia-neri.jpg",
+    plate: "GN123AB",
   },
 ): Promise<void> {
   // In development the first page of the request may be compiled on first use.
@@ -63,19 +80,26 @@ export async function privateRequestSteps(
   await page.getByRole("link", { name: /Già assicurato/ }).click();
   await expect(page).toHaveURL(/\/dati\?stato=INSURED/);
   await photo(page, "Libretto di circolazione", options.libretto);
-  await photo(page, "Patente", options.patente);
-  if (options.attestato) await photo(page, "Attestato di rischio (facoltativo)", options.attestato);
-  // The bot proposes plate and address from the registration.
-  await expect(page.getByLabel("Targa")).not.toHaveValue("");
+  await photo(page, "Carta d'identità", options.identita);
+  // Nothing is filled from the documents: the customer writes the data.
+  await expect(page.getByLabel("Targa")).toHaveValue("");
+  await page.getByLabel("Targa").fill(options.plate);
+  // Typed as Italians write it, or pasted.
   await page
     .getByLabel("Data di nascita del proprietario")
-    .fill(options.ownerBirthDate ?? "1990-05-12");
+    .fill(options.ownerBirthDate ?? "12/05/1990");
+  await page.getByLabel("Indirizzo di residenza").fill("Via Roma 1");
+  await chooseMunicipality(page, "Milano", "MI");
   await page.getByRole("button", { name: "Continua" }).click();
   await expect(page).toHaveURL(/\/guida$/);
   await page.getByLabel(/Guida libera/).check();
   await page.getByRole("button", { name: "Continua" }).click();
   await expect(page).toHaveURL(/\/copertura$/);
-  await expect(page.getByLabel("Data di decorrenza")).not.toHaveValue("");
+  if (options.broker) {
+    await page.getByLabel(/Subito, appena l'agenzia emette la polizza/).check();
+  } else {
+    await expect(page.getByText("Da quando vuoi essere assicurato")).toBeHidden();
+  }
   await saveAndContinue(page);
   await expect(page).toHaveURL(/\/conferma$/);
   if (options.broker) {

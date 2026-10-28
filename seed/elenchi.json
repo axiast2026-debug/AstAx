@@ -43,8 +43,12 @@
       { "code": "legalProtection", "it": "Tutela legale" },
       { "code": "driverAccident", "it": "Infortuni del conducente" },
       { "code": "theftFire", "it": "Furto e incendio" },
-      { "code": "naturalEventsVandalism", "it": "Eventi naturali e atti vandalici" },
-      { "code": "glass", "it": "Cristalli" }
+      { "code": "naturalEvents", "it": "Eventi naturali" },
+      { "code": "vandalism", "it": "Atti vandalici" },
+      { "code": "glass", "it": "Cristalli" },
+      { "code": "collisionKasko", "it": "Kasko collisione" },
+      { "code": "fullKasko", "it": "Full kasko" },
+      { "code": "wildlifeCollision", "it": "Collisione con animali selvatici" }
     ],
     "startMode": [
       { "code": "DATE", "it": "Alla scadenza" },

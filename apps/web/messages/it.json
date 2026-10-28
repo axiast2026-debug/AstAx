@@ -795,8 +795,8 @@
       "postalCodePlaceholder": "Scegli il CAP"
     },
     "coverage": {
-      "package": "Quali garanzie vuoi",
-      "chooseCoverages": "Oltre alla RC auto, scegli le garanzie che vuoi:",
+      "package": "Quali coperture vuoi",
+      "chooseCoverages": "Oltre alla RC auto obbligatoria, scegli le coperture che vuoi:",
       "startMode": "Da quando vuoi essere assicurato",
       "startModes": {
         "DATE": {
@@ -817,7 +817,20 @@
       "currentPremium": "Premio che paghi oggi (euro)",
       "currentPremiumHint": "Facoltativo: serve a mostrarti quanto risparmi",
       "blackBox": "Accetto la scatola nera",
-      "annualOnly": "Il pagamento è annuale."
+      "packages": {
+        "BASE": {
+          "label": "RCA obbligo di legge",
+          "text": "Solo la responsabilità civile obbligatoria, con i massimali minimi di legge: quello che serve per circolare."
+        },
+        "RECOMMENDED": {
+          "label": "Consigliate",
+          "text": "La RC auto con le coperture che consigliamo a quasi tutti:"
+        },
+        "CUSTOM": {
+          "label": "Su misura",
+          "text": "Parti dalla RC auto e aggiungi tu le coperture che vuoi."
+        }
+      }
     },
     "auction": {
       "coverageFirst": "Prima scegli la copertura.",
@@ -1011,8 +1024,12 @@
       "legalProtection": "Tutela legale",
       "driverAccident": "Infortuni del conducente",
       "theftFire": "Furto e incendio",
-      "naturalEventsVandalism": "Eventi naturali e atti vandalici",
-      "glass": "Cristalli"
+      "naturalEvents": "Eventi naturali",
+      "vandalism": "Atti vandalici",
+      "glass": "Cristalli",
+      "collisionKasko": "Kasko collisione",
+      "fullKasko": "Full kasko",
+      "wildlifeCollision": "Collisione con animali selvatici"
     },
     "declineReasons": {
       "OUT_OF_TARIFF": "Fuori tariffa",

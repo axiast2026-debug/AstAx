@@ -18,10 +18,15 @@ function Hidden({ detail, base, step }: { detail: RequestDetail; base: string; s
   );
 }
 
+/** What a package requires, by item (seed/pacchetti.json). */
+type Requirements = Record<string, { required?: boolean } | undefined>;
+
 /**
- * Step 3: coverage. The packages and their texts come from the database
- * (seed/pacchetti.json, spec 09 §2); the start date is proposed from the
- * current policy's expiry.
+ * Step 3: coverage. Dan, 2026-10-28: three choices, «RCA obbligo di legge»,
+ * «Consigliate» (with its coverages listed, to tell it apart) and «Su misura»,
+ * whose list has natural events and vandalism apart and the kasko coverages.
+ * The private customer does not choose a start date: the policy starts when
+ * the agency issues it (ON_ISSUANCE, question 36); the broker still chooses.
  */
 export async function CoverageStep({
   detail,
@@ -41,9 +46,11 @@ export async function CoverageStep({
   const terms = detail.draft?.request;
   // Dan, 2026-10-21: «Consigliato» or «Su misura», for the private customer and the broker.
   const shown = options.packages.filter((p) => REQUEST_PACKAGES.includes(p.code));
-  const chosen = terms?.packageCode ?? shown[0]?.code ?? "BASE";
+  // «Consigliate» stays the choice proposed first (Dan, 2026-10-21).
+  const chosen = terms?.packageCode ?? "RECOMMENDED";
   const chosenCoverages: readonly string[] = terms?.coverages ?? [];
   // Proposed from the current policy: the history, or the risk certificate read by the bot.
+  const broker = base !== "/preventivi";
   const proposedStart =
     terms?.startDate ??
     detail.draft?.history?.currentExpiryDate ??
@@ -72,8 +79,31 @@ export async function CoverageStep({
             name="request.packageCode"
             value={p.code}
             defaultChecked={chosen === p.code}
-            label={p.name}
-            text={p.description}
+            label={t(`packages.${p.code}.label`)}
+            text={
+              p.code === "RECOMMENDED" ? (
+                <>
+                  <span className="block">{t(`packages.${p.code}.text`)}</span>
+                  <span className="mt-2 flex flex-wrap gap-1.5">
+                    {[
+                      "rca",
+                      ...Object.entries((p.requirements ?? {}) as Requirements)
+                        .filter(([key, r]) => key !== "rca" && r?.required)
+                        .map(([key]) => key),
+                    ].map((item) => (
+                      <span
+                        key={item}
+                        className="rounded-full bg-night-100 px-2.5 py-1 text-note font-semibold text-night-900"
+                      >
+                        {titem(item)}
+                      </span>
+                    ))}
+                  </span>
+                </>
+              ) : (
+                t(`packages.${p.code}.text`)
+              )
+            }
           />
         ))}
         {shown.map((p) => (
@@ -105,8 +135,10 @@ export async function CoverageStep({
           ))}
         </fieldset>
       ) : null}
-      {/* Question 1: three ways to start the cover; the date only for the first. */}
-      <fieldset className="space-y-3">
+      {/* Question 1: three ways to start the cover; the date only for the first.
+          The private customer does not choose (Dan, 2026-10-28). */}
+      {broker ? null : <input type="hidden" name="request.startMode" value="ON_ISSUANCE" />}
+      <fieldset className={broker ? "space-y-3" : "hidden"} hidden={!broker}>
         <legend className="mb-3 text-section font-bold">{t("startMode")}</legend>
         {(["DATE", "ON_ISSUANCE", "MIDNIGHT_AFTER_DEADLINE"] as const).map((mode) => (
           <ChoiceCard
@@ -121,7 +153,7 @@ export async function CoverageStep({
         ))}
       </fieldset>
       <div className="grid gap-4 rounded-2xl bg-white p-4 shadow-[inset_0_0_0_1px_var(--color-warm-200)] sm:grid-cols-2 sm:p-6">
-        <div data-shows-when="start-date">
+        <div data-shows-when="start-date" hidden={!broker}>
           <Field
             label={t("startDate")}
             name="request.startDate"
@@ -145,7 +177,6 @@ export async function CoverageStep({
             defaultChecked={terms?.blackBox ?? false}
           />
         </div>
-        <p className="text-table text-warm-600 sm:col-span-2">{t("annualOnly")}</p>
       </div>
       <StickyActions note={ti("savedNote")} aboveMenu={base === "/preventivi"}>
         <Button type="submit" size="lg" full className="md:w-auto">

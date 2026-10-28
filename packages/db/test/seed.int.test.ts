@@ -159,7 +159,9 @@ describe("fase 2: reference data for requests", () => {
       municipalities: await tx.municipality.count(),
       milan: await tx.municipality.findUnique({ where: { cadastralCode: "F205" } }),
       rules: await tx.exclusionRule.findMany({ orderBy: { code: "asc" } }),
-      packages: await tx.coveragePackageVersion.findMany({ orderBy: { packageCode: "asc" } }),
+      packages: await tx.coveragePackageVersion.findMany({
+        orderBy: [{ packageCode: "asc" }, { version: "asc" }],
+      }),
     }));
     expect(data.municipalities).toBeGreaterThan(7800);
     expect(data.milan).toMatchObject({ istatCode: "015146", province: "MI", name: "Milano" });
@@ -168,20 +170,28 @@ describe("fase 2: reference data for requests", () => {
       active: true,
     });
     expect(data.rules.find((r) => r.code === "VINTAGE")).toMatchObject({ blockingInWizard: false });
+    // Dan, 2026-10-28 (ADR 0021): version 2 of every package, from its own day.
     expect(data.packages.map((p) => [p.packageCode, p.version])).toEqual([
       ["BASE", 1],
+      ["BASE", 2],
       ["COMPLETE", 1],
-      // Dan, 2026-10-21: the two packages of the private customer.
+      ["COMPLETE", 2],
       ["CUSTOM", 1],
+      ["CUSTOM", 2],
       ["PLUS", 1],
+      ["PLUS", 2],
       ["RECOMMENDED", 1],
+      ["RECOMMENDED", 2],
     ]);
+    expect(data.packages.find((p) => p.version === 2)?.validFrom.toISOString()).toBe(
+      "2026-10-28T00:00:00.000Z",
+    );
   });
 
   it("the seed can run again without duplicating rows", async () => {
     await runSeed();
     const count = await withContext(db, SYSTEM_CONTEXT, (tx) => tx.coveragePackageVersion.count());
-    expect(count).toBe(5);
+    expect(count).toBe(10);
   });
 
   it("an ordinary user can read but not change reference data", async () => {

@@ -1,5 +1,5 @@
 import { compareOffers, type RankedOffer } from "./auction-rules.js";
-import type { OfferCoverage, PackageRequirements } from "./coverage.js";
+import { COINSURANCE_COVERAGES, type OfferCoverage, type PackageRequirements } from "./coverage.js";
 
 /**
  * The AI comparison (PRES-06…08, proposal C of phase 5). The domain computes
@@ -123,7 +123,7 @@ export function coverageImprovements(
   if (declared.driverAccident.included) {
     if (!da.required || declared.driverAccident.capitalEur > da.minCapitalEur) n += 1;
   }
-  for (const item of ["theftFire", "naturalEventsVandalism"] as const) {
+  for (const item of COINSURANCE_COVERAGES) {
     const d = declared[item];
     const r = required[item];
     if (!d.included) continue;
