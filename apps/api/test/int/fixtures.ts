@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { AniaLoginPort } from "@astax/adapters/ania";
 import { Writable } from "node:stream";
 import type { AiExplainerPort } from "@astax/adapters/ai-explainer";
 import type { EInvoicingPort } from "@astax/adapters/e-invoicing";
@@ -155,6 +156,8 @@ export async function startHarness(
     env?: Record<string, string>;
     aiExplainer?: AiExplainerPort;
     eInvoicing?: EInvoicingPort;
+    /** Dan, 2026-10-28: the screen of the real ANIA reader's login. */
+    aniaLogin?: AniaLoginPort;
     /** Phase 8: the real counters of the limits; off elsewhere, as the test clock stands still. */
     rateLimits?: boolean;
   } = {},
@@ -199,6 +202,7 @@ export async function startHarness(
       : { hit: async () => 0, peek: async () => 0 },
     ...(options.aiExplainer ? { aiExplainer: options.aiExplainer } : {}),
     ...(options.eInvoicing ? { eInvoicing: options.eInvoicing } : {}),
+    ...(options.aniaLogin ? { aniaLogin: options.aniaLogin } : {}),
     // API_TEST_LOGS=1 shows the (redacted) API logs while debugging a test.
     logger: process.env.API_TEST_LOGS
       ? createLogger({ name: "api-int", level: "debug" })

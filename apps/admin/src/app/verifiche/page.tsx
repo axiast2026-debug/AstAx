@@ -45,7 +45,12 @@ export default async function VerificationQueuePage({
   return (
     <AppShell viewer={viewer}>
       <AutoRefresh seconds={REFRESH_SECONDS} />
-      <h1 className="font-display text-screen font-extrabold">{t("queueTitle")}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-display text-screen font-extrabold">{t("queueTitle")}</h1>
+        <Link href="/portale-ania" className={buttonVariants({ variant: "outline", size: "sm" })}>
+          {t("queue.portal")}
+        </Link>
+      </div>
       {query.fatto ? (
         <p role="status" className="mt-4 rounded-lg bg-green-50 p-3 text-sm">
           {t(

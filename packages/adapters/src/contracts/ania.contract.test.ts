@@ -177,3 +177,37 @@ describe("ANIA readers", () => {
     });
   });
 });
+
+describe("ANIA login screen (Dan, 2026-10-28)", () => {
+  it("opens the portal, shows the screen, sends actions in the bot's words, and tells when it is ready", async () => {
+    const sent: unknown[] = [];
+    const fetchStub = (async (url: string | URL, init?: RequestInit) => {
+      const u = String(url);
+      if (u.endsWith("/ania/login/apri")) {
+        return Response.json({ stato: "LOGIN", schermo: { width: 1280, height: 800 } });
+      }
+      if (u.endsWith("/ania/login/schermo")) {
+        return new Response(new Uint8Array([0xff, 0xd8, 0xff]), {
+          headers: { "content-type": "image/jpeg" },
+        });
+      }
+      if (u.endsWith("/ania/login/azione")) {
+        sent.push(JSON.parse(String(init?.body)));
+        return Response.json({ stato: sent.length === 3 ? "RICERCA" : "LOGIN" });
+      }
+      return Response.json({ stato: "RICERCA" });
+    }) as typeof fetch;
+    const reader = new HttpAniaReader({ baseUrl: "http://bot", token: "t", fetch: fetchStub });
+    expect(await reader.open()).toEqual({ state: "LOGIN", screen: { width: 1280, height: 800 } });
+    expect(await reader.screen()).toEqual(new Uint8Array([0xff, 0xd8, 0xff]));
+    expect(await reader.act({ kind: "click", x: 10, y: 20 })).toBe("LOGIN");
+    expect(await reader.act({ kind: "text", text: "abc" })).toBe("LOGIN");
+    expect(await reader.act({ kind: "key", key: "Enter" })).toBe("READY");
+    expect(sent).toEqual([
+      { tipo: "clic", x: 10, y: 20 },
+      { tipo: "testo", testo: "abc" },
+      { tipo: "tasto", tasto: "Enter" },
+    ]);
+    expect(await reader.state()).toBe("READY");
+  });
+});

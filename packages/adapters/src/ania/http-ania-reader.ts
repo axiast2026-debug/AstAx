@@ -1,5 +1,8 @@
 import type {
   AniaFailure,
+  AniaLoginAction,
+  AniaLoginPort,
+  AniaLoginState,
   AniaReadInput,
   AniaReaderPort,
   AniaReadResult,
@@ -157,7 +160,15 @@ interface BotAnswer {
   scheda?: BotScheda;
 }
 
-export class HttpAniaReader implements AniaReaderPort {
+/** The bot's page states (connectors/ania/pagina.ts) as the login's. */
+export function loginStateOf(stato: unknown): AniaLoginState {
+  if (stato === "RICERCA" || stato === "RISULTATO") return "READY";
+  if (stato === "LOGIN") return "LOGIN";
+  if (stato === "BLOCCATO" || stato === "LIMITATO") return "BLOCKED";
+  return "UNKNOWN";
+}
+
+export class HttpAniaReader implements AniaReaderPort, AniaLoginPort {
   readonly #fetch: typeof fetch;
 
   constructor(private readonly options: HttpAniaReaderOptions) {
@@ -210,5 +221,46 @@ export class HttpAniaReader implements AniaReaderPort {
       if (result) return result;
     }
     return { found: false, reason: "PROVIDER_ERROR" };
+  }
+
+  async open() {
+    const { status, data } = await this.call("/ania/login/apri", {});
+    const body = data as { stato?: string; schermo?: { width: number; height: number } };
+    return status === 200 && body.schermo
+      ? { state: loginStateOf(body.stato), screen: body.schermo }
+      : null;
+  }
+
+  async state() {
+    const { status, data } = await this.call("/ania/login/stato");
+    return status === 200 ? loginStateOf((data as { stato?: string }).stato) : null;
+  }
+
+  async screen(): Promise<Uint8Array | null> {
+    try {
+      const response = await this.#fetch(`${this.options.baseUrl}/ania/login/schermo`, {
+        headers: { authorization: `Bearer ${this.options.token}` },
+        redirect: "manual",
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!response.ok || response.headers.get("content-type") !== "image/jpeg") return null;
+      return new Uint8Array(await response.arrayBuffer());
+    } catch {
+      return null;
+    }
+  }
+
+  async act(action: AniaLoginAction) {
+    // The bot speaks Italian: the same action in its words.
+    const body =
+      action.kind === "click"
+        ? { tipo: "clic", x: action.x, y: action.y }
+        : action.kind === "text"
+          ? { tipo: "testo", testo: action.text }
+          : action.kind === "key"
+            ? { tipo: "tasto", tasto: action.key }
+            : { tipo: "scorri", dy: action.dy };
+    const { status, data } = await this.call("/ania/login/azione", body);
+    return status === 200 ? loginStateOf((data as { stato?: string }).stato) : null;
   }
 }

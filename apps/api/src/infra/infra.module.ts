@@ -31,7 +31,12 @@ import {
   OpenapiPlateLookup,
   type PlateLookupPort,
 } from "@astax/adapters/vehicle-data";
-import { FakeAniaReader, HttpAniaReader, type AniaReaderPort } from "@astax/adapters/ania";
+import {
+  FakeAniaReader,
+  HttpAniaReader,
+  type AniaLoginPort,
+  type AniaReaderPort,
+} from "@astax/adapters/ania";
 import { AwsKms, KMS_KEYS, LocalKms } from "@astax/adapters/kms";
 import {
   BedrockAiExplainer,
@@ -77,6 +82,7 @@ import {
   OBJECT_STORAGE,
   PLATE_LOOKUP,
   ANIA_READER,
+  ANIA_LOGIN,
   KMS,
   SMS_SENDER,
   WEB_PUSH,
@@ -107,6 +113,7 @@ export interface InfraOverrides {
   objectStorage?: ObjectStoragePort;
   plateLookup?: PlateLookupPort;
   aniaReader?: AniaReaderPort;
+  aniaLogin?: AniaLoginPort;
   documentReader?: DocumentReaderPort;
   workflowSignals?: WorkflowSignals;
   signature?: SignaturePort;
@@ -222,6 +229,14 @@ export class InfraModule {
     // One store for the documents and for the fake providers' envelopes and checkouts.
     const objectStorage = overrides.objectStorage ?? objectStorageFor(config);
     const bedrock = { region: config.AWS_REGION, modelId: config.BEDROCK_MODEL_ID ?? "" };
+    const aniaReader =
+      overrides.aniaReader ??
+      (config.ANIA_PROVIDER === "http"
+        ? new HttpAniaReader({
+            baseUrl: config.ANIA_BOT_URL ?? "",
+            token: config.ANIA_BOT_TOKEN ?? "",
+          })
+        : new FakeAniaReader(clock));
     return {
       module: InfraModule,
       providers: [
@@ -293,17 +308,13 @@ export class InfraModule {
         },
         { provide: OBJECT_STORAGE, useValue: objectStorage },
         { provide: PLATE_LOOKUP, useValue: plateLookup },
+        // The real reader: the bot of the private repository (Dan, 2026-10-28),
+        // with the screen of its login; the fake has no login.
+        { provide: ANIA_READER, useValue: aniaReader },
         {
-          // The real reader: the bot of the private repository (Dan, 2026-10-28).
-          provide: ANIA_READER,
+          provide: ANIA_LOGIN,
           useValue:
-            overrides.aniaReader ??
-            (config.ANIA_PROVIDER === "http"
-              ? new HttpAniaReader({
-                  baseUrl: config.ANIA_BOT_URL ?? "",
-                  token: config.ANIA_BOT_TOKEN ?? "",
-                })
-              : new FakeAniaReader(clock)),
+            overrides.aniaLogin ?? (aniaReader instanceof HttpAniaReader ? aniaReader : null),
         },
         {
           provide: DOCUMENT_READER,
@@ -414,6 +425,7 @@ export class InfraModule {
         OBJECT_STORAGE,
         PLATE_LOOKUP,
         ANIA_READER,
+        ANIA_LOGIN,
         DOCUMENT_READER,
         KMS,
         WORKFLOW_SIGNALS,

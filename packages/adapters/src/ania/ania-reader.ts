@@ -86,6 +86,37 @@ export interface AniaReaderPort {
   read(input: AniaReadInput): Promise<AniaReadResult>;
 }
 
+/**
+ * Dan, 2026-10-28: the portal does not let a session saved elsewhere be
+ * reused, so the back office logs in on the server, through a remote screen
+ * of the reader's browser. Only the real reader has one.
+ */
+export type AniaLoginState = "LOGIN" | "READY" | "BLOCKED" | "UNKNOWN";
+export type AniaLoginAction =
+  | { kind: "click"; x: number; y: number }
+  | { kind: "text"; text: string }
+  | { kind: "key"; key: AniaLoginKey }
+  | { kind: "scroll"; dy: number };
+export const ANIA_LOGIN_KEYS = [
+  "Enter",
+  "Tab",
+  "Backspace",
+  "Delete",
+  "Escape",
+  "ArrowUp",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+] as const;
+export type AniaLoginKey = (typeof ANIA_LOGIN_KEYS)[number];
+
+export interface AniaLoginPort {
+  open(): Promise<{ state: AniaLoginState; screen: { width: number; height: number } } | null>;
+  state(): Promise<AniaLoginState | null>;
+  screen(): Promise<Uint8Array | null>;
+  act(action: AniaLoginAction): Promise<AniaLoginState | null>;
+}
+
 export const FAKE_ANIA_NOT_FOUND = "ZZ000ZZ";
 export const FAKE_ANIA_PROVIDER_ERROR = "XX999XX";
 /** Fake plates starting with these letters have no certificate (first policy). */

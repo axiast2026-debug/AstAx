@@ -543,7 +543,8 @@
       "fromFiscalCode": "dal codice fiscale",
       "inRequest": "Nella richiesta: {value}",
       "apply": "Porta i dati di ANIA nella richiesta",
-      "applyHelp": "Classe CU, compagnia, scadenza e date del veicolo diventano una nuova versione dei dati, con il registro."
+      "applyHelp": "Classe CU, compagnia, scadenza e date del veicolo diventano una nuova versione dei dati, con il registro.",
+      "loginLink": "Login al portale ANIA"
     },
     "more": {
       "label": "Altre informazioni",
@@ -577,7 +578,8 @@
       "NO_PLATE": "La richiesta non ha una targa.",
       "TO_COMPLETE": "Completa i dati prima dell'approvazione.",
       "CONSENT_REVOKED": "Il cliente ha revocato il consenso: l'asta non può partire.",
-      "ANIA_SESSION_EXPIRED": "La sessione del portale ANIA è scaduta: serve un nuovo login (lo fa Dan dal suo PC). Intanto puoi continuare senza ANIA."
+      "ANIA_SESSION_EXPIRED": "La sessione del portale ANIA è scaduta: fai il login da «Portale ANIA» e poi riprova.",
+      "ANIA_FAKE": "In questo ambiente l'ANIA è finto: non serve il login."
     },
     "queue": {
       "filters": "Filtro delle pratiche",
@@ -593,7 +595,30 @@
       "heldBy": "{name} dalle {time}",
       "continue": "Continua",
       "look": "Guarda",
-      "note": "L'elenco si aggiorna da solo: quando un collega prende una pratica, il suo nome compare subito. Il supervisore può riassegnare una pratica dalla pagina della pratica."
+      "note": "L'elenco si aggiorna da solo: quando un collega prende una pratica, il suo nome compare subito. Il supervisore può riassegnare una pratica dalla pagina della pratica.",
+      "portal": "Portale ANIA"
+    },
+    "portal": {
+      "title": "Portale ANIA",
+      "intro": "Qui fai il login al portale agenzie Allianz, sul browser di AstAx che legge la Banca Dati ANIA. Clicca sull'immagine e scrivi come nel portale vero: utente, password e codice dell'authenticator. Quando compare la ricerca ANIA, «Leggi da ANIA» funziona per tutto il back office finché la sessione non scade (meno di un'ora senza consultazioni). Quello che scrivi va solo al portale: AstAx non lo conserva e il registro tiene solo chi ha aperto questa pagina e quando.",
+      "opening": "Apro il portale…",
+      "error": "Il browser del portale non risponde. Riprova tra poco; se continua, avvisa Dan.",
+      "states": {
+        "LOGIN": "Il portale chiede il login: clicca nei campi e scrivi.",
+        "READY": "Collegato: la ricerca ANIA è pronta. Puoi tornare alle verifiche e usare «Leggi da ANIA».",
+        "BLOCKED": "Il portale mostra un blocco o un controllo: fermati e avvisa Dan.",
+        "UNKNOWN": "Pagina del portale non riconosciuta: completa il login o apri la consultazione Banca Dati ANIA."
+      },
+      "focus": "Clicca sull'immagine per scrivere con la tastiera.",
+      "focused": "La tastiera scrive nel portale (Invio, Tab e cancella compresi).",
+      "typeHere": "Oppure scrivi qui e premi «Invia»",
+      "send": "Invia",
+      "enter": "Invio",
+      "tab": "Tab",
+      "backspace": "Cancella",
+      "reload": "Ricarica il portale",
+      "alt": "Schermo del portale agenzie",
+      "fake": "In questo ambiente l'ANIA è finto: non serve nessun login."
     }
   },
   "auctions": {

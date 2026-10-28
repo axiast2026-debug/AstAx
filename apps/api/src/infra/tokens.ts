@@ -9,6 +9,7 @@ export const IDENTITY_ADMIN = Symbol("IDENTITY_ADMIN");
 export const EMAIL_SENDER = Symbol("EMAIL_SENDER");
 export const PLATE_LOOKUP = Symbol("PLATE_LOOKUP");
 export const ANIA_READER = Symbol("ANIA_READER");
+export const ANIA_LOGIN = Symbol("ANIA_LOGIN");
 export const DOCUMENT_READER = Symbol("DOCUMENT_READER");
 export const OBJECT_STORAGE = Symbol("OBJECT_STORAGE");
 export const SMS_SENDER = Symbol("SMS_SENDER");
