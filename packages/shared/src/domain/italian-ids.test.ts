@@ -3,6 +3,7 @@ import {
   buildSyntheticIban,
   buildVatNumber,
   isValidIban,
+  italianMobile,
   isValidVatNumber,
   vatNumberCheckDigit,
 } from "./italian-ids.js";
@@ -40,5 +41,21 @@ describe("IBAN", () => {
     expect(isValidIban(iban)).toBe(true);
     expect(isValidIban(iban.replace(/42$/, "43"))).toBe(false);
     expect(isValidIban("IT60 X054 2811 1010 0000 0123 456")).toBe(true);
+  });
+});
+
+describe("italianMobile (Dan, 2026-10-28: phone at the first access)", () => {
+  it("normalises the ways a mobile number is written", () => {
+    expect(italianMobile("333 123 4567")).toBe("+393331234567");
+    expect(italianMobile("+39 333-1234567")).toBe("+393331234567");
+    expect(italianMobile("0039 333.123.4567")).toBe("+393331234567");
+    expect(italianMobile("(333) 1234567")).toBe("+393331234567");
+  });
+
+  it("refuses landlines, foreign and short numbers", () => {
+    expect(italianMobile("06 1234567")).toBeNull();
+    expect(italianMobile("+44 7700 900123")).toBeNull();
+    expect(italianMobile("333 12")).toBeNull();
+    expect(italianMobile("")).toBeNull();
   });
 });

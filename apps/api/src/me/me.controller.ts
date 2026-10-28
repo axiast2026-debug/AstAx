@@ -1,6 +1,7 @@
 import type { FieldCipher } from "@astax/adapters/crypto";
+import { italianMobile } from "@astax/shared/domain";
 import { withContext, type DbClient } from "@astax/db";
-import { Controller, Delete, Get, HttpCode, Inject, Param, Post } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, Inject, Param, Post, Put } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { actorOf, AuditService } from "../audit/audit.service.js";
 import type { AuthContext } from "../auth/auth-context.js";
@@ -11,8 +12,17 @@ import {
   RequirePermission,
 } from "../auth/decorators.js";
 import { ProblemError } from "../http/problem.js";
+import { parseInput } from "../http/validation.js";
+import { z } from "zod";
 import { DB, FIELD_CIPHER, IDENTITY_ADMIN } from "../infra/tokens.js";
 import type { IdentityAdmin } from "../identity/identity-admin.js";
+
+const name = z.string().trim().min(1).max(80);
+const profileSchema = z.strictObject({
+  firstName: name,
+  lastName: name,
+  phone: z.string().max(30),
+});
 
 /** The caller's own profile, contexts and sessions (spec 01, «Profilo»). */
 @ApiTags("me")
@@ -65,6 +75,50 @@ export class MeController {
           },
         })),
       };
+    });
+  }
+
+  /**
+   * Dan, 2026-10-28: a private customer gives name, surname and mobile phone at
+   * the first access. The phone is set once here; changing it later needs a
+   * code (permission condition), so a second, different number is refused.
+   * Professionals take their names from the entry and the team, not from here.
+   */
+  @Put("me/profile")
+  @HttpCode(204)
+  @RequirePermission("profile.update")
+  @NoContext()
+  async updateProfile(@CurrentAuth() auth: AuthContext, @Body() body: unknown): Promise<void> {
+    const input = parseInput(profileSchema, body);
+    const phone = italianMobile(input.phone);
+    if (!phone) {
+      throw new ProblemError("VALIDATION_FAILED", undefined, [
+        { path: "phone", issue: "INVALID_PHONE" },
+      ]);
+    }
+    await withContext(this.db, auth.db, async (tx) => {
+      const user = await tx.user.findUniqueOrThrow({
+        where: { id: auth.userId },
+        select: { kind: true, phoneEnc: true },
+      });
+      if (user.kind !== "PRIVATE") throw new ProblemError("FORBIDDEN");
+      if (user.phoneEnc && this.cipher.decrypt(user.phoneEnc) !== phone) {
+        throw new ProblemError("CONFLICT", "PHONE_CHANGE_NEEDS_CODE");
+      }
+      await tx.user.update({
+        where: { id: auth.userId },
+        data: {
+          firstName: input.firstName,
+          lastName: input.lastName,
+          phoneEnc: this.cipher.encrypt(phone),
+          phoneHash: this.cipher.blindIndex("phone", phone),
+        },
+      });
+      await this.audit.inTransaction(tx, actorOf(auth), {
+        action: "PROFILE_UPDATED",
+        targetType: "User",
+        targetId: auth.userId,
+      });
     });
   }
 

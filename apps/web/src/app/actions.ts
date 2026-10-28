@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { api, SESSION_COOKIE, sessionId, webAuth } from "@/lib/auth";
+import { problemCodes } from "@/lib/problem-codes";
 
 export async function chooseContext(formData: FormData): Promise<void> {
   const id = await sessionId();
@@ -17,6 +18,24 @@ export async function acceptLegal(formData: FormData): Promise<void> {
   const versionIds = formData.getAll("versionId").map(String);
   await api("/legal/acceptances", { method: "POST", body: JSON.stringify({ versionIds }) });
   redirect("/");
+}
+
+/**
+ * Dan, 2026-10-28: name, surname and mobile phone of a private customer at the
+ * first access. Answers the error codes, or goes home once saved.
+ */
+export async function saveProfile(formData: FormData): Promise<string | undefined> {
+  const field = (name: string) => String(formData.get(name) ?? "").trim();
+  const { status, body } = await api("/me/profile", {
+    method: "PUT",
+    body: JSON.stringify({
+      firstName: field("firstName"),
+      lastName: field("lastName"),
+      phone: field("phone"),
+    }),
+  });
+  if (status !== 204) return problemCodes(body);
+  redirect(String(formData.get("next") ?? "") === "/profilo" ? "/profilo" : "/");
 }
 
 export async function revokeSession(formData: FormData): Promise<void> {

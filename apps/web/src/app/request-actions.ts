@@ -5,6 +5,7 @@ import { romeCalendarDate } from "@astax/shared/format";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { api, sessionId, webAuth, browserClient } from "@/lib/auth";
+import { problemCodes } from "@/lib/problem-codes";
 import { requestOptions } from "@/lib/requests";
 import { SEARCH_SCOPES, writeSearch, type SearchScope } from "@/lib/search";
 import { checked, requestTermsFromForm, text } from "@/lib/wizard-forms";
@@ -16,21 +17,6 @@ import { checked, requestTermsFromForm, text } from "@/lib/wizard-forms";
  */
 const clock = new SystemClock();
 const today = () => romeCalendarDate(clock.now());
-
-interface Problem {
-  code?: string;
-  errors?: { path: string; issue: string }[];
-}
-
-function problemCodes(body: unknown): string {
-  const problem = (body ?? {}) as Problem;
-  const codes = problem.errors?.length
-    ? problem.errors.map((e) =>
-        e.path && !e.issue.includes(":") ? `${e.path}:${e.issue}` : e.issue,
-      )
-    : [problem.code ?? "INTERNAL"];
-  return [...new Set(codes)].slice(0, 10).join(",");
-}
 
 function back(path: string, codes: string): never {
   const join = path.includes("?") ? "&" : "?";

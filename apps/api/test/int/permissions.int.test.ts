@@ -50,6 +50,7 @@ const ENDPOINTS: Endpoint[] = [
     path: () => `/me/sessions/${randomUUID()}`,
     personal: true,
   },
+  { action: "profile.update", method: "PUT", path: () => "/me/profile", body: {}, personal: true },
   { action: "legal.acceptOwn", method: "GET", path: () => "/legal/pending", personal: true },
   {
     action: "legal.acceptOwn",

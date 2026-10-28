@@ -2,6 +2,7 @@ import { cn } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
+import { fieldId } from "./form-ids";
 
 /**
  * Form building blocks of the wizards: every field has a visible label tied
@@ -12,9 +13,7 @@ import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react
 export const INPUT =
   "mt-1 block min-h-12 w-full rounded-lg border border-warm-600 bg-white px-3 py-2 text-base focus-visible:border-night-900 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-night-100 aria-[invalid=true]:border-2 aria-[invalid=true]:border-red-600";
 
-export function fieldId(name: string): string {
-  return `f-${name.replace(/[^a-zA-Z0-9]/g, "-")}`;
-}
+export { fieldId };
 
 export function Field({
   label,

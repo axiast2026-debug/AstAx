@@ -279,3 +279,67 @@ describe("SIC-02 active context (X-AstAx-Context)", () => {
     }
   });
 });
+
+describe("Dan, 2026-10-28: name and phone of a private customer at the first access", () => {
+  it("the private customer saves name, surname and a mobile number, written as people write it", async () => {
+    const token = await h.token({
+      sub: "kc-profile-private",
+      azp: "astax-web-private",
+      roles: ["astax-private"],
+      email: "profilo.nuovo@example.test",
+    });
+    const pending = (await (await h.call("/legal/pending", { token })).json()) as {
+      versionId: string;
+    }[];
+    await h.call("/legal/acceptances", {
+      token,
+      body: { versionIds: pending.map((p) => p.versionId) },
+    });
+    const bad = await h.call("/me/profile", {
+      token,
+      method: "PUT",
+      body: { firstName: "Sara", lastName: "Conti", phone: "06 1234567" },
+    });
+    expect(bad.status).toBe(400);
+    expect(((await bad.json()) as { errors: { path: string; issue: string }[] }).errors).toEqual([
+      { path: "phone", issue: "INVALID_PHONE" },
+    ]);
+
+    const saved = await h.call("/me/profile", {
+      token,
+      method: "PUT",
+      body: { firstName: " Sara ", lastName: "Conti", phone: "333 765 4321" },
+    });
+    expect(saved.status).toBe(204);
+    const me = (await (await h.call("/me", { token })).json()) as Record<string, unknown>;
+    expect(me).toMatchObject({ firstName: "Sara", lastName: "Conti", phone: "+393337654321" });
+    const audit = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.auditLog.findFirst({ where: { action: "PROFILE_UPDATED", targetId: me.id as string } }),
+    );
+    expect(audit).not.toBeNull();
+
+    // The same number again is fine (a name correction); another one needs a code.
+    const again = await h.call("/me/profile", {
+      token,
+      method: "PUT",
+      body: { firstName: "Sara", lastName: "Conti Rossi", phone: "+39 333 7654321" },
+    });
+    expect(again.status).toBe(204);
+    const other = await h.call("/me/profile", {
+      token,
+      method: "PUT",
+      body: { firstName: "Sara", lastName: "Conti", phone: "333 0000000" },
+    });
+    expect(other.status).toBe(409);
+  });
+
+  it("a professional cannot set a profile here: 403", async () => {
+    const token = await h.tokenFor("agenzia-uno-owner");
+    const response = await h.call("/me/profile", {
+      token,
+      method: "PUT",
+      body: { firstName: "Anna", lastName: "Moretti", phone: "333 1234567" },
+    });
+    expect(response.status).toBe(403);
+  });
+});

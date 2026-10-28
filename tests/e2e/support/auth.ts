@@ -181,5 +181,23 @@ export async function acceptLegalIfAsked(page: Page): Promise<void> {
   // Customer and professional site: /documenti-legali; back office: /accetta-documenti.
   if (/\/(documenti-legali|accetta-documenti)$/.test(page.url())) {
     await page.getByRole("button", { name: /accetto|pranoj/ }).click();
+    await page.waitForURL((url) => !/\/(documenti-legali|accetta-documenti)$/.test(url.pathname));
   }
+  await completeProfileIfAsked(page);
+}
+
+/**
+ * Dan, 2026-10-28: the first access of a private customer asks name, surname
+ * and mobile phone (invented: rule 11), then goes home.
+ */
+export async function completeProfileIfAsked(
+  page: Page,
+  person: { firstName: string; lastName: string } = { firstName: "Giulia", lastName: "Prova" },
+): Promise<void> {
+  if (!/\/benvenuto$/.test(page.url())) return;
+  await page.getByLabel("Nome", { exact: true }).fill(person.firstName);
+  await page.getByLabel("Cognome").fill(person.lastName);
+  await page.getByLabel("Cellulare").fill(`333 ${String(Date.now()).slice(-7)}`);
+  await page.getByRole("button", { name: "Continua" }).click();
+  await page.waitForURL((url) => url.pathname !== "/benvenuto");
 }

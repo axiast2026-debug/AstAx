@@ -57,3 +57,14 @@ export function buildSyntheticIban(serial: number): string {
   const check = 98 - ibanMod97(`${bban}IT00`);
   return `IT${String(check).padStart(2, "0")}${bban}`;
 }
+
+/**
+ * An Italian mobile number as the customer writes it («333 123 4567»,
+ * «+39 333-1234567», «0039 3331234567») in one form: +39 and the digits.
+ * Null when it is not a mobile number (Dan, 2026-10-28: the private customer
+ * gives a phone at the first access, for the agency that wins).
+ */
+export function italianMobile(input: string): string | null {
+  const digits = input.replace(/[\s./()-]/g, "").replace(/^(\+39|0039)/, "");
+  return /^3\d{8,9}$/.test(digits) ? `+39${digits}` : null;
+}

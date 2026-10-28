@@ -25,9 +25,22 @@ test.describe("fase 1: accessi", () => {
     // First access: the account is created and the legal texts must be accepted (LEG-02).
     await expect(page).toHaveURL(`${WEB}/documenti-legali`);
     await expect(page.getByText("[DA VALIDARE — LEGALE]").first()).toBeVisible();
-    await acceptLegalIfAsked(page);
+    await page.getByRole("button", { name: /accetto/ }).click();
+
+    // Dan, 2026-10-28: then name, surname and mobile phone; a landline is refused
+    // and the names typed stay in the form.
+    await expect(page).toHaveURL(`${WEB}/benvenuto`);
+    await page.getByLabel("Nome", { exact: true }).fill("Giulia");
+    await page.getByLabel("Cognome").fill("Neri");
+    await page.getByLabel("Cellulare").fill("06 1234567");
+    await page.getByRole("button", { name: "Continua" }).click();
+    await expect(page.getByText("Scrivi un numero di cellulare italiano")).toBeVisible();
+    await expect(page.getByLabel("Cognome")).toHaveValue("Neri");
+    await page.getByLabel("Cellulare").fill("333 123 4567");
+    await page.getByRole("button", { name: "Continua" }).click();
 
     await expect(page).toHaveURL(`${WEB}/`);
+    await expect(page.getByRole("heading", { name: "Ciao Giulia" })).toBeVisible();
     const menu = page.getByRole("navigation", { name: "Menu principale" });
     // Dan, 2026-10-21: four items; documents, help and complaints at the bottom of the page.
     await expect(menu.getByRole("link")).toHaveText(["Home", "Preventivi", "Polizze", "Profilo"]);

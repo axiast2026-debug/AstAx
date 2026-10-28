@@ -547,7 +547,10 @@
     "INVALID_IBAN": "L'IBAN non è valido.",
     "PRINCIPAL_REQUIRED": "Indica il numero RUI dell'intermediario per cui lavori.",
     "COMPANY_OF_THE_REQUESTER": "Questa compagnia è anche dell'agenzia che chiede il preventivo: offri con un'altra compagnia.",
-    "PRINCIPAL_WITHOUT_COMPANIES": "Sul RUI la tua agenzia non ha compagnie mandanti: scrivici, le controlliamo noi."
+    "PRINCIPAL_WITHOUT_COMPANIES": "Sul RUI la tua agenzia non ha compagnie mandanti: scrivici, le controlliamo noi.",
+    "too_small": "Questo campo è obbligatorio.",
+    "INVALID_PHONE": "Scrivi un numero di cellulare italiano, per esempio 333 123 4567.",
+    "PHONE_CHANGE_NEEDS_CODE": "Per cambiare il telefono scrivi all'assistenza."
   },
   "wizard": {
     "choose": "Scegli",
@@ -2210,5 +2213,15 @@
         }
       }
     }
+  },
+  "welcome": {
+    "title": "Come ti chiami?",
+    "intro": "Ci servono per preparare i preventivi. Il telefono lo riceve solo l'agenzia che sceglierai, dopo il pagamento, per l'emissione della polizza.",
+    "firstName": "Nome",
+    "lastName": "Cognome",
+    "phone": "Cellulare",
+    "phoneHint": "Per esempio 333 123 4567.",
+    "submit": "Continua",
+    "saving": "Salvo…"
   }
 }
