@@ -92,6 +92,8 @@ const UPLOAD_KINDS: readonly DocumentKind[] = [
   "DRIVING_LICENCE",
   "RISK_CERTIFICATE",
   "FISCAL_CODE_CARD",
+  // ADR 0013 and Dan, 2026-10-28: the ID card, for every vehicle.
+  "IDENTITY_DOCUMENT",
   "CONSENT_FORM",
   "OTHER",
 ];
@@ -102,6 +104,11 @@ export interface UploadInput {
   fileName: string;
   contentType: string;
   body: Uint8Array;
+  /**
+   * Dan, 2026-10-28: one more file of the same document (back, other pages)
+   * instead of a replacement, up to `documents.maxFilesPerDocument`.
+   */
+  append?: boolean;
 }
 
 /** What the integration lets the requester change (Dan's answer to question 9). */
@@ -655,42 +662,73 @@ export class RequestsService {
       ]);
     }
     const now = this.clock.now();
-    const prepared = await withContext(this.db, auth.db, async (tx) => {
+    const preparedUpload = await withContext(this.db, auth.db, async (tx) => {
       const { request, scope } = await this.requireEditable(tx, auth, id);
       if (scope && !scope.documents.includes(input.kind)) {
         throw new ProblemError("CONFLICT", "The back office did not ask for this document");
       }
-      const { "documents.maxUploadMb": maxMb } = await settingsAt(
-        tx,
-        ["documents.maxUploadMb"],
-        now,
-      );
+      const { "documents.maxUploadMb": maxMb, "documents.maxFilesPerDocument": maxFiles } =
+        await settingsAt(tx, ["documents.maxUploadMb", "documents.maxFilesPerDocument"], now);
       if (input.body.byteLength === 0 || input.body.byteLength > maxMb * 1024 * 1024) {
         throw new ProblemError("VALIDATION_FAILED", undefined, [{ path: "body", issue: "size" }]);
       }
-      return request;
+      const siblings = input.append
+        ? await tx.document.findMany({
+            where: {
+              quoteRequestId: id,
+              kind: input.kind,
+              driverIndex: input.driverIndex,
+              deletedAt: null,
+            },
+            orderBy: { createdAt: "asc" },
+            select: { id: true, storageKey: true, fileName: true, mime: true },
+          })
+        : [];
+      if (siblings.length >= maxFiles) {
+        throw new ProblemError("VALIDATION_FAILED", undefined, [
+          { path: "body", issue: "TOO_MANY_FILES" },
+        ]);
+      }
+      return { request, siblings };
     });
+    const { request: prepared, siblings } = preparedUpload;
 
     const storageKey = `requests/${prepared.id}/${randomUUID()}`;
     await this.storage.put({ key: storageKey, body: input.body, contentType: input.contentType });
     const extraction = (EXTRACTABLE_DOCUMENTS as readonly string[]).includes(input.kind)
       ? await this.reader.extract({
           kind: input.kind as ExtractableDocument,
-          files: [{ key: storageKey, fileName: input.fileName, contentType: input.contentType }],
+          // All the files of the document read together: front and back are one ID card.
+          files: [
+            ...siblings.map((s) => ({
+              key: s.storageKey,
+              fileName: s.fileName,
+              contentType: s.mime,
+            })),
+            { key: storageKey, fileName: input.fileName, contentType: input.contentType },
+          ],
         })
       : null;
 
     return withContext(this.db, auth.db, async (tx) => {
-      // A new file of the same kind (and driver) replaces the previous one.
-      await tx.document.updateMany({
-        where: {
-          quoteRequestId: id,
-          kind: input.kind,
-          driverIndex: input.driverIndex,
-          deletedAt: null,
-        },
-        data: { deletedAt: now },
-      });
+      // A new file of the same kind (and driver) replaces the previous one, unless
+      // it adds a page: then the reading of all of them lives on the newest file.
+      if (input.append) {
+        await tx.document.updateMany({
+          where: { id: { in: siblings.map((s) => s.id) } },
+          data: { extractionEnc: null, extractedAt: null },
+        });
+      } else {
+        await tx.document.updateMany({
+          where: {
+            quoteRequestId: id,
+            kind: input.kind,
+            driverIndex: input.driverIndex,
+            deletedAt: null,
+          },
+          data: { deletedAt: now },
+        });
+      }
       const document = await tx.document.create({
         data: {
           kind: input.kind,
@@ -742,6 +780,63 @@ export class RequestsService {
         extraction: extraction ? { fields: extraction.fields } : null,
         readable: documentReadable(extraction, threshold),
       };
+    });
+  }
+
+  /**
+   * Dan, 2026-10-28: the customer takes away one file of a document before
+   * sending. The other files of the same document are read again together.
+   */
+  async removeDocument(auth: AuthContext, id: string, documentId: string): Promise<void> {
+    const now = this.clock.now();
+    const removed = await withContext(this.db, auth.db, async (tx) => {
+      const { request } = await this.requireEditable(tx, auth, id);
+      const document = await tx.document.findFirst({
+        where: {
+          id: documentId,
+          quoteRequestId: id,
+          deletedAt: null,
+          kind: { in: [...UPLOAD_KINDS] },
+        },
+      });
+      if (!document) throw new ProblemError("NOT_FOUND");
+      await tx.document.update({ where: { id: document.id }, data: { deletedAt: now } });
+      const rest = await tx.document.findMany({
+        where: {
+          quoteRequestId: id,
+          kind: document.kind,
+          driverIndex: document.driverIndex,
+          deletedAt: null,
+        },
+        orderBy: { createdAt: "asc" },
+        select: { id: true, storageKey: true, fileName: true, mime: true },
+      });
+      return { request, kind: document.kind, rest };
+    });
+    const { kind, rest } = removed;
+    const newest = rest.at(-1);
+    if (!newest || !(EXTRACTABLE_DOCUMENTS as readonly string[]).includes(kind)) return;
+    const extraction = await this.reader.extract({
+      kind: kind as ExtractableDocument,
+      files: rest.map((r) => ({ key: r.storageKey, fileName: r.fileName, contentType: r.mime })),
+    });
+    await withContext(this.db, auth.db, async (tx) => {
+      await tx.document.updateMany({
+        where: { id: { in: rest.map((r) => r.id) } },
+        data: { extractionEnc: null, extractedAt: null },
+      });
+      await tx.document.update({
+        where: { id: newest.id },
+        data: {
+          extractionEnc: encryptJson(this.cipher, {
+            fields: extraction.fields,
+            warnings: extraction.warnings,
+            model: extraction.model,
+            promptVersion: extraction.promptVersion,
+          }),
+          extractedAt: now,
+        },
+      });
     });
   }
 

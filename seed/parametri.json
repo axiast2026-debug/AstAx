@@ -101,6 +101,7 @@
     { "key": "home.publicData.minClosedAuctions", "value": 30, "description": "Aste chiuse nel periodo sotto le quali la home pubblica non mostra dati veri", "rule": "—" },
     { "key": "home.publicData.windowDays", "value": 30, "description": "Giorni su cui la home pubblica calcola offerte medie e risparmio medio", "rule": "—" },
     { "key": "documents.maxUploadMb", "value": 15, "description": "Dimensione massima di un file caricato", "rule": "—" },
+    { "key": "documents.maxFilesPerDocument", "value": 4, "description": "File per documento (fronte, retro, più pagine) che il cliente può caricare insieme (Dan, 2026-10-28)", "rule": "—" },
     { "key": "notes.maxChars", "value": 300, "description": "Lunghezza delle note per il cliente", "rule": "VIS-11" },
     { "key": "drivingFormula.expertMinAge", "value": 26, "description": "Età minima di tutti i conducenti per la formula esperta", "rule": "—" },
     { "key": "session.privateDays", "value": 30, "description": "Giorni senza usare l'app dopo i quali il privato rientra con un nuovo codice (domanda 2)", "rule": "SIC-05" },

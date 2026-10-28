@@ -51,6 +51,17 @@ function readSeedFile(repoRoot: string, name: string): unknown {
   return JSON.parse(readFileSync(join(repoRoot, "seed", name), "utf8"));
 }
 
+/** seed/cap.csv, written by `pnpm reference:postal-codes` from GeoNames (seed/FONTI.md). */
+export function readPostalCodes(repoRoot: string): { istatCode: string; caps: string }[] {
+  const [header, ...rows] = parseSemicolonCsv(
+    readFileSync(join(repoRoot, "seed", "cap.csv"), "utf8"),
+  );
+  if (header?.join(";") !== "istat;cap") throw new Error("Unexpected seed/cap.csv header");
+  return rows
+    .filter(([istat, caps]) => /^\d{6}$/.test(istat ?? "") && /^\d{5}(\|\d{5})*$/.test(caps ?? ""))
+    .map(([istatCode = "", caps = ""]) => ({ istatCode, caps }));
+}
+
 /** seed/comuni.csv, written by `pnpm reference:municipalities` from the ISTAT list. */
 export function readMunicipalities(
   repoRoot: string,
@@ -173,6 +184,12 @@ export async function seedReference(tx: DbTransaction, repoRoot: string): Promis
 
   const municipalities = readMunicipalities(repoRoot);
   await tx.municipality.createMany({ data: municipalities, skipDuplicates: true });
+  // The CAPs also on a database seeded before them: one statement for all.
+  const postalCodes = readPostalCodes(repoRoot);
+  await tx.$executeRaw`
+    UPDATE "Municipality" AS m SET "postalCodes" = string_to_array(v.caps, '|')
+    FROM unnest(${postalCodes.map((p) => p.istatCode)}::text[], ${postalCodes.map((p) => p.caps)}::text[]) AS v(code, caps)
+    WHERE m."istatCode" = v.code AND m."postalCodes" IS DISTINCT FROM string_to_array(v.caps, '|')`;
 
   const holidaysFile = holidaysFileSchema.parse(readSeedFile(repoRoot, "festivita.json"));
   const holidays = [

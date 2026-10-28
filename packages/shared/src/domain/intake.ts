@@ -68,11 +68,13 @@ export const IntakeSchema = z
   });
 export type Intake = z.infer<typeof IntakeSchema>;
 
-/** The documents the customer uploads (ADR 0013): the ID card only for a new vehicle. */
-export function intakeDocuments(intake: Pick<Intake, "vehicleStatus">): string[] {
-  return intake.vehicleStatus === "NEW"
-    ? ["REGISTRATION_CERTIFICATE", "IDENTITY_DOCUMENT"]
-    : ["REGISTRATION_CERTIFICATE", "DRIVING_LICENCE"];
+/**
+ * The documents the customer uploads (ADR 0013): the registration and the ID
+ * card, for a vehicle already insured too (Dan, 2026-10-28: no driving
+ * licence, no risk certificate).
+ */
+export function intakeDocuments(_intake: Pick<Intake, "vehicleStatus">): string[] {
+  return ["REGISTRATION_CERTIFICATE", "IDENTITY_DOCUMENT"];
 }
 
 type Extracted = Record<string, string | number | boolean | null | undefined>;
@@ -178,14 +180,15 @@ export function quoteDataFromIntake(
         registeredOffice: intake.residence,
       }
     : person;
-  // A company's vehicle: the main driver is the person of the licence, never the company.
+  // A company's vehicle: the main driver is a person, never the company: the one of
+  // the ID card (Dan, 2026-10-28), or of a licence uploaded before that change.
   const driver: Record<string, unknown> = company
     ? {
         kind: "PERSON",
-        surname: str(licence.surname),
-        givenName: str(licence.givenName),
-        fiscalCode: str(licence.fiscalCode),
-        birthDate: str(licence.birthDate),
+        surname: str(identity.surname) ?? str(licence.surname),
+        givenName: str(identity.givenName) ?? str(licence.givenName),
+        fiscalCode: str(identity.fiscalCode) ?? str(licence.fiscalCode),
+        birthDate: str(identity.birthDate) ?? str(licence.birthDate),
         residence: intake.residence,
       }
     : person;

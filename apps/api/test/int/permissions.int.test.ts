@@ -384,6 +384,11 @@ const ENDPOINTS: Endpoint[] = [
   },
   { action: "request.create", method: "POST", path: () => `/requests/${randomUUID()}/documents` },
   {
+    action: "request.create",
+    method: "DELETE",
+    path: () => `/requests/${randomUUID()}/documents/${randomUUID()}`,
+  },
+  {
     action: "request.viewOwn",
     method: "GET",
     path: () => `/requests/${randomUUID()}/documents/${randomUUID()}/file`,

@@ -9,9 +9,9 @@ import { fieldId } from "./form-ids";
  * to it (fase 2 criterion: keyboard use and labels), and errors are listed at
  * the top with a link to the field.
  */
-// Design system, «Campi»: 48 px, a 3:1 border; focus night blue with a halo; errors in red.
-export const INPUT =
-  "mt-1 block min-h-12 w-full rounded-lg border border-warm-600 bg-white px-3 py-2 text-base focus-visible:border-night-900 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-night-100 aria-[invalid=true]:border-2 aria-[invalid=true]:border-red-600";
+import { INPUT_CLASS as INPUT } from "./wizard/field-style";
+
+export { INPUT };
 
 export { fieldId };
 

@@ -124,6 +124,7 @@ export const settingSchemas = {
   "home.publicData.minClosedAuctions": positiveInt,
   "home.publicData.windowDays": positiveInt,
   "documents.maxUploadMb": positiveInt,
+  "documents.maxFilesPerDocument": positiveInt,
   "notes.maxChars": positiveInt,
   "drivingFormula.expertMinAge": positiveInt,
   "session.privateDays": positiveInt,

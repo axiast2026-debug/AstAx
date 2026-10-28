@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
   HttpCode,
@@ -170,6 +171,7 @@ export class RequestsController {
     @Param("id") id: string,
     @Query("kind") kind: string | undefined,
     @Query("driverIndex") driverIndex: string | undefined,
+    @Query("append") append: string | undefined,
     @Headers("content-type") contentType: string | undefined,
     @Headers("x-file-name") fileName: string | undefined,
     @Req() request: Request,
@@ -193,7 +195,20 @@ export class RequestsController {
       fileName: name,
       contentType: (contentType ?? "").split(";")[0]?.trim() ?? "",
       body: new Uint8Array(body),
+      append: append === "1",
     });
+  }
+
+  /** Dan, 2026-10-28: one file of a document taken away before sending. */
+  @Delete("requests/:id/documents/:documentId")
+  @HttpCode(204)
+  @RequirePermission("request.create")
+  async removeDocument(
+    @CurrentAuth() auth: AuthContext,
+    @Param("id") id: string,
+    @Param("documentId") documentId: string,
+  ): Promise<void> {
+    await this.requests.removeDocument(auth, idOf(id), idOf(documentId));
   }
 
   @Get("requests/:id/documents/:documentId/file")

@@ -99,7 +99,7 @@ describe("ADR 0013: the request in two stages", () => {
 
   it("each photo says at once whether it can be read", async () => {
     const blurred = await r.json<{ readable: boolean }>(
-      await r.upload(customer, requestId, "DRIVING_LICENCE", "patente-low-confidence.jpg", 0),
+      await r.upload(customer, requestId, "IDENTITY_DOCUMENT", "identita-low-confidence.jpg"),
       201,
     );
     expect(blurred.readable).toBe(false);
@@ -119,10 +119,10 @@ describe("ADR 0013: the request in two stages", () => {
       400,
     );
     expect(refused.errors).toEqual([
-      { path: "documents.DRIVING_LICENCE", issue: "DOCUMENT_UNREADABLE" },
+      { path: "documents.IDENTITY_DOCUMENT", issue: "DOCUMENT_UNREADABLE" },
     ]);
     const sharp = await r.json<{ readable: boolean }>(
-      await r.upload(customer, requestId, "DRIVING_LICENCE", "patente-giulia-neri.jpg", 0),
+      await r.upload(customer, requestId, "IDENTITY_DOCUMENT", "identita-giulia-neri.jpg"),
       201,
     );
     expect(sharp.readable).toBe(true);
@@ -237,7 +237,7 @@ describe("broker plan (Dan, 2026-10-21): single vehicle with the essential data"
       await r.upload(broker, id, "REGISTRATION_CERTIFICATE", "libretto-anna-riva.jpg"),
       201,
     );
-    await r.json(await r.upload(broker, id, "DRIVING_LICENCE", "patente-anna-riva.jpg", 0), 201);
+    await r.json(await r.upload(broker, id, "IDENTITY_DOCUMENT", "identita-anna-riva.jpg"), 201);
     const submitted = await r.json<{ status: string }>(
       await r.call(broker, `/requests/${id}/submit`, { body: {} }),
       200,
@@ -259,5 +259,47 @@ describe("broker plan (Dan, 2026-10-21): single vehicle with the essential data"
     );
     expect(await search({ customer: "riva", statuses: ["DRAFT"] })).not.toContain(id);
     expect(await search({ customer: "Nessuno Così" })).toEqual([]);
+  });
+});
+
+describe("Dan, 2026-10-28: several files for one document", () => {
+  it("front and back of the ID card are added, read together, and one can be taken away", async () => {
+    const id = (
+      await r.json<{ id: string }>(await r.call(customer, "/requests", { body: {} }), 201)
+    ).id;
+    const front = await r.json<{ id: string; readable: boolean }>(
+      await r.upload(customer, id, "IDENTITY_DOCUMENT", "identita-giulia-neri-fronte.jpg"),
+      201,
+    );
+    const back = await r.json<{ id: string; readable: boolean }>(
+      await r.upload(
+        customer,
+        id,
+        "IDENTITY_DOCUMENT",
+        "identita-giulia-neri-retro.jpg",
+        undefined,
+        true,
+      ),
+      201,
+    );
+    expect(back.readable).toBe(true);
+    const detail = await r.json<{ documents: { id: string; kind: string }[] }>(
+      await r.call(customer, `/requests/${id}`),
+      200,
+    );
+    expect(detail.documents.filter((d) => d.kind === "IDENTITY_DOCUMENT").map((d) => d.id)).toEqual(
+      expect.arrayContaining([front.id, back.id]),
+    );
+    expect(
+      (await r.call(customer, `/requests/${id}/documents/${front.id}`, { method: "DELETE" }))
+        .status,
+    ).toBe(204);
+    const after = await r.json<{ documents: { id: string; kind: string }[] }>(
+      await r.call(customer, `/requests/${id}`),
+      200,
+    );
+    expect(after.documents.filter((d) => d.kind === "IDENTITY_DOCUMENT").map((d) => d.id)).toEqual([
+      back.id,
+    ]);
   });
 });

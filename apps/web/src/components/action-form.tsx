@@ -11,6 +11,8 @@ import { fieldId } from "./form-ids";
  * and the cursor goes to the first one (Dan, 2026-10-28). The values never
  * travel in the address of the page (rule 8).
  */
+const last = (path: string) => path.split(".").pop() ?? path;
+
 export function ActionForm({
   action,
   children,
@@ -34,11 +36,13 @@ export function ActionForm({
       next
         .split(",")
         .filter(Boolean)
-        .map((c) => c.split(":")[0] ?? ""),
+        .map((c) => last(c.split(":")[0] ?? "")),
     );
     for (const el of root.querySelectorAll<HTMLElement>("input, select, textarea")) {
-      const name = el.getAttribute("name") ?? "";
-      if (wrong.has(name)) el.setAttribute("aria-invalid", "true");
+      // The API says «residence.postalCode», the form field is «intake.postalCode»:
+      // the last part of the name is what they share.
+      const name = last(el.getAttribute("name") ?? "");
+      if (name && wrong.has(name)) el.setAttribute("aria-invalid", "true");
       else if (el.getAttribute("aria-invalid") === "true") el.removeAttribute("aria-invalid");
     }
     const first = root.querySelector<HTMLElement>("[aria-invalid=true]");

@@ -80,7 +80,7 @@ beforeAll(async () => {
     201,
   );
   await r.json(
-    await r.upload(broker, requestId, "DRIVING_LICENCE", "patente-anna-riva.jpg", 0),
+    await r.upload(broker, requestId, "IDENTITY_DOCUMENT", "identita-anna-riva.jpg"),
     201,
   );
   await r.json(

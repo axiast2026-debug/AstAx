@@ -107,7 +107,7 @@ export class ReferenceService {
       return withContext(this.db, auth.db, (tx) =>
         tx.municipality.findMany({
           where: { cadastralCode: cadastral },
-          select: { istatCode: true, name: true, province: true },
+          select: { istatCode: true, name: true, province: true, postalCodes: true },
         }),
       );
     }
@@ -120,7 +120,7 @@ export class ReferenceService {
           : { name: { startsWith: q, mode: "insensitive" } },
         orderBy: { name: "asc" },
         take: 20,
-        select: { istatCode: true, name: true, province: true },
+        select: { istatCode: true, name: true, province: true, postalCodes: true },
       }),
     );
   }

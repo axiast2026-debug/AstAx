@@ -106,7 +106,7 @@ describe("ADR 0015: the agency that requests quotes for its customers", () => {
       201,
     );
     await r.json(
-      await r.upload(owner, requestId, "DRIVING_LICENCE", "patente-anna-riva.jpg", 0),
+      await r.upload(owner, requestId, "IDENTITY_DOCUMENT", "identita-anna-riva.jpg"),
       201,
     );
     const sent = await r.json<{ status: string }>(

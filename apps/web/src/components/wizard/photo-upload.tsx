@@ -4,10 +4,12 @@ import { fieldId } from "@/components/form";
 import { AutoSubmitFile } from "./auto-submit-file";
 
 /**
- * One photo of the simplified request (Dan, 2026-10-21): sent as soon as it
+ * One document of the simplified request (Dan, 2026-10-21): sent as soon as it
  * is chosen, with the camera on a phone; if the bot cannot read it the
  * customer is told at once to take it again (ADR 0013). Three looks (design
  * system, PhotoUpload): to take (dashed), read (green tick), unreadable (warning).
+ * Dan, 2026-10-28: PDF or photos, several files together (front and back,
+ * pages), each listed with «Togli»; «Aggiungi un altro file» adds to them.
  */
 export async function PhotoUpload({
   requestId,
@@ -17,9 +19,10 @@ export async function PhotoUpload({
   driverIndex,
   title,
   intro,
-  current,
+  files,
   unreadable,
   action,
+  remove,
 }: {
   requestId: string;
   base: string;
@@ -28,10 +31,12 @@ export async function PhotoUpload({
   driverIndex?: number;
   title: string;
   intro: string;
-  current: string | undefined;
+  files: { id: string; fileName: string }[];
   unreadable: boolean;
   action: (formData: FormData) => Promise<void>;
+  remove: (formData: FormData) => Promise<void>;
 }) {
+  const current = files.length > 0;
   const t = await getTranslations("wizard.upload");
   const id = fieldId(`photo-${kind}`);
   const look = unreadable
@@ -48,6 +53,7 @@ export async function PhotoUpload({
       {driverIndex === undefined ? null : (
         <input type="hidden" name="driverIndex" value={driverIndex} />
       )}
+      <input type="hidden" name="adding" value={current ? "1" : "0"} />
       <div className="flex items-start gap-3">
         <span
           aria-hidden
@@ -68,12 +74,34 @@ export async function PhotoUpload({
               {t("unreadable")}
             </p>
           ) : current ? (
-            <p className="text-table text-green-700">{t("received", { name: current })}</p>
+            <p className="text-table text-green-700">
+              {t("receivedCount", { count: files.length })}
+            </p>
           ) : (
             <p className="text-table text-warm-600">{intro}</p>
           )}
         </span>
       </div>
+      {current ? (
+        <ul className="space-y-1">
+          {files.map((f) => (
+            <li key={f.id} className="flex items-center justify-between gap-3 text-table">
+              <span className="min-w-0 truncate">{f.fileName}</span>
+              <button
+                type="submit"
+                formAction={remove}
+                formNoValidate
+                name="documentId"
+                value={f.id}
+                className="min-h-11 shrink-0 rounded-lg px-3 font-semibold text-night-900 underline underline-offset-2"
+                aria-label={t("removeFile", { name: f.fileName })}
+              >
+                {t("remove")}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <label
         htmlFor={id}
         className={buttonVariants({
@@ -84,9 +112,9 @@ export async function PhotoUpload({
         })}
       >
         <Icon name="camera" />
-        {current ? t("retake") : t("take")}
+        {current ? t("addFile") : t("take")}
       </label>
-      <AutoSubmitFile id={id} />
+      <AutoSubmitFile id={id} multiple />
     </form>
   );
 }

@@ -550,7 +550,10 @@
     "PRINCIPAL_WITHOUT_COMPANIES": "Sul RUI la tua agenzia non ha compagnie mandanti: scrivici, le controlliamo noi.",
     "too_small": "Questo campo è obbligatorio.",
     "INVALID_PHONE": "Scrivi un numero di cellulare italiano, per esempio 333 123 4567.",
-    "PHONE_CHANGE_NEEDS_CODE": "Per cambiare il telefono scrivi all'assistenza."
+    "PHONE_CHANGE_NEEDS_CODE": "Per cambiare il telefono scrivi all'assistenza.",
+    "INVALID_DATE": "Scrivi la data come gg/mm/aaaa, per esempio 12/03/1985.",
+    "REQUIRED": "Scegli una delle possibilità.",
+    "TOO_MANY_FILES": "Hai già caricato il numero massimo di file per questo documento: togline uno per aggiungerne un altro."
   },
   "wizard": {
     "choose": "Scegli",
@@ -625,13 +628,17 @@
     },
     "upload": {
       "file": "Foto o PDF",
-      "take": "Scatta o scegli la foto",
+      "take": "Scatta o scegli le foto o il PDF",
       "retake": "Rifai la foto",
       "received": "Ricevuto: {name}",
       "unreadable": "Questa foto non si legge bene: rifalla con più luce, senza riflessi, con tutto il documento nell’inquadratura.",
       "upload": "Carica",
       "replace": "Sostituisci",
-      "current": "Caricato: {name}"
+      "current": "Caricato: {name}",
+      "receivedCount": "{count, plural, one {Ricevuto 1 file} other {Ricevuti # file}}",
+      "addFile": "Aggiungi un altro file",
+      "remove": "Togli",
+      "removeFile": "Togli {name}"
     },
     "vehicle": {
       "registrationTitle": "Libretto di circolazione",
@@ -778,9 +785,14 @@
       "continue": "Continua",
       "brokerDeclaration": "Il consenso del cliente è coperto dalla dichiarazione che il tuo studio ha firmato all'ingresso su AstAx.",
       "savedNote": "I dati sono salvati a ogni passaggio: puoi riprendere quando vuoi.",
-      "readFromRegistration": "Letta dal libretto: controlla che sia giusta.",
-      "readFromLicence": "Letta dalla patente: controlla che sia giusta.",
-      "fromCustomerCard": "Dalla scheda del cliente: controlla che sia giusta."
+      "fromCustomerCard": "Dalla scheda del cliente: controlla che sia giusta.",
+      "municipalityHint": "Scrivi le prime lettere e scegli il comune dall'elenco.",
+      "municipalityNoResults": "Nessun comune con questo nome: controlla come l'hai scritto.",
+      "postalCodeChoose": "Questo comune ha più CAP: scegli il tuo.",
+      "postalCodeFree": "Per questo comune non abbiamo il CAP: scrivilo tu (5 cifre).",
+      "dateFormat": "gg/mm/aaaa",
+      "dateFormatHint": "Scrivila come gg/mm/aaaa, oppure incollala.",
+      "postalCodePlaceholder": "Scegli il CAP"
     },
     "coverage": {
       "package": "Quali garanzie vuoi",

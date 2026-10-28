@@ -73,3 +73,23 @@ export function addCalendarDays(date: string, days: number): string {
     day: utc.getUTCDate(),
   });
 }
+
+/**
+ * A date as an Italian writes or pastes it (Dan, 2026-10-28): «12/03/1985»,
+ * «12-03-1985», «12.03.1985», «12 03 1985», «12031985», «12/3/85» is not
+ * accepted (a two-digit year is ambiguous), and «1985-03-12» as the form
+ * itself. Returns the calendar date «1985-03-12», or null when it is not a
+ * real day.
+ */
+export function parseItalianDate(input: string): string | null {
+  const value = input.trim();
+  if (CALENDAR_DATE_PATTERN.test(value)) return isCalendarDate(value) ? value : null;
+  const match =
+    /^(\d{1,2})[/.\-\s]+(\d{1,2})[/.\-\s]+(\d{4})$/.exec(value) ??
+    /^(\d{2})(\d{2})(\d{4})$/.exec(value);
+  if (!match) return null;
+  const [, day = "", month = "", year = ""] = match;
+  const parts = { year: Number(year), month: Number(month), day: Number(day) };
+  const date = formatCalendarDate(parts);
+  return isCalendarDate(date) ? date : null;
+}

@@ -291,6 +291,8 @@ model Municipality {
   cadastralCode String   @unique
   province      String
   name          String
+  /// Postal codes (CAP) from seed/cap.csv; empty when unknown (Dan, 2026-10-28).
+  postalCodes   String[] @default([])
   createdAt     DateTime @default(now()) @db.Timestamptz(3)
   updatedAt     DateTime @default(now()) @db.Timestamptz(3)
 

@@ -8,9 +8,12 @@
 export function AutoSubmitFile({
   id,
   accept = "image/jpeg,image/png,image/webp,application/pdf",
+  multiple = false,
 }: {
   id: string;
   accept?: string;
+  /** Dan, 2026-10-28: front and back, several pages, chosen together. */
+  multiple?: boolean;
 }) {
   return (
     <input
@@ -18,6 +21,7 @@ export function AutoSubmitFile({
       name="file"
       type="file"
       accept={accept}
+      multiple={multiple}
       required
       className="sr-only"
       onChange={(event) => event.currentTarget.form?.requestSubmit()}

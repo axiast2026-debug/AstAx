@@ -31,7 +31,8 @@
     "legal:check": "tsx src/scripts/legal-check.ts",
     "reference:municipalities": "tsx src/scripts/import-municipalities.ts",
     "release:check": "tsx src/scripts/release-check.ts",
-    "seed:reference": "tsx src/seed/reference-run.ts"
+    "seed:reference": "tsx src/seed/reference-run.ts",
+    "reference:postal-codes": "tsx src/scripts/import-postal-codes.ts"
   },
   "dependencies": {
     "@astax/shared": "workspace:*",

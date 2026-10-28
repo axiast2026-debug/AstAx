@@ -1,6 +1,7 @@
 "use server";
 
 import { SystemClock } from "@astax/adapters/clock";
+import { parseItalianDate } from "@astax/shared/domain";
 import { romeCalendarDate } from "@astax/shared/format";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -51,9 +52,10 @@ async function uploadFile(
   kind: string,
   file: FormDataEntryValue | null,
   driverIndex?: number,
+  append = false,
 ) {
-  if (!(file instanceof File) || file.size === 0) return { ok: true, codes: "" };
-  const query = `kind=${kind}${driverIndex === undefined ? "" : `&driverIndex=${driverIndex}`}`;
+  if (!(file instanceof File) || file.size === 0) return { ok: true, codes: "", readable: true };
+  const query = `kind=${kind}${driverIndex === undefined ? "" : `&driverIndex=${driverIndex}`}${append ? "&append=1" : ""}`;
   const response = await webAuth().api(
     await sessionId(),
     `/requests/${id}/documents?${query}`,
@@ -137,16 +139,39 @@ export async function uploadDocument(formData: FormData): Promise<void> {
   const step = (text(formData, "step") ?? "dati").replace(/[^a-z?=A-Z_]/g, "");
   const kind = text(formData, "kind") ?? "OTHER";
   const driver = text(formData, "driverIndex");
-  const result = await uploadFile(
-    id,
-    kind,
-    formData.get("file"),
-    driver === undefined ? undefined : Number(driver),
-  );
+  // Dan, 2026-10-28: several files at once (front and back, pages), PDF or photos.
+  // The first replaces what was there unless the document already has files.
+  const files = formData.getAll("file").filter((f) => f instanceof File && f.size > 0);
+  const adding = formData.get("adding") === "1";
   const target = `${base}/${id}/${step}`;
-  if (!result.ok) back(target, result.codes);
+  let result = { ok: true, codes: "", readable: true };
+  for (const [index, file] of files.entries()) {
+    result = await uploadFile(
+      id,
+      kind,
+      file,
+      driver === undefined ? undefined : Number(driver),
+      adding || index > 0,
+    );
+    if (!result.ok) back(target, result.codes);
+  }
   const join = target.includes("?") ? "&" : "?";
   redirect(result.readable ? target : `${target}${join}illeggibile=${encodeURIComponent(kind)}`);
+}
+
+/** Dan, 2026-10-28: one file of a document taken away before sending. */
+export async function removeDocumentFile(formData: FormData): Promise<void> {
+  const id = requestId(formData.get("requestId"));
+  const base = basePath(formData.get("base"));
+  const step = (text(formData, "step") ?? "dati").replace(/[^a-z?=A-Z_]/g, "");
+  const documentId = text(formData, "documentId") ?? "";
+  const target = `${base}/${id}/${step}`;
+  if (!/^[0-9a-f-]{36}$/i.test(documentId)) redirect(target);
+  const { status, body } = await api(`/requests/${id}/documents/${documentId}`, {
+    method: "DELETE",
+  });
+  if (status !== 204) back(target, problemCodes(body));
+  redirect(target);
 }
 
 // -------------------------------------------------------------- step 2: people and drivers
@@ -159,10 +184,9 @@ interface Municipality {
 
 // -------------------------------------------------------------- steps 3 and 4: coverage and auction
 
-export async function saveCoverageStep(formData: FormData): Promise<void> {
+export async function saveCoverageStep(formData: FormData): Promise<string | undefined> {
   const id = requestId(formData.get("requestId"));
   const base = basePath(formData.get("base"));
-  const step = "copertura";
   const options = await requestOptions();
   const terms = requestTermsFromForm(formData, {
     auctionDurationHours: options.defaultAuctionDurationHours,
@@ -170,7 +194,7 @@ export async function saveCoverageStep(formData: FormData): Promise<void> {
     today: today(),
   });
   const saved = await saveSection(id, "request", terms);
-  if (!saved.ok) back(`${base}/${id}/${step}`, saved.codes);
+  if (!saved.ok) return saved.codes;
   // From the coverages to the confirmation (Dan, 2026-10-21).
   redirect(`${base}/${id}/conferma`);
 }
@@ -187,30 +211,41 @@ async function currentIntake(id: string): Promise<Record<string, unknown>> {
   return body.draft?.intake ?? {};
 }
 
-/** Screen 2: plate, owner's birth date, residence, and for a new vehicle the class. */
-export async function saveIntakeStep(formData: FormData): Promise<void> {
+/**
+ * Screen 2: plate, owner's birth date, residence, and for a new vehicle the
+ * class. Answers the error codes and keeps the form as typed (Dan, 2026-10-28);
+ * goes to the next screen once saved.
+ */
+export async function saveIntakeStep(formData: FormData): Promise<string | undefined> {
   const id = requestId(formData.get("requestId"));
   const base = basePath(formData.get("base"));
   const status = text(formData, "intake.vehicleStatus") === "NEW" ? "NEW" : "INSURED";
-  const here = `${base}/${id}/dati?stato=${status}`;
-  const name = text(formData, "intake.municipality") ?? "";
-  const province = text(formData, "intake.province")?.toUpperCase();
-  const candidates = name
-    ? (await api<Municipality[]>(`/reference/municipalities?q=${encodeURIComponent(name)}`)).body
-    : [];
-  const municipality = candidates.find(
-    (m) => m.name.toLowerCase() === name.toLowerCase() && (!province || m.province === province),
-  );
-  if (!municipality) back(here, "intake.municipality:MUNICIPALITY_NOT_FOUND");
+  // The municipality chosen from the suggestions: its ISTAT code, not the name typed.
+  const code = text(formData, "intake.municipalityIstat") ?? "";
+  const municipality = /^\d{6}$/.test(code)
+    ? (await api<Municipality[]>(`/reference/municipalities?q=${code}`)).body[0]
+    : undefined;
+  // Dates typed or pasted in Italian («12/03/1985»): an unreadable one is an error
+  // of that field only.
+  const problems: string[] = [];
+  if (!municipality) problems.push("intake.municipality:NOT_IN_LIST");
+  const date = (field: string, path: string) => {
+    const raw = text(formData, field);
+    if (!raw) return undefined;
+    const parsed = parseItalianDate(raw);
+    if (!parsed) problems.push(`${path}:INVALID_DATE`);
+    return parsed ?? undefined;
+  };
+  const ownerBirthDate = date("intake.ownerBirthDate", "ownerBirthDate");
+  const relativeBirthDate = date("intake.relativeBirthDate", "classSource.relativeBirthDate");
+  if (problems.length > 0 || !municipality) return problems.join(",");
   const previous = await currentIntake(id);
   const source = text(formData, "intake.classSource");
   const intake = {
     vehicleStatus: status,
     plate: text(formData, "intake.plate"),
     // A company's request has none (question 25).
-    ...(text(formData, "intake.ownerBirthDate")
-      ? { ownerBirthDate: text(formData, "intake.ownerBirthDate") }
-      : {}),
+    ...(ownerBirthDate ? { ownerBirthDate } : {}),
     residence: {
       street: text(formData, "intake.street"),
       postalCode: text(formData, "intake.postalCode"),
@@ -225,29 +260,27 @@ export async function saveIntakeStep(formData: FormData): Promise<void> {
             ...(source !== "FIRST_POLICY" && text(formData, "intake.otherPlate")
               ? { plate: text(formData, "intake.otherPlate") }
               : {}),
-            ...(source === "FAMILY" && text(formData, "intake.relativeBirthDate")
-              ? { relativeBirthDate: text(formData, "intake.relativeBirthDate") }
-              : {}),
+            ...(source === "FAMILY" && relativeBirthDate ? { relativeBirthDate } : {}),
           },
         }
       : {}),
   };
   const saved = await saveSection(id, "intake", intake);
-  if (!saved.ok) back(here, saved.codes);
+  if (!saved.ok) return saved.codes;
   redirect(`${base}/${id}/guida`);
 }
 
 /** Screen 3: the type of driving. */
-export async function saveDrivingStep(formData: FormData): Promise<void> {
+export async function saveDrivingStep(formData: FormData): Promise<string | undefined> {
   const id = requestId(formData.get("requestId"));
   const base = basePath(formData.get("base"));
   const formula = text(formData, "intake.drivingFormula");
-  if (!formula) back(`${base}/${id}/guida`, "drivingFormula:REQUIRED");
+  if (!formula) return "intake.drivingFormula:REQUIRED";
   const saved = await saveSection(id, "intake", {
     ...(await currentIntake(id)),
     drivingFormula: formula,
   });
-  if (!saved.ok) back(`${base}/${id}/guida`, saved.codes);
+  if (!saved.ok) return saved.codes;
   redirect(`${base}/${id}/copertura`);
 }
 

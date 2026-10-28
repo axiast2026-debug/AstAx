@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addCalendarDays,
   compareCalendarDates,
+  parseItalianDate,
   completedYears,
   isCalendarDate,
 } from "./calendar-date.js";
@@ -25,5 +26,29 @@ describe("calendar dates", () => {
     expect(compareCalendarDates("2026-01-01", "2025-12-31")).toBe(1);
     expect(addCalendarDays("2026-12-30", 3)).toBe("2027-01-02");
     expect(addCalendarDays("2026-03-01", -1)).toBe("2026-02-28");
+  });
+});
+
+describe("parseItalianDate (Dan, 2026-10-28: a birth date can be pasted)", () => {
+  it("reads the ways a date is written or pasted", () => {
+    for (const input of [
+      "12/03/1985",
+      "12-03-1985",
+      "12.03.1985",
+      " 12 03 1985 ",
+      "12031985",
+      "1985-03-12",
+      "12/3/1985",
+    ]) {
+      expect(parseItalianDate(input), input).toBe("1985-03-12");
+    }
+  });
+
+  it("refuses days that do not exist and two-digit years", () => {
+    expect(parseItalianDate("31/02/1990")).toBeNull();
+    expect(parseItalianDate("29/02/2001")).toBeNull();
+    expect(parseItalianDate("29/02/2000")).toBe("2000-02-29");
+    expect(parseItalianDate("12/03/85")).toBeNull();
+    expect(parseItalianDate("ieri")).toBeNull();
   });
 });

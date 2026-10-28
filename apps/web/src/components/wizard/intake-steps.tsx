@@ -4,13 +4,18 @@ import { Button } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import {
   confirmAndSubmit,
+  removeDocumentFile,
   saveDrivingStep,
   saveIntakeStep,
   uploadDocument,
 } from "@/app/request-actions";
+import { ActionForm } from "@/components/action-form";
 import { CheckField, Field, hasError } from "@/components/form";
+import type { MunicipalitySuggestion } from "@/app/riferimenti/comuni/route";
 import { api } from "@/lib/auth";
-import { extracted, latestDocument, type RequestDetail, type RequestOptions } from "@/lib/requests";
+import type { RequestDetail, RequestOptions } from "@/lib/requests";
+import { DateField } from "./date-field";
+import { MunicipalityField } from "./municipality-field";
 import { PhotoUpload } from "./photo-upload";
 import { ChoiceCard, ChoiceLink, StickyActions } from "./wizard-ui";
 
@@ -68,26 +73,17 @@ export async function IntakeDataStep({
 }) {
   const t = await getTranslations("wizard.intake");
   const intake = intakeOf(detail);
-  const registration = latestDocument(detail, "REGISTRATION_CERTIFICATE");
-  // The bot's reading of the registration proposes plate and address.
-  const fromRegistration = (field: string) => extracted(registration, field);
-  // The town from the saved data, or the one the bot read on the registration.
-  const municipalityCode =
-    intake.residence?.municipalityIstat ?? fromRegistration("ownerMunicipalityIstat");
-  const municipalityName = municipalityCode
-    ? (await api<{ name: string }[]>(`/reference/municipalities?q=${municipalityCode}`)).body[0]
-        ?.name
-    : undefined;
-  const photos = [
-    ...intakeDocuments({ vehicleStatus: status }),
-    // Optional: with the risk certificate the bot reads class and claims too.
-    ...(status === "INSURED" ? ["RISK_CERTIFICATE"] : []),
-  ];
+  // Dan, 2026-10-28: the fields are never filled from the bot's reading of the
+  // documents; the customer writes the data, the back office sees the differences.
+  const municipalityCode = intake.residence?.municipalityIstat;
+  const municipality = municipalityCode
+    ? ((await api<MunicipalitySuggestion[]>(`/reference/municipalities?q=${municipalityCode}`))
+        .body[0] ?? null)
+    : null;
+  const photos = intakeDocuments({ vehicleStatus: status });
   const source = intake.classSource;
-  // One datum asked once (UX review 2026-10-23): the owner's birth date from the
-  // licence the bot read, or, for a broker's customer, from the customer's card.
-  const fromLicence = extracted(latestDocument(detail, "DRIVING_LICENCE", 0), "birthDate");
-  const proposedBirthDate = fromLicence ?? detail.customerBirthDate ?? undefined;
+  // A broker's customer card already has the birth date (not a document reading).
+  const proposedBirthDate = detail.customerBirthDate ?? undefined;
   return (
     <div className="space-y-6">
       <section aria-labelledby="photos" className="space-y-3">
@@ -96,7 +92,9 @@ export async function IntakeDataStep({
         </h2>
         <p className="text-body text-warm-600">{t("photosIntro")}</p>
         {photos.map((kind) => {
-          const doc = latestDocument(detail, kind, kind === "DRIVING_LICENCE" ? 0 : undefined);
+          const files = detail.documents
+            .filter((d) => d.kind === kind)
+            .map((d) => ({ id: d.id, fileName: d.fileName }));
           return (
             <PhotoUpload
               key={kind}
@@ -104,18 +102,18 @@ export async function IntakeDataStep({
               base={base}
               step={`dati?stato=${status}`}
               kind={kind}
-              driverIndex={kind === "DRIVING_LICENCE" ? 0 : undefined}
               title={t(`photos.${kind}.title`)}
               intro={t(`photos.${kind}.text`)}
-              current={doc?.fileName}
+              files={files}
               unreadable={unreadable === kind}
               action={uploadDocument}
+              remove={removeDocumentFile}
             />
           );
         })}
       </section>
 
-      <form action={saveIntakeStep} className="space-y-6">
+      <ActionForm action={saveIntakeStep} initialErrors={errors} className="space-y-6">
         <Hidden detail={detail} base={base} />
         <input type="hidden" name="intake.vehicleStatus" value={status} />
         <section className="grid gap-4 rounded-2xl bg-white p-4 shadow-[inset_0_0_0_1px_var(--color-warm-200)] sm:grid-cols-2 sm:p-6">
@@ -124,26 +122,19 @@ export async function IntakeDataStep({
             label={t("plate")}
             name="intake.plate"
             autoComplete="off"
-            defaultValue={intake.plate ?? fromRegistration("plate")}
-            hint={
-              !intake.plate && fromRegistration("plate") ? t("readFromRegistration") : undefined
-            }
+            defaultValue={intake.plate}
             invalid={hasError(errors, "plate")}
             required
           />
           {detail.customerKind === "COMPANY" ? null : (
-            // Proposed from the licence read by the bot, or from the broker's customer card.
-            <Field
+            // Typed or pasted (Dan, 2026-10-28); a broker's customer card proposes it.
+            <DateField
               label={t("ownerBirthDate")}
               name="intake.ownerBirthDate"
-              type="date"
               defaultValue={intake.ownerBirthDate ?? proposedBirthDate}
-              hint={
-                !intake.ownerBirthDate && proposedBirthDate
-                  ? t(fromLicence ? "readFromLicence" : "fromCustomerCard")
-                  : undefined
-              }
+              hint={!intake.ownerBirthDate && proposedBirthDate ? t("fromCustomerCard") : undefined}
               invalid={hasError(errors, "ownerBirthDate")}
+              autoComplete="bday"
               required
             />
           )}
@@ -151,35 +142,25 @@ export async function IntakeDataStep({
             label={t("street")}
             name="intake.street"
             autoComplete="street-address"
-            defaultValue={intake.residence?.street ?? fromRegistration("ownerStreet")}
-            hint={
-              !intake.residence && fromRegistration("ownerStreet")
-                ? t("readFromRegistration")
-                : undefined
-            }
+            defaultValue={intake.residence?.street}
+            invalid={hasError(errors, "residence.street")}
             required
           />
-          <Field
-            label={t("postalCode")}
-            name="intake.postalCode"
-            inputMode="numeric"
-            autoComplete="postal-code"
-            defaultValue={intake.residence?.postalCode ?? fromRegistration("ownerPostalCode")}
-            required
-          />
-          <Field
-            label={t("municipality")}
-            name="intake.municipality"
-            defaultValue={municipalityName}
+          <MunicipalityField
+            initial={municipality}
+            initialPostalCode={intake.residence?.postalCode}
             invalid={hasError(errors, "intake.municipality")}
-            required
-          />
-          <Field
-            label={t("province")}
-            name="intake.province"
-            maxLength={2}
-            defaultValue={intake.residence?.province ?? fromRegistration("ownerProvince")}
-            required
+            postalCodeInvalid={hasError(errors, "residence.postalCode")}
+            texts={{
+              municipality: t("municipality"),
+              municipalityHint: t("municipalityHint"),
+              postalCode: t("postalCode"),
+              postalCodeChoose: t("postalCodeChoose"),
+              postalCodePlaceholder: t("postalCodePlaceholder"),
+              postalCodeFree: t("postalCodeFree"),
+              province: t("province"),
+              noResults: t("municipalityNoResults"),
+            }}
           />
         </section>
 
@@ -205,10 +186,9 @@ export async function IntakeDataStep({
                 defaultValue={source?.plate}
                 invalid={hasError(errors, "classSource.plate")}
               />
-              <Field
+              <DateField
                 label={t("relativeBirthDate")}
                 name="intake.relativeBirthDate"
-                type="date"
                 hint={t("relativeBirthDateHint")}
                 defaultValue={source?.relativeBirthDate}
                 invalid={hasError(errors, "classSource.relativeBirthDate")}
@@ -222,7 +202,7 @@ export async function IntakeDataStep({
             {t("continue")}
           </Button>
         </StickyActions>
-      </form>
+      </ActionForm>
     </div>
   );
 }
@@ -242,7 +222,7 @@ export async function DrivingStep({
   const t = await getTranslations("wizard.intake");
   const chosen = intakeOf(detail).drivingFormula;
   return (
-    <form action={saveDrivingStep} className="space-y-6">
+    <ActionForm action={saveDrivingStep} initialErrors={errors} className="space-y-6">
       <Hidden detail={detail} base={base} />
       <fieldset className="space-y-3">
         <legend className="mb-3 text-section font-bold">{t("drivingTitle")}</legend>
@@ -258,18 +238,13 @@ export async function DrivingStep({
             text={t(`driving.${f.code}`, { age: options.expertMinAge })}
           />
         ))}
-        {hasError(errors, "drivingFormula") ? (
-          <p role="alert" className="text-sm text-red-700">
-            {t("drivingRequired")}
-          </p>
-        ) : null}
       </fieldset>
       <StickyActions note={t("savedNote")} aboveMenu={base === "/preventivi"}>
         <Button type="submit" size="lg" full className="md:w-auto">
           {t("continue")}
         </Button>
       </StickyActions>
-    </form>
+    </ActionForm>
   );
 }
 

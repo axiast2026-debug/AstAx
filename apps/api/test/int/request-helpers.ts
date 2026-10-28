@@ -21,8 +21,9 @@ export function requestHelpers(h: Harness) {
     kind: string,
     fileName: string,
     driverIndex?: number,
+    append = false,
   ) {
-    const query = `kind=${kind}${driverIndex === undefined ? "" : `&driverIndex=${driverIndex}`}`;
+    const query = `kind=${kind}${driverIndex === undefined ? "" : `&driverIndex=${driverIndex}`}${append ? "&append=1" : ""}`;
     return fetch(`${h.baseUrl}/requests/${requestId}/documents?${query}`, {
       method: "POST",
       headers: {
@@ -90,7 +91,7 @@ export function requestHelpers(h: Harness) {
       await upload(who, created.id, "REGISTRATION_CERTIFICATE", "libretto-giulia-neri.jpg"),
       201,
     );
-    await json(await upload(who, created.id, "DRIVING_LICENCE", "patente-giulia-neri.jpg", 0), 201);
+    await json(await upload(who, created.id, "IDENTITY_DOCUMENT", "identita-giulia-neri.jpg"), 201);
     await json(await upload(who, created.id, "RISK_CERTIFICATE", "attestato-giulia-neri.pdf"), 201);
     await json(await call(who, `/requests/${created.id}/consent/code`, { body: {} }), 204);
     await json(

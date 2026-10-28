@@ -2,6 +2,7 @@ import { CHOOSABLE_COVERAGES } from "@astax/shared/domain";
 import { Button } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { saveCoverageStep } from "@/app/request-actions";
+import { ActionForm } from "@/components/action-form";
 import { CheckField, Field, hasError } from "@/components/form";
 import { extracted, latestDocument, type RequestDetail, type RequestOptions } from "@/lib/requests";
 import { ChoiceCard, StickyActions } from "./wizard-ui";
@@ -49,7 +50,7 @@ export async function CoverageStep({
     extracted(latestDocument(detail, "RISK_CERTIFICATE"), "expiryDate");
   const startMode = terms?.startMode ?? "DATE";
   return (
-    <form action={saveCoverageStep} className="space-y-6" data-has-errors={errors ? "" : undefined}>
+    <ActionForm action={saveCoverageStep} initialErrors={errors} className="space-y-6">
       <Hidden detail={detail} base={base} step="copertura" />
       {/* Duration and validity keep their values until step 4. */}
       <input
@@ -151,6 +152,6 @@ export async function CoverageStep({
           {tc("saveAndContinue")}
         </Button>
       </StickyActions>
-    </form>
+    </ActionForm>
   );
 }
