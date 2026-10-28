@@ -1,4 +1,5 @@
 import { startTexts } from "@/lib/start";
+import { AniaConfirmed } from "@/components/ania-confirmed";
 import { formatDate } from "@astax/shared/format";
 import { Badge, Button, Card, CardTitle, Icon } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
@@ -24,12 +25,21 @@ const DECLINE_REASONS = [
   "OTHER",
 ] as const;
 
-function Row({ label, value }: { label: string; value: string | number | null | undefined }) {
+function Row({
+  label,
+  value,
+  missing = "—",
+}: {
+  label: string;
+  value: string | number | null | undefined;
+  /** Dan, 2026-10-28: a datum the bots did not find reads «non disponibile». */
+  missing?: string;
+}) {
   return (
     <>
       <dt className="min-w-0 break-words text-warm-600">{label}</dt>
       <dd className="min-w-0 break-words">
-        {value === null || value === undefined || value === "" ? "—" : value}
+        {value === null || value === undefined || value === "" ? missing : value}
       </dd>
     </>
   );
@@ -57,6 +67,7 @@ export default async function IncomingRequestPage({
   const { status, body: detail } = await api<AgencyRequestDetail>(`/agency/requests/${auctionId}`);
   if (status !== 200) notFound();
   const t = await getTranslations("agency.detail");
+  const na = t("ania.notAvailable");
   const startText = await startTexts();
   const ta = await getTranslations("agency");
   const tc = await getTranslations("agency.coverage");
@@ -211,6 +222,11 @@ export default async function IncomingRequestPage({
 
           {/* The data useful to quote, in cards. */}
           <div className="grid gap-4 sm:grid-cols-2 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:grid-cols-1 2xl:grid-cols-2">
+            {detail.ania ? (
+              <div className="sm:col-span-2 lg:col-span-1 2xl:col-span-2">
+                <AniaConfirmed ania={detail.ania} />
+              </div>
+            ) : null}
             <Card className={CARD}>
               <CardTitle className="text-body font-bold">{t("vehicleTitle")}</CardTitle>
               <dl className={DL}>
@@ -219,14 +235,23 @@ export default async function IncomingRequestPage({
                 <Row label={t("version")} value={q.vehicle.version} />
                 <Row label={t("vehicleType")} value={q.vehicle.type} />
                 <Row label={t("use")} value={q.vehicle.use} />
-                <Row label={t("fuel")} value={q.vehicle.fuel} />
+                <Row label={t("fuel")} value={q.vehicle.fuel} missing={na} />
                 <Row label={t("displacement")} value={q.vehicle.displacementCc} />
-                <Row label={t("power")} value={q.vehicle.powerKw} />
+                <Row label={t("power")} value={q.vehicle.powerKw} missing={na} />
                 <Row
                   label={t("firstRegistration")}
-                  value={formatDate(q.vehicle.firstRegistrationDate)}
+                  value={
+                    q.vehicle.firstRegistrationDate
+                      ? formatDate(q.vehicle.firstRegistrationDate)
+                      : null
+                  }
+                  missing={na}
                 />
-                <Row label={t("purchase")} value={formatDate(q.vehicle.purchaseDate)} />
+                <Row
+                  label={t("purchase")}
+                  value={q.vehicle.purchaseDate ? formatDate(q.vehicle.purchaseDate) : null}
+                  missing={na}
+                />
                 <Row label={t("isNew")} value={yesNo(q.vehicle.isNew)} />
                 <Row label={t("marketValue")} value={q.vehicle.marketValueEur} />
                 <Row label={t("alarm")} value={yesNo(q.vehicle.satelliteAlarm)} />
@@ -242,7 +267,7 @@ export default async function IncomingRequestPage({
                 {q.policyHolder.kind === "PERSON" ? (
                   <>
                     <Row label={t("birthDate")} value={formatDate(q.policyHolder.birthDate)} />
-                    <Row label={t("sex")} value={q.policyHolder.sex} />
+                    <Row label={t("sex")} value={q.policyHolder.sex} missing={na} />
                     <Row label={t("profession")} value={q.policyHolder.profession} />
                   </>
                 ) : null}
@@ -275,13 +300,14 @@ export default async function IncomingRequestPage({
               <CardTitle className="text-body font-bold">{t("historyTitle")}</CardTitle>
               <dl className={DL}>
                 <Row label={t("provenance")} value={q.history.provenance} />
-                <Row label={t("cuClass")} value={q.history.cuClass} />
-                <Row label={t("currentInsurer")} value={q.history.currentInsurer} />
+                <Row label={t("cuClass")} value={q.history.cuClass} missing={na} />
+                <Row label={t("currentInsurer")} value={q.history.currentInsurer} missing={na} />
                 <Row
                   label={t("currentExpiry")}
                   value={
                     q.history.currentExpiryDate ? formatDate(q.history.currentExpiryDate) : null
                   }
+                  missing={na}
                 />
               </dl>
               {q.history.claims.length > 0 ? (

@@ -17,6 +17,7 @@ import {
   newPrivate,
   submittedRequest,
   WEB,
+  confirmBotData,
   fiveChecks,
 } from "../support/auction.js";
 import { issuePolicy, openIncoming, professional, sendOffer } from "../support/agency.js";
@@ -270,21 +271,9 @@ test.describe.serial("misura UX", () => {
     await page.getByRole("link", { name: code }).click();
     await expect(page.getByRole("heading", { name: `Verifica ${code}` })).toBeVisible();
     await m.screen(page, "scheda-verifica");
-    const completion = page.getByRole("heading", { name: "Completa i dati" });
-    if (await completion.isVisible()) {
-      m.type();
-      await page.getByLabel(/Data di acquisto/).fill("2020-04-01");
-      m.tap();
-      const t0 = clock.now().getTime();
-      await page.getByRole("button", { name: "Salva i dati completati" }).click();
-      await expect(page.getByText("Dati completati")).toBeVisible();
-      m.wait((clock.now().getTime() - t0) / 1000);
-      await m.screen(page, "dati-completati");
-    }
     await fiveChecks(page);
     m.tap();
-    await page.getByRole("button", { name: "Approva e apri l'asta" }).click();
-    await expect(page.getByText("Richiesta approvata")).toBeVisible();
+    await confirmBotData(page);
     await m.screen(page, "approvata");
     m.save();
     // Setup for the agencies: Uno and Tre invited whatever the automatic choice.
@@ -592,13 +581,9 @@ test.describe.serial("misura UX", () => {
     await operator.getByRole("link", { name: code }).click();
     await expect(operator.getByRole("heading", { name: `Verifica ${code}` })).toBeVisible();
     await m.screen(operator, "scheda-verifica");
-    // ADR 0013: an integration can be asked once the data are completed.
-    m.type();
-    await operator.getByLabel(/Data di acquisto/).fill("2020-04-01");
+    // Dan, 2026-10-28: the integration is asked from the bar, without completing the data.
     m.tap();
-    await operator.getByRole("button", { name: "Salva i dati completati" }).click();
-    await expect(operator.getByText("Dati completati")).toBeVisible();
-    await m.screen(operator, "dati-completati");
+    await operator.getByText("Chiedi un documento al cliente", { exact: true }).click();
     const form = operator.locator("form", {
       has: operator.getByRole("button", { name: "Chiedi l'integrazione" }),
     });

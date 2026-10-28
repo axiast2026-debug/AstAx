@@ -2,7 +2,7 @@ import type { QuoteData } from "@astax/shared/domain";
 import { formatTime } from "@astax/shared/format";
 import { Button, cn } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
-import { applyAnia, readAnia } from "@/app/verifiche/actions";
+import { readAnia } from "@/app/verifiche/actions";
 import type { AniaView } from "@/lib/verification";
 import { italianDate } from "./verification-checks";
 
@@ -233,15 +233,6 @@ export async function AgencySheet({
           </fieldset>
         ))}
       </div>
-      {ania && quoteData && canDecide ? (
-        <form action={applyAnia} className="mt-4">
-          <input type="hidden" name="requestId" value={requestId} />
-          <Button type="submit" variant="outline" size="sm">
-            {t("apply")}
-          </Button>
-          <p className="mt-1 text-xs text-warm-600">{t("applyHelp")}</p>
-        </form>
-      ) : null}
     </section>
   );
 }

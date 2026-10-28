@@ -28,6 +28,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { actorOf, AuditService } from "../audit/audit.service.js";
 import { OffersService } from "../auctions/offers.service.js";
 import type { AuthContext } from "../auth/auth-context.js";
+import { storedAniaView } from "../verification/ania-view.js";
 import { ProblemError } from "../http/problem.js";
 import { CLOCK, DB, FIELD_CIPHER, OBJECT_STORAGE } from "../infra/tokens.js";
 import labels from "../notifications/labels.it.json" with { type: "json" };
@@ -349,6 +350,23 @@ export class AgencyService {
       const { invitation, auction, request } = target;
       const now = this.clock.now();
       const quoteData = await this.quoteDataOf(tx, request);
+      // Dan, 2026-10-28: the ANIA data the back office confirmed with the approval.
+      const confirmed = await asSystem(tx, () =>
+        tx.verification.findFirst({
+          where: { quoteRequestId: request.id, decision: "APPROVED", aniaEnc: { not: null } },
+          orderBy: { round: "desc" },
+          select: { aniaEnc: true, aniaReadAt: true },
+        }),
+      );
+      const ania =
+        confirmed?.aniaEnc && confirmed.aniaReadAt
+          ? await storedAniaView(
+              tx,
+              this.cipher,
+              { aniaEnc: confirmed.aniaEnc, aniaReadAt: confirmed.aniaReadAt },
+              now,
+            )
+          : null;
       // The system read on its own: it must not overlap the agency's queries.
       const documents = await asSystem(tx, () =>
         tx.document.findMany({
@@ -469,6 +487,7 @@ export class AgencyService {
         elsewhere,
         offer: offer ? { id: offer.id, status: offer.status, version: offer.version } : null,
         quoteData,
+        ania,
         package: pkg
           ? {
               code: pkg.packageCode,

@@ -1,4 +1,5 @@
 import type { QuoteData } from "@astax/shared/domain";
+import type { ConfirmedAnia } from "@/components/ania-confirmed";
 import type { WorkingTime } from "@/components/countdown-ring";
 
 /** Answers of the agency area of the API (spec 04). */
@@ -53,6 +54,8 @@ export interface AgencyRequestDetail {
   elsewhere: { agency: string; offered: boolean } | null;
   offer: { id: string; status: string; version: number } | null;
   quoteData: QuoteData;
+  /** Dan, 2026-10-28: the ANIA data confirmed by the back office. */
+  ania: ConfirmedAnia | null;
   package: { code: string; name: string; requirements: Record<string, Requirement> } | null;
   companies: { id: string; name: string }[];
   products: { id: string; companyId: string; name: string }[];

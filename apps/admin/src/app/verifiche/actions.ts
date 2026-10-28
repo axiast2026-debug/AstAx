@@ -1,18 +1,9 @@
 "use server";
 
-import { parseItalianDate, type AniaSheet, type QuoteData } from "@astax/shared/domain";
-import type { Completion } from "@/lib/verification";
+import { parseItalianDate, type QuoteData } from "@astax/shared/domain";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { api } from "@/lib/auth";
-
-/** The licence fields of the completion: all of them, or none (question 38). */
-const LICENCE_FIELDS = [
-  "licenceCategory",
-  "licenceNumber",
-  "licenceIssuedOn",
-  "licenceExpiresOn",
-] as const;
 
 /**
  * Back office actions on a request under verification (spec 06). Errors come
@@ -155,109 +146,6 @@ export async function includeAgency(formData: FormData): Promise<void> {
   redirect(`/verifiche/${id}#agenzie`);
 }
 
-/**
- * ADR 0013 (Dan, 2026-10-21): the back office completes a request with the
- * essential data only. The essential data (residence, driving, other plate)
- * and the coverages come from the card; the rest from the form, prefilled
- * with what the bot read. The API checks it like a submission.
- */
-export async function completeRequest(formData: FormData): Promise<void> {
-  const id = idOf(formData);
-  const { body: card } = await api<{
-    completion: Completion | null;
-    verification: { checks: { PLATE?: { value?: string } } } | null;
-  }>(`/verification/requests/${id}`);
-  const completion = card.completion;
-  if (!completion) redirect(`/verifiche/${id}?errore=CONFLICT`);
-  const { intake, candidate } = completion;
-  const number = (name: string) => {
-    const v = value(formData, name);
-    return v === undefined ? undefined : Number(v);
-  };
-  const holder = {
-    kind: "PERSON" as const,
-    surname: value(formData, "surname") ?? "",
-    givenName: value(formData, "givenName") ?? "",
-    fiscalCode: value(formData, "fiscalCode") ?? "",
-    birthDate: value(formData, "birthDate") ?? "",
-    birthPlace: value(formData, "birthPlace") ?? "",
-    sex: (value(formData, "sex")?.toUpperCase() === "F" ? "F" : "M") as "M" | "F",
-    residence: intake.residence,
-  };
-  const startYear = Number(candidate.request.startDate.slice(0, 4));
-  const claimsMain = number("claimsMain") ?? 0;
-  const claimsShared = number("claimsShared") ?? 0;
-  const quoteData: QuoteData = {
-    schemaVersion: 1,
-    policyHolder: holder,
-    vehicleOwner: "SAME_AS_POLICY_HOLDER",
-    drivers: [
-      {
-        person: holder,
-        isMain: true,
-        // Dan, 2026-10-28: the licence only when the operator has it (question 38).
-        ...(LICENCE_FIELDS.some((f) => value(formData, f))
-          ? {
-              licence: {
-                category: value(formData, "licenceCategory") ?? "",
-                number: value(formData, "licenceNumber") ?? "",
-                issuedOn: value(formData, "licenceIssuedOn") ?? "",
-                expiresOn: value(formData, "licenceExpiresOn") ?? "",
-              },
-            }
-          : {}),
-      },
-    ],
-    drivingFormula: intake.drivingFormula ?? candidate.drivingFormula ?? "FREE",
-    vehicle: {
-      // Dan, 2026-10-28: the plate corrected from the registration certificate.
-      plate: card.verification?.checks.PLATE?.value ?? intake.plate,
-      type: value(formData, "vehicleType") ?? "",
-      use: value(formData, "vehicleUse") ?? "",
-      make: value(formData, "make") ?? "",
-      model: value(formData, "model") ?? "",
-      fuel: value(formData, "fuel") ?? "",
-      powerKw: number("powerKw") ?? 0,
-      firstRegistrationDate: value(formData, "firstRegistrationDate") ?? "",
-      purchaseDate: value(formData, "purchaseDate") ?? "",
-      isNew: false,
-    },
-    history: {
-      provenance: value(formData, "provenance") ?? "",
-      ...(number("cuClass") === undefined ? {} : { cuClass: number("cuClass") }),
-      // The counts of the risk certificate, booked in the year of the start.
-      claims:
-        claimsMain + claimsShared > 0
-          ? [
-              {
-                year: startYear,
-                mainResponsibility: claimsMain,
-                sharedResponsibility: claimsShared,
-              },
-            ]
-          : [],
-      ...(value(formData, "currentInsurer")
-        ? { currentInsurer: value(formData, "currentInsurer") }
-        : {}),
-      ...(value(formData, "currentExpiryDate")
-        ? { currentExpiryDate: value(formData, "currentExpiryDate") }
-        : {}),
-      ...(value(formData, "riskUniqueId") ? { riskUniqueId: value(formData, "riskUniqueId") } : {}),
-      ...(intake.classSource?.kind === "FAMILY" && intake.classSource.plate
-        ? {
-            familyRc: {
-              plate: intake.classSource.plate,
-              relativeFiscalCode: value(formData, "relativeFiscalCode") ?? "",
-            },
-          }
-        : {}),
-    },
-    request: candidate.request,
-  };
-  await post(id, "corrections", { quoteData, reason: "Completamento dai documenti (ADR 0013)" });
-  redirect(`/verifiche/${id}?fatto=completata`);
-}
-
 /** Dan, 2026-10-28: gives the request back to the queue (its holder, or the supervisor). */
 export async function release(formData: FormData): Promise<void> {
   const id = idOf(formData);
@@ -373,38 +261,12 @@ export async function readAnia(formData: FormData): Promise<void> {
 }
 
 /**
- * The insurance history read from ANIA into the data of the request: class,
- * insurer, expiry and the dates of the vehicle, as a correction.
+ * Dan, 2026-10-28 (docs/piano-dati-dal-bot.md): «Confermo la correttezza dei
+ * dati estratti dal bot»: the API builds the data from the bots and opens the auction.
  */
-export async function applyAnia(formData: FormData): Promise<void> {
+export async function confirmBotData(formData: FormData): Promise<void> {
   const id = idOf(formData);
-  const { body: card } = await api<{
-    quoteData: QuoteData | null;
-    verification: { ania: { sheet: AniaSheet } | null } | null;
-  }>(`/verification/requests/${id}`);
-  const data = card.quoteData;
-  const sheet = card.verification?.ania?.sheet;
-  if (!data || !sheet) redirect(`/verifiche/${id}?errore=CONFLICT#scheda`);
-  const cuClass = Number(sheet.cuClass);
-  const corrected: QuoteData = {
-    ...data,
-    vehicle: {
-      ...data.vehicle,
-      ...(sheet.firstRegistrationDate
-        ? { firstRegistrationDate: sheet.firstRegistrationDate }
-        : {}),
-      ...(sheet.purchaseDate ? { purchaseDate: sheet.purchaseDate } : {}),
-    },
-    history: {
-      ...data.history,
-      ...(Number.isInteger(cuClass) && cuClass >= 1 ? { cuClass } : {}),
-      ...(sheet.currentInsurer?.name ? { currentInsurer: sheet.currentInsurer.name } : {}),
-      ...(sheet.coverExpiry ? { currentExpiryDate: sheet.coverExpiry } : {}),
-    },
-  };
-  if (JSON.stringify(corrected) === JSON.stringify(data)) {
-    redirect(`/verifiche/${id}?fatto=ania#scheda`);
-  }
-  await post(id, "corrections", { quoteData: corrected, reason: "Dati letti da ANIA" });
-  redirect(`/verifiche/${id}?fatto=ania#scheda`);
+  if (formData.get("confirmed") !== "1") redirect(`/verifiche/${id}?errore=NOT_CONFIRMED`);
+  await post(id, "bot-confirm", {});
+  redirect("/verifiche?fatto=approvata");
 }

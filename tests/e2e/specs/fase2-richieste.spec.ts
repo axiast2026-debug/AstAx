@@ -10,7 +10,7 @@ import {
   savedSecret,
   saveSecret,
 } from "../support/auth.js";
-import { completeData, fiveChecks } from "../support/auction.js";
+import { confirmBotData, fiveChecks } from "../support/auction.js";
 import { birthDateOf, ownerSignedDeclaration } from "../support/broker.js";
 import { latestMail, photo, privateRequestSteps, requestCode } from "../support/requests.js";
 
@@ -76,14 +76,10 @@ test.describe.serial("fase 2: richiesta e verifica", () => {
       operator.getByRole("row", { name: new RegExp(code) }).getByText("Giallo"),
     ).toBeVisible();
     await openCard(operator, code);
-    await expect(operator.getByRole("heading", { name: "Completa i dati" })).toBeVisible();
-    // The bot read the registration and the ID card; the purchase date is asked by phone.
-    await expect(operator.getByLabel(/Cognome/).first()).toHaveValue("Neri");
-    await completeData(operator);
-    await expect(operator.getByText("Controllo automatico")).toBeVisible();
+    // Dan, 2026-10-28: no «Completa i dati»: the five checks, ANIA, one tick.
+    await expect(operator.getByRole("heading", { name: "Completa i dati" })).toHaveCount(0);
     await fiveChecks(operator);
-    await operator.getByRole("button", { name: "Approva e apri l'asta" }).click();
-    await expect(operator.getByText("Richiesta approvata")).toBeVisible();
+    await confirmBotData(operator);
 
     // The timeline shows every step.
     await customer.goto(url);
@@ -182,13 +178,9 @@ test.describe.serial("fase 2: richiesta e verifica", () => {
     const operator = await browser.newPage();
     await backOffice(operator);
     await openCard(operator, code);
-    await expect(operator.getByRole("heading", { name: "Completa i dati" })).toBeVisible();
-    // LEG-04: the holder is the customer Anna, with her fiscal code.
-    await expect(operator.getByLabel(/Cognome/).first()).toHaveValue("Riva");
-    await completeData(operator);
+    // LEG-04: the holder is the customer Anna, with her fiscal code (checked by the API).
     await fiveChecks(operator);
-    await operator.getByRole("button", { name: "Approva e apri l'asta" }).click();
-    await expect(operator.getByText("Richiesta approvata")).toBeVisible();
+    await confirmBotData(operator);
     await page.reload();
     await expect(page.locator("ol").getByText("Verifica superata", { exact: true })).toBeVisible();
 
@@ -211,7 +203,7 @@ test.describe.serial("fase 2: richiesta e verifica", () => {
     const operator = await browser.newPage();
     await backOffice(operator);
     await openCard(operator, code);
-    await expect(operator.getByRole("heading", { name: "Completa i dati" })).toBeVisible();
+    await expect(operator.getByRole("heading", { name: "Le 5 verifiche" })).toBeVisible();
     // Dan, 2026-10-28: the decisions are in the bar at the bottom of the page.
     await operator.getByText("Escludi la richiesta", { exact: true }).click();
     await operator.getByLabel("Motivo", { exact: true }).selectOption("VINTAGE");

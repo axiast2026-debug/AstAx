@@ -192,6 +192,14 @@ export class VerificationController {
     return this.verification.recordCheck(auth, parseInput(uuid, id), input);
   }
 
+  /** «Confermo la correttezza dei dati estratti dal bot»: data and auction at once. */
+  @Post("requests/:id/bot-confirm")
+  @HttpCode(200)
+  @RequirePermission("verification.decide")
+  confirmBotData(@CurrentAuth() auth: AuthContext, @Param("id") id: string) {
+    return this.verification.confirmBotData(auth, parseInput(uuid, id));
+  }
+
   /** «Leggi da ANIA» with the plate of the request (Dan, 2026-10-28). */
   @Post("requests/:id/ania")
   @HttpCode(200)

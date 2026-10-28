@@ -552,6 +552,12 @@ const ENDPOINTS: Endpoint[] = [
     path: () => `/verification/requests/${randomUUID()}/ania`,
     body: {},
   },
+  {
+    action: "verification.decide",
+    method: "POST",
+    path: () => `/verification/requests/${randomUUID()}/bot-confirm`,
+    body: {},
+  },
   { action: "verification.decide", method: "GET", path: () => "/verification/ania-login/status" },
   {
     action: "verification.decide",

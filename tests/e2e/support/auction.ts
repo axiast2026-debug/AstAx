@@ -57,36 +57,23 @@ export async function backOffice(
 }
 
 /**
- * ADR 0013: the back office completes a request with the essential data only:
- * the purchase date is never on a document, and since Dan, 2026-10-28 (no risk
- * certificate) the class and the current insurer come from the back office (ANIA).
+ * Dan, 2026-10-28 (docs/piano-dati-dal-bot.md): no data written by hand: the
+ * operator reads ANIA and confirms the bots' data; the auction opens at once.
  */
-export async function completeData(page: Page): Promise<void> {
-  await page.getByLabel(/Data di acquisto/).fill("2020-04-01");
-  const cu = page.getByLabel(/Classe di merito CU/);
-  if ((await cu.inputValue()) === "") await cu.fill("1");
-  const insurer = page.getByLabel(/Compagnia attuale/);
-  if ((await insurer.inputValue()) === "") await insurer.fill("Compagnia Alfa");
-  const expiry = page.getByLabel(/Scadenza attuale/);
-  if ((await expiry.inputValue()) === "") await expiry.fill("2027-03-31");
-  await page.getByRole("button", { name: "Salva i dati completati" }).click();
-  await expect(page.getByText("Dati completati")).toBeVisible();
+export async function confirmBotData(page: Page): Promise<void> {
+  await page.getByRole("button", { name: /Leggi (di nuovo )?da ANIA/ }).click();
+  await expect(page.getByText(/Letta da ANIA alle/)).toBeVisible();
+  await page.getByLabel("Confermo la correttezza dei dati estratti dal bot").check();
+  await page.getByRole("button", { name: "Approva e apri l'asta" }).click();
+  await expect(page.getByText("Richiesta approvata")).toBeVisible();
 }
 
 export async function approve(page: Page, code: string): Promise<void> {
   await page.goto(`${ADMIN}/verifiche`);
   await page.getByRole("link", { name: code }).click();
-  // ADR 0013: a private request with the essential data only is completed first:
-  // the bot's reading is there, the purchase date is never on a document.
   await expect(page.getByRole("heading", { name: `Verifica ${code}` })).toBeVisible();
-  const completion = page.getByRole("heading", { name: "Completa i dati" });
-  if (await completion.isVisible()) await completeData(page);
-  // Fase 3: the card previews the agencies the approval invites.
-  await page.getByText("Agenzie che verranno invitate").click();
-  await expect(page.getByRole("heading", { name: "Agenzie da invitare" })).toBeVisible();
   await fiveChecks(page);
-  await page.getByRole("button", { name: "Approva e apri l'asta" }).click();
-  await expect(page.getByText("Richiesta approvata")).toBeVisible();
+  await confirmBotData(page);
 }
 
 /**

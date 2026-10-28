@@ -194,6 +194,75 @@ describe("ADR 0013: the request in two stages", () => {
   });
 });
 
+describe("Dan, 2026-10-28: no «Completa i dati»", () => {
+  async function essentialRequest() {
+    const id = (
+      await r.json<{ id: string }>(await r.call(customer, "/requests", { body: {} }), 201)
+    ).id;
+    await r.json(await put(customer, id, "intake", intake), 200);
+    await r.json(await put(customer, id, "request", terms), 200);
+    for (const [kind, file] of [
+      ["REGISTRATION_CERTIFICATE", "libretto-giulia-neri.jpg"],
+      ["IDENTITY_DOCUMENT", "identita-giulia-neri.jpg"],
+    ] as const) {
+      await r.json(await r.upload(customer, id, kind, file), 201);
+    }
+    await r.json(await r.call(customer, `/requests/${id}/consent/accept`, { body: {} }), 200);
+    await r.json(await r.call(customer, `/requests/${id}/submit`, { body: {} }), 200);
+    return id;
+  }
+
+  it("the five checks, ANIA and one tick: the bots' data become version 1 and the auction opens", async () => {
+    const id = await essentialRequest();
+    await r.json(await r.call(verifier, `/verification/requests/${id}/ania`, { body: {} }), 200);
+    for (const step of ["REGISTRATION", "IDENTITY", "PLATE", "BIRTH_DATE"]) {
+      await r.json(
+        await r.call(verifier, `/verification/requests/${id}/checks/${step}`, {
+          method: "PUT",
+          body: {},
+        }),
+        200,
+      );
+    }
+    await r.json(
+      await r.call(verifier, `/verification/requests/${id}/checks/QUOTE_TYPE`, {
+        method: "PUT",
+        body: { value: "RENEWAL" },
+      }),
+      200,
+    );
+    await r.json(
+      await r.call(verifier, `/verification/requests/${id}/bot-confirm`, { body: {} }),
+      200,
+    );
+    const request = await system((tx) => tx.quoteRequest.findUniqueOrThrow({ where: { id } }));
+    expect(request).toMatchObject({ quoteDataVersion: 1, draftEnc: null });
+    const round = await system((tx) =>
+      tx.verification.findFirstOrThrow({
+        where: { quoteRequestId: id },
+        orderBy: { round: "desc" },
+      }),
+    );
+    expect(round.decision).toBe("APPROVED");
+  });
+
+  it("asking the customer for a document needs no completion: the bots' data are saved first", async () => {
+    const id = await essentialRequest();
+    await r.json(
+      await r.call(verifier, `/verification/requests/${id}/integration`, {
+        body: {
+          reasonCodes: ["UNREADABLE_DOCUMENT"],
+          sections: [],
+          documents: ["REGISTRATION_CERTIFICATE"],
+        },
+      }),
+      200,
+    );
+    const request = await system((tx) => tx.quoteRequest.findUniqueOrThrow({ where: { id } }));
+    expect(request).toMatchObject({ quoteDataVersion: 1, status: "INTEGRATION_REQUESTED" });
+  });
+});
+
 describe("broker plan (Dan, 2026-10-21): single vehicle with the essential data", () => {
   it("answer 3: a request of the firm whose owner signed the declaration needs no consent", async () => {
     const fiscalCode = buildFiscalCode({

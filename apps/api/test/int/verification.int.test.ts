@@ -2,6 +2,7 @@ import { SYSTEM_CONTEXT, withContext } from "@astax/db";
 import { buildFiscalCode, type QuoteData } from "@astax/shared/domain";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { acceptAllLegal, membershipId, startHarness, type Harness } from "./fixtures.js";
+import { openTestAuction } from "./auction-helpers.js";
 import { requestHelpers, type Who } from "./request-helpers.js";
 
 // Fase 2: the back office verification. The private account is Davide Galli,
@@ -214,6 +215,49 @@ describe("Dan, 2026-10-28: the request held by one operator and the five checks"
         409,
       ),
     ).toEqual([{ path: "plate", issue: "ANIA_NOT_FOUND" }]);
+  });
+});
+
+describe("Dan, 2026-10-28: one tick confirms the bots' data and opens the auction", () => {
+  const put = (who: Who, id: string, step: string, body: unknown = {}) =>
+    r.call(who, `/verification/requests/${id}/checks/${step}`, { method: "PUT", body });
+
+  it("with the five checks and ANIA read, the confirmation makes a version, opens the auction, and the invited agency sees the ANIA data", async () => {
+    const request = await r.submittedPrivateRequest(davide, DAVIDE_EMAIL);
+    expect(
+      (await r.call(verifier, `/verification/requests/${request.id}/bot-confirm`, { body: {} }))
+        .status,
+    ).toBe(409);
+    for (const step of ["REGISTRATION", "IDENTITY", "PLATE", "BIRTH_DATE"]) {
+      await r.json(await put(verifier, request.id, step), 200);
+    }
+    await r.json(await put(verifier, request.id, "QUOTE_TYPE", { value: "RENEWAL" }), 200);
+    await r.json(
+      await r.call(verifier, `/verification/requests/${request.id}/ania`, { body: {} }),
+      200,
+    );
+    expect(
+      await r.json(
+        await r.call(verifier, `/verification/requests/${request.id}/bot-confirm`, { body: {} }),
+        200,
+      ),
+    ).toEqual({ decision: "APPROVED" });
+    const confirmed = await audit("VERIFICATION_BOT_DATA_CONFIRMED", request.id);
+    expect(confirmed).toHaveLength(1);
+    const card = await r.json<{ quoteDataVersion: number; quoteData: QuoteData }>(
+      await r.call(verifier, `/verification/requests/${request.id}`),
+      200,
+    );
+    // The fake ANIA's insurer and class are now the data of the request.
+    expect(card.quoteDataVersion).toBe(2);
+    expect(card.quoteData.history.currentInsurer).toMatch(/^COMPAGNIA /);
+
+    const auctionId = await openTestAuction(h, request.id, ["agenzia-due"]);
+    const seen = await r.json<{ ania: { sheet: { cuClass: string }; warnings: string[] } | null }>(
+      await r.call(agency, `/agency/requests/${auctionId}`),
+      200,
+    );
+    expect(seen.ania?.sheet.cuClass).toBe(String(card.quoteData.history.cuClass));
   });
 });
 

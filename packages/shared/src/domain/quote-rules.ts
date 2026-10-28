@@ -45,9 +45,10 @@ export function wizardBlockingExclusions(
  * answer to question 6). Not blocking: the back office decides.
  */
 export function isPossibleVintage(quoteData: QuoteData, vintageAgeYears: number): boolean {
+  const first = quoteData.vehicle.firstRegistrationDate;
+  // Without the date (Dan, 2026-10-28: «non disponibile») nothing can be said.
   return (
-    completedYears(quoteData.vehicle.firstRegistrationDate, quoteData.request.startDate) >=
-    vintageAgeYears
+    first !== undefined && completedYears(first, quoteData.request.startDate) >= vintageAgeYears
   );
 }
 
@@ -130,7 +131,11 @@ export function submissionProblems(
       problems.push("CURRENT_INSURER_REQUIRED");
   }
   if (history.provenance === "FAMILY_RC" && !history.familyRc) problems.push("FAMILY_RC_REQUIRED");
-  if (compareCalendarDates(vehicle.purchaseDate, vehicle.firstRegistrationDate) < 0) {
+  if (
+    vehicle.purchaseDate &&
+    vehicle.firstRegistrationDate &&
+    compareCalendarDates(vehicle.purchaseDate, vehicle.firstRegistrationDate) < 0
+  ) {
     problems.push("PURCHASE_BEFORE_REGISTRATION");
   }
   if (
@@ -223,10 +228,12 @@ export function fiscalCodeProblems(
   if (!decoded) return ["INVALID"];
   const problems: FiscalCodeProblem[] = [];
   if (decoded.birthDate !== person.birthDate) problems.push("BIRTH_DATE_MISMATCH");
-  if (decoded.sex !== person.sex) problems.push("SEX_MISMATCH");
+  if (person.sex !== undefined && decoded.sex !== person.sex) problems.push("SEX_MISMATCH");
   const place = decoded.bornAbroad
     ? decoded.birthPlaceCadastralCode
     : istatOfCadastral(decoded.birthPlaceCadastralCode);
-  if (place !== null && place !== person.birthPlace) problems.push("BIRTH_PLACE_MISMATCH");
+  if (place !== null && person.birthPlace !== undefined && place !== person.birthPlace) {
+    problems.push("BIRTH_PLACE_MISMATCH");
+  }
   return problems;
 }

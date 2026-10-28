@@ -47,9 +47,16 @@ export const NaturalPersonSchema = z.strictObject({
   givenName: text(80),
   fiscalCode,
   birthDate: calendarDate,
-  /** ISTAT code of the municipality, or the cadastral "Z" code of the country. */
-  birthPlace: z.string().regex(/^(\d{6}|Z\d{3})$/),
-  sex: z.enum(["M", "F"]),
+  /**
+   * ISTAT code of the municipality, or the cadastral "Z" code of the country.
+   * Dan, 2026-10-28 (docs/piano-dati-dal-bot.md): birth place and sex may be
+   * «non disponibile» when the bot did not find them.
+   */
+  birthPlace: z
+    .string()
+    .regex(/^(\d{6}|Z\d{3})$/)
+    .optional(),
+  sex: z.enum(["M", "F"]).optional(),
   residence: AddressSchema,
   profession: listCode.optional(),
   maritalStatus: listCode.optional(),
@@ -91,11 +98,12 @@ export const VehicleSchema = z.strictObject({
   model: text(80),
   version: text(120).optional(),
   providerCode: text(40).optional(),
-  fuel: listCode,
+  // Dan, 2026-10-28: what the bot does not find stays «non disponibile».
+  fuel: listCode.optional(),
   displacementCc: z.int().min(1).max(20_000).optional(),
-  powerKw: z.int().min(1).max(2_000),
-  firstRegistrationDate: calendarDate,
-  purchaseDate: calendarDate,
+  powerKw: z.int().min(1).max(2_000).optional(),
+  firstRegistrationDate: calendarDate.optional(),
+  purchaseDate: calendarDate.optional(),
   isNew: z.boolean(),
   marketValueEur: z.int().min(0).optional(),
   satelliteAlarm: z.boolean().optional(),

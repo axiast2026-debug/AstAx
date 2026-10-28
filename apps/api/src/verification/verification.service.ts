@@ -18,9 +18,9 @@ import {
   QuoteDataSchema,
   submissionProblems,
   worstOutcome,
+  quoteDataFromBot,
+  type IntakeCandidate,
   AniaRecordSchema,
-  aniaSheet,
-  aniaWarnings,
   type AniaRecord,
   checkProblem,
   missingChecks,
@@ -65,6 +65,7 @@ import {
   sha256Of,
 } from "../requests/request-support.js";
 import { customerName } from "../requests/requests.service.js";
+import { aniaViewOf } from "./ania-view.js";
 import { changedPaths } from "./json-diff.js";
 
 export interface IntegrationInput {
@@ -622,36 +623,92 @@ export class VerificationService {
   }
 
   /** The sheet, the warnings and the name of the birth place of a stored record. */
-  private async aniaView(tx: DbTransaction, record: AniaRecord, readAt: Date) {
-    const settings = await settingsAt(
-      tx,
-      [
-        "verification.ania.claimsYears",
-        "verification.ania.expiryNoticeDays",
-        "verification.ania.ownerMinAge",
-      ],
-      readAt,
+  private aniaView(tx: DbTransaction, record: AniaRecord, readAt: Date) {
+    return aniaViewOf(tx, record, readAt, this.clock.now());
+  }
+
+  /**
+   * Dan, 2026-10-28 (docs/piano-dati-dal-bot.md): «Confermo la correttezza dei
+   * dati estratti dal bot». The data of the request are built from documents,
+   * plate data and ANIA, with the corrected plate and birth date of the
+   * checks; they become a version of the data and the auction opens at once.
+   */
+  async confirmBotData(auth: AuthContext, id: string) {
+    const built = await this.saveBotData(auth, id, true);
+    await withContext(this.db, auth.db, (tx) =>
+      this.audit.inTransaction(tx, actorOf(auth), {
+        action: "VERIFICATION_BOT_DATA_CONFIRMED",
+        targetType: "QuoteRequest",
+        targetId: id,
+        after: { round: built.round, notAvailable: built.notAvailable },
+      }),
     );
-    const rules = {
-      today: romeCalendarDate(this.clock.now()),
-      claimsYears: settings["verification.ania.claimsYears"],
-      expiryNoticeDays: settings["verification.ania.expiryNoticeDays"],
-      ownerMinAge: settings["verification.ania.ownerMinAge"],
-    };
-    const sheet = aniaSheet(record, rules);
-    const place =
-      sheet.birthPlaceCadastralCode && !sheet.bornAbroad
-        ? await tx.municipality.findUnique({
-            where: { cadastralCode: sheet.birthPlaceCadastralCode },
-          })
-        : null;
-    return {
-      plate: record.plate,
-      readAt: readAt.toISOString(),
-      sheet,
-      birthPlace: place ? { name: place.name, province: place.province } : null,
-      warnings: aniaWarnings(record, rules),
-    };
+    return this.approve(auth, id, undefined);
+  }
+
+  /**
+   * The bots' data as a version of the data of the request. Before the
+   * approval the five checks are required; before an integration on a request
+   * with the essential data only they are not (the document may be unreadable).
+   */
+  private async saveBotData(auth: AuthContext, id: string, requireChecks: boolean) {
+    const built = await withContext(this.db, auth.db, async (tx) => {
+      const { request, round } = await this.heldRound(tx, auth, id);
+      const checks = checksOf(round.checks);
+      const missing = missingChecks(checks);
+      if (requireChecks && missing.length > 0) {
+        throw new ProblemError(
+          "CONFLICT",
+          "The checks are not complete",
+          missing.map((step) => ({ path: `checks.${step}`, issue: "CHECKS_INCOMPLETE" })),
+        );
+      }
+      const quoteData = await this.quoteDataOf(tx, request);
+      let base: QuoteData | Omit<IntakeCandidate, "missing">;
+      if (quoteData) base = quoteData;
+      else {
+        const documents = await tx.document.findMany({
+          where: { quoteRequestId: id, deletedAt: null },
+          orderBy: { createdAt: "asc" },
+        });
+        const completion = await this.completionOf(tx, request, documents);
+        if (!completion) throw new ProblemError("CONFLICT", "The request has no data");
+        // The list of what was missing is for the screen, not for the data.
+        const { missing: _missing, ...candidate } = completion.candidate;
+        void _missing;
+        base = candidate;
+      }
+      const sheet =
+        round.aniaEnc && round.aniaReadAt
+          ? (
+              await this.aniaView(
+                tx,
+                decryptJson(this.cipher, round.aniaEnc) as AniaRecord,
+                round.aniaReadAt,
+              )
+            ).sheet
+          : null;
+      const result = quoteDataFromBot({
+        base: withChecks(base, checks),
+        sheet,
+        quoteType: checks.QUOTE_TYPE?.value ?? null,
+      });
+      return {
+        ...result,
+        round: round.round,
+        changed: changedPaths(quoteData, result.quoteData).length > 0,
+      };
+    });
+    if (built.changed) {
+      await this.correct(auth, id, {
+        quoteData: built.quoteData,
+        reason: requireChecks
+          ? "Dati del bot confermati dall'operatore"
+          : "Dati del bot prima della richiesta di integrazione",
+        fromBot: true,
+      });
+    }
+    return built;
   }
 
   /** Takes a check back. */
@@ -716,7 +773,11 @@ export class VerificationService {
    * changed paths and both fingerprints in the log, never the values; the
    * automatic check runs again on the corrected data.
    */
-  async correct(auth: AuthContext, id: string, input: { quoteData: unknown; reason: string }) {
+  async correct(
+    auth: AuthContext,
+    id: string,
+    input: { quoteData: unknown; reason: string; fromBot?: boolean },
+  ) {
     const parsed = QuoteDataSchema.safeParse(input.quoteData);
     if (!parsed.success) throw ProblemError.fromZod(parsed.error);
     const now = this.clock.now();
@@ -728,7 +789,7 @@ export class VerificationService {
       const completion = before === null;
       const changed = changedPaths(before, after);
       if (changed.length === 0) throw new ProblemError("VALIDATION_FAILED", "Nothing changed");
-      await this.checkLikeSubmission(tx, request, before, after, now);
+      await this.checkLikeSubmission(tx, request, before, after, now, input.fromBot ?? false);
       const version = (request.quoteDataVersion ?? 0) + 1;
       await tx.quoteDataVersion.create({
         data: {
@@ -823,6 +884,7 @@ export class VerificationService {
     before: QuoteData | null,
     data: QuoteData,
     now: Date,
+    fromBot = false,
   ) {
     const codes = await this.reference.activeCodes(tx);
     const draft: QuoteDraft = {
@@ -870,6 +932,8 @@ export class VerificationService {
     errors.push(
       ...problems
         .filter((p) => startChanged || p !== "START_DATE_IN_THE_PAST")
+        // Dan, 2026-10-28: with the bots' data what they did not find stays «non disponibile».
+        .filter((p) => !fromBot || !BOT_TOLERATED_PROBLEMS.has(p))
         .map((p) => ({ path: "quoteData", issue: p })),
     );
     // LEG-04: on a broker's request the holder stays the customer who gave the
@@ -1021,6 +1085,13 @@ export class VerificationService {
   }
 
   async requestIntegration(auth: AuthContext, id: string, input: IntegrationInput) {
+    // Dan, 2026-10-28: no «Completa i dati» any more: a request with the essential
+    // data only gets the bots' data first, so the customer changes only what is asked.
+    const toComplete = await withContext(this.db, auth.db, async (tx) => {
+      const { request } = await this.heldRound(tx, auth, id);
+      return request.quoteDataVersion === null;
+    });
+    if (toComplete) await this.saveBotData(auth, id, false);
     const now = this.clock.now();
     const sent = await withContext(this.db, auth.db, async (tx) => {
       const { request, round } = await this.heldRound(tx, auth, id);
@@ -1141,6 +1212,38 @@ function isSupervisor(auth: AuthContext): boolean {
 function checksOf(value: unknown): VerificationChecks {
   const parsed = VerificationChecksSchema.safeParse(value ?? {});
   return parsed.success ? parsed.data : {};
+}
+
+/** Dan, 2026-10-28: the problems a request built from the bots' data may keep. */
+const BOT_TOLERATED_PROBLEMS = new Set([
+  "CU_CLASS_REQUIRED",
+  "CURRENT_INSURER_REQUIRED",
+  "FAMILY_RC_REQUIRED",
+]);
+
+/** The plate and birth date corrected in the checks, in the data. */
+function withChecks<T extends { vehicle: unknown; policyHolder: unknown; drivers: unknown }>(
+  base: T,
+  checks: VerificationChecks,
+): T {
+  const plate = checks.PLATE?.value;
+  const birthDate = checks.BIRTH_DATE?.value;
+  const holder = base.policyHolder as Record<string, unknown>;
+  const fix = (p: Record<string, unknown>) =>
+    birthDate &&
+    p.kind === "PERSON" &&
+    (p.fiscalCode === holder.fiscalCode || p.fiscalCode === undefined)
+      ? { ...p, birthDate }
+      : p;
+  return {
+    ...base,
+    vehicle: plate ? { ...(base.vehicle as object), plate } : base.vehicle,
+    policyHolder: fix(holder),
+    drivers: (base.drivers as { person: Record<string, unknown> }[]).map((d) => ({
+      ...d,
+      person: fix(d.person),
+    })),
+  };
 }
 
 /** What the request says of the vehicle owner, for the fake reader. */

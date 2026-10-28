@@ -179,8 +179,7 @@
       "integrazione": "Integrazione chiesta: il richiedente è stato avvisato.",
       "esclusa": "Richiesta esclusa: il richiedente è stato avvisato.",
       "corretta": "Correzione salvata in una nuova versione dei dati.",
-      "completata": "Dati completati: ora controlla i semafori e approva.",
-      "ania": "Dati di ANIA portati nella richiesta, in una nuova versione."
+      "completata": "Dati completati: ora controlla i semafori e approva."
     },
     "cardTitle": "Verifica {code}",
     "error": "Operazione non riuscita: {codes}",
@@ -542,8 +541,6 @@
       "fromAnia": "da ANIA",
       "fromFiscalCode": "dal codice fiscale",
       "inRequest": "Nella richiesta: {value}",
-      "apply": "Porta i dati di ANIA nella richiesta",
-      "applyHelp": "Classe CU, compagnia, scadenza e date del veicolo diventano una nuova versione dei dati, con il registro.",
       "loginLink": "Login al portale ANIA"
     },
     "more": {
@@ -557,12 +554,11 @@
     },
     "bar": {
       "missing": "<strong>{count, plural, one {Manca 1 verifica} other {Mancano # verifiche}}:</strong> {steps}. «Approva e apri l'asta» si accende quando sono fatte tutte e 5.",
-      "ready": "Le 5 verifiche sono fatte: puoi approvare e aprire l'asta.",
-      "toComplete": "Completa i dati della richiesta, poi potrai approvare.",
+      "ready": "Le 5 verifiche sono fatte: controlla la scheda, spunta la conferma dei dati del bot e l'asta parte subito.",
       "askDocument": "Chiedi un documento al cliente",
       "exclude": "Escludi la richiesta",
       "approve": "Approva e apri l'asta",
-      "integrationAfterCompletion": "Per chiedere un documento completa prima i dati, oppure escludi la richiesta."
+      "confirmBot": "Confermo la correttezza dei dati estratti dal bot"
     },
     "problems": {
       "ASSIGNED_TO_COLLEAGUE": "La pratica è in carico a un collega: solo chi l'ha presa può decidere.",
@@ -579,7 +575,8 @@
       "TO_COMPLETE": "Completa i dati prima dell'approvazione.",
       "CONSENT_REVOKED": "Il cliente ha revocato il consenso: l'asta non può partire.",
       "ANIA_SESSION_EXPIRED": "La sessione del portale ANIA è scaduta: fai il login da «Portale ANIA» e poi riprova.",
-      "ANIA_FAKE": "In questo ambiente l'ANIA è finto: non serve il login."
+      "ANIA_FAKE": "In questo ambiente l'ANIA è finto: non serve il login.",
+      "NOT_CONFIRMED": "Spunta «Confermo la correttezza dei dati estratti dal bot» per aprire l'asta."
     },
     "queue": {
       "filters": "Filtro delle pratiche",

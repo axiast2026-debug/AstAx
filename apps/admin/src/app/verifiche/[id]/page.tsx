@@ -4,14 +4,13 @@ import { Badge, Button, Card, CardTitle, cn, Icon } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { AppShell } from "@/components/app-shell";
 import { AgencySheet } from "@/components/agency-sheet";
-import { CompletionForm } from "@/components/completion-form";
 import { DocumentViewer } from "@/components/document-viewer";
 import { VerificationChecks } from "@/components/verification-checks";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
 import { comparisonRows, differs, verificationCard } from "@/lib/verification";
 import {
-  approve,
+  confirmBotData,
   assignToMe,
   correct,
   exclude,
@@ -214,9 +213,9 @@ export default async function VerificationCardPage({
           ))}
         </ul>
       ) : null}
-      {query.fatto && ["completata", "corretta", "ania"].includes(query.fatto) ? (
+      {query.fatto && ["completata", "corretta"].includes(query.fatto) ? (
         <p role="status" className="mt-4 rounded-lg bg-green-50 p-3 text-sm">
-          {t(`done.${query.fatto as "completata" | "corretta" | "ania"}`)}
+          {t(`done.${query.fatto as "completata" | "corretta"}`)}
         </p>
       ) : null}
 
@@ -307,16 +306,6 @@ export default async function VerificationCardPage({
           canDecide={canDecide}
         />
       </div>
-
-      {open && !card.quoteData && card.completion ? (
-        <div className="mt-6">
-          <CompletionForm
-            requestId={card.id}
-            completion={card.completion}
-            ania={round?.ania?.sheet ?? null}
-          />
-        </div>
-      ) : null}
 
       <section aria-label={t("more.label")} className="mt-6 space-y-3">
         <details className="rounded-2xl bg-white p-4 ring-1 ring-warm-200">
@@ -661,74 +650,63 @@ export default async function VerificationCardPage({
                     steps: missing.map((m) => t(`checks.short.${m}`)).join(", "),
                     strong: (chunks) => <strong>{chunks}</strong>,
                   })
-                : card.quoteData
-                  ? t("bar.ready")
-                  : t("bar.toComplete")}
+                : t("bar.ready")}
             </p>
             <details className="group">
               <summary className="inline-flex min-h-11 cursor-pointer items-center rounded-xl border border-night-900 px-4 text-sm font-semibold">
                 {t("bar.askDocument")}
               </summary>
               <div className="mt-3 max-w-2xl">
-                {card.quoteData ? (
-                  <form action={requestIntegration} className="mt-3 space-y-3 text-sm">
-                    <input type="hidden" name="requestId" value={card.id} />
-                    <fieldset>
-                      <legend className="font-medium">{t("reasons")}</legend>
-                      <div className="mt-2 grid gap-1 sm:grid-cols-2">
-                        {card.reasons.integration.map((r) => (
-                          <label key={r.code} className={CHECK_ROW}>
-                            <input
-                              type="checkbox"
-                              name="reasonCodes"
-                              value={r.code}
-                              className={CHECK}
-                            />
-                            {r.it}
-                          </label>
-                        ))}
-                      </div>
-                    </fieldset>
-                    <fieldset>
-                      <legend className="font-medium">{t("sectionsToChange")}</legend>
-                      <div className="mt-2 grid gap-1 sm:grid-cols-3">
-                        {SECTIONS.map((s) => (
-                          <label key={s} className={CHECK_ROW}>
-                            <input type="checkbox" name="sections" value={s} className={CHECK} />
-                            {t(`sections.${s}`)}
-                          </label>
-                        ))}
-                      </div>
-                    </fieldset>
-                    <fieldset>
-                      <legend className="font-medium">{t("documentsToUpload")}</legend>
-                      <div className="mt-2 grid gap-1 sm:grid-cols-2">
-                        {DOCUMENT_KINDS.map((k) => (
-                          <label key={k} className={CHECK_ROW}>
-                            <input type="checkbox" name="documents" value={k} className={CHECK} />
-                            {t(`documentKinds.${k}`)}
-                          </label>
-                        ))}
-                      </div>
-                    </fieldset>
-                    <div>
-                      <label htmlFor="integration-message" className="font-medium">
-                        {t("messageToRequester")}
-                      </label>
-                      <textarea
-                        id="integration-message"
-                        name="message"
-                        rows={3}
-                        className={INPUT}
-                      />
+                <form action={requestIntegration} className="mt-3 space-y-3 text-sm">
+                  <input type="hidden" name="requestId" value={card.id} />
+                  <fieldset>
+                    <legend className="font-medium">{t("reasons")}</legend>
+                    <div className="mt-2 grid gap-1 sm:grid-cols-2">
+                      {card.reasons.integration.map((r) => (
+                        <label key={r.code} className={CHECK_ROW}>
+                          <input
+                            type="checkbox"
+                            name="reasonCodes"
+                            value={r.code}
+                            className={CHECK}
+                          />
+                          {r.it}
+                        </label>
+                      ))}
                     </div>
-                    <Button type="submit" variant="secondary">
-                      {t("askIntegration")}
-                    </Button>
-                  </form>
-                ) : (
-                  <p className="text-sm">{t("bar.integrationAfterCompletion")}</p>
-                )}
+                  </fieldset>
+                  <fieldset>
+                    <legend className="font-medium">{t("sectionsToChange")}</legend>
+                    <div className="mt-2 grid gap-1 sm:grid-cols-3">
+                      {SECTIONS.map((s) => (
+                        <label key={s} className={CHECK_ROW}>
+                          <input type="checkbox" name="sections" value={s} className={CHECK} />
+                          {t(`sections.${s}`)}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                  <fieldset>
+                    <legend className="font-medium">{t("documentsToUpload")}</legend>
+                    <div className="mt-2 grid gap-1 sm:grid-cols-2">
+                      {DOCUMENT_KINDS.map((k) => (
+                        <label key={k} className={CHECK_ROW}>
+                          <input type="checkbox" name="documents" value={k} className={CHECK} />
+                          {t(`documentKinds.${k}`)}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                  <div>
+                    <label htmlFor="integration-message" className="font-medium">
+                      {t("messageToRequester")}
+                    </label>
+                    <textarea id="integration-message" name="message" rows={3} className={INPUT} />
+                  </div>
+                  <Button type="submit" variant="secondary">
+                    {t("askIntegration")}
+                  </Button>
+                </form>
               </div>
             </details>
             <details>
@@ -762,18 +740,21 @@ export default async function VerificationCardPage({
                 </form>
               </div>
             </details>
-            <form action={approve} className="flex flex-wrap items-end gap-2">
+            {/* Dan, 2026-10-28: one tick confirms the bots' data and opens the auction. */}
+            <form action={confirmBotData} className="flex flex-wrap items-center gap-3">
               <input type="hidden" name="requestId" value={card.id} />
-              <label className="sr-only" htmlFor="approve-note">
-                {t("approveNote")}
+              <label className="flex min-h-11 items-center gap-3 text-sm font-semibold">
+                <input
+                  type="checkbox"
+                  name="confirmed"
+                  value="1"
+                  required
+                  disabled={missing.length > 0}
+                  className="size-5 accent-night-900"
+                />
+                {t("bar.confirmBot")}
               </label>
-              <input
-                id="approve-note"
-                name="note"
-                placeholder={t("approveNote")}
-                className="min-h-11 rounded-lg border border-warm-600 px-3 text-sm"
-              />
-              <Button type="submit" size="lg" disabled={missing.length > 0 || !card.quoteData}>
+              <Button type="submit" size="lg" disabled={missing.length > 0}>
                 {t("bar.approve")}
               </Button>
             </form>
