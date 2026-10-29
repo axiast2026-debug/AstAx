@@ -1098,19 +1098,8 @@
       "reconfirmTitle": "Rispondi alla riconferma",
       "reconfirmIntro": "Il cliente chiede di riconfermare la vostra offerta. Conferma lo stesso premio o aggiornalo (anche al rialzo), con una nuova data di garanzia; oppure rinuncia qui sotto. Le risposte restano in busta chiusa fino alla scadenza.",
       "ania": {
-        "title": "Dati ANIA confermati dal back office",
-        "intro": "Letti dalla Banca Dati ANIA con la targa {plate} il {date} e confermati da AstAx.",
         "notAvailable": "non disponibile",
         "claimsValue": "{main} principali · {shared} paritari",
-        "warnings": {
-          "TYPE_NOT_IDENTIFIED": "Tipologia del veicolo non identificata in ANIA: verificare sul libretto di circolazione.",
-          "HOLDER_NOT_OWNER": "Il contraente della polizza è diverso dall'intestatario del veicolo.",
-          "ENTITLED_NOT_HOLDER": "L'avente diritto dell'attestato è diverso dal contraente.",
-          "COVER_EXPIRED": "La copertura risulta scaduta.",
-          "COVER_EXPIRING": "La copertura scade entro 60 giorni.",
-          "NO_CERTIFICATE": "Nessun attestato di rischio in ANIA.",
-          "CU_CLASS_MISSING": "Manca la classe di assegnazione CU nell'attestato."
-        },
         "fields": {
           "plate": "Targa",
           "fiscalCode": "Codice fiscale",
@@ -1133,8 +1122,7 @@
           "contractExpiry": "Scadenza contratto",
           "claims": "Sinistri ultimi 5 anni"
         },
-        "purpose": "Dati ANIA per facilitare il vostro preventivo, da confrontare con documenti e libretto forniti.",
-        "notRead": "La Banca Dati ANIA non è stata letta per questa richiesta: valgono i documenti allegati.",
+        "purpose": "Dati per facilitare il vostro preventivo, da confrontare con documenti e libretto forniti.",
         "quoteTypes": {
           "RENEWAL": "Rinnovo (già assicurato)",
           "NEW_VEHICLE": "Veicolo nuovo, prima polizza",

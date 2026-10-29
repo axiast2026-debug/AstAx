@@ -1,6 +1,6 @@
 import type { AniaSheet, AniaWarning } from "@astax/shared/domain";
 import { formatDate } from "@astax/shared/format";
-import { Card, CardTitle } from "@astax/ui";
+import { Card } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import type { AgencyRequest } from "@/lib/agency";
 
@@ -18,7 +18,8 @@ export interface ConfirmedAnia {
  * quote, with the fiscal code and the address the customer wrote and the type
  * of quote. Never the customer's name, email or phone before the purchase
  * (the API sends none); no cover expiry. What ANIA did not give is «non
- * disponibile».
+ * disponibile». Dan, 2026-10-29: only the purpose sentence on top, no title,
+ * no source, no read date and no warnings.
  */
 export async function AniaConfirmed({
   ania,
@@ -75,22 +76,7 @@ export async function AniaConfirmed({
     : [];
   return (
     <Card className="flex flex-col gap-3 p-4 md:p-5">
-      <CardTitle className="text-body font-bold">{t("title")}</CardTitle>
-      <p className="text-table text-warm-700">{t("purpose")}</p>
-      {ania ? (
-        <p className="text-note text-warm-600">
-          {t("intro", { plate: ania.plate, date: formatDate(ania.readAt) })}
-        </p>
-      ) : (
-        <p className="text-note text-warm-600">{t("notRead")}</p>
-      )}
-      {ania && ania.warnings.length > 0 ? (
-        <ul role="note" className="space-y-1 rounded-lg bg-warning-50 p-3 text-table">
-          {ania.warnings.map((w) => (
-            <li key={w}>{t(`warnings.${w}`)}</li>
-          ))}
-        </ul>
-      ) : null}
+      <p className="text-table font-bold text-warm-700">{t("purpose")}</p>
       <dl className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-x-4 gap-y-2 text-table">
         {[...own, ...rows].map(([key, value]) => (
           <div key={key} className="contents">

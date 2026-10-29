@@ -29,7 +29,7 @@ L'area dell'agenzia serve a trovare le richieste giuste, offrire in fretta ed em
 
 Dan, 2026-10-29 ([ADR 0024](../adr/0024-aste-aperte-a-tutte-le-agenzie.md)): solo tre parti.
 
-- **Dati ANIA** confermati dal back office, con la scritta «Dati ANIA per facilitare il vostro preventivo, da confrontare con documenti e libretto forniti.»: tutti quelli disponibili tranne la scadenza della copertura e il nome dell'intestatario; in più il codice fiscale (o la partita IVA) e l'indirizzo scritti dal cliente e la tipologia del preventivo.
+- **Dati per il preventivo** (la Banca Dati ANIA confermata dal back office, senza indicare la fonte all'agenzia), con sopra solo la scritta «Dati per facilitare il vostro preventivo, da confrontare con documenti e libretto forniti.» (niente titolo, data di lettura o avvisi): tutti quelli disponibili tranne la scadenza della copertura e il nome dell'intestatario; in più il codice fiscale (o la partita IVA) e l'indirizzo scritti dal cliente e la tipologia del preventivo.
 - **Richiesta:** guida (libera o esperta), garanzie (RCA e le altre del pacchetto), scatola nera (accetta o non accetta), pacchetto, decorrenza, validità minima dell'offerta, durata dell'asta.
 - **Documenti:** tutti quelli caricati dal cliente, carta d'identità compresa.
 - Niente sezioni veicolo, persone e storia assicurativa. Nome, telefono ed email del cliente mai prima dell'acquisto (il nome solo nei documenti). Ogni apertura viene registrata, e la pagina lo dice.
