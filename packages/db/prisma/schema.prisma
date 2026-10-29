@@ -729,6 +729,8 @@ enum OtpPurpose {
   CUSTOMER_LINK
   /// Phase 7: the owner confirms the IBAN of an entry with a code by SMS.
   ONBOARDING_IBAN
+  /// Dan, 2026-10-29: whoever sends the agency's first offer confirms its IBAN.
+  OFFER_IBAN
 }
 
 /// One-time codes sent by AstAx (auth.otp), stored only as a keyed hash.
@@ -1064,6 +1066,8 @@ enum InvitationSource {
   RENEWAL
   REOPEN
   RECONFIRMATION
+  /// Dan, 2026-10-29 (ADR 0024): the agency opened the auction from the list of all open ones.
+  OPEN_LIST
 }
 
 enum InvitationStatus {
@@ -2033,7 +2037,9 @@ model OnboardingApplication {
   principalRuiNumber     String?
   pec                    String
   address                Json
-  ibanEnc                String
+  /// Dan, 2026-10-29: no IBAN at the entry any more (asked at the first offer);
+  /// kept for the entries made before.
+  ibanEnc                String?
   ibanConfirmedAt        DateTime?        @db.Timestamptz(3)
   ownerFirstName         String
   ownerLastName          String

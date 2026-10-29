@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 
 /**
  * A time in words from the server's day (rule 6, Rome): «oggi alle 12:00»,
- * «domani alle 9:00» or «lunedì 16/11 alle 9:00».
+ * «domani alle 9:00» or «lunedì 16/11/2026 alle 9:00».
  */
 export async function whenWords(serverNow: string): Promise<(at: string) => string> {
   const t = await getTranslations("auctionView");

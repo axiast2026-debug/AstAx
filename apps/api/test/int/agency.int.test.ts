@@ -104,12 +104,28 @@ describe("fase 4: the agency area (spec 04)", () => {
       urgent: expect.any(Boolean),
     });
     noContacts(rows);
-    // Agenzia Due is not invited.
-    const due = await r.json<{ auctionId: string }[]>(
+    // ADR 0024 (Dan, 2026-10-29): Agenzia Due got no email, but sees every open auction.
+    const due = await r.json<{ auctionId: string; state: string }[]>(
       await r.call(await who("agenzia-due-owner", "agenzia-due"), "/agency/requests"),
       200,
     );
-    expect(due.map((x) => x.auctionId)).not.toContain(auctionId);
+    expect(due.find((x) => x.auctionId === auctionId)?.state).toBe("NEW");
+    noContacts(due);
+  });
+
+  it("«Applica i miei filtri» (Dan, 2026-10-29): the saved filters narrow the list, and so do the ones by hand", async () => {
+    const uno = await who("agenzia-uno-owner", "agenzia-uno");
+    const ids = async (query: string) =>
+      (
+        await r.json<{ auctionId: string }[]>(await r.call(uno, `/agency/requests?${query}`), 200)
+      ).map((x) => x.auctionId);
+    const all = await ids("");
+    const mine = await ids("mine=1");
+    expect(mine.every((id) => all.includes(id))).toBe(true);
+    // The request is in CU class 1.
+    expect(await ids("cuClassMin=1&cuClassMax=3")).toContain(auctionId);
+    expect(await ids("cuClassMin=5")).not.toContain(auctionId);
+    expect((await r.call(uno, "/agency/requests?mine=2")).status).toBe(400);
   });
 
   it("«Profilo» of the agency (Dan, 2026-10-21): its data, mandates and team; the IBAN masked", async () => {
@@ -160,7 +176,8 @@ describe("fase 4: the agency area (spec 04)", () => {
 
   it("VIS-01 VIS-09 the detail has every datum useful to quote, no contact, and the opening is logged", async () => {
     const detail = await r.json<{
-      quoteData: { vehicle: { plate: string } };
+      request: { plate: string; holder: { taxCode: string; address: { municipality: string } } };
+      quoteData?: unknown;
       documents: { id: string; kind: string }[];
       accessLogged: boolean;
       companies: { name: string }[];
@@ -169,7 +186,13 @@ describe("fase 4: the agency area (spec 04)", () => {
       await r.call(await who("agenzia-uno-owner", "agenzia-uno"), `/agency/requests/${auctionId}`),
       200,
     );
-    expect(detail.quoteData.vehicle.plate).toBe("GN123AB");
+    expect(detail.request.plate).toBe("GN123AB");
+    // Dan, 2026-10-29: the fiscal code and the address the customer wrote, never the name
+    // before the purchase, nor the vehicle, persons and history sections.
+    expect(detail.request.holder.taxCode).toMatch(/^[A-Z0-9]{16}$/);
+    expect(detail.request.holder.address.municipality).not.toBe("");
+    expect(detail.quoteData).toBeUndefined();
+    expect(JSON.stringify(detail)).not.toMatch(/Giulia|Neri\b|NERI/);
     expect(detail.accessLogged).toBe(true);
     expect(detail.live?.workingSecondsLeft).toBeGreaterThan(0);
     expect(detail.companies.map((c) => c.name).sort()).toEqual([
@@ -204,15 +227,80 @@ describe("fase 4: the agency area (spec 04)", () => {
     const keywords = pdf.getKeywords() ?? "";
     expect(keywords).toContain("Agenzia Uno");
     expect(keywords).toContain("Anna Moretti");
-    expect(keywords).toMatch(/\d{2}\/\d{2}\/\d{2}, \d{2}:\d{2}/);
+    // Dan, 2026-10-29: GG/MM/AAAA.
+    expect(keywords).toMatch(/\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}/);
     expect(await audit("DOCUMENT_VIEWED", document?.id)).toHaveLength(1);
   });
 
-  it("an agency not invited gets 404 for the request and its documents, logged", async () => {
+  it("ADR 0024 an agency not emailed opens the open auction and joins it; an unknown one is 404, logged", async () => {
     const due = await who("agenzia-due-owner", "agenzia-due");
-    expect((await r.call(due, `/agency/requests/${auctionId}`)).status).toBe(404);
-    const denied = await audit("ACCESS_DENIED", auctionId);
+    await r.json(await r.call(due, `/agency/requests/${auctionId}`), 200);
+    const joined = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.invitation.findFirstOrThrow({
+        where: { auctionId, organizationId: orgId("agenzia-due") },
+      }),
+    );
+    expect(joined).toMatchObject({ source: "OPEN_LIST", status: "VIEWED" });
+    const unknown = "019a0000-0000-7000-8000-000000000000";
+    expect((await r.call(due, `/agency/requests/${unknown}`)).status).toBe(404);
+    const denied = await audit("ACCESS_DENIED", unknown);
     expect(denied.some((d) => d.actorOrganizationId === orgId("agenzia-due"))).toBe(true);
+  });
+
+  it("ADR 0024 the IBAN at the agency's first offer: refused without it, then a code by SMS to whoever sends it", async () => {
+    const tre = await who("agenzia-tre-owner", "agenzia-tre");
+    await withContext(h.db, SYSTEM_CONTEXT, async (tx) => {
+      await tx.organization.update({
+        where: { id: orgId("agenzia-tre") },
+        data: { ibanEnc: null },
+      });
+      await tx.user.updateMany({
+        where: { memberships: { some: { organizationId: orgId("agenzia-tre") } } },
+        data: { phoneEnc: null, phoneHash: null },
+      });
+    });
+    expect(await r.json(await r.call(tre, "/agency/iban"), 200)).toEqual({
+      required: true,
+      phone: null,
+    });
+    const offer = await fetch(`${h.baseUrl}/auctions/${auctionId}/offers`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${tre.token}`,
+        "x-astax-context": tre.context ?? "",
+        "x-offer": Buffer.from("{}").toString("base64url"),
+        "content-type": "application/pdf",
+      },
+      body: new TextEncoder().encode("%PDF-1.7 preventivo"),
+    });
+    expect(offer.status).toBe(409);
+    expect(JSON.stringify(await offer.json())).toContain("IBAN_REQUIRED");
+    // No phone on the account: it is asked, and the code goes there.
+    expect((await r.call(tre, "/agency/iban/code", { body: {} })).status).toBe(400);
+    expect(
+      (await r.call(tre, "/agency/iban/code", { body: { phone: "+39 333 777 8899" } })).status,
+    ).toBe(204);
+    const sms = [...h.email.sent].reverse().find((m) => m.to.startsWith("393337778899"));
+    const code = /\b(\d{6})\b/.exec(sms?.text ?? "")?.[1] ?? "";
+    expect(
+      (
+        await r.call(tre, "/agency/iban", {
+          body: { iban: "IT60X0542811101000000123456", code: "000000" },
+        })
+      ).status,
+    ).toBe(400);
+    expect(
+      await r.json(
+        await r.call(tre, "/agency/iban", {
+          body: { iban: "IT60 X054 2811 1010 0000 0123 456", code },
+        }),
+        200,
+      ),
+    ).toEqual({ required: false });
+    expect(await r.json(await r.call(tre, "/agency/iban"), 200)).toMatchObject({ required: false });
+    const set = await audit("ORGANIZATION_IBAN_SET", orgId("agenzia-tre"));
+    expect(set).toHaveLength(1);
+    expect(JSON.stringify(set[0]?.after)).not.toContain("IT60");
   });
 
   it("OFF-03 two users of the same agency claim at the same instant: only one succeeds", async () => {

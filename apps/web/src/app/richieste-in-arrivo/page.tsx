@@ -61,6 +61,12 @@ export default async function IncomingRequestsPage({
     chiude?: string;
     pacchetto?: string;
     documenti?: string;
+    classeDa?: string;
+    classeA?: string;
+    sinistri?: string;
+    etaDa?: string;
+    etaA?: string;
+    miei?: string;
     fatto?: string;
   }>;
 }) {
@@ -81,6 +87,20 @@ export default async function IncomingRequestsPage({
   if (query.pacchetto && /^[A-Z_]+$/.test(query.pacchetto))
     params.set("packageCode", query.pacchetto);
   if (query.documenti === "senza") params.set("withoutDocuments", "1");
+  // Dan, 2026-10-29: the filters of «I miei filtri» by hand, or the saved ones with one button.
+  const numbers = [
+    ["classeDa", "cuClassMin"],
+    ["classeA", "cuClassMax"],
+    ["sinistri", "maxClaims"],
+    ["etaDa", "driverAgeMin"],
+    ["etaA", "driverAgeMax"],
+  ] as const;
+  for (const [name, param] of numbers) {
+    const v = query[name];
+    if (v && /^\d{1,3}$/.test(v)) params.set(param, v);
+  }
+  const mine = query.miei === "1";
+  if (mine) params.set("mine", "1");
   const [{ body: rows }, options] = await Promise.all([
     api<IncomingRow[]>(`/agency/requests?${params.toString()}`),
     api<{ choices?: { packages: { code: string; name: string }[] } }>("/agency/filters"),
@@ -236,10 +256,39 @@ export default async function IncomingRequestsPage({
             />
             {t("incoming.withoutDocuments")}
           </label>
+          {numbers.map(([name]) => (
+            <label key={name} className="text-label font-semibold">
+              {t(`incoming.numbers.${name}`)}
+              <input
+                type="number"
+                inputMode="numeric"
+                name={name}
+                min={0}
+                defaultValue={query[name] ?? ""}
+                className={`${SELECT} w-24`}
+              />
+            </label>
+          ))}
           <button type="submit" className={buttonVariants({ variant: "outline", size: "sm" })}>
             {t("incoming.apply")}
           </button>
+          <button
+            type="submit"
+            name="miei"
+            value="1"
+            className={buttonVariants({ variant: mine ? "primary" : "outline", size: "sm" })}
+          >
+            {t("incoming.applyMine")}
+          </button>
         </form>
+        {mine ? (
+          <p role="status" className="text-table text-warm-700">
+            {t("incoming.mineApplied")}{" "}
+            <Link href="/filtri" className="underline">
+              {t("incoming.mineEdit")}
+            </Link>
+          </p>
+        ) : null}
 
         {rows.length === 0 ? (
           <div className="flex flex-col items-center gap-2 rounded-xl bg-white px-4 py-10 text-center shadow-[inset_0_0_0_1px_var(--color-warm-200)]">

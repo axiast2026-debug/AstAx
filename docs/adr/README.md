@@ -31,5 +31,6 @@ ADR attesi:
 | 0021 | Coperture in tre scelte, eventi naturali e atti vandalici separati, kasko | dopo la 8 |
 | 0022 | Banca Dati ANIA vera nel back office della demo | dopo la 8 |
 | 0023 | I dati della richiesta dai bot, confermati con una spunta | dopo la 8 |
+| 0024 | Aste aperte a tutte le agenzie, filtri per le email, IBAN alla prima offerta | dopo la 8 |
 
 I numeri seguono l'ordine in cui le decisioni vengono prese: la 0003 e la 0004 sono arrivate in fase 1, prima di quelle previste.

@@ -1,10 +1,10 @@
-import { buildSyntheticIban, buildVatNumber } from "@astax/shared/domain";
+import { buildVatNumber } from "@astax/shared/domain";
 import { SystemClock } from "@astax/adapters/clock";
 import { romeCalendarDate } from "@astax/shared/format";
 import { expect, test, type Page } from "@playwright/test";
 import { E2E_ONBOARDING } from "../global-setup.js";
 import { ADMIN, backOffice, WEB } from "../support/auction.js";
-import { latestMail } from "../support/requests.js";
+import { chooseMunicipality, latestMail } from "../support/requests.js";
 
 /**
  * Phase 7 (fasi/07, «Test richiesti», end-to-end): the administrator changes
@@ -13,7 +13,6 @@ import { latestMail } from "../support/requests.js";
  * the back office registers and answers a complaint. The missed issuance
  * is in S05.
  */
-const PDF = Buffer.from("%PDF-1.4 polizza RC professionale e2e");
 /** Real time: the servers of the local environment run on it. */
 const clock = new SystemClock();
 const today = romeCalendarDate(clock.now());
@@ -81,44 +80,29 @@ test.describe.serial("fase 7 — pannelli", () => {
     const applicant = await browser.newPage();
     await applicant.goto(`${WEB}/ingresso`);
     await applicant.getByLabel("Ragione sociale").fill(E2E_ONBOARDING.legalName);
-    await applicant.getByLabel("Partita IVA").fill(buildVatNumber(9103, 1));
+    // Dan, 2026-10-29: a wrong datum first; after the error only that one is corrected.
+    await applicant.getByLabel("Partita IVA").fill("12345678901");
     await applicant.getByLabel("Numero RUI (sezione A)").fill(E2E_ONBOARDING.ruiNumber);
     await applicant.getByLabel("PEC").fill("agenzia.tredici@pec.test");
     await applicant.getByLabel("Indirizzo", { exact: true }).fill("Via delle Prove 13");
-    await applicant.getByLabel("CAP").fill("00184");
-    await applicant.getByLabel("Provincia (sigla)").fill("RM");
-    await applicant.getByLabel("Codice ISTAT del comune").fill("058091");
+    // The municipality from the suggestions: no ISTAT code, the province by itself.
+    await chooseMunicipality(applicant, "Roma", "RM");
     await applicant.getByLabel("Nome", { exact: true }).fill("Tiziana");
     await applicant.getByLabel("Cognome").fill("Tredici");
     await applicant.getByLabel("Email", { exact: true }).fill(E2E_ONBOARDING.ownerEmail);
     await applicant.getByLabel("Cellulare").fill(E2E_ONBOARDING.ownerPhone);
-    await applicant.getByLabel("IBAN", { exact: true }).fill(buildSyntheticIban(9103));
     await applicant.getByLabel("Compagnia Delta").check();
+    await applicant.getByRole("button", { name: "Continua" }).click();
+    await expect(applicant.getByRole("alert")).toBeVisible();
+    // Nothing typed is lost: only the VAT number is written again.
+    await expect(applicant.getByLabel("Ragione sociale")).toHaveValue(E2E_ONBOARDING.legalName);
+    await expect(applicant.getByLabel("Cognome")).toHaveValue("Tredici");
+    await applicant.getByLabel("Partita IVA").fill(buildVatNumber(9103, 1));
     await applicant.getByRole("button", { name: "Continua" }).click();
     await expect(applicant.getByRole("status")).toContainText("Dati salvati");
 
-    // The IBAN with the code by SMS (in Mailpit, as every fake SMS).
+    // Dan, 2026-10-29: no IBAN and no professional liability policy: the contracts.
     const before = clock.now().getTime();
-    await applicant.getByRole("button", { name: "Mandami il codice" }).click();
-    const sms = await latestMail(
-      `${E2E_ONBOARDING.ownerPhone.replace(/\D/g, "")}@sms.astax.test`,
-      /SMS AstAx/,
-      before,
-    );
-    const code = /\b(\d{6})\b/.exec(sms.text)?.[1] ?? "";
-    await applicant.getByLabel("Codice").fill(code);
-    await applicant.getByRole("button", { name: "Conferma" }).click();
-    await expect(applicant.getByRole("status")).toContainText("IBAN confermato");
-
-    await applicant.getByLabel("Polizza in PDF").setInputFiles({
-      name: "rc-professionale.pdf",
-      mimeType: "application/pdf",
-      buffer: PDF,
-    });
-    await applicant.getByLabel("Scadenza della polizza").fill("2030-12-31");
-    await applicant.getByRole("button", { name: "Carica la polizza" }).click();
-    await expect(applicant.getByRole("status")).toContainText("Polizza caricata");
-
     for (const box of await applicant
       .getByRole("checkbox", { name: /^Ho letto e accetto/ })
       .all()) {
@@ -134,7 +118,7 @@ test.describe.serial("fase 7 — pannelli", () => {
     await supervisor.getByRole("link", { name: E2E_ONBOARDING.legalName }).click();
     await expect(supervisor.getByText("Numero presente")).toBeVisible();
     await supervisor.getByRole("radio", { name: "Approva" }).check();
-    await supervisor.getByLabel(/^Motivo/).fill("RUI, mandato e polizza in ordine");
+    await supervisor.getByLabel(/^Motivo/).fill("RUI e mandato in ordine");
     await supervisor.getByRole("button", { name: "Conferma" }).click();
     await expect(supervisor.getByRole("status")).toContainText("Approvata");
 

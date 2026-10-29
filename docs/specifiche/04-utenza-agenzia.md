@@ -23,16 +23,17 @@ L'area dell'agenzia serve a trovare le richieste giuste, offrire in fretta ed em
 
 ## Richieste in arrivo
 
-Elenco delle richieste in target, ordinate per chiusura: tipo di veicolo, provincia, classe CU, sinistri, età del conducente, pacchetto, decorrenza, validità minima richiesta, conto alla rovescia, stato (nuova, presa in carico da…, offerta inviata, rinunciata).
+«Partecipa all'asta»: tutte le aste aperte di AstAx, su cui ogni agenzia può offrire (Dan, 2026-10-29, [ADR 0024](../adr/0024-aste-aperte-a-tutte-le-agenzie.md)), ordinate per chiusura, con i filtri scelti a mano (anche classe CU, sinistri ed età del conducente) e il pulsante «Applica i miei filtri», che usa i filtri per le email salvati: tipo di veicolo, provincia, classe CU, sinistri, età del conducente, pacchetto, decorrenza, validità minima richiesta, conto alla rovescia, stato (nuova, presa in carico da…, offerta inviata, rinunciata).
 
 ### Dettaglio della richiesta
 
-- **Veicolo:** marca, modello, allestimento, kW, immatricolazione, uso, valore.
-- **Persone:** contraente, proprietario e conducenti, con nome, codice fiscale, data di nascita, residenza, patente.
-- **Attestato ANIA:** classe CU, sinistri degli ultimi 5 anni, scadenza della polizza attuale.
-- **Documenti:** libretto e patenti.
-- **Richiesta:** pacchetto con le coperture esatte, decorrenza, formula di guida, frazionamento, validità minima del prezzo.
-- Mai telefono ed email. Ogni apertura viene registrata, e la pagina lo dice.
+Dan, 2026-10-29 ([ADR 0024](../adr/0024-aste-aperte-a-tutte-le-agenzie.md)): solo tre parti.
+
+- **Dati ANIA** confermati dal back office, con la scritta «Dati ANIA per facilitare il vostro preventivo, da confrontare con documenti e libretto forniti.»: tutti quelli disponibili tranne la scadenza della copertura e il nome dell'intestatario; in più il codice fiscale (o la partita IVA) e l'indirizzo scritti dal cliente e la tipologia del preventivo.
+- **Richiesta:** guida (libera o esperta), garanzie (RCA e le altre del pacchetto), scatola nera (accetta o non accetta), pacchetto, decorrenza, validità minima dell'offerta, durata dell'asta.
+- **Documenti:** tutti quelli caricati dal cliente, carta d'identità compresa.
+- Niente sezioni veicolo, persone e storia assicurativa. Nome, telefono ed email del cliente mai prima dell'acquisto (il nome solo nei documenti). Ogni apertura viene registrata, e la pagina lo dice.
+- Prima offerta dell'agenzia: chi la invia inserisce l'IBAN dell'agenzia e lo conferma con un codice via SMS sul proprio cellulare.
 - Azioni: prendi in carico, rilascia, inserisci offerta, «non interessato» con motivo (fuori tariffa, compagnia non disponibile, profilo non assumibile, tempi).
 
 ### Modulo offerta

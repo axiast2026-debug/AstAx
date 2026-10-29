@@ -71,7 +71,8 @@ export class AgencyPreviewService {
         openedAt: now,
         closeAt: times.scheduledCloseAt,
         minReceptionOverlapMinutes: settings.minReceptionOverlapWorkingHours * 60,
-        limit: settings.invitationsMax,
+        // ADR 0024: no limit, every compatible agency gets the email.
+        limit: null,
         alreadyInvited: [],
         // Answer 2A: the agency of an intermediary of section E is never invited.
         excluded: [...exclusions.map((e) => e.organizationId), ...requesterOut.agencies],

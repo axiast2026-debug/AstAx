@@ -19,7 +19,8 @@ interface Detail {
   principalRuiNumber: string | null;
   pec: string;
   address: { street: string; postalCode: string; municipalityIstat: string; province: string };
-  iban: string;
+  /** Dan, 2026-10-29: only the entries made before have one (now asked at the first offer). */
+  iban: string | null;
   ibanConfirmedAt: string | null;
   owner: { firstName: string; lastName: string; email: string; phone: string };
   companies: { id: string; name: string }[];
@@ -151,15 +152,19 @@ export default async function OnboardingDetailPage({
             <dd>
               {a.owner.firstName} {a.owner.lastName} · {a.owner.email} · {a.owner.phone}
             </dd>
-            <dt className="text-warm-600">{t("iban")}</dt>
-            <dd>
-              {a.iban}{" "}
-              {a.ibanConfirmedAt ? (
-                <Badge tone="success">{t("ibanConfirmed")}</Badge>
-              ) : (
-                <Badge tone="danger">{t("ibanNotConfirmed")}</Badge>
-              )}
-            </dd>
+            {a.iban ? (
+              <>
+                <dt className="text-warm-600">{t("iban")}</dt>
+                <dd>
+                  {a.iban}{" "}
+                  {a.ibanConfirmedAt ? (
+                    <Badge tone="success">{t("ibanConfirmed")}</Badge>
+                  ) : (
+                    <Badge tone="danger">{t("ibanNotConfirmed")}</Badge>
+                  )}
+                </dd>
+              </>
+            ) : null}
             {a.type === "AGENCY" ? (
               <>
                 <dt className="text-warm-600">{t("mandates")}</dt>
@@ -169,9 +174,10 @@ export default async function OnboardingDetailPage({
           </dl>
         </Card>
 
-        <Card>
-          <CardTitle>{t("profInsurance")}</CardTitle>
-          {a.profInsurance ? (
+        {/* Dan, 2026-10-29: no policy asked any more; the entries made before keep theirs. */}
+        {a.profInsurance ? (
+          <Card>
+            <CardTitle>{t("profInsurance")}</CardTitle>
             <p className="mt-2 text-sm">
               {t("expiresOn", {
                 date: a.profInsurance.expiresOn ? formatDate(a.profInsurance.expiresOn) : "—",
@@ -180,10 +186,8 @@ export default async function OnboardingDetailPage({
                 {t("open")}
               </a>
             </p>
-          ) : (
-            <p className="mt-2 text-sm text-warm-600">{t("missing")}</p>
-          )}
-        </Card>
+          </Card>
+        ) : null}
 
         <Card>
           <CardTitle>{t("contracts")}</CardTitle>

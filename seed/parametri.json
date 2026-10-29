@@ -23,7 +23,7 @@
     { "key": "auction.desertedReopen.enabled", "value": true, "description": "Riapertura automatica dell'asta deserta", "rule": "ASTA-08" },
     { "key": "auction.desertedReopen.workingHours", "value": 2, "description": "Durata della riapertura, in ore lavorative", "rule": "ASTA-08" },
     { "key": "auction.desertedReopen.maxAttempts", "value": 1, "description": "Riaperture automatiche per richiesta", "rule": "ASTA-08" },
-    { "key": "invitations.max", "value": 8, "description": "Agenzie invitate al massimo per asta", "rule": "ASTA-04" },
+    { "key": "invitations.max", "value": 8, "description": "Agenzie al massimo per un invito a mano del back office (gli inviti automatici non hanno limite, ADR 0024)", "rule": "ASTA-06" },
     { "key": "invitations.topUp.checkAtFraction", "value": 0.5, "description": "Momento del controllo per il rabbocco, come frazione della durata", "rule": "ASTA-04" },
     { "key": "invitations.topUp.minOffers", "value": 3, "description": "Sotto questo numero di offerte scatta il rabbocco", "rule": "ASTA-04" },
     { "key": "invitations.topUp.extra", "value": 4, "description": "Agenzie aggiunte al massimo con il rabbocco", "rule": "ASTA-04" },

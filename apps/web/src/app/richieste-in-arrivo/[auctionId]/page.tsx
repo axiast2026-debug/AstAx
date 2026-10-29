@@ -9,11 +9,11 @@ import { assignClaim, claimRequest, declineRequest, releaseRequest } from "@/app
 import { AppShell } from "@/components/app-shell";
 import { CountdownRing } from "@/components/countdown-ring";
 import { ErrorSummary, INPUT } from "@/components/form";
-import { holderName } from "@/lib/requests";
 import { api } from "@/lib/auth";
 import type { AgencyRequestDetail, OwnOffer } from "@/lib/agency";
 import { requireViewer } from "@/lib/me";
 import { whenWords } from "@/lib/when";
+import { FirstOfferIban } from "./first-offer-iban";
 import { OfferForm } from "./offer-form";
 import { OfferReceipt } from "./offer-receipt";
 
@@ -32,7 +32,6 @@ function Row({
 }: {
   label: string;
   value: string | number | null | undefined;
-  /** Dan, 2026-10-28: a datum the bots did not find reads «non disponibile». */
   missing?: string;
 }) {
   return (
@@ -46,9 +45,10 @@ function Row({
 }
 
 /**
- * The request as an invited agency sees it (spec 04 «Dettaglio della
- * richiesta»): every datum useful to quote, never the customer's contacts
- * (VIS-01); the page says that the opening is logged (VIS-09). Area agenzia
+ * The request as an agency sees it (spec 04 «Dettaglio della richiesta»; Dan,
+ * 2026-10-29): the ANIA data, the request and the documents; never the
+ * customer's name, email or phone before the purchase (VIS-01); the page says
+ * that the opening is logged (VIS-09). Area agenzia
  * of the design: the data in cards on the left; on the right the ring, the
  * receipt of the sealed envelope (P3) and the offer.
  */
@@ -57,7 +57,7 @@ export default async function IncomingRequestPage({
   searchParams,
 }: {
   params: Promise<{ auctionId: string }>;
-  searchParams: Promise<{ errore?: string; fatto?: string; coperture?: string }>;
+  searchParams: Promise<{ errore?: string; fatto?: string; coperture?: string; iban?: string }>;
 }) {
   const viewer = await requireViewer();
   if (viewer.activeMembership?.organization.type !== "AGENCY") notFound();
@@ -67,7 +67,6 @@ export default async function IncomingRequestPage({
   const { status, body: detail } = await api<AgencyRequestDetail>(`/agency/requests/${auctionId}`);
   if (status !== 200) notFound();
   const t = await getTranslations("agency.detail");
-  const na = t("ania.notAvailable");
   const startText = await startTexts();
   const ta = await getTranslations("agency");
   const tc = await getTranslations("agency.coverage");
@@ -85,10 +84,19 @@ export default async function IncomingRequestPage({
     detail.invitation !== "DECLINED" &&
     detail.elsewhere === null &&
     (detail.claim?.byMe === true || offerOpen);
-  const q = detail.quoteData;
-  const yesNo = (v: boolean | undefined) => (v === undefined ? null : v ? t("yes") : t("no"));
-  const owner =
-    q.vehicleOwner === "SAME_AS_POLICY_HOLDER" ? t("sameAsHolder") : holderName(q.vehicleOwner);
+  const q = detail.request;
+  // Dan, 2026-10-29: the agency's IBAN at its first offer.
+  const iban =
+    mayOffer && !offerOpen
+      ? await api<{ required: boolean; phone: string | null }>("/agency/iban")
+      : null;
+  const ibanRequired = iban?.status === 200 && iban.body.required;
+  // Dan, 2026-10-29: the RCA, then the other coverages of the package the customer chose.
+  const coverages = Object.entries(detail.package?.requirements ?? { rca: { required: true } })
+    .filter(([key, r]) => key === "rca" || r.required)
+    .sort(([a], [b]) => (a === "rca" ? -1 : b === "rca" ? 1 : 0))
+    .map(([key]) => (tc.has(key) ? tc(key) : key))
+    .join(", ");
   const shortfalls = (query.coperture ?? "").split(",").filter(Boolean);
 
   const serverNow = detail.live?.serverNow ?? own?.lastChangedAt ?? detail.scheduledCloseAt;
@@ -127,6 +135,11 @@ export default async function IncomingRequestPage({
         {query.fatto === "offerta" && !own ? (
           <p role="status" className="rounded-lg bg-green-50 p-3 text-table text-green-700">
             {t("offerSent")}
+          </p>
+        ) : null}
+        {query.fatto === "iban" ? (
+          <p role="status" className="rounded-lg bg-green-50 p-3 text-table text-green-700">
+            {t("ibanSaved")}
           </p>
         ) : null}
         {query.fatto === "ritirata" ? (
@@ -222,120 +235,22 @@ export default async function IncomingRequestPage({
 
           {/* The data useful to quote, in cards. */}
           <div className="grid gap-4 sm:grid-cols-2 lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:grid-cols-1 2xl:grid-cols-2">
-            {detail.ania ? (
-              <div className="sm:col-span-2 lg:col-span-1 2xl:col-span-2">
-                <AniaConfirmed ania={detail.ania} />
-              </div>
-            ) : null}
-            <Card className={CARD}>
-              <CardTitle className="text-body font-bold">{t("vehicleTitle")}</CardTitle>
-              <dl className={DL}>
-                <Row label={t("plate")} value={q.vehicle.plate} />
-                <Row label={t("makeModel")} value={`${q.vehicle.make} ${q.vehicle.model}`} />
-                <Row label={t("version")} value={q.vehicle.version} />
-                <Row label={t("vehicleType")} value={q.vehicle.type} />
-                <Row label={t("use")} value={q.vehicle.use} />
-                <Row label={t("fuel")} value={q.vehicle.fuel} missing={na} />
-                <Row label={t("displacement")} value={q.vehicle.displacementCc} />
-                <Row label={t("power")} value={q.vehicle.powerKw} missing={na} />
-                <Row
-                  label={t("firstRegistration")}
-                  value={
-                    q.vehicle.firstRegistrationDate
-                      ? formatDate(q.vehicle.firstRegistrationDate)
-                      : null
-                  }
-                  missing={na}
-                />
-                <Row
-                  label={t("purchase")}
-                  value={q.vehicle.purchaseDate ? formatDate(q.vehicle.purchaseDate) : null}
-                  missing={na}
-                />
-                <Row label={t("isNew")} value={yesNo(q.vehicle.isNew)} />
-                <Row label={t("marketValue")} value={q.vehicle.marketValueEur} />
-                <Row label={t("alarm")} value={yesNo(q.vehicle.satelliteAlarm)} />
-                <Row label={t("nightParking")} value={q.vehicle.nightParking} />
-                <Row label={t("km")} value={q.vehicle.annualKmBand} />
-              </dl>
-            </Card>
+            <div className="sm:col-span-2 lg:col-span-1 2xl:col-span-2">
+              <AniaConfirmed ania={detail.ania} request={q} quoteType={detail.quoteType} />
+            </div>
 
-            <Card className={CARD}>
-              <CardTitle className="text-body font-bold">{t("peopleTitle")}</CardTitle>
-              <dl className={DL}>
-                <Row label={t("holder")} value={holderName(q.policyHolder)} />
-                {q.policyHolder.kind === "PERSON" ? (
-                  <>
-                    <Row label={t("birthDate")} value={formatDate(q.policyHolder.birthDate)} />
-                    <Row label={t("sex")} value={q.policyHolder.sex} missing={na} />
-                    <Row label={t("profession")} value={q.policyHolder.profession} />
-                  </>
-                ) : null}
-                <Row
-                  label={t("residence")}
-                  value={
-                    q.policyHolder.kind === "PERSON"
-                      ? `${q.policyHolder.residence.postalCode} (${q.policyHolder.residence.province})`
-                      : `${q.policyHolder.registeredOffice.postalCode} (${q.policyHolder.registeredOffice.province})`
-                  }
-                />
-                <Row label={t("owner")} value={owner} />
-                <Row label={t("drivingFormula")} value={t(`formulas.${q.drivingFormula}`)} />
-              </dl>
-              <ul className="mt-3 flex flex-col gap-1 text-table">
-                {q.drivers.map((d, i) => (
-                  <li key={`${d.person.fiscalCode}-${i}`}>
-                    {t("driver", {
-                      name: holderName(d.person),
-                      birth: formatDate(d.person.birthDate),
-                      licence: d.licence ? formatDate(d.licence.issuedOn) : "—",
-                      main: d.isMain ? "yes" : "no",
-                    })}
-                  </li>
-                ))}
-              </ul>
-            </Card>
-
-            <Card className={CARD}>
-              <CardTitle className="text-body font-bold">{t("historyTitle")}</CardTitle>
-              <dl className={DL}>
-                <Row label={t("provenance")} value={q.history.provenance} />
-                <Row label={t("cuClass")} value={q.history.cuClass} missing={na} />
-                <Row label={t("currentInsurer")} value={q.history.currentInsurer} missing={na} />
-                <Row
-                  label={t("currentExpiry")}
-                  value={
-                    q.history.currentExpiryDate ? formatDate(q.history.currentExpiryDate) : null
-                  }
-                  missing={na}
-                />
-              </dl>
-              {q.history.claims.length > 0 ? (
-                <ul className="mt-3 flex flex-col gap-1 text-table">
-                  {q.history.claims.map((c) => (
-                    <li key={c.year}>
-                      {t("claimYear", {
-                        year: c.year,
-                        main: c.mainResponsibility,
-                        shared: c.sharedResponsibility,
-                      })}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-3 text-table">{t("noClaims")}</p>
-              )}
-            </Card>
-
-            <Card className={CARD}>
+            <Card className={`${CARD} sm:col-span-2 lg:col-span-1 2xl:col-span-2`}>
               <CardTitle className="text-body font-bold">{t("requestTitle")}</CardTitle>
               <dl className={DL}>
-                <Row label={t("package")} value={detail.package?.name ?? q.request.packageCode} />
-                <Row label={t("startDate")} value={startText(q.request)} />
-                <Row label={t("blackBox")} value={yesNo(q.request.blackBox)} />
+                <Row label={t("drivingFormula")} value={t(`formulas.${q.drivingFormula}`)} />
+                <Row label={t("coverages")} value={coverages} />
+                <Row label={t("blackBox")} value={q.blackBox ? t("accepts") : t("doesNotAccept")} />
+                <Row label={t("package")} value={detail.package?.name} />
+                <Row label={t("startDate")} value={startText(q)} />
+                <Row label={t("minValidity")} value={ta("days", { days: q.minValidityDays })} />
                 <Row
-                  label={t("minValidity")}
-                  value={ta("days", { days: q.request.minValidityDays })}
+                  label={t("auctionDuration")}
+                  value={t("hours", { hours: q.auctionDurationHours })}
                 />
               </dl>
             </Card>
@@ -377,7 +292,15 @@ export default async function IncomingRequestPage({
               />
             ) : null}
 
-            {mayOffer ? (
+            {mayOffer && ibanRequired ? (
+              <FirstOfferIban
+                auctionId={auctionId}
+                phone={iban?.body.phone ?? null}
+                codeSent={query.iban === "codice"}
+              />
+            ) : null}
+
+            {mayOffer && !ibanRequired ? (
               <section aria-labelledby="offer-title" className="flex flex-col gap-3">
                 <h2 id="offer-title" className="scroll-mt-4 text-section font-bold">
                   {offerOpen

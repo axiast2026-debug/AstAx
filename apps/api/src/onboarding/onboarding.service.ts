@@ -52,8 +52,8 @@ export interface OnboardingInput {
   /** Section E: the agency or broker it works for (docs/piano-broker.md, A). */
   principalRuiNumber: string | null;
   pec: string;
-  address: { street: string; postalCode: string; municipalityIstat: string; province: string };
-  iban: string;
+  /** Dan, 2026-10-29: the municipality is chosen from the list; the province comes from it. */
+  address: { street: string; postalCode: string; municipalityIstat: string; province?: string };
   owner: { firstName: string; lastName: string; email: string; phone: string };
   companyIds: string[];
 }
@@ -154,7 +154,6 @@ export class OnboardingService {
       principalRuiNumber: input.principalRuiNumber,
       pec: input.pec,
       address: input.address,
-      ibanEnc: this.cipher.encrypt(input.iban),
       ownerFirstName: input.owner.firstName,
       ownerLastName: input.owner.lastName,
       ownerEmailEnc: this.cipher.encrypt(input.owner.email),
@@ -169,7 +168,8 @@ export class OnboardingService {
    * answer 6A): a section E intermediary of an agency offers with its agency's
    * companies, as the RUI lists them; the back office checks them.
    */
-  private async withCompanies(tx: DbTransaction, input: OnboardingInput): Promise<OnboardingInput> {
+  private async withCompanies(tx: DbTransaction, given: OnboardingInput): Promise<OnboardingInput> {
+    const input = await this.withProvince(tx, given);
     if (input.type !== "AGENCY" || !input.principalRuiNumber) {
       await this.checkCompanies(tx, input);
       return input;
@@ -187,6 +187,36 @@ export class OnboardingService {
       ]);
     }
     return { ...input, companyIds: companies.map((c) => c.id) };
+  }
+
+  /** Dan, 2026-10-29: no ISTAT code to type; the province is the municipality's. */
+  private async withProvince(tx: DbTransaction, input: OnboardingInput): Promise<OnboardingInput> {
+    const municipality = await tx.municipality.findUnique({
+      where: { istatCode: input.address.municipalityIstat },
+      select: { province: true },
+    });
+    if (!municipality) {
+      throw new ProblemError("VALIDATION_FAILED", "Unknown municipality", [
+        { path: "address.municipality", issue: "UNKNOWN_MUNICIPALITY" },
+      ]);
+    }
+    return { ...input, address: { ...input.address, province: municipality.province } };
+  }
+
+  /** Dan, 2026-10-28: the suggestions of the «Comune» field, for the entry without an account. */
+  async municipalities(query: string) {
+    const q = query.trim();
+    if (q.length < 2) return [];
+    return withContext(this.db, SYSTEM_CONTEXT, (tx) =>
+      tx.municipality.findMany({
+        where: /^\d{6}$/.test(q)
+          ? { istatCode: q }
+          : { name: { startsWith: q, mode: "insensitive" } },
+        orderBy: { name: "asc" },
+        take: 20,
+        select: { istatCode: true, name: true, province: true, postalCodes: true },
+      }),
+    );
   }
 
   private async checkCompanies(tx: DbTransaction, input: OnboardingInput) {
@@ -257,7 +287,7 @@ export class OnboardingService {
         principalRuiNumber: a.principalRuiNumber,
         pec: a.pec,
         address: a.address,
-        iban: maskIban(this.cipher.decrypt(a.ibanEnc)),
+        iban: a.ibanEnc ? maskIban(this.cipher.decrypt(a.ibanEnc)) : null,
         ibanConfirmed: a.ibanConfirmedAt !== null,
         owner: {
           firstName: a.ownerFirstName,
@@ -287,143 +317,22 @@ export class OnboardingService {
         ]);
       }
       const complete = await this.withCompanies(tx, input);
-      const ibanChanged = this.cipher.decrypt(a.ibanEnc) !== input.iban;
-      const phoneChanged = this.cipher.decrypt(a.ownerPhoneEnc) !== input.owner.phone;
       await tx.onboardingApplication.update({
         where: { id: a.id },
-        data: {
-          ...this.encrypted(complete),
-          status: "DRAFT",
-          ...(ibanChanged || phoneChanged ? { ibanConfirmedAt: null } : {}),
-          updatedAt: now,
-        },
+        data: { ...this.encrypted(complete), status: "DRAFT", updatedAt: now },
       });
       await this.audit.inTransaction(tx, this.actor(client), {
         action: "ONBOARDING_UPDATED",
         targetType: "OnboardingApplication",
         targetId: a.id,
-        after: { ibanChanged },
       });
-      return {
-        id: a.id,
-        ibanConfirmed: !(ibanChanged || phoneChanged) && a.ibanConfirmedAt !== null,
-      };
+      return { id: a.id };
     });
-  }
-
-  /** IBAN with a code by SMS to the owner's phone (codes as in SIC-05). */
-  async sendIbanCode(token: string) {
-    const now = this.clock.now();
-    const prepared = await withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
-      const a = await this.byToken(tx, token);
-      this.editable(a);
-      const challenge = await this.codes.newChallenge(
-        tx,
-        "ONBOARDING_IBAN",
-        a.id,
-        { ownerUserId: null, ownerOrganizationId: null },
-        now,
-      );
-      return { ...challenge, id: a.id, phone: this.cipher.decrypt(a.ownerPhoneEnc) };
-    });
-    await this.codes.sendCode(
-      { email: null, phone: prepared.phone },
-      "ONBOARDING_IBAN",
-      prepared.code,
-      prepared.minutes,
-      { onboardingId: prepared.id },
-    );
-  }
-
-  async confirmIban(token: string, code: string, client: ClientInfo) {
-    const now = this.clock.now();
-    const outcome = await withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
-      const a = await this.byToken(tx, token);
-      this.editable(a);
-      const challenge = await this.codes.verifyChallenge(tx, "ONBOARDING_IBAN", a.id, code, now);
-      if (!challenge) return { id: a.id, confirmed: false };
-      await tx.onboardingApplication.update({
-        where: { id: a.id },
-        data: { ibanConfirmedAt: now, updatedAt: now },
-      });
-      await this.audit.inTransaction(tx, this.actor(client), {
-        action: "ONBOARDING_IBAN_CONFIRMED",
-        targetType: "OnboardingApplication",
-        targetId: a.id,
-        after: { otpChallengeId: challenge.id },
-      });
-      return { id: a.id, confirmed: true };
-    });
-    if (!outcome.confirmed) {
-      await this.audit.record(this.actor(client), {
-        action: "OTP_FAILED",
-        targetType: "OnboardingApplication",
-        targetId: outcome.id,
-      });
-      throw new ProblemError("VALIDATION_FAILED", "Wrong or expired code", [
-        { path: "code", issue: "OTP_INVALID" },
-      ]);
-    }
-    return { confirmed: true };
-  }
-
-  /** The professional liability policy, as a PDF, with its expiry. */
-  async uploadProfInsurance(
-    token: string,
-    expiresOn: string,
-    file: { body: Uint8Array; contentType: string },
-    client: ClientInfo,
-  ) {
-    const now = this.clock.now();
-    const pdf =
-      file.contentType === "application/pdf" &&
-      Buffer.from(file.body.subarray(0, 5)).toString("latin1") === "%PDF-";
-    if (!pdf) {
-      throw new ProblemError("VALIDATION_FAILED", undefined, [
-        { path: "file", issue: "NOT_A_PDF" },
-      ]);
-    }
-    const id = await withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
-      const a = await this.byToken(tx, token);
-      this.editable(a);
-      const { "documents.maxUploadMb": maxMb } = await settingsAt(
-        tx,
-        ["documents.maxUploadMb"],
-        now,
-      );
-      if (file.body.byteLength > maxMb * 1024 * 1024) {
-        throw new ProblemError("VALIDATION_FAILED", undefined, [
-          { path: "file", issue: "TOO_LARGE" },
-        ]);
-      }
-      return a.id;
-    });
-    const key = `onboarding/${id}/${randomBytes(16).toString("hex")}`;
-    await this.storage.put({ key, body: file.body, contentType: "application/pdf" });
-    await withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
-      await tx.onboardingApplication.update({
-        where: { id },
-        data: {
-          profInsuranceKey: key,
-          profInsuranceSha256: sha256(file.body),
-          profInsuranceSize: file.body.byteLength,
-          profInsuranceExpiresOn: new Date(`${expiresOn}T00:00:00.000Z`),
-          updatedAt: now,
-        },
-      });
-      await this.audit.inTransaction(tx, this.actor(client), {
-        action: "ONBOARDING_DOCUMENT_UPLOADED",
-        targetType: "OnboardingApplication",
-        targetId: id,
-        after: { kind: "PROF_INSURANCE", expiresOn },
-      });
-    });
-    return { uploaded: true };
   }
 
   /**
-   * Sent to the back office: IBAN confirmed, policy valid, every contract in
-   * force accepted (LEG-01: version, time, IP); the RUI check is stored.
+   * Sent to the back office: every contract in force accepted (LEG-01:
+   * version, time, IP); the RUI check is stored.
    */
   async submit(token: string, versionIds: string[], client: ClientInfo) {
     const now = this.clock.now();
@@ -431,11 +340,8 @@ export class OnboardingService {
       const a = await this.byToken(tx, token);
       this.editable(a);
       const missing: { path: string; issue: string }[] = [];
-      if (!a.ibanConfirmedAt) missing.push({ path: "iban", issue: "IBAN_NOT_CONFIRMED" });
-      if (!a.profInsuranceKey) missing.push({ path: "profInsurance", issue: "MISSING" });
-      else if ((a.profInsuranceExpiresOn?.getTime() ?? 0) <= now.getTime()) {
-        missing.push({ path: "profInsurance", issue: "EXPIRED" });
-      }
+      // Dan, 2026-10-29: no IBAN (asked at the first offer) and no professional
+      // liability policy at the entry: the contracts only.
       const documents = await this.documentsFor(tx, a.type as OnboardingType, now);
       const required = documents.map((d) => d.versionId);
       if (
@@ -572,7 +478,7 @@ export class OnboardingService {
         principalRuiNumber: a.principalRuiNumber,
         pec: a.pec,
         address: a.address,
-        iban: this.cipher.decrypt(a.ibanEnc),
+        iban: a.ibanEnc ? this.cipher.decrypt(a.ibanEnc) : null,
         ibanConfirmedAt: a.ibanConfirmedAt?.toISOString() ?? null,
         owner: {
           firstName: a.ownerFirstName,

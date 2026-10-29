@@ -8,8 +8,8 @@ import { OnboardingForm, type OnboardingKind } from "./onboarding-form";
 
 /**
  * «Lavora con AstAx» (phase 7): an agency or a broker asks to enter. The
- * data first; then, on the private link, the IBAN code, the professional
- * liability policy and the contracts.
+ * data first; then, on the private link, the contracts (Dan, 2026-10-29: no
+ * IBAN and no professional liability policy at the entry).
  */
 export default async function OnboardingStartPage({
   searchParams,

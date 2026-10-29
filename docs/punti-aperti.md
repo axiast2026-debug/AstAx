@@ -6,6 +6,7 @@ Questi punti li decidono legale, DPO, commercialista o amministrazione. Il codic
 
 | Punto | Cosa va deciso | Nel codice intanto |
 | --- | --- | --- |
+| RC professionale delle agenzie e dei broker (Dan, 2026-10-29) | La polizza di RC professionale non si chiede più nella richiesta di ingresso: basta la verifica sul RUI (l'iscrizione la presuppone, art. 112 CAP)? | Nessuna polizza chiesta né controllata ([ADR 0024](adr/0024-aste-aperte-a-tutte-le-agenzie.md)); le richieste fatte prima la conservano |
 | Iscrizione RUI di AstAx | Broker sez. B: sede in Italia, responsabile della distribuzione e rappresentante legale in sez. B, RC professionale (art. 112 CAP) | Nessun effetto sul codice; blocca il lancio |
 | Effetto liberatorio del pagamento | Come si applica l'art. 118 CAP al pagamento ad AstAx nella collaborazione con l'agenzia emittente | Il cliente paga AstAx; testi della MUP segnaposto |
 | Collaborazione a tre intermediari | Broker richiedente, AstAx e agenzia: ammessa o no, con quale schema | Canale broker attivo; quota di provvigione del broker spenta |

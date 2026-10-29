@@ -18,7 +18,7 @@ Dettagli tecnici: [`busta-chiusa.md`](busta-chiusa.md).
 
 ## VIS — Chi vede cosa
 
-- **VIS-01** Le agenzie invitate vedono tutti i dati utili al preventivo e i documenti della richiesta. Telefono ed email del cliente non escono mai verso un'agenzia prima che vinca: né nelle schermate, né nelle risposte API, né nelle esportazioni, nelle notifiche o nei metadati dei documenti.
+- **VIS-01** Le agenzie vedono i dati ANIA confermati, la richiesta, il codice fiscale e l'indirizzo del cliente, la tipologia del preventivo e i documenti (Dan, 2026-10-29, [ADR 0024](adr/0024-aste-aperte-a-tutte-le-agenzie.md)). Nome, telefono ed email del cliente non escono mai verso un'agenzia prima che vinca: né nelle schermate, né nelle risposte API, né nelle esportazioni, nelle notifiche o nei metadati dei documenti; il nome compare solo nei documenti caricati dal cliente.
 - **VIS-02** L'agenzia vincitrice riceve telefono ed email del cliente alla conferma del pagamento.
 - **VIS-03** Durante l'asta il richiedente vede il conto alla rovescia e il numero di offerte; il broker vede anche il numero di agenzie invitate, senza nomi. Nessun prezzo.
 - **VIS-04** Dopo la chiusura il richiedente vede le offerte secondo le regole PRES. Il nome dell'agenzia compare solo dopo l'accettazione.
@@ -50,11 +50,11 @@ Dettagli tecnici: [`busta-chiusa.md`](busta-chiusa.md).
 - **ASTA-01** L'asta si apre solo dopo l'approvazione del back office. La durata decorre dall'apertura e si conta in ore lavorative.
 - **ASTA-02** Calendario lavorativo: lunedì-venerdì 9-19, sabato 9-13, ora di Roma, esclusi festivi nazionali. Il tempo fuori orario non conta: un'asta approvata alle 18:30 di lunedì con durata 2 ore chiude martedì alle 10:30.
 - **ASTA-03** Durate selezionabili: 1, 2, 5 o 24 ore lavorative; predefinita 2.
-- **ASTA-04** Al massimo 8 agenzie invitate. A metà asta, se ci sono meno di 3 offerte, il sistema invita fino a 4 agenzie in più.
-- **ASTA-05** Selezione: filtri dell'agenzia compatibili e, se l'agenzia distribuisce le richieste secondo i filtri personali, almeno un utente con filtri compatibili; agenzia attiva, non in pausa e non sospesa; capacità giornaliera non esaurita; orari di ricezione che coprono almeno un'ora lavorativa dell'asta; validità massima garantibile non inferiore alla validità minima richiesta. Tra le compatibili: prima quelle che aggiungono compagnie non ancora coperte, poi quelle invitate meno di recente.
-- **ASTA-06** Il back office può aggiungere inviti solo nella prima metà dell'asta. Può escludere un'agenzia dall'anteprima, prolungare la chiusura o annullare l'asta, sempre con motivo e con registrazione.
+- **ASTA-04** Ogni agenzia attiva vede tutte le aste aperte in «Partecipa all'asta» e può offrire (Dan, 2026-10-29, [ADR 0024](adr/0024-aste-aperte-a-tutte-le-agenzie.md)); restano fuori l'agenzia sospesa, quella lasciata fuori dal back office, l'agenzia richiedente e quelle in conflitto (ADR 0015), un'agenzia senza mandati verificati e le riconferme (GAR-07). Le email della nuova asta vanno a tutte le agenzie con i filtri compatibili (ASTA-05), senza limite di numero.
+- **ASTA-05** Email della nuova asta: filtri dell'agenzia compatibili e, se l'agenzia distribuisce le richieste secondo i filtri personali, almeno un utente con filtri compatibili; agenzia attiva, non in pausa e non sospesa; capacità giornaliera non esaurita; orari di ricezione che coprono almeno un'ora lavorativa dell'asta; validità massima garantibile non inferiore alla validità minima richiesta. Pausa, capacità e orari valgono solo per le email, non per l'offerta.
+- **ASTA-06** Il back office può aggiungere inviti (l'email) solo nella prima metà dell'asta. Può escludere un'agenzia dall'anteprima, prolungare la chiusura o annullare l'asta, sempre con motivo e con registrazione.
 - **ASTA-07** Agli invitati che non hanno ancora offerto arriva un promemoria a 60 minuti dalla chiusura; se l'asta dura 2 ore o meno, a metà asta.
-- **ASTA-08** Asta deserta (nessuna offerta valida): una riapertura automatica di 2 ore lavorative che invita tutte le agenzie compatibili non ancora invitate, senza limite di numero e senza rotazione. Se non ce ne sono, o se resta deserta, la richiesta passa a «Deserta» e ricevono l'avviso richiedente e back office.
+- **ASTA-08** Asta deserta (nessuna offerta valida): una riapertura automatica di 2 ore lavorative che manda l'email a tutte le agenzie compatibili non ancora avvisate, senza limite di numero. Se non ce ne sono, o se resta deserta, la richiesta passa a «Deserta» e ricevono l'avviso richiedente e back office.
 - **ASTA-09** All'apertura l'asta salva una copia dei parametri in vigore. Una modifica dei parametri vale solo per le aste aperte dopo.
 - **ASTA-10** I casi esclusi dichiarati nella procedura guidata (tipo di veicolo, uso, targa) bloccano l'invio con un messaggio chiaro. Gli altri casi esclusi li segnala il controllo automatico e li decide il back office.
 

@@ -12,7 +12,7 @@ import {
 import { describe, expect, it } from "vitest";
 import { watermarked } from "../src/agency/watermark.js";
 
-const STAMP = "Agenzia Uno - Anna Moretti - 16/11/26, 10:00";
+const STAMP = "Agenzia Uno - Anna Moretti - 16/11/2026 10:00";
 
 /** The decoded content streams of every page, where the stamp is drawn. */
 function pageContents(pdf: PDFDocument): string {

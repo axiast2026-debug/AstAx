@@ -58,7 +58,8 @@ Abilitazioni aggiuntive di un'appartenenza, decise dal titolare:
 | --- | --- | --- |
 | Prendere in carico, rilasciare, rinunciare | Utenti dell'agenzia invitata | `OPERATOR` nei propri filtri; OFF-02 e OFF-03 |
 | Liberare o riassegnare una presa in carico | `OWNER`, `SUPERVISOR` di agenzia | — |
-| Inviare, modificare, ritirare un'offerta | Chi ha la presa in carico; `OWNER`, `SUPERVISOR` | Fino alla chiusura (OFF-07) |
+| Inviare, modificare, ritirare un'offerta | Chi ha la presa in carico; `OWNER`, `SUPERVISOR` | Fino alla chiusura (OFF-07); su ogni asta aperta (ADR 0024) |
+| IBAN dell'agenzia alla prima offerta (`/agency/iban`) | Chi può inviare offerte, anche un sub-agente | Una volta, con il codice SMS sul proprio cellulare (ADR 0024) |
 | Rileggere un'offerta durante l'asta | Chi l'ha fatta; `OWNER`, `SUPERVISOR`; `OPERATOR` con `canSeeColleagueOffers` | Copia per l'agenzia, registrata |
 | Rispondere a una riconferma | Come per le offerte | Entro il termine (GAR-07) |
 | Escludere un'offerta dopo il controllo del PDF | `BO_VERIFIER`, `BO_SUPERVISOR` | Finché il cliente non l'ha accettata (OFF-09) |

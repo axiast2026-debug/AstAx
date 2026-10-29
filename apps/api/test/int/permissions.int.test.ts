@@ -912,6 +912,10 @@ const ENDPOINTS: Endpoint[] = [
     body: {},
   },
   { action: "offer.submit", method: "GET", path: () => "/agency/products" },
+  // ADR 0024: the agency's IBAN at its first offer.
+  { action: "offer.submit", method: "GET", path: () => "/agency/iban" },
+  { action: "offer.submit", method: "POST", path: () => "/agency/iban/code", body: {} },
+  { action: "offer.submit", method: "POST", path: () => "/agency/iban", body: {} },
   { action: "productLibrary.manage", method: "POST", path: () => "/agency/products", body: {} },
   {
     action: "productLibrary.manage",
@@ -1051,12 +1055,11 @@ const PUBLIC_ROUTES = [
   "GET /customer-links/{token}/offers/{offerId}/quote",
   // Phase 7: the entry of agencies and brokers, on its private link.
   "GET /onboarding/options",
+  // Dan, 2026-10-29: the «Comune» suggestions of the entry, which has no account.
+  "GET /onboarding/municipalities",
   "POST /onboarding",
   "GET /onboarding/{token}",
   "PUT /onboarding/{token}",
-  "POST /onboarding/{token}/iban-code",
-  "POST /onboarding/{token}/iban-confirm",
-  "POST /onboarding/{token}/prof-insurance",
   "POST /onboarding/{token}/submit",
 ];
 

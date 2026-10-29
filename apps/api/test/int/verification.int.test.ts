@@ -469,7 +469,8 @@ describe("fase 2: verification queue and card", () => {
       200,
     );
     expect(before.invited.length).toBeGreaterThan(0);
-    expect(before.invited.length).toBeLessThanOrEqual(8);
+    // ADR 0024: every compatible agency gets the email, without the limit of 8.
+    expect(before.invited.length).toBeGreaterThan(8);
     expect(before.companies).toEqual([
       "Compagnia Alfa",
       "Compagnia Beta",

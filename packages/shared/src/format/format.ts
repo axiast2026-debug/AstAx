@@ -7,29 +7,28 @@ export const DISPLAY_TIME_ZONE = "Europe/Rome";
 
 const LOCALE_TAG = "it-IT";
 
+/** Day and hour in Rome: «16/11/2026 10:00». */
 export function formatDateTime(value: Date | string): string {
-  return new Intl.DateTimeFormat(LOCALE_TAG, {
-    timeZone: DISPLAY_TIME_ZONE,
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(new Date(value));
+  return `${formatDate(value)} ${formatTime(value)}`;
 }
 
+/** Every date as GG/MM/AAAA (Dan, 2026-10-29): «02/12/2026». */
 export function formatDate(value: Date | string): string {
   return new Intl.DateTimeFormat(LOCALE_TAG, {
     timeZone: DISPLAY_TIME_ZONE,
-    dateStyle: "long",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
   }).format(new Date(value));
 }
 
-/** The day with its name, for deadlines: «domenica 6 dicembre». */
+/** The day with its name, for deadlines: «domenica 06/12/2026». */
 export function formatWeekdayDate(value: Date | string): string {
-  return new Intl.DateTimeFormat(LOCALE_TAG, {
+  const weekday = new Intl.DateTimeFormat(LOCALE_TAG, {
     timeZone: DISPLAY_TIME_ZONE,
     weekday: "long",
-    day: "numeric",
-    month: "long",
   }).format(new Date(value));
+  return `${weekday} ${formatDate(value)}`;
 }
 
 /** The hour and minute in Rome: «10:00». */
@@ -83,20 +82,9 @@ export function dbDateToCalendarDate(value: Date): string {
 }
 
 /**
- * Dates in the notifications (docs/notifiche.md): «martedì 14 ottobre alle
- * 10:30», in Rome.
+ * Dates in the notifications (docs/notifiche.md), in Rome; GG/MM/AAAA like
+ * every date (Dan, 2026-10-29): «mercoledì 14/10/2026 alle 10:30».
  */
 export function formatNotificationDateTime(value: Date | string): string {
-  const day = new Intl.DateTimeFormat(LOCALE_TAG, {
-    timeZone: DISPLAY_TIME_ZONE,
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  }).format(new Date(value));
-  const time = new Intl.DateTimeFormat(LOCALE_TAG, {
-    timeZone: DISPLAY_TIME_ZONE,
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-  return `${day} alle ${time}`;
+  return `${formatWeekdayDate(value)} alle ${formatTime(value)}`;
 }

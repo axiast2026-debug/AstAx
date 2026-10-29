@@ -29,16 +29,22 @@ export function MunicipalityField({
   texts,
   invalid,
   postalCodeInvalid,
+  prefix = "intake",
+  source = "/riferimenti/comuni",
 }: {
   initial: MunicipalitySuggestion | null;
   initialPostalCode?: string;
   texts: MunicipalityTexts;
   invalid?: boolean;
   postalCodeInvalid?: boolean;
+  /** The first part of the field names («intake» in the request, «address» at the entry). */
+  prefix?: string;
+  /** Where the suggestions come from: the entry has no account (Dan, 2026-10-29). */
+  source?: string;
 }) {
   const listId = useId();
-  const nameId = fieldId("intake.municipality");
-  const capId = fieldId("intake.postalCode");
+  const nameId = fieldId(`${prefix}.municipality`);
+  const capId = fieldId(`${prefix}.postalCode`);
   const [query, setQuery] = useState(initial?.name ?? "");
   const [chosen, setChosen] = useState<MunicipalitySuggestion | null>(initial);
   const [options, setOptions] = useState<MunicipalitySuggestion[]>([]);
@@ -56,7 +62,7 @@ export function MunicipalityField({
     }
     const mine = ++request.current;
     const timer = setTimeout(async () => {
-      const response = await fetch(`/riferimenti/comuni?q=${encodeURIComponent(q)}`);
+      const response = await fetch(`${source}?q=${encodeURIComponent(q)}`);
       const list = response.ok ? ((await response.json()) as MunicipalitySuggestion[]) : [];
       if (mine !== request.current) return;
       setOptions(list);
@@ -64,7 +70,7 @@ export function MunicipalityField({
       setOpen(true);
     }, 150);
     return () => clearTimeout(timer);
-  }, [query, chosen]);
+  }, [query, chosen, source]);
 
   const choose = (m: MunicipalitySuggestion) => {
     setChosen(m);
@@ -99,7 +105,7 @@ export function MunicipalityField({
         </label>
         <input
           id={nameId}
-          name="intake.municipality"
+          name={`${prefix}.municipality`}
           type="text"
           role="combobox"
           autoComplete="off"
@@ -120,7 +126,7 @@ export function MunicipalityField({
           onFocus={() => options.length > 0 && !chosen && setOpen(true)}
           required
         />
-        <input type="hidden" name="intake.municipalityIstat" value={chosen?.istatCode ?? ""} />
+        <input type="hidden" name={`${prefix}.municipalityIstat`} value={chosen?.istatCode ?? ""} />
         <p id={`${nameId}-hint`} className="mt-1 text-note text-warm-600">
           {texts.municipalityHint}
         </p>
@@ -162,7 +168,7 @@ export function MunicipalityField({
         {caps.length > 1 ? (
           <select
             id={capId}
-            name="intake.postalCode"
+            name={`${prefix}.postalCode`}
             className={INPUT_CLASS}
             value={cap}
             onChange={(e) => setCap(e.target.value)}
@@ -180,7 +186,7 @@ export function MunicipalityField({
         ) : (
           <input
             id={capId}
-            name="intake.postalCode"
+            name={`${prefix}.postalCode`}
             type="text"
             inputMode="numeric"
             autoComplete="postal-code"
@@ -206,14 +212,14 @@ export function MunicipalityField({
 
       <div>
         <label
-          htmlFor={fieldId("intake.province")}
+          htmlFor={fieldId(`${prefix}.province`)}
           className="block text-label font-semibold text-night-900"
         >
           {texts.province}
         </label>
         <input
-          id={fieldId("intake.province")}
-          name="intake.province"
+          id={fieldId(`${prefix}.province`)}
+          name={`${prefix}.province`}
           type="text"
           className={INPUT_CLASS}
           value={chosen?.province ?? ""}

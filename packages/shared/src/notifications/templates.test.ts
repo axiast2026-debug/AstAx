@@ -39,7 +39,7 @@ describe("phase 7 the template engine", () => {
     };
     const plain = (text: string) => text.replace(/\u00a0/g, " ");
     expect(plain(render("{{importo}} · {{quando}} · {{giorno}}", vars))).toBe(
-      "505,00 € · mercoledì 14 ottobre alle 10:30 · 1 dicembre 2026",
+      "505,00 € · mercoledì 14/10/2026 alle 10:30 · 01/12/2026",
     );
   });
 

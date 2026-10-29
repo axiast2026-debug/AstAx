@@ -48,7 +48,7 @@ describe("opening (ASTA-01, ASTA-05, ASTA-09)", () => {
     expect(status.status).toBe("AUCTION_OPEN");
   });
 
-  it("ASTA-04 ASTA-05 at most 8 agencies, covering every company; requester and agencies told", async () => {
+  it("ASTA-04 ASTA-05 ADR 0024 every compatible agency gets the email, no limit; requester and agencies told", async () => {
     h.clock.set(MONDAY_9);
     const request = await approvedRequest(h);
     const opened = await h.activities.openRound({ requestId: request.id, kind: "MAIN", round: 1 });
@@ -56,7 +56,8 @@ describe("opening (ASTA-01, ASTA-05, ASTA-09)", () => {
     const invitations = await read((tx) =>
       tx.invitation.findMany({ where: { auctionId: opened.auctionId } }),
     );
-    expect(invitations).toHaveLength(8);
+    // The 10 synthetic agencies that take cars.
+    expect(invitations).toHaveLength(10);
     const companies = await read((tx) =>
       tx.agencyMandate.findMany({
         where: { organizationId: { in: invitations.map((i) => i.organizationId) } },
@@ -70,7 +71,7 @@ describe("opening (ASTA-01, ASTA-05, ASTA-09)", () => {
       }),
     );
     expect(notes.every((n) => n.eventKey === "auction.invited")).toBe(true);
-    expect(notes.length).toBeGreaterThan(8);
+    expect(notes.length).toBeGreaterThan(10);
   });
 
   it("VIS-01 the texts sent to the agencies carry no contact of the customer and no price", async () => {
@@ -108,9 +109,16 @@ describe("opening (ASTA-01, ASTA-05, ASTA-09)", () => {
         },
       }),
     );
+    // The auction still uses 3, from its copy of the parameters.
+    const auction = await read((tx) =>
+      tx.auction.findUniqueOrThrow({ where: { id: opened.auctionId } }),
+    );
+    expect(
+      (auction.settingsSnapshot as Record<string, unknown>)["invitations.topUp.minOffers"],
+    ).toBe(3);
+    // ADR 0024: every compatible agency already has the email, the top-up finds nobody new.
     h.clock.set("2026-11-16T09:00:00.000Z");
-    // The auction still uses 3: with no offers, the top-up invites the 2 agencies left.
-    expect(await h.activities.topUp({ auctionId: opened.auctionId })).toEqual({ invited: 2 });
+    expect(await h.activities.topUp({ auctionId: opened.auctionId })).toEqual({ invited: 0 });
   });
 
   it("a repeated opening finds the same auction and invites nobody twice", async () => {
@@ -121,7 +129,7 @@ describe("opening (ASTA-01, ASTA-05, ASTA-09)", () => {
     if (!first.opened || !again.opened) throw new Error("not opened");
     expect(again.auctionId).toBe(first.auctionId);
     expect(await read((tx) => tx.invitation.count({ where: { auctionId: first.auctionId } }))).toBe(
-      8,
+      10,
     );
   });
 
@@ -475,11 +483,20 @@ describe("GAR-06 automatic cancellation (proposal D)", () => {
 });
 
 describe("deserted and back office actions (ASTA-06, ASTA-08)", () => {
-  it("ASTA-08 no valid offer: the reopening invites the agencies not yet invited, then deserted", async () => {
+  it("ASTA-08 no valid offer: the reopening invites the agencies not yet told, then deserted", async () => {
     h.clock.set(MONDAY_9);
     const request = await approvedRequest(h);
+    // Agenzia Dieci is paused at the opening: no email, until 9:30 UTC.
+    await read((tx) =>
+      tx.agencyCapacity.update({
+        where: { organizationId: orgId("agenzia-dieci") },
+        data: { pausedUntil: new Date("2026-11-16T09:30:00.000Z") },
+      }),
+    );
     const main = await h.activities.openRound({ requestId: request.id, kind: "MAIN", round: 1 });
     if (!main.opened) throw new Error("not opened");
+    // ADR 0024: every compatible agency had the email; one was paused at the opening
+    // (it did not get it) and comes back now.
     h.clock.set(main.scheduledCloseAt);
     expect((await h.activities.closeRound({ auctionId: main.auctionId })).validOffers).toBe(0);
     const reopened = await h.activities.openRound({
@@ -488,8 +505,13 @@ describe("deserted and back office actions (ASTA-06, ASTA-08)", () => {
       round: 2,
     });
     if (!reopened.opened) throw new Error("not reopened");
-    // 10 synthetic agencies take cars: 8 in the main round, the other 2 now.
-    expect(reopened.invited).toBe(2);
+    expect(reopened.invited).toBe(1);
+    await read((tx) =>
+      tx.agencyCapacity.update({
+        where: { organizationId: orgId("agenzia-dieci") },
+        data: { pausedUntil: null },
+      }),
+    );
     h.clock.set(reopened.scheduledCloseAt);
     await h.activities.closeRound({ auctionId: reopened.auctionId });
     await h.activities.markDeserted({ requestId: request.id });
@@ -555,8 +577,19 @@ describe("deserted and back office actions (ASTA-06, ASTA-08)", () => {
       ...q,
       request: { ...q.request, auctionDurationHours: 5 },
     }));
+    // ADR 0024: every compatible agency gets the email; Agenzia Dieci, paused at the
+    // opening, does not, and the back office invites it.
+    const pause = (until: Date | null) =>
+      read((tx) =>
+        tx.agencyCapacity.update({
+          where: { organizationId: orgId("agenzia-dieci") },
+          data: { pausedUntil: until },
+        }),
+      );
+    await pause(new Date("2026-11-16T08:30:00.000Z"));
     const opened = await h.activities.openRound({ requestId: request.id, kind: "MAIN", round: 1 });
     if (!opened.opened) throw new Error("not opened");
+    await pause(null);
     const invited = await read((tx) =>
       tx.invitation.findMany({ where: { auctionId: opened.auctionId } }),
     );
@@ -567,7 +600,7 @@ describe("deserted and back office actions (ASTA-06, ASTA-08)", () => {
     expect(
       await h.activities.addInvitations({
         auctionId: opened.auctionId,
-        organizationIds: free.slice(0, 1),
+        organizationIds: [orgId("agenzia-dieci")],
         byUserId: invited[0]?.id ?? "",
         actionId: "00000000-0000-7000-8000-0000000000e3",
       }),

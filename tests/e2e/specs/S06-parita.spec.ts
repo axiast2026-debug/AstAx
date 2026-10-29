@@ -47,13 +47,8 @@ test.describe.serial("S06 — due offerte allo stesso prezzo", () => {
     const longer = await cinque.getByLabel("Prezzo garantito fino al").inputValue();
 
     await fireUntil(operator, code, "Chiusa");
-    // The customer reads the date in words, as «21 novembre 2026».
-    const longerText = new Intl.DateTimeFormat("it-IT", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      timeZone: "Europe/Rome",
-    }).format(new Date(`${longer}T12:00:00Z`));
+    // The customer reads the date as GG/MM/AAAA (Dan, 2026-10-29): «21/11/2026».
+    const longerText = longer.split("-").reverse().join("/");
     await expect(async () => {
       await customer.goto(url);
       const beta = customer.locator("li", { hasText: "Compagnia Beta" });

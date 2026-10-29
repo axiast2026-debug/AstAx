@@ -12,6 +12,7 @@ import {
   type DbTransaction,
   type Invitation,
   type QuoteRequest,
+  filterableRequest,
   requesterExclusions,
 } from "@astax/db";
 import {
@@ -19,7 +20,10 @@ import {
   effectiveRequirements,
   isGuaranteed,
   PackageRequirementsSchema,
+  AgencyFilterCriteriaSchema,
+  filterMismatches,
   romeInstant,
+  VerificationChecksSchema,
   type QuoteData,
 } from "@astax/shared/domain";
 import { dbDateToCalendarDate, formatDateTime, romeCalendarDate } from "@astax/shared/format";
@@ -29,6 +33,8 @@ import { actorOf, AuditService } from "../audit/audit.service.js";
 import { OffersService } from "../auctions/offers.service.js";
 import type { AuthContext } from "../auth/auth-context.js";
 import { storedAniaView } from "../verification/ania-view.js";
+import { agencyRequestView, agencySheet } from "./agency-view.js";
+import { joinOpenAuction, mayJoin } from "../auctions/open-auction.js";
 import { ProblemError } from "../http/problem.js";
 import { CLOCK, DB, FIELD_CIPHER, OBJECT_STORAGE } from "../infra/tokens.js";
 import labels from "../notifications/labels.it.json" with { type: "json" };
@@ -40,6 +46,8 @@ const AGENCY_DOCUMENT_KINDS = [
   "DRIVING_LICENCE",
   "RISK_CERTIFICATE",
   "FISCAL_CODE_CARD",
+  // Dan, 2026-10-29: every document of the customer, the identity card too.
+  "IDENTITY_DOCUMENT",
   "OTHER",
 ] as const;
 type AgencyDocumentKind = (typeof AGENCY_DOCUMENT_KINDS)[number];
@@ -58,6 +66,14 @@ export interface IncomingFilters {
   packageCode?: string;
   /** ADR 0014: only the requests of the brokers' lots sent without documents. */
   withoutDocuments?: "1";
+  /** Dan, 2026-10-29: the filters of «I miei filtri», by hand. */
+  cuClassMin?: number;
+  cuClassMax?: number;
+  maxClaims?: number;
+  driverAgeMin?: number;
+  driverAgeMax?: number;
+  /** «Applica i miei filtri»: the saved filters of the agency and of the member (VIS-06). */
+  mine?: "1";
 }
 
 /** Latin-1 only: the standard PDF fonts cannot draw other characters. */
@@ -92,13 +108,23 @@ export class AgencyService {
     throw new ProblemError("NOT_FOUND");
   }
 
-  /** The invitation of the agency and its request, within the member's filters (VIS-06). */
+  /**
+   * The invitation of the agency and its request, within the member's filters
+   * (VIS-06). ADR 0024: an open auction the agency was not emailed about is
+   * joined on its first opening.
+   */
   private async invited(tx: DbTransaction, auth: AuthContext, auctionId: string) {
     const m = this.agency(auth);
-    const invitation = await tx.invitation.findUnique({
+    const found = await tx.invitation.findUnique({
       where: { auctionId_organizationId: { auctionId, organizationId: m.organizationId } },
       include: { auction: true },
     });
+    const auction = found
+      ? null
+      : await asSystem(tx, () => tx.auction.findUnique({ where: { id: auctionId } }));
+    const invitation =
+      found ??
+      (auction ? await joinOpenAuction(tx, auction, m.organizationId, this.clock.now()) : null);
     if (!invitation) return null;
     const request = await asSystem(tx, () =>
       tx.quoteRequest.findUniqueOrThrow({ where: { id: invitation.auction.quoteRequestId } }),
@@ -106,6 +132,19 @@ export class AgencyService {
     const scope = await this.offers.memberScope(tx, auth);
     if (!this.offers.fitsScope(scope, request, invitation.auction.openedAt)) return null;
     return { invitation, auction: invitation.auction, request };
+  }
+
+  /** The saved filters that apply to the member: the agency's, and the member's own (VIS-06). */
+  private async savedCriteria(tx: DbTransaction, auth: AuthContext) {
+    const m = this.agency(auth);
+    const [agency, member] = await Promise.all([
+      tx.agencyFilter.findUnique({ where: { organizationId: m.organizationId } }),
+      tx.memberFilter.findUnique({ where: { membershipId: m.id } }),
+    ]);
+    return [agency?.criteria, member?.criteria].flatMap((c) => {
+      const parsed = AgencyFilterCriteriaSchema.safeParse(c);
+      return c && parsed.success ? [parsed.data] : [];
+    });
   }
 
   private async quoteDataOf(tx: DbTransaction, request: QuoteRequest): Promise<QuoteData> {
@@ -230,17 +269,40 @@ export class AgencyService {
     // Rule 4: a member of another kind of organization is refused and logged.
     if (!m || m.organizationType !== "AGENCY") return this.denied(auth, "AgencyArea", "requests");
     return withContext(this.db, auth.db, async (tx) => {
-      const all = await tx.invitation.findMany({
+      const invitations = await tx.invitation.findMany({
         where: { organizationId: m.organizationId },
         include: { auction: true },
         orderBy: { invitedAt: "desc" },
         take: 200,
       });
+      // ADR 0024 (Dan, 2026-10-29): every open auction the agency may join, too.
+      const others = await asSystem(tx, () =>
+        tx.auction.findMany({
+          where: {
+            status: "OPEN",
+            kind: { not: "RECONFIRMATION" },
+            id: { notIn: invitations.map((i) => i.auctionId) },
+          },
+          orderBy: { scheduledCloseAt: "asc" },
+          take: 200,
+        }),
+      );
+      const joinable = [];
+      for (const auction of others) {
+        if (await mayJoin(tx, auction, m.organizationId)) joinable.push(auction);
+      }
+      const all = [
+        ...invitations,
+        ...joinable.map((auction) => ({ auctionId: auction.id, auction, invitation: null })),
+      ].map((x) =>
+        "invitation" in x ? x : { auctionId: x.auctionId, auction: x.auction, invitation: x },
+      );
       const requests = await asSystem(tx, () =>
         tx.quoteRequest.findMany({
           where: { id: { in: all.map((i) => i.auction.quoteRequestId) } },
         }),
       );
+      const saved = filters.mine ? await this.savedCriteria(tx, auth) : [];
       const scope = await this.offers.memberScope(tx, auth);
       const ids = all.map((i) => i.auctionId);
       const [offers, claims, packages] = await Promise.all([
@@ -271,10 +333,16 @@ export class AgencyService {
       const rows = all.flatMap((i) => {
         const r = requests.find((q) => q.id === i.auction.quoteRequestId);
         if (!r || !this.offers.fitsScope(scope, r, i.auction.openedAt)) return [];
+        if (filters.mine) {
+          const facts = filterableRequest(r, i.auction.openedAt);
+          if (!facts || saved.some((c) => filterMismatches(c, facts).length > 0)) return [];
+        }
         const claim = claims.find((c) => c.auctionId === i.auctionId);
         const offer = offers.find((o) => o.auctionId === i.auctionId && o.status !== "WITHDRAWN");
         const holder = users.find((u) => u.id === claim?.userId);
-        const state = this.state(i, auth, claim, offer !== undefined);
+        const state = i.invitation
+          ? this.state(i.invitation, auth, claim, offer !== undefined)
+          : "NEW";
         const time = live.get(i.auctionId) ?? null;
         return [
           {
@@ -326,6 +394,23 @@ export class AgencyService {
         )
         .filter((row) => !filters.packageCode || row.packageCode === filters.packageCode)
         .filter((row) => !filters.withoutDocuments || row.withoutDocuments)
+        .filter(
+          (row) =>
+            row.cuClass === null ||
+            ((filters.cuClassMin === undefined || row.cuClass >= filters.cuClassMin) &&
+              (filters.cuClassMax === undefined || row.cuClass <= filters.cuClassMax)),
+        )
+        .filter(
+          (row) => filters.maxClaims === undefined || (row.claimsLast5y ?? 0) <= filters.maxClaims,
+        )
+        .filter((row) => {
+          const age = row.youngestDriverAge;
+          return (
+            age === null ||
+            ((filters.driverAgeMin === undefined || age >= filters.driverAgeMin) &&
+              (filters.driverAgeMax === undefined || age <= filters.driverAgeMax))
+          );
+        })
         .sort((a, b) => {
           const open = (x: typeof a) => (x.auctionStatus === "OPEN" ? 0 : 1);
           return open(a) - open(b) || a.scheduledCloseAt.localeCompare(b.scheduledCloseAt);
@@ -353,12 +438,12 @@ export class AgencyService {
       // Dan, 2026-10-28: the ANIA data the back office confirmed with the approval.
       const confirmed = await asSystem(tx, () =>
         tx.verification.findFirst({
-          where: { quoteRequestId: request.id, decision: "APPROVED", aniaEnc: { not: null } },
+          where: { quoteRequestId: request.id, decision: "APPROVED" },
           orderBy: { round: "desc" },
-          select: { aniaEnc: true, aniaReadAt: true },
+          select: { aniaEnc: true, aniaReadAt: true, checks: true },
         }),
       );
-      const ania =
+      const stored =
         confirmed?.aniaEnc && confirmed.aniaReadAt
           ? await storedAniaView(
               tx,
@@ -367,6 +452,10 @@ export class AgencyService {
               now,
             )
           : null;
+      // Dan, 2026-10-29: no owner's name before the purchase, no cover expiry.
+      const ania = stored ? { ...stored, sheet: agencySheet(stored.sheet) } : null;
+      const checks = VerificationChecksSchema.safeParse(confirmed?.checks ?? {});
+      const quoteType = (checks.success ? checks.data.QUOTE_TYPE?.value : undefined) ?? null;
       // The system read on its own: it must not overlap the agency's queries.
       const documents = await asSystem(tx, () =>
         tx.document.findMany({
@@ -486,7 +575,8 @@ export class AgencyService {
           : null,
         elsewhere,
         offer: offer ? { id: offer.id, status: offer.status, version: offer.version } : null,
-        quoteData,
+        request: await agencyRequestView(tx, quoteData),
+        quoteType,
         ania,
         package: pkg
           ? {

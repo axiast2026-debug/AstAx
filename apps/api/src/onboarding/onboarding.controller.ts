@@ -1,9 +1,8 @@
-import { isValidIban, isValidVatNumber } from "@astax/shared/domain";
+import { isValidVatNumber } from "@astax/shared/domain";
 import {
   Body,
   Controller,
   Get,
-  Headers,
   HttpCode,
   Inject,
   Param,
@@ -30,7 +29,6 @@ const token = z
   .string()
   .regex(/^[A-Za-z0-9_-]{40,60}$/)
   .max(60);
-const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 const inputSchema = z.strictObject({
   type: z.enum(["AGENCY", "BROKER"]),
@@ -55,12 +53,12 @@ const inputSchema = z.strictObject({
     street: text(200),
     postalCode: z.string().regex(/^\d{5}$/),
     municipalityIstat: z.string().regex(/^\d{6}$/),
-    province: z.string().regex(/^[A-Z]{2}$/),
+    // Dan, 2026-10-29: the province comes from the municipality chosen.
+    province: z
+      .string()
+      .regex(/^[A-Z]{2}$/)
+      .optional(),
   }),
-  iban: z
-    .string()
-    .transform((v) => v.replace(/\s+/g, "").toUpperCase())
-    .refine(isValidIban, { message: "INVALID_IBAN" }),
   owner: z.strictObject({
     firstName: text(100),
     lastName: text(100),
@@ -129,6 +127,12 @@ export class OnboardingController {
     return this.onboarding.options(parseInput(z.enum(["AGENCY", "BROKER"]), type));
   }
 
+  @Get("municipalities")
+  @Public()
+  municipalities(@Query("q") q: string | undefined) {
+    return this.onboarding.municipalities(q ?? "");
+  }
+
   @Post()
   @Public()
   async start(@Body() body: unknown, @Req() request: Request) {
@@ -147,45 +151,6 @@ export class OnboardingController {
   @Public()
   update(@Param("token") value: string, @Body() body: unknown, @Req() request: Request) {
     return this.onboarding.update(parseInput(token, value), parsed(body), clientOf(request));
-  }
-
-  @Post(":token/iban-code")
-  @HttpCode(204)
-  @Public()
-  async ibanCode(@Param("token") value: string): Promise<void> {
-    await this.onboarding.sendIbanCode(parseInput(token, value));
-  }
-
-  @Post(":token/iban-confirm")
-  @HttpCode(200)
-  @Public()
-  ibanConfirm(@Param("token") value: string, @Body() body: unknown, @Req() request: Request) {
-    const { code } = parseInput(z.strictObject({ code: z.string().regex(/^\d{6}$/) }), body);
-    return this.onboarding.confirmIban(parseInput(token, value), code, clientOf(request));
-  }
-
-  /** The PDF is the body; the expiry goes in the query string. */
-  @Post(":token/prof-insurance")
-  @HttpCode(200)
-  @Public()
-  profInsurance(
-    @Param("token") value: string,
-    @Query("expiresOn") expiresOn: string | undefined,
-    @Headers("content-type") contentType: string | undefined,
-    @Req() request: Request,
-  ) {
-    const body = request.body as unknown;
-    if (!(body instanceof Buffer)) {
-      throw new ProblemError("VALIDATION_FAILED", undefined, [
-        { path: "file", issue: "PDF_REQUIRED" },
-      ]);
-    }
-    return this.onboarding.uploadProfInsurance(
-      parseInput(token, value),
-      parseInput(day, expiresOn),
-      { body: new Uint8Array(body), contentType: (contentType ?? "").split(";")[0]?.trim() ?? "" },
-      clientOf(request),
-    );
   }
 
   @Post(":token/submit")

@@ -1,4 +1,3 @@
-import type { QuoteData } from "@astax/shared/domain";
 import type { ConfirmedAnia } from "@/components/ania-confirmed";
 import type { WorkingTime } from "@/components/countdown-ring";
 
@@ -41,6 +40,21 @@ export interface Requirement {
   [key: string]: unknown;
 }
 
+export interface AgencyRequest {
+  plate: string;
+  drivingFormula: string;
+  blackBox: boolean;
+  startDate: string;
+  startMode: string | null;
+  minValidityDays: number;
+  auctionDurationHours: number;
+  holder: {
+    kind: "PERSON" | "COMPANY";
+    taxCode: string;
+    address: { street: string; postalCode: string; municipality: string; province: string };
+  };
+}
+
 export interface AgencyRequestDetail {
   auctionId: string;
   code: string;
@@ -53,7 +67,10 @@ export interface AgencyRequestDetail {
   claim: { byMe: boolean; holder: string | null } | null;
   elsewhere: { agency: string; offered: boolean } | null;
   offer: { id: string; status: string; version: number } | null;
-  quoteData: QuoteData;
+  /** Dan, 2026-10-29: the request without names, vehicle, persons or history. */
+  request: AgencyRequest;
+  /** The type of quote the back office confirmed (fifth check). */
+  quoteType: string | null;
   /** Dan, 2026-10-28: the ANIA data confirmed by the back office. */
   ania: ConfirmedAnia | null;
   package: { code: string; name: string; requirements: Record<string, Requirement> } | null;

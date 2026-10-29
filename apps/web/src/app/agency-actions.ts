@@ -159,3 +159,32 @@ export async function withdrawOffer(formData: FormData): Promise<void> {
   await post(auctionId, `/offers/${idOf(formData, "offerId")}/withdraw`);
   redirect(back(auctionId, "?fatto=ritirata"));
 }
+
+/**
+ * Dan, 2026-10-29: the agency's IBAN at its first offer. First the code by SMS
+ * (to the user's mobile, typed here when the account has none), then the IBAN
+ * with the code; on an error what was typed stays (ActionForm).
+ */
+export async function sendOfferIbanCode(formData: FormData): Promise<string | undefined> {
+  const auctionId = idOf(formData, "auctionId");
+  const phone = String(formData.get("phone") ?? "").trim();
+  const { status, body } = await api("/agency/iban/code", {
+    method: "POST",
+    body: JSON.stringify(phone ? { phone } : {}),
+  });
+  if (status !== 204) return codesOf(body);
+  redirect(back(auctionId, "?iban=codice#iban"));
+}
+
+export async function confirmOfferIban(formData: FormData): Promise<string | undefined> {
+  const auctionId = idOf(formData, "auctionId");
+  const { status, body } = await api("/agency/iban", {
+    method: "POST",
+    body: JSON.stringify({
+      iban: String(formData.get("iban") ?? ""),
+      code: String(formData.get("code") ?? "").replace(/\s/g, ""),
+    }),
+  });
+  if (status !== 200) return codesOf(body);
+  redirect(back(auctionId, "?fatto=iban#offer-title"));
+}

@@ -41,6 +41,7 @@ import { QuoteChecksController } from "./auctions/auctions.controller.js";
 import { QuoteChecksService } from "./auctions/quote-checks.service.js";
 import { AgencyService } from "./agency/agency.service.js";
 import { AgencySettingsService } from "./agency/agency-settings.service.js";
+import { AgencyIbanService } from "./agency/agency-iban.service.js";
 import { AuctionsController } from "./auctions/auctions.controller.js";
 import { AuctionsService } from "./auctions/auctions.service.js";
 import { OffersService } from "./auctions/offers.service.js";
@@ -192,6 +193,7 @@ export class AppModule {
         AuctionsService,
         AgencyService,
         AgencySettingsService,
+        AgencyIbanService,
         AcceptanceService,
         PublicHomeService,
         AcceptanceEventsService,

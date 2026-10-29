@@ -1,6 +1,10 @@
 import { Button } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
+import type { MunicipalitySuggestion } from "@/app/riferimenti/comuni/route";
+import { ActionForm } from "@/components/action-form";
 import { Field, Fieldset } from "@/components/form";
+import { MunicipalityField } from "@/components/wizard/municipality-field";
+import { publicApi } from "@/lib/public-api";
 
 /**
  * Who enters: an agency (A), a broker (B) or an intermediary of section E who
@@ -25,7 +29,12 @@ export interface OnboardingValues {
   companyIds: string[];
 }
 
-/** The data of the entry: the same form to start and to correct. */
+/**
+ * The data of the entry: the same form to start and to correct. Dan,
+ * 2026-10-29: the municipality from the list (no ISTAT code to type), no IBAN
+ * (asked at the first offer), and on an error everything typed stays: only the
+ * wrong fields turn red.
+ */
 export async function OnboardingForm({
   kind,
   companies,
@@ -37,13 +46,19 @@ export async function OnboardingForm({
   companies: { id: string; name: string }[];
   values?: OnboardingValues;
   token?: string;
-  action: (formData: FormData) => Promise<void>;
+  action: (formData: FormData) => Promise<string | undefined>;
 }) {
   const t = await getTranslations("onboarding");
+  const tw = await getTranslations("wizard.intake");
+  const istat = values?.address.municipalityIstat;
+  const municipality = istat
+    ? ((await publicApi<MunicipalitySuggestion[]>(`/onboarding/municipalities?q=${istat}`))
+        .body[0] ?? null)
+    : null;
   const type = kind === "AGENCY" ? "AGENCY" : "BROKER";
   const section = kind === "AGENCY" ? "A" : kind === "BROKER" ? "B" : "E";
   return (
-    <form action={action} className="space-y-6">
+    <ActionForm action={action} className="space-y-6">
       <input type="hidden" name="type" value={type} />
       {token ? <input type="hidden" name="token" value={token} /> : null}
       <Fieldset legend={t("company")}>
@@ -97,27 +112,21 @@ export async function OnboardingForm({
             defaultValue={values?.address.street}
             className="sm:col-span-2"
           />
-          <Field
-            label={t("postalCode")}
-            name="postalCode"
-            required
-            pattern="\d{5}"
-            defaultValue={values?.address.postalCode}
-          />
-          <Field
-            label={t("province")}
-            name="province"
-            required
-            pattern="[A-Za-z]{2}"
-            defaultValue={values?.address.province}
-          />
-          <Field
-            label={t("municipalityIstat")}
-            name="municipalityIstat"
-            required
-            pattern="\d{6}"
-            hint={t("municipalityIstatHint")}
-            defaultValue={values?.address.municipalityIstat}
+          <MunicipalityField
+            prefix="address"
+            source="/ingresso/comuni"
+            initial={municipality}
+            initialPostalCode={values?.address.postalCode}
+            texts={{
+              municipality: tw("municipality"),
+              municipalityHint: tw("municipalityHint"),
+              postalCode: tw("postalCode"),
+              postalCodeChoose: tw("postalCodeChoose"),
+              postalCodePlaceholder: tw("postalCodePlaceholder"),
+              postalCodeFree: tw("postalCodeFree"),
+              province: tw("province"),
+              noResults: tw("municipalityNoResults"),
+            }}
           />
         </div>
       </Fieldset>
@@ -152,15 +161,6 @@ export async function OnboardingForm({
           />
         </div>
       </Fieldset>
-      <Fieldset legend={t("iban")}>
-        <Field
-          label={t("iban")}
-          name="iban"
-          required
-          autoComplete="off"
-          hint={t(values ? "ibanAgainHint" : "ibanHint")}
-        />
-      </Fieldset>
       {type === "AGENCY" ? (
         <Fieldset legend={t("mandates")}>
           <p className="text-sm text-warm-600">{t("mandatesHint")}</p>
@@ -182,6 +182,6 @@ export async function OnboardingForm({
         </Fieldset>
       ) : null}
       <Button type="submit">{t(values ? "saveChanges" : "start")}</Button>
-    </form>
+    </ActionForm>
   );
 }

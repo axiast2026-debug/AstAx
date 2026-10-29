@@ -31,6 +31,7 @@ import { dbDateToCalendarDate } from "@astax/shared/format";
 import { can } from "@astax/shared/permissions";
 import { Inject, Injectable } from "@nestjs/common";
 import { z } from "zod";
+import { joinOpenAuction } from "./open-auction.js";
 import { actorOf, AuditService } from "../audit/audit.service.js";
 import type { AuthContext } from "../auth/auth-context.js";
 import { ProblemError } from "../http/problem.js";
@@ -258,11 +259,13 @@ export class OffersService {
 
   private async invitation(tx: DbTransaction, auth: AuthContext, auction: Auction) {
     const m = this.agency(auth);
-    const invitation = await tx.invitation.findUnique({
-      where: {
-        auctionId_organizationId: { auctionId: auction.id, organizationId: m.organizationId },
-      },
-    });
+    // ADR 0024: an agency may offer on any open auction, joined on its first action.
+    const invitation =
+      (await tx.invitation.findUnique({
+        where: {
+          auctionId_organizationId: { auctionId: auction.id, organizationId: m.organizationId },
+        },
+      })) ?? (await joinOpenAuction(tx, auction, m.organizationId, this.clock.now()));
     if (!invitation || invitation.status === "DECLINED") throw new ProblemError("NOT_FOUND");
     return invitation;
   }
@@ -480,6 +483,18 @@ export class OffersService {
     const result = await withContext(this.db, auth.db, async (tx) => {
       const auction = await this.lockOpen(tx, auth, auctionId);
       await this.invitation(tx, auth, auction);
+      // Dan, 2026-10-29: the agency's IBAN is asked at its first offer.
+      const organization = await asSystem(tx, () =>
+        tx.organization.findUniqueOrThrow({
+          where: { id: m.organizationId },
+          select: { ibanEnc: true },
+        }),
+      );
+      if (!organization.ibanEnc) {
+        throw new ProblemError("CONFLICT", "The agency has no IBAN yet", [
+          { path: "iban", issue: "IBAN_REQUIRED" },
+        ]);
+      }
       const payload = await this.validate(
         tx,
         auth,

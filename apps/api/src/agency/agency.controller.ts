@@ -21,6 +21,7 @@ import { CurrentAuth, RequirePermission } from "../auth/decorators.js";
 import { ProblemError } from "../http/problem.js";
 import { parseInput } from "../http/validation.js";
 import { sendFile } from "../requests/requests.controller.js";
+import { AgencyIbanService } from "./agency-iban.service.js";
 import { AgencySettingsService, CapacityInputSchema } from "./agency-settings.service.js";
 import { AgencyService } from "./agency.service.js";
 
@@ -38,6 +39,13 @@ const incomingSchema = z.object({
   // «Partecipa all'asta» (Dan, 2026-10-21, docs/piano-agenzie.md B).
   auction: z.enum(["OPEN", "CLOSED"]).optional(),
   closesWithinHours: z.coerce.number().int().min(1).max(168).optional(),
+  // Dan, 2026-10-29: the same filters as «I miei filtri», by hand, or the saved ones.
+  cuClassMin: z.coerce.number().int().min(1).max(18).optional(),
+  cuClassMax: z.coerce.number().int().min(1).max(18).optional(),
+  maxClaims: z.coerce.number().int().min(0).max(20).optional(),
+  driverAgeMin: z.coerce.number().int().min(14).max(110).optional(),
+  driverAgeMax: z.coerce.number().int().min(14).max(110).optional(),
+  mine: z.literal("1").optional(),
   packageCode: z
     .string()
     .regex(/^[A-Z_]+$/)
@@ -57,12 +65,34 @@ export class AgencyController {
   constructor(
     @Inject(AgencyService) private readonly agency: AgencyService,
     @Inject(AgencySettingsService) private readonly settings: AgencySettingsService,
+    @Inject(AgencyIbanService) private readonly iban: AgencyIbanService,
   ) {}
 
   @Get("dashboard")
   @RequirePermission("auction.viewStatus")
   dashboard(@CurrentAuth() auth: AuthContext) {
     return this.agency.dashboard(auth);
+  }
+
+  /** Dan, 2026-10-29: the agency's IBAN, asked at its first offer to whoever sends it. */
+  @Get("iban")
+  @RequirePermission("offer.submit")
+  ibanStatus(@CurrentAuth() auth: AuthContext) {
+    return this.iban.status(auth);
+  }
+
+  @Post("iban/code")
+  @HttpCode(204)
+  @RequirePermission("offer.submit")
+  async ibanCode(@CurrentAuth() auth: AuthContext, @Body() body: unknown): Promise<void> {
+    await this.iban.sendCode(auth, body);
+  }
+
+  @Post("iban")
+  @HttpCode(200)
+  @RequirePermission("offer.submit")
+  ibanConfirm(@CurrentAuth() auth: AuthContext, @Body() body: unknown) {
+    return this.iban.confirm(auth, body);
   }
 
   /** «Profilo» of the agency (Dan, 2026-10-21, docs/piano-agenzie.md D). */

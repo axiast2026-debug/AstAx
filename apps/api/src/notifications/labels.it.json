@@ -22,7 +22,8 @@
     "PRIVATE_CONSENT": "confermare i consensi della tua richiesta",
     "LINK_CONSENT": "confermare il consenso alla richiesta del tuo broker",
     "CUSTOMER_LINK": "aprire l'offerta che ti ha inviato il tuo broker",
-    "ONBOARDING_IBAN": "confermare l'IBAN della richiesta di ingresso"
+    "ONBOARDING_IBAN": "confermare l'IBAN della richiesta di ingresso",
+    "OFFER_IBAN": "confermare l'IBAN della tua agenzia"
   },
   "agencyDocument": {
     "unreadable": "Documento non visualizzabile in anteprima: chiedi il file all'assistenza AstAx.",
@@ -32,6 +33,7 @@
       "DRIVING_LICENCE": "patente.pdf",
       "RISK_CERTIFICATE": "attestato.pdf",
       "FISCAL_CODE_CARD": "codice-fiscale.pdf",
+      "IDENTITY_DOCUMENT": "documento-identita.pdf",
       "OTHER": "documento.pdf"
     }
   },

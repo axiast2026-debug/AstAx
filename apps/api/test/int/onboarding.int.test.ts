@@ -1,6 +1,6 @@
 import { FakeRuiRegistry } from "@astax/adapters/rui-registry";
 import { conflictedAgencies, importRuiRecords, SYSTEM_CONTEXT, withContext } from "@astax/db";
-import { buildSyntheticIban, buildVatNumber } from "@astax/shared/domain";
+import { buildVatNumber } from "@astax/shared/domain";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { acceptAllLegal, membershipId, startHarness, type Harness } from "./fixtures.js";
 import { requestHelpers, type Who } from "./request-helpers.js";
@@ -14,7 +14,6 @@ let r: ReturnType<typeof requestHelpers>;
 let supervisor: Who;
 const system = <T>(work: Parameters<typeof withContext<T>>[2]) =>
   withContext(h.db, SYSTEM_CONTEXT, work);
-const PDF = new TextEncoder().encode("%PDF-1.4\n% polizza RC professionale di prova\n");
 const OWNER_EMAIL = "giorgia.undici@agenzia-undici.test";
 const OWNER_PHONE = "+393330001101";
 
@@ -58,10 +57,9 @@ async function applicationFor(ruiNumber: string, legalName: string, email = OWNE
     address: {
       street: "Via Prova 11",
       postalCode: "00184",
+      // Dan, 2026-10-29: the municipality from the list; the province comes from it; no IBAN.
       municipalityIstat: "058091",
-      province: "RM",
     },
-    iban: buildSyntheticIban(Number(ruiNumber.slice(-4))),
     owner: { firstName: "Giorgia", lastName: "Undici", email, phone: OWNER_PHONE },
     companyIds: [alfa?.id, gamma?.id, delta?.id],
   };
@@ -69,30 +67,8 @@ async function applicationFor(ruiNumber: string, legalName: string, email = OWNE
   return { token: started.token, options, body };
 }
 
-function lastSmsCode(): string {
-  const message = [...h.email.sent].reverse().find((m) => m.to.startsWith(OWNER_PHONE.slice(1)));
-  const code = /\b(\d{6})\b/.exec(message?.text ?? "")?.[1];
-  if (!code) throw new Error("no SMS code");
-  return code;
-}
-
-async function complete(token: string, options: Options) {
-  expect((await h.call(`/onboarding/${token}/iban-code`, { body: {} })).status).toBe(204);
-  const wrong = await h.call(`/onboarding/${token}/iban-confirm`, { body: { code: "000000" } });
-  expect(wrong.status).toBe(400);
-  await r.json(
-    await h.call(`/onboarding/${token}/iban-confirm`, { body: { code: lastSmsCode() } }),
-    200,
-  );
-  const upload = await fetch(
-    `${h.baseUrl}/onboarding/${token}/prof-insurance?expiresOn=2030-12-31`,
-    {
-      method: "POST",
-      headers: { "content-type": "application/pdf" },
-      body: PDF,
-    },
-  );
-  expect(upload.status).toBe(200);
+/** Dan, 2026-10-29: no IBAN and no professional liability policy at the entry: the contracts only. */
+async function complete(_token: string, options: Options) {
   return options.documents.map((d) => d.versionId);
 }
 
@@ -104,23 +80,22 @@ describe("phase 7 entry of a new agency", () => {
       "data-processing-agreement",
       "terms-professional",
     ]);
+    // Dan, 2026-10-29: only the contracts are needed; no IBAN, no policy.
     const early = await r.json<{ errors: { issue: string }[] }>(
       await h.call(`/onboarding/${token}/submit`, {
-        body: { versionIds: options.documents.map((d) => d.versionId) },
+        body: { versionIds: options.documents.slice(0, 1).map((d) => d.versionId) },
       }),
       400,
     );
-    expect(early.errors.map((e) => e.issue)).toEqual(
-      expect.arrayContaining(["IBAN_NOT_CONFIRMED", "MISSING"]),
-    );
+    expect(early.errors.map((e) => e.issue)).toEqual(["NOT_ACCEPTED"]);
 
     const versionIds = await complete(token, options);
-    const view = await r.json<{ iban: string; ibanConfirmed: boolean }>(
+    const view = await r.json<{ iban: string | null; address: { province: string } }>(
       await h.call(`/onboarding/${token}`),
       200,
     );
-    expect(view.ibanConfirmed).toBe(true);
-    expect(view.iban).toMatch(/^IT\d\d •••• \d{4}$/);
+    expect(view.iban).toBeNull();
+    expect(view.address.province).toBe("RM");
 
     const notified = h.email.sent.length;
     await r.json(await h.call(`/onboarding/${token}/submit`, { body: { versionIds } }), 200);
@@ -329,7 +304,6 @@ describe("broker plan, step 3 (Dan, 2026-10-21): an intermediary of section E", 
       municipalityIstat: "058091",
       province: "RM",
     },
-    iban: buildSyntheticIban(7001),
     owner: {
       firstName: "Marco",
       lastName: "Rossi",

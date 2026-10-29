@@ -406,7 +406,9 @@ export function auctionActivities(
         closeAt: times.scheduledCloseAt,
         minReceptionOverlapMinutes: settings.minReceptionOverlapWorkingHours * 60,
         // ASTA-08: the reopening invites every compatible agency not yet invited.
-        limit: input.kind === "MAIN" ? settings.invitationsMax : null,
+        // ADR 0024 (Dan, 2026-10-29): every agency may offer; the email goes to all
+        // the compatible ones, without a limit.
+        limit: null,
         alreadyInvited: rounds.flatMap((r) =>
           r.invitations.map((i) => ({ organizationId: i.organizationId, companies: [] })),
         ),
@@ -414,7 +416,11 @@ export function auctionActivities(
         excludedCompanies: requesterOut.companies,
         rotation: input.kind === "MAIN",
       });
-      if (selection.selected.length === 0) return { opened: false, reason: "NO_AGENCIES" };
+      // ADR 0024: the first auction opens even when no agency's filters fit: every
+      // agency sees it in «Partecipa all'asta». The reopening still needs someone new.
+      if (selection.selected.length === 0 && input.kind !== "MAIN") {
+        return { opened: false, reason: "NO_AGENCIES" };
+      }
 
       const auctionId = randomUUID();
       const keys = await generateAuctionKeyPair();
