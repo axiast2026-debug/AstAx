@@ -122,7 +122,10 @@ export function submissionProblems(
   );
 
   const { request, history, vehicle } = quoteData;
-  if (compareCalendarDates(request.startDate, ctx.today) < 0)
+  // Question 1: with the start set by the payment («immediata», «dalle 24:00»)
+  // `startDate` is the request day, not a start the customer chose.
+  const chosenDate = (request.startMode ?? "DATE") === "DATE";
+  if (chosenDate && compareCalendarDates(request.startDate, ctx.today) < 0)
     problems.push("START_DATE_IN_THE_PAST");
   const firstRegistration = history.provenance === "FIRST_REGISTRATION";
   if (!firstRegistration && history.provenance !== "USED_WITHOUT_OWN_CERTIFICATE") {

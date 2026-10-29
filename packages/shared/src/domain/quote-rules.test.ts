@@ -235,6 +235,14 @@ describe("submission", () => {
     ]);
   });
 
+  it("a start set by the payment is never in the past: its date is the request day (question 1)", () => {
+    const quote = sampleQuoteData();
+    for (const startMode of ["ON_ISSUANCE", "MIDNIGHT_AFTER_DEADLINE"] as const) {
+      const value = { ...quote, request: { ...quote.request, startDate: "2026-10-14", startMode } };
+      expect(submissionProblems(value, SUBMISSION)).toEqual([]);
+    }
+  });
+
   it("requires the market value when the package includes theft and fire", () => {
     expect(
       submissionProblems(sampleQuoteData(), { ...SUBMISSION, packageIncludesTheft: true }),

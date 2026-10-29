@@ -563,6 +563,7 @@
     "problems": {
       "ASSIGNED_TO_COLLEAGUE": "La pratica è in carico a un collega: solo chi l'ha presa può decidere.",
       "CHECKS_INCOMPLETE": "Mancano alcune delle 5 verifiche.",
+      "START_DATE_IN_THE_PAST": "La data di decorrenza è già passata: con la conferma dei dati del bot diventa il giorno dell'asta.",
       "CORRECTION_NOT_IN_DATA": "La correzione non è ancora nei dati della richiesta: rifai la correzione.",
       "NOT_FEASIBLE": "Spunta «Il preventivo è fattibile» per confermare la tipologia.",
       "INVALID_PLATE": "Targa non valida.",

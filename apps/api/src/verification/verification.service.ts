@@ -23,6 +23,7 @@ import {
   AniaRecordSchema,
   type AniaRecord,
   checkProblem,
+  compareCalendarDates,
   missingChecks,
   VERIFICATION_STEPS,
   normalizePlate,
@@ -693,6 +694,17 @@ export class VerificationService {
         sheet,
         quoteType: checks.QUOTE_TYPE?.value ?? null,
       });
+      // Dan, 2026-10-29: a chosen start already past, with the checks passed,
+      // becomes the day the auction opens.
+      const today = romeCalendarDate(this.clock.now());
+      const terms = result.quoteData.request as QuoteData["request"];
+      if (
+        requireChecks &&
+        (terms.startMode ?? "DATE") === "DATE" &&
+        compareCalendarDates(terms.startDate, today) < 0
+      ) {
+        result.quoteData = { ...result.quoteData, request: { ...terms, startDate: today } };
+      }
       return {
         ...result,
         round: round.round,

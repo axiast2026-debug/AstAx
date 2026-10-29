@@ -1,5 +1,6 @@
 import { SYSTEM_CONTEXT, withContext } from "@astax/db";
 import { buildFiscalCode, type QuoteData } from "@astax/shared/domain";
+import { romeCalendarDate } from "@astax/shared/format";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { acceptAllLegal, membershipId, startHarness, type Harness } from "./fixtures.js";
 import { openTestAuction } from "./auction-helpers.js";
@@ -727,5 +728,48 @@ describe("fase 2: verification queue and card", () => {
       400,
     );
     expect(refused.errors).toContainEqual({ path: "quoteData", issue: "START_DATE_IN_THE_PAST" });
+  });
+
+  it("Dan, 2026-10-29: a chosen start already past becomes the day the auction opens, once the checks pass", async () => {
+    // A start chosen for tomorrow, three days later is past.
+    const tomorrow = romeCalendarDate(new Date(h.clock.now().getTime() + 24 * 3600_000));
+    const request = await r.submittedPrivateRequest(davide, DAVIDE_EMAIL, (quote) => ({
+      ...quote,
+      request: { ...quote.request, startDate: tomorrow, startMode: "DATE" },
+    }));
+    h.clock.advanceMinutes(3 * 24 * 60);
+    davide = { token: await h.tokenFor("private-davide-galli") };
+    verifier = { ...verifier, token: await h.tokenFor("bo-verifier") };
+    for (const step of ["REGISTRATION", "IDENTITY", "PLATE", "BIRTH_DATE"]) {
+      await r.json(
+        await r.call(verifier, `/verification/requests/${request.id}/checks/${step}`, {
+          method: "PUT",
+          body: {},
+        }),
+        200,
+      );
+    }
+    await r.json(
+      await r.call(verifier, `/verification/requests/${request.id}/checks/QUOTE_TYPE`, {
+        method: "PUT",
+        body: { value: "RENEWAL" },
+      }),
+      200,
+    );
+    await r.json(
+      await r.call(verifier, `/verification/requests/${request.id}/ania`, { body: {} }),
+      200,
+    );
+    expect(
+      await r.json(
+        await r.call(verifier, `/verification/requests/${request.id}/bot-confirm`, { body: {} }),
+        200,
+      ),
+    ).toEqual({ decision: "APPROVED" });
+    const card = await r.json<{ quoteData: QuoteData }>(
+      await r.call(verifier, `/verification/requests/${request.id}`),
+      200,
+    );
+    expect(card.quoteData.request.startDate).toBe(romeCalendarDate(h.clock.now()));
   });
 });

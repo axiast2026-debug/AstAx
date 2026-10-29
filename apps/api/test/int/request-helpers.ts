@@ -80,12 +80,16 @@ export function requestHelpers(h: Harness) {
   }
 
   /** A private user's request with the sample documents and consent, submitted. */
-  async function submittedPrivateRequest(who: Who, email: string) {
+  async function submittedPrivateRequest(
+    who: Who,
+    email: string,
+    edit: (quote: QuoteData) => QuoteData = (quote) => quote,
+  ) {
     const created = await json<{ id: string; code: string }>(
       await call(who, "/requests", { body: {} }),
       201,
     );
-    const quote = await sampleQuote(who);
+    const quote = edit(await sampleQuote(who));
     await saveAll(who, created.id, quote);
     await json(
       await upload(who, created.id, "REGISTRATION_CERTIFICATE", "libretto-giulia-neri.jpg"),
