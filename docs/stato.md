@@ -30,6 +30,8 @@ Poi, da decidere: B6 (dati dalla targa, serve l'account del fornitore), B7 (cont
 
 ## Ultima sessione
 
+**2026-10-29 — caratteri dentro il progetto** (Dan). Inter e Inter Tight sono in `apps/web/src/fonts` e `apps/admin/src/fonts` (licenza SIL OFL, `OFL.txt`) e si caricano con `next/font/local`: la build non scarica più nulla da Google Fonts, che due volte non era raggiungibile dalla CI e aveva fatto fallire le immagini della demo o le prove dal browser.
+
 **2026-10-29 — agenzie: aste aperte a tutte, filtri per le email, richiesta più essenziale, registrazione più corta, date** (piano in `docs/piano-agenzia-filtri-richiesta.md`, risposte di Dan A, B, C; [ADR 0024](adr/0024-aste-aperte-a-tutte-le-agenzie.md)).
 - Aste: ogni agenzia attiva vede in «Partecipa all'asta» tutte le aste aperte e può offrire; entra alla prima apertura (invito `OPEN_LIST`, `apps/api/src/auctions/open-auction.ts`). L'email della nuova asta va a tutte le agenzie con i filtri compatibili, senza il limite di 8; la prima asta si apre anche se nessun filtro è compatibile. Filtri a mano (anche classe CU, sinistri, età) e «Applica i miei filtri» (`mine=1`); la pagina «Filtri per le email».
 - Richiesta lato agente: dati ANIA senza nome e senza scadenza della copertura; sopra solo la frase «Dati per facilitare il vostro preventivo, da confrontare con documenti e libretto forniti.», senza titolo, fonte ANIA, data di lettura o avvisi (Dan); codice fiscale, indirizzo e tipologia; la richiesta (guida, garanzie, scatola nera, decorrenza, validità, durata); tutti i documenti con la carta d'identità. L'API non manda più `quoteData` all'agenzia.

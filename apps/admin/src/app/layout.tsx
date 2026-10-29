@@ -2,15 +2,23 @@ import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { headers } from "next/headers";
-import { Inter, Inter_Tight } from "next/font/google";
+import localFont from "next/font/local";
 import type { ReactNode } from "react";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+// The font files are in the project (src/fonts, SIL Open Font License): the build
+// downloads nothing, so it does not fail when Google Fonts is not reachable.
+const inter = localFont({
+  src: "../fonts/inter-latin-wght-normal.woff2",
+  weight: "100 900",
+  variable: "--font-inter",
+});
 // Big titles and hero numbers: price, countdown, saving.
-const interTight = Inter_Tight({
-  subsets: ["latin"],
-  weight: ["800", "900"],
+const interTight = localFont({
+  src: [
+    { path: "../fonts/inter-tight-latin-800-normal.woff2", weight: "800" },
+    { path: "../fonts/inter-tight-latin-900-normal.woff2", weight: "900" },
+  ],
   variable: "--font-inter-tight",
 });
 
