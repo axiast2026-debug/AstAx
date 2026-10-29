@@ -64,9 +64,10 @@ echo "Keycloak: addresses and email set."
 EOF
 
 compose up -d --wait --remove-orphans
-# The 38 GB disk filled up with the images of past versions (2026-10-28):
-# whatever no container uses and is older than a day goes, build cache too.
-docker image prune -af --filter "until=24h" >/dev/null
+# The 38 GB disk filled up with the images of past versions (2026-10-28), and
+# with several updates a day (2026-10-29): every image no container uses goes
+# (an older version is pulled again from the registry); build cache after a day.
+docker image prune -af >/dev/null
 docker builder prune -af --filter "until=24h" >/dev/null
 echo "Disk: $(df -h / | awk 'NR==2 {print $5}') used."
 echo "Demo up: https://demo.$(sed -n 's/^DOMAIN=//p' "$ENV_FILE")"
