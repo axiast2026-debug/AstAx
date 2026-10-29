@@ -1,16 +1,14 @@
 # Online demo (ADR 0020): builds the images of one commit of main and publishes
-# them in the GitHub package astax-demo, one tag per service. It starts by
-# itself when the CI of a push to main is green (Dan, 2026-10-29), or by hand;
-# it deploys nothing: the server is brought up to date with infra/demo/deploy.sh.
+# them in the GitHub package astax-demo, one tag per service. The CI calls it on
+# a push to main as soon as «check» is green, without waiting for the browser
+# tests (Dan, 2026-10-29); it can also be started by hand. It deploys nothing:
+# the server is brought up to date with infra/demo/deploy.sh.
 # The images hold no secret and no address: the configuration comes at start.
 name: Demo images
 
 on:
+  workflow_call:
   workflow_dispatch:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
 
 permissions:
   contents: read
@@ -22,32 +20,28 @@ concurrency:
 
 env:
   IMAGE: ghcr.io/${{ github.repository_owner }}/astax-demo
-  # The commit the CI checked, or the one of main when started by hand.
-  SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 
 jobs:
   gate:
     name: gate
     runs-on: ubuntu-24.04
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
     steps:
       - name: The branch is main
-        if: github.event_name == 'workflow_dispatch'
         run: test "${GITHUB_REF}" = "refs/heads/main"
-      - name: The CI of this commit is green
+      # Called by the CI, «check» has just passed; by hand, it must have passed.
+      - name: The «check» of this commit is green
+        if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          conclusion=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${SHA}&status=completed" \
-            --jq '.workflow_runs[0].conclusion // ""')
-          echo "CI of ${SHA}: ${conclusion:-none}"
+          run=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${GITHUB_SHA}&event=push"             --jq '.workflow_runs[0].id // ""')
+          conclusion=$(test -n "$run" && gh api "repos/${GITHUB_REPOSITORY}/actions/runs/$run/jobs"             --jq '[.jobs[] | select(.name == "check")][0].conclusion // ""')
+          echo "check of ${GITHUB_SHA}: ${conclusion:-none}"
           test "$conclusion" = "success"
       - id: tag
-        run: echo "tag=${SHA::12}" >> "$GITHUB_OUTPUT"
+        run: echo "tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
 
   images:
     name: images
@@ -71,8 +65,6 @@ jobs:
             }
     steps:
       - uses: actions/checkout@v5
-        with:
-          ref: ${{ env.SHA }}
       - name: Log in to the GitHub registry
         run: echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
       - name: Build and push ${{ matrix.name }}

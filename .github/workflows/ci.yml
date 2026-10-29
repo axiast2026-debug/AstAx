@@ -1,6 +1,8 @@
 # AstAx continuous integration (fase 1, passo 13). Required for merging into main:
 # set it in GitHub, Settings → Branches → branch protection for main → require
 # status checks «check» and «e2e».
+# On a push to main the demo images start as soon as «check» is green; the
+# browser tests run in 4 parts at the same time (Dan, 2026-10-29).
 name: CI
 
 on:
@@ -85,11 +87,24 @@ jobs:
           done
           tf modules/astax test
 
-  e2e:
-    name: e2e
+  demo:
+    name: demo images
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/demo.yml
+
+  e2e-part:
+    name: e2e (${{ matrix.shard }}/4)
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -114,14 +129,14 @@ jobs:
       - name: Install Chromium for Playwright
         run: pnpm --filter @astax/e2e exec playwright install --with-deps chromium
       - name: End-to-end tests
-        run: pnpm test:e2e
+        run: pnpm --filter @astax/e2e exec playwright test --shard=${{ matrix.shard }}/4
         env:
           CI: "true"
       - name: Playwright report
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: |
             tests/e2e/playwright-report
             tests/e2e/test-results
@@ -129,3 +144,12 @@ jobs:
       - name: Service logs
         if: failure()
         run: docker compose --env-file .env -f infra/docker-compose.yml logs --tail=200 keycloak
+
+  # The required status check «e2e»: green only when the 4 parts are.
+  e2e:
+    name: e2e
+    runs-on: ubuntu-24.04
+    needs: e2e-part
+    if: always()
+    steps:
+      - run: test "${{ needs.e2e-part.result }}" = "success"
