@@ -17,7 +17,7 @@ export interface ConfirmedAnia {
  * ANIA data the back office confirmed, to help the agencies and sub-agents
  * quote, with the fiscal code and the address the customer wrote and the type
  * of quote. Never the customer's name, email or phone before the purchase
- * (the API sends none); no cover expiry. What ANIA did not give is «non
+ * (the API sends none); no cover expiry, no contract expiry (Dan, 2026-10-30). What ANIA did not give is «non
  * disponibile». Dan, 2026-10-29: only the purpose sentence on top, no title,
  * no source, no read date and no warnings.
  */
@@ -70,7 +70,6 @@ export async function AniaConfirmed({
         ["cuClass", s.cuClass ?? na],
         ["internalClass", s.internalClass ?? na],
         ["insurer", s.currentInsurer?.name ?? na],
-        ["contractExpiry", date(s.contractExpiry)],
         ["claims", t("claimsValue", { main: s.mainClaims ?? na, shared: s.sharedClaims ?? na })],
       ]
     : [];

@@ -55,7 +55,14 @@ export async function agencyRequestView(
   };
 }
 
-/** The ANIA sheet for an agency: every datum but the owner's name and the cover expiry. */
+/** The ANIA sheet for an agency: every datum but the owner's name, the cover expiry and (Dan, 2026-10-30) the contract expiry. */
 export function agencySheet(sheet: AniaSheet): AniaSheet {
-  return { ...sheet, fullName: null, surname: null, givenName: null, coverExpiry: null };
+  return {
+    ...sheet,
+    fullName: null,
+    surname: null,
+    givenName: null,
+    coverExpiry: null,
+    contractExpiry: null,
+  };
 }
