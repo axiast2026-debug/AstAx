@@ -45,6 +45,8 @@ export async function AcceptanceSteps({
   const tk = await getTranslations("wizard.documentKinds");
   const paid = a.status === "PAID";
   const signed = a.status === "SIGNED" || paid;
+  // ADR 0027: the intermediary already paid; the customer only signs.
+  const bought = a.intermediaryPurchase;
   const pending = !paid && a.payment?.status === "AUTHORIZED";
   const failed = !paid && (a.payment?.status === "FAILED" || esito === "failed");
   const fields = Object.entries(hidden).map(([name, value]) => (
@@ -93,7 +95,7 @@ export async function AcceptanceSteps({
       </dl>
       {!signed ? (
         <Button type="submit" size="lg" full>
-          {t("signAndPay", { amount })}
+          {bought ? t("signOnly") : t("signAndPay", { amount })}
         </Button>
       ) : null}
       <p className="text-note text-warm-600">{t("onePayment")}</p>
@@ -146,7 +148,9 @@ export async function AcceptanceSteps({
             <input type="checkbox" name="read" required className="size-5 accent-night-900" />
             {t("read")}
           </label>
-          <p className="rounded-xl bg-info-50 px-4 py-3 text-table">{t("signText")}</p>
+          <p className="rounded-xl bg-info-50 px-4 py-3 text-table">
+            {bought ? t("signOnlyText") : t("signText")}
+          </p>
         </>
       ) : (
         <p className="flex items-center gap-2 text-table text-green-700">
@@ -192,9 +196,13 @@ export async function AcceptanceSteps({
     <section aria-labelledby="pagato" className={card}>
       <h2 id="pagato" className="flex items-center gap-2 font-display text-screen font-extrabold">
         <Icon name="checkCircle" size={28} className="text-green-700" />
-        {t("paidTitle")}
+        {bought ? t("boughtSignedTitle") : t("paidTitle")}
       </h2>
-      <p className="text-body">{t("paidText", { at: a.paidAt ? formatDateTime(a.paidAt) : "" })}</p>
+      <p className="text-body">
+        {bought
+          ? t("boughtSignedText")
+          : t("paidText", { at: a.paidAt ? formatDateTime(a.paidAt) : "" })}
+      </p>
       <dl className="grid gap-x-6 gap-y-1 text-table sm:grid-cols-[12rem_1fr]">
         {issuer ? (
           <>

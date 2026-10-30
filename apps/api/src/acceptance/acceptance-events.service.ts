@@ -208,7 +208,12 @@ export class AcceptanceEventsService {
           });
           // Refused or expired: the acceptance lapses, the customer chooses again
           // and gets a new envelope (decision 22).
-          if (envelope.acceptance.status === "PENDING_SIGNATURE") {
+          // ADR 0027: an offer already paid by the intermediary stays bought;
+          // the intermediary sends the customer a new link.
+          if (
+            envelope.acceptance.status === "PENDING_SIGNATURE" &&
+            envelope.acceptance.paidAt === null
+          ) {
             await tx.acceptance.update({
               where: { id: envelope.acceptance.id },
               data: { status: "VOIDED", voidedAt: now, voidReason: `SIGNATURE_${event.status}` },
@@ -267,6 +272,14 @@ export class AcceptanceEventsService {
           after: { acceptanceId: a.id, signedDocuments: signedIds.length },
         });
         await this.publishRanking(tx, emails, request, now);
+        // ADR 0027: the intermediary had already paid; the signature sends the
+        // policy to issuance, the contacts to the agency (VIS-02).
+        if (a.intermediaryPurchase && a.paidAt) {
+          const signed = await tx.acceptance.findUniqueOrThrow({ where: { id: a.id } });
+          const current = await tx.quoteRequest.findUniqueOrThrow({ where: { id: request.id } });
+          await this.confirmPaid(tx, emails, current, signed, null, now);
+          return;
+        }
         // EMI-04: a second offer that costs the same or less is settled at the signature;
         // what was paid in excess comes back with a refund to approve (PAG-05).
         if (a.creditPremiumCents > 0 || a.creditFeeCents > 0) {
@@ -412,6 +425,27 @@ export class AcceptanceEventsService {
         }
         // CAPTURED (PAG-02).
         const a = payment.acceptance;
+        // ADR 0027: the intermediary paid the offer it bought; the policy waits
+        // for the customer's signature, then goes to issuance (confirmPaid).
+        if (
+          a.intermediaryPurchase &&
+          a.status === "PENDING_SIGNATURE" &&
+          a.paidAt === null &&
+          request.status === "ACCEPTED"
+        ) {
+          await tx.payment.update({
+            where: { id: payment.id },
+            data: { status: "CAPTURED", capturedAt: now, method: event.method },
+          });
+          await tx.acceptance.update({ where: { id: a.id }, data: { paidAt: now } });
+          await this.audit.inTransaction(tx, SYSTEM_ACTOR, {
+            action: "PAYMENT_CONFIRMED",
+            targetType: "QuoteRequest",
+            targetId: request.id,
+            after: { paymentId: payment.id, acceptanceId: a.id, intermediaryPurchase: true },
+          });
+          return;
+        }
         if (a.status !== "SIGNED" || request.status !== "ACCEPTED" || !request.startDate) {
           // Paid for an acceptance no longer valid: AstAx refunds it (phase 6); an alarm now.
           this.logger.error(
@@ -477,7 +511,7 @@ export class AcceptanceEventsService {
     );
     await tx.acceptance.update({
       where: { id: a.id },
-      data: { status: "PAID", paidAt: now, issuanceDeadlineAt: deadline },
+      data: { status: "PAID", paidAt: a.paidAt ?? now, issuanceDeadlineAt: deadline },
     });
     await this.acceptance.setStatus(tx, request, "IN_ISSUANCE");
     const won = await tx.offer.findUniqueOrThrow({ where: { id: a.offerId } });

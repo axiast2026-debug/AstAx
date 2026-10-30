@@ -105,21 +105,33 @@ export async function refuseNextOffer(formData: FormData): Promise<void> {
 }
 
 /** «Invia al cliente» (decision 26): the broker sends the chosen offers. */
-export async function sendToCustomer(formData: FormData): Promise<void> {
+/** ADR 0027: the intermediary chooses the offer and goes to pay it. */
+export async function purchaseOffer(formData: FormData): Promise<void> {
   const requestId = idOf(formData, "requestId");
-  const offerIds = formData
-    .getAll("offerId")
-    .map(String)
-    .filter((id) => uuid.test(id));
+  const offerId = idOf(formData, "offerId");
   const page = `/richieste/${requestId}`;
-  if (offerIds.length === 0) redirect(`${page}?errore=NO_OFFER_SELECTED#offerte`);
+  const { status, body } = await api<{ redirectUrl: string }>(`/requests/${requestId}/purchase`, {
+    method: "POST",
+    body: JSON.stringify({ offerId, returnPath: page }),
+  });
+  if (status !== 200) redirect(`${page}?errore=${encodeURIComponent(codesOf(body))}#offerte`);
+  redirect(body.redirectUrl);
+}
+
+/** ADR 0027: the customer's email or phone, then the link to sign. */
+export async function sendForSignature(formData: FormData): Promise<void> {
+  const requestId = idOf(formData, "requestId");
+  const page = `/richieste/${requestId}`;
+  const email = String(formData.get("email") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
+  if (!email && !phone) redirect(`${page}?errore=NO_CONTACTS#offerte`);
   const { status, body } = await api(`/requests/${requestId}/customer-link`, {
     method: "POST",
-    body: JSON.stringify({ offerIds }),
+    body: JSON.stringify({ ...(email ? { email } : {}), ...(phone ? { phone } : {}) }),
   });
   if (status !== 200) redirect(`${page}?errore=${encodeURIComponent(codesOf(body))}#offerte`);
   revalidatePath(page);
-  redirect(`${page}?link=inviato#offerte`);
+  redirect(`${page}#offerte`);
 }
 
 // ---------------------------------------------------------------- the fake providers' pages

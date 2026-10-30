@@ -922,7 +922,8 @@
       "support": "Assistenza",
       "security": "Limiti di sicurezza",
       "batch": "Lotti dei broker",
-      "home": "Home pubblica"
+      "home": "Home pubblica",
+      "acceptance": "Accettazione"
     },
     "labels": {
       "calendar_timeZone": "Fuso orario di riferimento",

@@ -353,16 +353,16 @@ events:
     channels: [email, sms]
     mandatory: true
     # Domanda 15, risposta A (Dan, 2026-10-18): prezzi e targa nelle notifiche.
-    # descrizione_offerta: compagnia, prodotto e premio annuo di ogni offerta.
-    variables: [nome, broker, veicolo, descrizione_offerta, garanzia, link, scadenza_link]
+    # ADR 0027 (Dan, 2026-10-30): l'intermediario ha già acquistato; il cliente solo firma.
+    # descrizione_offerta: compagnia, prodotto e premio annuo dell'offerta acquistata.
+    variables: [nome, broker, veicolo, descrizione_offerta, link, scadenza_link]
     it:
-      sms: "{{broker}} ti ha inviato l'offerta RC auto per {{veicolo}}: {{link}}"
-      emailSubject: "{{broker}}: la tua offerta RC auto per {{veicolo}}"
+      sms: "{{broker}} ha scelto per te la polizza RC auto per {{veicolo}}: firma qui {{link}}"
+      emailSubject: "{{broker}}: firma la tua polizza RC auto per {{veicolo}}"
       emailBody: |
         Buongiorno {{nome}},
-        {{broker}} ti propone {{descrizione_offerta}} per {{veicolo}}.
-        Prezzo garantito fino al {{garanzia}}.
-        Da questo link leggi i documenti, firmi con un codice e paghi: {{link}}
+        {{broker}} ha scelto per te {{descrizione_offerta}} per {{veicolo}}.
+        Da questo link leggi i documenti e firmi con un codice: {{link}}
         Il link vale fino al {{scadenza_link}}.
 
   payment.confirmed:

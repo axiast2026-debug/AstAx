@@ -33,5 +33,6 @@ ADR attesi:
 | 0023 | I dati della richiesta dai bot, confermati con una spunta | dopo la 8 |
 | 0024 | Aste aperte a tutte le agenzie, filtri per le email, IBAN alla prima offerta | dopo la 8 |
 | 0026 | Sub-agenti e collaboratori (sez. E): i poteri del titolare, senza team | dopo la 8 |
+| 0027 | L'intermediario acquista l'offerta, il cliente firma dopo | dopo la 8 |
 
 I numeri seguono l'ordine in cui le decisioni vengono prese: la 0003 e la 0004 sono arrivate in fase 1, prima di quelle previste.

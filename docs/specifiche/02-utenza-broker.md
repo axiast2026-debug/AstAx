@@ -47,7 +47,7 @@ Elenco con colonne: cliente, targa, pacchetto, stato, chiusura dell'asta o scade
 - Esito della verifica e messaggi del back office.
 - Durante l'asta: conto alla rovescia, numero di offerte, numero di agenzie invitate, senza nomi.
 - Dopo la chiusura, tabella con la migliore offerta di ogni compagnia: premio lordo, compagnia, pacchetto, franchigie, garantito fino al, giorni rimasti, preventivo PDF. La più bassa ha un'etichetta, le scadute sono in grigio.
-- Azioni: invia al cliente il confronto o l'offerta scelta, con il link per firmare e pagare; chiedi riconferma se tutte le garanzie sono scadute; annulla.
+- Azioni: «Scegli e acquista» su un'offerta (paga subito l'intermediario), poi email o telefono del cliente e invio del link per la sola firma ([ADR 0027](../adr/0027-acquisto-diretto-dell-intermediario.md)); chiedi riconferma se tutte le garanzie sono scadute; annulla.
 - Dopo l'accettazione: agenzia emittente e contatti, stato dell'emissione, documenti firmati, polizza e quietanza.
 - Quota di provvigione del broker su quella polizza.
 

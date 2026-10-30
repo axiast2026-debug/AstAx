@@ -65,9 +65,12 @@ const FEE_KEYS = [
   "fees.broker.amountCents",
 ] as const;
 
-/** Who accepts: the private user, or the broker's customer on a link (decision 26). */
+/**
+ * Who accepts: the private user; the intermediary who buys for its customer
+ * (Dan, 2026-10-30, ADR 0027); the customer on the link, to sign it.
+ */
 export interface Accepter {
-  kind: "PRIVATE" | "LINK";
+  kind: "PRIVATE" | "LINK" | "INTERMEDIARY";
   userId: string | null;
   customerLinkId: string | null;
   /** The offers the link may show (all for the private user). */
@@ -478,6 +481,27 @@ export class AcceptanceService {
         { path: "request", issue: "NOT_ACCEPTABLE" },
       ]);
     }
+    // ADR 0027: once the intermediary has paid, the offer it bought is the
+    // only one, even past its guarantee: the customer's link only signs it.
+    // Before the payment the intermediary may still change its choice.
+    const bought = await asSystem(tx, () =>
+      tx.acceptance.findFirst({
+        where: { quoteRequestId: fresh.id, intermediaryPurchase: true, status: { not: "VOIDED" } },
+      }),
+    );
+    if (bought && (bought.paidAt || accepter.kind === "LINK")) {
+      if (
+        accepter.kind === "LINK" &&
+        bought.paidAt &&
+        bought.offerId === offerId &&
+        bought.status === "PENDING_SIGNATURE"
+      ) {
+        return bought.id;
+      }
+      throw new ProblemError("CONFLICT", "The offer was already bought", [
+        { path: "request", issue: bought.paidAt ? "ALREADY_PURCHASED" : "NOT_PAID" },
+      ]);
+    }
     const { rows } = await this.rows(tx, fresh, accepter.offerIds);
     const row = rows.find((r) => r.id === offerId);
     // PRES-05: among the offers shown, never another one of the round.
@@ -583,6 +607,7 @@ export class AcceptanceService {
           feeRule: fee.rule,
           brokerFeeCents: fee.brokerFeeCents,
           aiUsed: fresh.aiComparisonUsed,
+          intermediaryPurchase: accepter.kind === "INTERMEDIARY",
         },
       }),
     );
@@ -679,6 +704,53 @@ export class AcceptanceService {
           actorOf(auth),
         );
         return this.view(tx, id);
+      },
+      ACCEPTANCE_TX,
+    );
+  }
+
+  /**
+   * Dan, 2026-10-30 (ADR 0027): at the end of the auction the intermediary
+   * (broker, agent, sub-agent, collaborator) chooses the offer and pays it at
+   * once. The documents are prepared for the customer's signature, which
+   * comes later on a link (`CustomerLinksService.sendForSignature`); the
+   * policy goes to issuance only after it.
+   */
+  async purchase(auth: AuthContext, requestId: string, offerId: string, returnUrl: string) {
+    if (auth.kind === "PRIVATE") throw new ProblemError("FORBIDDEN");
+    return withContext(
+      this.db,
+      auth.db,
+      async (tx) => {
+        const request = await this.requestOf(tx, auth, requestId);
+        if (request.channel !== "BROKER" || !request.customerId) {
+          throw new ProblemError("FORBIDDEN");
+        }
+        const customer = await asSystem(tx, () =>
+          tx.customer.findUniqueOrThrow({
+            where: { id: request.customerId as string },
+            include: { person: true },
+          }),
+        );
+        await this.accept(
+          tx,
+          request,
+          { kind: "INTERMEDIARY", userId: auth.userId, customerLinkId: null, offerIds: null },
+          offerId,
+          {
+            firstName: customer.person.givenName ?? customer.person.companyName ?? "",
+            lastName: customer.person.surname ?? "",
+          },
+          returnUrl,
+          actorOf(auth),
+        );
+        const out = await this.pay(tx, request, returnUrl);
+        await this.audit.inTransaction(tx, actorOf(auth), {
+          action: "PAYMENT_STARTED",
+          targetType: "QuoteRequest",
+          targetId: request.id,
+        });
+        return out;
       },
       ACCEPTANCE_TX,
     );
@@ -830,6 +902,7 @@ export class AcceptanceService {
       dueCents: a.premiumCents + a.feeCents - a.creditPremiumCents - a.creditFeeCents,
       feeRule: a.feeRule,
       aiUsed: a.aiUsed,
+      intermediaryPurchase: a.intermediaryPurchase,
       signingUrl:
         withLinks && a.status === "PENDING_SIGNATURE" ? (a.signature?.signingUrl ?? null) : null,
       documents: [...ids, ...signed].flatMap((id) => {
@@ -945,9 +1018,18 @@ export class AcceptanceService {
         include: { payments: { orderBy: { createdAt: "desc" } } },
       }),
     );
-    if (!live || live.status !== "SIGNED") {
+    // ADR 0027: what the intermediary bought is paid before the signature.
+    const payable =
+      live?.status === "SIGNED" ||
+      (live?.intermediaryPurchase === true &&
+        live.status === "PENDING_SIGNATURE" &&
+        live.paidAt === null);
+    if (!live || !payable) {
       throw new ProblemError("CONFLICT", "Sign before paying", [
-        { path: "acceptance", issue: live?.status === "PAID" ? "ALREADY_PAID" : "NOT_SIGNED" },
+        {
+          path: "acceptance",
+          issue: live?.status === "PAID" || live?.paidAt ? "ALREADY_PAID" : "NOT_SIGNED",
+        },
       ]);
     }
     const fresh = await asSystem(tx, () =>

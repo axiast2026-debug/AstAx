@@ -157,6 +157,7 @@ export const settingSchemas = {
   "team.inviteValidityDays": positiveInt,
   "vehicle.vintageAgeYears": positiveInt,
   "consent.linkValidityDays": positiveInt,
+  "acceptance.signatureLinkValidityDays": positiveInt,
   "rca.legalMinimums": z
     .object({ bodilyInjuryPerClaimEur: positiveInt, propertyDamagePerClaimEur: positiveInt })
     .strict(),

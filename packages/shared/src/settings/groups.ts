@@ -24,6 +24,7 @@ const PAGE_OF_PREFIX: Record<string, SettingsPage> = {
   vehicle: "auctionRules",
   rca: "auctionRules",
   consent: "auctionRules",
+  acceptance: "auctionRules",
   issuance: "auctionRules",
   secondOffer: "auctionRules",
   renewal: "auctionRules",

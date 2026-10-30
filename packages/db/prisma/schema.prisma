@@ -1331,6 +1331,10 @@ model Acceptance {
   creditPremiumCents  Int              @default(0)
   creditFeeCents      Int              @default(0)
   aiUsed              Boolean
+  /// Dan, 2026-10-30 (ADR 0027): the intermediary chose the offer and paid at
+  /// once; the customer signs afterwards on a link, and only then the policy
+  /// goes to issuance.
+  intermediaryPurchase Boolean         @default(false)
   status              AcceptanceStatus @default(PENDING_SIGNATURE)
   signedAt            DateTime?        @db.Timestamptz(3)
   paidAt              DateTime?        @db.Timestamptz(3)

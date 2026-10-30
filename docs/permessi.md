@@ -77,8 +77,9 @@ Abilitazioni aggiuntive di un'appartenenza, decise dal titolare:
 | --- | --- | --- |
 | Vedere le offerte presentate | Richiedente; `BROKER_CLIENT_LINK` per le offerte inviate dal broker | Regole PRES |
 | Usare «Confronta con AI» | Solo `PRIVATE` | PRES-06 |
-| Inviare al cliente il link di accettazione | `OWNER` e `OPERATOR` di broker | — |
-| Accettare, firmare, pagare | `PRIVATE` (propria richiesta); `BROKER_CLIENT_LINK` | GAR-04 |
+| Scegliere e acquistare un'offerta (`offer.purchase`) | Richiedenti professionali: broker, agenzie e sez. E | Paga l'intermediario; GAR-04 (ADR 0027) |
+| Inviare al cliente il link per la firma dell'offerta acquistata (`customerLink.send`) | Richiedenti professionali | Con email o telefono del cliente (ADR 0027) |
+| Accettare, firmare, pagare | `PRIVATE` (propria richiesta); `BROKER_CLIENT_LINK` (solo la firma dell'offerta acquistata) | GAR-04 |
 | Chiedere la riconferma | Richiedente | GAR-06 |
 | Vedere «Da emettere», caricare documenti, segnare emessa, segnalare un problema | `OWNER`, `SUPERVISOR` dell'agenzia vincitrice; `OPERATOR` con `canIssue` | — |
 | Decidere una mancata emissione, passare alla seconda offerta | `BO_VERIFIER`, `BO_SUPERVISOR` | EMI-04 |

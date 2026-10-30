@@ -40,6 +40,8 @@ export interface AcceptanceView {
   dueCents: number;
   feeRule: string;
   aiUsed: boolean;
+  /** ADR 0027: bought and paid by the intermediary, signed afterwards by the customer. */
+  intermediaryPurchase: boolean;
   signingUrl: string | null;
   documents: { id: string; kind: string; signed: boolean }[];
   payment: { status: string; method: string | null; redirectUrl: string | null } | null;

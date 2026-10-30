@@ -1,5 +1,6 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import type { Clock } from "@astax/adapters/clock";
+import type { FieldCipher } from "@astax/adapters/crypto";
 import type { ObjectStoragePort } from "@astax/adapters/storage";
 import {
   asSystem,
@@ -10,8 +11,7 @@ import {
   type DbTransaction,
   type QuoteRequest,
 } from "@astax/db";
-import { endOfRomeDay } from "@astax/shared/domain";
-import { formatDate, formatDateTime, formatEuroCents } from "@astax/shared/format";
+import { formatDateTime, formatEuroCents } from "@astax/shared/format";
 import type { Logger } from "@astax/shared/logging";
 import { vehicleForAgency, vehicleForRequester } from "@astax/shared/notifications";
 import { Inject, Injectable } from "@nestjs/common";
@@ -19,20 +19,21 @@ import { actorOf, AuditService, type AuditActor } from "../audit/audit.service.j
 import type { AuthContext } from "../auth/auth-context.js";
 import type { ApiConfig } from "../config/config.js";
 import { ProblemError } from "../http/problem.js";
-import { CLOCK, CONFIG, DB, LOGGER, OBJECT_STORAGE } from "../infra/tokens.js";
+import { CLOCK, CONFIG, DB, FIELD_CIPHER, LOGGER, OBJECT_STORAGE } from "../infra/tokens.js";
 import { NotificationService } from "../notifications/notification.service.js";
 import { ConsentService, type ClientInfo } from "../requests/consent.service.js";
+import { settingsAt } from "../requests/request-support.js";
 import { AcceptanceService, ACCEPTANCE_TX } from "./acceptance.service.js";
 
 const TOKEN = /^[A-Za-z0-9_-]{40,60}$/;
 
 /**
- * The broker channel (decision 26, spec 02 «Invia al cliente»): the broker
- * sends one or more offers to the customer, who opens a link with a secret
- * token, confirms with a code sent to their own contacts (OtpPurpose
- * CUSTOMER_LINK), reads, signs and pays the premium only (FEE-03). No AI
- * comparison on a link (PRES-06). The link ends with the last guarantee of
- * the offers sent (GAR-02) and when the broker sends a new one.
+ * The intermediary's customer signs on a link (Dan, 2026-10-30, ADR 0027):
+ * the intermediary bought and paid the offer, then gives the customer's email
+ * or phone; the customer opens a link with a secret token, confirms with a
+ * code sent to those contacts (OtpPurpose CUSTOMER_LINK), reads and signs the
+ * documents. No AI comparison and nothing to pay on a link. The link lasts
+ * `acceptance.signatureLinkValidityDays` and ends when a new one is sent.
  *
  * After the code the API gives the page a proof, an HMAC of the link and the
  * moment of the check: every later call needs token and proof, so a link
@@ -50,6 +51,7 @@ export class CustomerLinksService {
     @Inject(ConsentService) private readonly consents: ConsentService,
     @Inject(AcceptanceService) private readonly acceptance: AcceptanceService,
     @Inject(LOGGER) private readonly logger: Logger,
+    @Inject(FIELD_CIPHER) private readonly cipher: FieldCipher,
   ) {}
 
   private hash(token: string) {
@@ -94,9 +96,21 @@ export class CustomerLinksService {
 
   // ---------------------------------------------------------------- broker
 
-  /** «Invia al cliente»: a new link replaces the previous one. */
-  async send(auth: AuthContext, requestId: string, offerIds: string[]) {
+  /**
+   * ADR 0027: the contacts of the customer, given after the purchase, and the
+   * link to sign the offer bought. A new link replaces the previous one.
+   */
+  async sendForSignature(
+    auth: AuthContext,
+    requestId: string,
+    input: { email?: string; phone?: string },
+  ) {
     if (auth.kind === "PRIVATE") throw new ProblemError("FORBIDDEN");
+    if (!input.email && !input.phone) {
+      throw new ProblemError("VALIDATION_FAILED", "Email or phone of the customer", [
+        { path: "email", issue: "NO_CONTACTS" },
+      ]);
+    }
     const now = this.clock.now();
     const token = randomBytes(32).toString("base64url");
     const sent = await withContext(this.db, auth.db, async (tx) => {
@@ -104,35 +118,57 @@ export class CustomerLinksService {
       if (request.channel !== "BROKER" || !request.ownerOrganizationId || !request.customerId) {
         throw new ProblemError("FORBIDDEN");
       }
-      if (!["OFFERS_AVAILABLE", "ACCEPTED"].includes(request.status)) {
-        throw new ProblemError("CONFLICT", "No offers to send", [
-          { path: "request", issue: "NO_OFFERS_AVAILABLE" },
-        ]);
-      }
-      const ids = [...new Set(offerIds)];
-      const { rows } = await this.acceptance.rows(tx, request, ids);
-      if (rows.length !== ids.length) throw new ProblemError("NOT_FOUND");
-      const blocked = rows.find((r) => r.block);
-      if (blocked) {
-        throw new ProblemError("CONFLICT", "An offer cannot be accepted", [
+      const bought = await asSystem(tx, () =>
+        tx.acceptance.findFirst({
+          where: {
+            quoteRequestId: request.id,
+            intermediaryPurchase: true,
+            status: { not: "VOIDED" },
+          },
+        }),
+      );
+      if (!bought?.paidAt || bought.status !== "PENDING_SIGNATURE") {
+        throw new ProblemError("CONFLICT", "Nothing bought to sign", [
           {
-            path: "offerIds",
-            issue: blocked.block === "EXPIRED" ? "OFFER_EXPIRED" : "TOO_LATE_TO_ACCEPT",
+            path: "request",
+            issue:
+              bought?.status === "SIGNED" || bought?.status === "PAID"
+                ? "ALREADY_SIGNED"
+                : "NOT_PAID",
           },
         ]);
       }
-      const contacts = await asSystem(tx, () =>
-        this.consents.contactsOf(tx, request.customerId as string),
+      const customerId = request.customerId;
+      // The contacts of the customer, kept encrypted (rule 2): never to the
+      // agency before the policy goes to issuance.
+      await asSystem(tx, () =>
+        tx.customer.update({
+          where: { id: customerId },
+          data: {
+            ...(input.email
+              ? {
+                  emailEnc: this.cipher.encrypt(input.email),
+                  emailHash: this.cipher.blindIndex("email", input.email),
+                }
+              : {}),
+            ...(input.phone
+              ? {
+                  phoneEnc: this.cipher.encrypt(input.phone),
+                  phoneHash: this.cipher.blindIndex("phone", input.phone),
+                }
+              : {}),
+          },
+        }),
       );
-      if (!contacts.email && !contacts.phone) {
-        throw new ProblemError("VALIDATION_FAILED", "The customer has no email or phone", [
-          { path: "customer", issue: "NO_CONTACTS" },
-        ]);
-      }
-      const lastGuarantee = rows
-        .map((r) => r.guaranteeUntil)
-        .sort()
-        .at(-1) as string;
+      const contacts = await asSystem(tx, () => this.consents.contactsOf(tx, customerId));
+      const { "acceptance.signatureLinkValidityDays": days } = await settingsAt(
+        tx,
+        ["acceptance.signatureLinkValidityDays"],
+        now,
+      );
+      const { rows } = await this.acceptance.rows(tx, request, [bought.offerId]);
+      const row = rows[0];
+      if (!row) throw new ProblemError("NOT_FOUND");
       // The links are written only as a system step (RLS): the checks are above.
       const link = await asSystem(tx, async () => {
         await tx.customerLink.updateMany({
@@ -143,9 +179,9 @@ export class CustomerLinksService {
           data: {
             quoteRequestId: request.id,
             ownerOrganizationId: request.ownerOrganizationId as string,
-            offerIds: ids,
+            offerIds: [bought.offerId],
             tokenHash: this.hash(token),
-            expiresAt: endOfRomeDay(lastGuarantee),
+            expiresAt: new Date(now.getTime() + days * 24 * 3600 * 1000),
             sentByUserId: auth.userId,
             createdAt: now,
             updatedAt: now,
@@ -153,10 +189,7 @@ export class CustomerLinksService {
         });
       });
       const customer = await asSystem(tx, () =>
-        tx.customer.findUniqueOrThrow({
-          where: { id: request.customerId as string },
-          include: { person: true },
-        }),
+        tx.customer.findUniqueOrThrow({ where: { id: customerId }, include: { person: true } }),
       );
       const organization = await tx.organization.findUniqueOrThrow({
         where: { id: request.ownerOrganizationId },
@@ -165,7 +198,7 @@ export class CustomerLinksService {
         action: "CUSTOMER_LINK_SENT",
         targetType: "QuoteRequest",
         targetId: request.id,
-        after: { customerLinkId: link.id, offerIds: ids },
+        after: { customerLinkId: link.id, offerIds: [bought.offerId] },
       });
       return {
         link,
@@ -174,15 +207,10 @@ export class CustomerLinksService {
           nome: customer.person.givenName ?? customer.person.companyName ?? "",
           broker: organization.legalName,
           veicolo: await this.vehicle(tx, request),
-          // Question 15A: company, product and the annual premium of each offer.
-          descrizione_offerta: rows
-            .map((r) =>
-              [r.company, r.product, formatEuroCents(r.annualGrossPremiumCents)]
-                .filter(Boolean)
-                .join(" "),
-            )
-            .join(", "),
-          garanzia: formatDate(lastGuarantee),
+          // Question 15A: company, product and the annual premium.
+          descrizione_offerta: [row.company, row.product, formatEuroCents(bought.premiumCents)]
+            .filter(Boolean)
+            .join(" "),
           link: `${this.config.WEB_URL}/offerta/${token}`,
           scadenza_link: formatDateTime(link.expiresAt),
         },
@@ -295,8 +323,19 @@ export class CustomerLinksService {
         vehicle: await this.vehicle(tx, link.quoteRequest, false),
         expiresAt: link.expiresAt.toISOString(),
       };
+      // ADR 0027: the offer the intermediary bought and paid, to sign here.
       const live = await tx.acceptance.findFirst({
-        where: { customerLinkId: link.id, status: { not: "VOIDED" } },
+        where: {
+          status: { not: "VOIDED" },
+          OR: [
+            { customerLinkId: link.id },
+            {
+              quoteRequestId: link.quoteRequestId,
+              intermediaryPurchase: true,
+              paidAt: { not: null },
+            },
+          ],
+        },
       });
       const paid = live?.status === "PAID";
       if (!this.proofMatches(link, proof) || (base.state !== "ACTIVE" && !paid)) {
@@ -308,7 +347,9 @@ export class CustomerLinksService {
         verified: true as const,
         offers: rows.map((r) => {
           const visible = this.acceptance.publicRow(r);
-          return { ...visible, feeWithAiCents: null };
+          // Bought and paid: the guarantee no longer matters.
+          const bought = live?.intermediaryPurchase && live.offerId === r.id;
+          return { ...visible, ...(bought ? { block: null } : {}), feeWithAiCents: null };
         }),
         acceptance: live ? await this.acceptance.view(tx, live.id) : null,
       };

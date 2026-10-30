@@ -169,7 +169,14 @@ export const PERMISSIONS = {
     conditions: "PRES rules; link only for the offers the broker sent",
   },
   "aiComparison.use": { grants: ["PRIVATE"], conditions: "PRES-06" },
-  "customerLink.send": { grants: ORG_REQUESTERS },
+  "customerLink.send": {
+    grants: ORG_REQUESTERS,
+    conditions: "only the link for the customer's signature of the offer bought (ADR 0027)",
+  },
+  "offer.purchase": {
+    grants: ORG_REQUESTERS,
+    conditions: "own customer's request; the intermediary chooses and pays, GAR-04 (ADR 0027)",
+  },
   "offer.accept": {
     grants: ["PRIVATE", "BROKER_CLIENT_LINK"],
     conditions: "accept, sign, pay; own request; GAR-04",

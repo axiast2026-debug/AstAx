@@ -1,7 +1,6 @@
 import { SystemClock } from "@astax/adapters/clock";
 import { romeCalendarDate } from "@astax/shared/format";
 import { expect, test } from "@playwright/test";
-import { payWithCard, signDocuments } from "../support/acceptance.js";
 import { e2eState } from "../support/auth.js";
 import { ADMIN, approve, auctionCard, backOffice, fireUntil, WEB } from "../support/auction.js";
 import {
@@ -17,18 +16,17 @@ import { codeFromMail, latestMail } from "../support/requests.js";
 const clock = new SystemClock();
 
 /**
- * S02 (phases 5 and 6): Paolo sees the offers without «Confronta
- * con AI», sends Alfa to Anna; Anna opens the link, confirms with the code,
- * signs and pays the premium only (FEE-03). Phase 6: Agenzia Uno issues, the
- * back office issues the monthly invoices B and the broker's owner sees the
- * policy with the 30,00 € due and its invoice (CONT-03, CONT-05). The ten
- * days of waiting and the link's end with the guarantee (GAR-02) are in the
- * integration tests.
+ * S02 (phases 5 and 6; ADR 0027, Dan 2026-10-30): Paolo sees the offers
+ * without «Confronta con AI», chooses Alfa and pays the premium only
+ * (FEE-03); then gives Anna's email and Anna signs on the link with the code.
+ * Phase 6: Agenzia Uno issues, the back office issues the monthly invoices B
+ * and the broker's owner sees the policy with the 30,00 € due and its invoice
+ * (CONT-03, CONT-05).
  */
-test.describe.serial("S02 — broker: il cliente compra dal link", () => {
+test.describe.serial("S02 — broker: acquista l'offerta, il cliente firma dal link", () => {
   test.describe.configure({ timeout: 480_000 });
 
-  test("PRES-06 FEE-03 GAR-04 S02: «Invia al cliente», code, signature and 610,00 € paid, no fee", async ({
+  test("PRES-06 FEE-03 GAR-04 S02: «Scegli e acquista», 610,00 € paid, then the customer signs", async ({
     browser,
   }) => {
     const paolo = await browser.newPage();
@@ -63,13 +61,31 @@ test.describe.serial("S02 — broker: il cliente compra dal link", () => {
       });
     }).toPass({ timeout: 60_000 });
     await expect(paolo.getByRole("link", { name: "Confronta con AI" })).toHaveCount(0);
+    // ADR 0027: Paolo buys Alfa and pays the premium only.
+    await paolo.getByRole("button", { name: /Scegli e acquista Compagnia Alfa/ }).click();
+    await expect(paolo).toHaveURL(/\/pagamento-di-prova\//);
+    await expect(paolo.getByText("610,00 €").first()).toBeVisible();
+    await paolo.getByLabel("Numero della carta").fill("4242 4242 4242 4242");
+    await paolo.getByRole("button", { name: "Paga con carta" }).click();
+    await expect(paolo).toHaveURL(/\/richieste\/[0-9a-f-]{36}/);
+    await expect(async () => {
+      await paolo.goto(url);
+      await expect(paolo.getByRole("heading", { name: /Offerta acquistata/ })).toBeVisible({
+        timeout: 1000,
+      });
+    }).toPass({ timeout: 30_000 });
+    // VIS-02: nothing to the agency before the customer's signature.
+    await uno.goto(`${WEB}/da-emettere`);
+    await expect(uno.locator("tr", { hasText: code })).toHaveCount(0);
+
+    // Then Anna's email and the link to sign.
     const sentAt = clock.now().getTime() - 1000;
-    await paolo.getByLabel(/Compagnia Alfa/).check();
-    await paolo.getByRole("button", { name: "Invia al cliente" }).click();
-    await expect(paolo.getByText(/Link inviato: vale fino al/)).toBeVisible();
+    await paolo.getByLabel("Email del cliente").fill(email);
+    await paolo.getByRole("button", { name: "Invia il link per la firma" }).click();
+    await expect(paolo.getByText(/Link per la firma inviato: vale fino al/)).toBeVisible();
 
     // Question 15A: the email names company, product and the premium.
-    const mail = await latestMail(email, /la tua offerta RC auto/, sentAt);
+    const mail = await latestMail(email, /firma la tua polizza RC auto/, sentAt);
     expect(mail.text).toContain("610,00");
     const link = /http:\/\/localhost:3000\/offerta\/[A-Za-z0-9_-]+/.exec(mail.text)?.[0] ?? "";
     const anna = await browser.newPage();
@@ -79,19 +95,22 @@ test.describe.serial("S02 — broker: il cliente compra dal link", () => {
     const codeAt = clock.now().getTime() - 1000;
     await anna.getByRole("button", { name: "Mandami il codice" }).click();
     await anna.getByLabel("Codice ricevuto").fill(await codeFromMail(email, codeAt));
-    await anna.getByRole("button", { name: "Vedi l'offerta" }).click();
+    await anna.getByRole("button", { name: "Vedi la polizza" }).click();
 
-    // Only the offer sent; Anna chooses, signs and pays the premium only.
+    // Only the offer bought; Anna reads and signs, nothing to pay.
     await expect(anna.locator("li", { hasText: /Compagnia/ })).toHaveCount(1);
-    await anna.getByRole("button", { name: "Scegli questa offerta" }).click();
-    await expect(anna.getByText("Nessun compenso")).toBeVisible();
     await expect(anna.getByRole("link", { name: "Lettera di incarico" })).toHaveCount(0);
-    await signDocuments(anna, /\/offerta\/[A-Za-z0-9_-]+$/);
-    await payWithCard(anna, "610,00 €", "4242 4242 4242 4242", /\/offerta\/[A-Za-z0-9_-]+\?esito=/);
-    await expect(anna.getByRole("heading", { name: "Pagato" })).toBeVisible();
+    await expect(anna.getByRole("button", { name: /^Paga/ })).toHaveCount(0);
+    await anna.getByLabel("Ho letto i documenti").check();
+    await anna.getByRole("button", { name: "Firma", exact: true }).click();
+    await expect(anna).toHaveURL(/\/firma-di-prova\//);
+    await anna.getByLabel("Codice ricevuto").fill("123456");
+    await anna.getByRole("button", { name: "Firma", exact: true }).click();
+    await expect(anna).toHaveURL(/\/offerta\/[A-Za-z0-9_-]+$/);
+    await expect(anna.getByRole("heading", { name: "Hai firmato" })).toBeVisible();
 
     await paolo.goto(url);
-    await expect(paolo.getByText(/Il cliente ha pagato/)).toBeVisible();
+    await expect(paolo.getByText(/Il cliente ha firmato/)).toBeVisible();
     await uno.goto(`${WEB}/da-emettere`);
     await expect(uno.locator("tr", { hasText: code })).toContainText(email);
 

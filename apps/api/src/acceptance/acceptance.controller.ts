@@ -42,7 +42,14 @@ const returnPath = z
 const acceptSchema = z.strictObject({ offerId: uuid, returnPath });
 const paySchema = z.strictObject({ returnPath });
 const aiConfirmSchema = z.strictObject({ feeIncreaseAccepted: z.literal(true) });
-const sendLinkSchema = z.strictObject({ offerIds: z.array(uuid).min(1).max(20) });
+const purchaseSchema = z.strictObject({ offerId: uuid, returnPath });
+const signatureLinkSchema = z.strictObject({
+  email: z.email().max(254).optional(),
+  phone: z
+    .string()
+    .regex(/^\+?[\d\s-]{6,20}$/)
+    .optional(),
+});
 const PROOF_HEADER = "x-astax-link-proof";
 
 function clientOf(request: Request) {
@@ -117,12 +124,30 @@ export class AcceptanceController {
     );
   }
 
-  /** «Invia al cliente» (decision 26): the broker sends one or more offers. */
+  /** ADR 0027: the intermediary chooses the offer and pays it at once. */
+  @Post("purchase")
+  @HttpCode(200)
+  @RequirePermission("offer.purchase")
+  purchase(@CurrentAuth() auth: AuthContext, @Param("id") id: string, @Body() body: unknown) {
+    const input = parseInput(purchaseSchema, body);
+    return this.acceptance.purchase(
+      auth,
+      parseInput(uuid, id),
+      input.offerId,
+      this.url(input.returnPath),
+    );
+  }
+
+  /** ADR 0027: the customer's contacts, then the link to sign the offer bought. */
   @Post("customer-link")
   @HttpCode(200)
   @RequirePermission("customerLink.send")
   sendLink(@CurrentAuth() auth: AuthContext, @Param("id") id: string, @Body() body: unknown) {
-    return this.links.send(auth, parseInput(uuid, id), parseInput(sendLinkSchema, body).offerIds);
+    return this.links.sendForSignature(
+      auth,
+      parseInput(uuid, id),
+      parseInput(signatureLinkSchema, body),
+    );
   }
 
   @Get("customer-link")

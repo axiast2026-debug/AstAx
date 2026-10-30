@@ -43,7 +43,18 @@ Poi, da decidere: B6 (dati dalla targa, serve l'account del fornitore), B7 (cont
 - **Prove:**
   - permessi a tabella: sez. E uguale al titolare tranne il team;
   - integrazione: `/team` → 403 per un'organizzazione sez. E, il resto risponde.
-- **Resta:** la parte 2 del piano (acquisto diretto dell'intermediario, contatti dopo, firma OTP).
+- **Acquisto diretto** ([ADR 0027](adr/0027-acquisto-diretto-dell-intermediario.md), parte 2 del piano). Broker, agenti, sub-agenti e collaboratori, a fine asta:
+  1. «Scegli e acquista» (`POST /requests/:id/purchase`, permesso `offer.purchase`) e pagano subito il premio;
+  2. danno email o telefono del cliente (`POST /requests/:id/customer-link`, salvati cifrati);
+  3. il cliente riceve il link e firma con OTP. Il link vale `acceptance.signatureLinkValidityDays` (14) giorni e sul link non si paga.
+  - L'emissione e i contatti all'agenzia partono solo dopo la firma (`confirmPaid`).
+  - «Invia al cliente» e la scelta del cliente tra più offerte non ci sono più.
+  - Migrazione `20261102090000_intermediary_purchase`.
+  - Domanda per il legale in `docs/punti-aperti.md`.
+  - Prove: integrazione (`customer-links.int.test.ts` riscritto: acquisto, nessuna emissione prima della firma, link, firma, contatti solo ad Agenzia Tre); E2E S02 aggiornato.
+- **Debiti tecnici:**
+  - nessun rimborso automatico se il cliente non firma;
+  - `tests/e2e/ux-review/misura.spec.ts`, fuori dalla CI, usa ancora «Invia al cliente».
 
 **2026-10-29 — caratteri dentro il progetto** (Dan). Inter e Inter Tight sono in `apps/web/src/fonts` e `apps/admin/src/fonts` (licenza SIL OFL, `OFL.txt`) e si caricano con `next/font/local`: la build non scarica più nulla da Google Fonts, che due volte non era raggiungibile dalla CI e aveva fatto fallire le immagini della demo o le prove dal browser.
 

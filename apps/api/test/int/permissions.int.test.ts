@@ -434,7 +434,13 @@ const ENDPOINTS: Endpoint[] = [
     action: "customerLink.send",
     method: "POST",
     path: () => `/requests/${randomUUID()}/customer-link`,
-    body: { offerIds: [randomUUID()] },
+    body: { email: "cliente@example.test" },
+  },
+  {
+    action: "offer.purchase",
+    method: "POST",
+    path: () => `/requests/${randomUUID()}/purchase`,
+    body: { offerId: randomUUID(), returnPath: "/richieste" },
   },
   {
     action: "customerLink.send",
