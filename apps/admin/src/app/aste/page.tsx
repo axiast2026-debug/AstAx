@@ -18,6 +18,7 @@ import {
   inviteAgencies,
   sendTestOffers,
 } from "./actions";
+import { Info } from "@/components/info";
 
 /**
  * Development tools: only with DEV_TOOLS=true (rule 13). Not NODE_ENV: the
@@ -65,8 +66,8 @@ async function QuoteChecks() {
     <section aria-labelledby="quote-checks" className="mt-6">
       <h2 id="quote-checks" className="text-lg font-semibold">
         {t("title")}
+        <Info>{t("intro")}</Info>
       </h2>
-      <p className="mt-1 text-sm text-warm-600">{t("intro")}</p>
       <div className="mt-3 space-y-3">
         {checks.map((c) => (
           <Card

@@ -20,6 +20,7 @@ import {
   requestIntegration,
   saveChecklistItem,
 } from "../actions";
+import { Info } from "@/components/info";
 
 /** The type of quote each provenance suggests, before the operator confirms it. */
 const QUOTE_TYPE_OF_PROVENANCE: Record<string, QuoteType> = {
@@ -530,8 +531,10 @@ export default async function VerificationCardPage({
             </summary>
             <div className="mt-3">
               <Card>
-                <CardTitle>{t("correctTitle")}</CardTitle>
-                <p className="mt-1 text-sm text-warm-600">{t("correctIntro")}</p>
+                <CardTitle>
+                  {t("correctTitle")}
+                  <Info>{t("correctIntro")}</Info>
+                </CardTitle>
                 <form action={correct} className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
                   <input type="hidden" name="requestId" value={card.id} />
                   {(

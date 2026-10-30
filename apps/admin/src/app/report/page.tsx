@@ -5,6 +5,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { requireViewer } from "@/lib/me";
+import { Info } from "@/components/info";
 
 const field = "rounded-lg border border-warm-200 px-3 py-2";
 
@@ -26,8 +27,10 @@ export default async function ReportsPage() {
   ];
   return (
     <AppShell viewer={viewer}>
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
-      <p className="mt-1 text-sm text-warm-600">{t("intro")}</p>
+      <h1 className="text-2xl font-bold">
+        {t("title")}
+        <Info>{t("intro")}</Info>
+      </h1>
       <div className="mt-6 grid gap-6 md:grid-cols-2">
         {exports.map((e) => (
           <Card key={e.key}>
@@ -53,15 +56,19 @@ export default async function ReportsPage() {
           </Card>
         ))}
         <Card>
-          <CardTitle>{t("items.complaints.title")}</CardTitle>
-          <p className="mt-1 text-sm text-warm-600">{t("items.complaints.text")}</p>
+          <CardTitle>
+            {t("items.complaints.title")}
+            <Info>{t("items.complaints.text")}</Info>
+          </CardTitle>
           <Link href="/reclami" className="mt-3 inline-block text-sm underline">
             {t("toComplaints")}
           </Link>
         </Card>
         <Card>
-          <CardTitle>{t("items.privacy.title")}</CardTitle>
-          <p className="mt-1 text-sm text-warm-600">{t("items.privacy.text")}</p>
+          <CardTitle>
+            {t("items.privacy.title")}
+            <Info>{t("items.privacy.text")}</Info>
+          </CardTitle>
           <Link href="/clienti" className="mt-3 inline-block text-sm underline">
             {t("toCustomers")}
           </Link>

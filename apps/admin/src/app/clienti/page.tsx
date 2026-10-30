@@ -7,6 +7,7 @@ import { AppShell } from "@/components/app-shell";
 import { api, sessionId, webAuth } from "@/lib/auth";
 import { searchCustomers } from "./actions";
 import { requireViewer } from "@/lib/me";
+import { Info } from "@/components/info";
 
 interface Found {
   id: string;
@@ -44,8 +45,10 @@ export default async function CustomersPage() {
 
   return (
     <AppShell viewer={viewer}>
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
-      <p className="mt-1 text-sm text-warm-600">{t("intro")}</p>
+      <h1 className="text-2xl font-bold">
+        {t("title")}
+        <Info>{t("intro")}</Info>
+      </h1>
       <form action={searchCustomers} className="mt-4 flex flex-wrap items-end gap-3 text-sm">
         <label className="grid gap-1">
           {t("search")}

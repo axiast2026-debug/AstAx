@@ -6,6 +6,7 @@ import { AppShell } from "@/components/app-shell";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
 import { newPackageVersion, saveExclusion } from "./actions";
+import { Info } from "@/components/info";
 
 interface PackageView {
   code: string;
@@ -62,8 +63,10 @@ export default async function PackagesPage({
 
   return (
     <AppShell viewer={viewer}>
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
-      <p className="mt-1 text-sm text-warm-600">{t("intro")}</p>
+      <h1 className="text-2xl font-bold">
+        {t("title")}
+        <Info>{t("intro")}</Info>
+      </h1>
       {query.errore ? (
         <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
           {t("error", { code: query.errore })}
@@ -142,8 +145,10 @@ export default async function PackagesPage({
         })}
       </div>
 
-      <h2 className="mt-10 text-xl font-semibold">{t("exclusions")}</h2>
-      <p className="mt-1 text-sm text-warm-600">{t("exclusionsIntro")}</p>
+      <h2 className="mt-10 text-xl font-semibold">
+        {t("exclusions")}
+        <Info>{t("exclusionsIntro")}</Info>
+      </h2>
       <div className="mt-3 space-y-4">
         {exclusions.body.map((x) => (
           <Card key={x.code}>

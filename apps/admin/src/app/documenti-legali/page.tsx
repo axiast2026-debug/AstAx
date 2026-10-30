@@ -7,6 +7,7 @@ import { AppShell } from "@/components/app-shell";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
 import { newVersion, versionStep } from "./actions";
+import { Info } from "@/components/info";
 
 interface Version {
   id: string;
@@ -49,8 +50,10 @@ export default async function LegalDocumentsPage({
 
   return (
     <AppShell viewer={viewer}>
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
-      <p className="mt-1 text-sm text-warm-600">{t("intro")}</p>
+      <h1 className="text-2xl font-bold">
+        {t("title")}
+        <Info>{t("intro")}</Info>
+      </h1>
       {query.errore ? (
         <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
           {t("error", { code: query.errore })}

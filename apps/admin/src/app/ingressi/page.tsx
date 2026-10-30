@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
+import { Info } from "@/components/info";
 
 interface Row {
   id: string;
@@ -34,8 +35,10 @@ export default async function OnboardingQueuePage({
 
   return (
     <AppShell viewer={viewer}>
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
-      <p className="mt-1 text-sm text-warm-600">{t("intro")}</p>
+      <h1 className="text-2xl font-bold">
+        {t("title")}
+        <Info>{t("intro")}</Info>
+      </h1>
       {query.fatto === "approve" || query.fatto === "reject" ? (
         <p role="status" className="mt-4 rounded-lg bg-green-50 p-3 text-sm">
           {t(`done.${query.fatto}`)}

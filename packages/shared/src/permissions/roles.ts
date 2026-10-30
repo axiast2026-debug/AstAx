@@ -52,6 +52,12 @@ export type Actor =
       role: MembershipRole;
       organizationType: OrganizationType;
       flags: MembershipFlags;
+      /**
+       * The organization is a section E intermediary (sub-agent of an agent,
+       * collaborator of a broker) registered on its own: the powers of its
+       * principal, without a team (Dan, 2026-10-30, ADR 0026).
+       */
+      sectionE?: boolean;
     };
 
 const MEMBER_ROLES: Record<OrganizationType, Partial<Record<MembershipRole, ActorRole>>> = {

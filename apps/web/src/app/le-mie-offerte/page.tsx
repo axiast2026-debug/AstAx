@@ -7,6 +7,7 @@ import { AppShell } from "@/components/app-shell";
 import type { MyOfferRow } from "@/lib/agency";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
+import { Info } from "@/components/info";
 
 /** The views of «Le mie offerte» (spec 04), each a set of offer statuses. */
 const VIEWS = {
@@ -132,8 +133,8 @@ export default async function MyOffersPage({
       <section aria-labelledby="open-offers" className="mt-10">
         <h2 id="open-offers" className="text-xl font-semibold">
           {t("openTitle")}
+          <Info>{t("openIntro")}</Info>
         </h2>
-        <p className="mt-1 text-sm text-warm-600">{t("openIntro")}</p>
         {openOffers.length === 0 ? (
           <p className="mt-3 text-sm">{t("openEmpty")}</p>
         ) : (

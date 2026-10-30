@@ -1,4 +1,4 @@
-import { isAction, PERMISSIONS, type Grant } from "./map.js";
+import { isAction, PERMISSIONS, type ActionRule, type Grant } from "./map.js";
 import { actorRoleOf, type Actor, type ActorRole } from "./roles.js";
 
 function grantAllows(grant: Grant, role: ActorRole, actor: Actor): boolean {
@@ -15,6 +15,8 @@ export function can(actor: Actor, action: string): boolean {
   if (!isAction(action)) return false;
   const role = actorRoleOf(actor);
   if (role === null) return false;
-  const grants: readonly Grant[] = PERMISSIONS[action].grants;
+  const rule: ActionRule = PERMISSIONS[action];
+  if (rule.notForSectionE && actor.kind === "MEMBER" && actor.sectionE) return false;
+  const grants: readonly Grant[] = rule.grants;
   return grants.some((grant) => grantAllows(grant, role, actor));
 }

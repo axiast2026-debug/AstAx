@@ -2,7 +2,8 @@
   "app": {
     "name": "AstAx",
     "tagline": "Preventivi RC auto all'asta: le agenzie competono, tu scegli.",
-    "demoNotice": "DEMO di AstAx: usa solo dati inventati. Nessun pagamento, firma o polizza è vera."
+    "demoNotice": "DEMO di AstAx: usa solo dati inventati. Nessun pagamento, firma o polizza è vera.",
+    "info": "Spiegazione"
   },
   "login": {
     "title": "Accedi ad AstAx",
@@ -1938,12 +1939,12 @@
   "onboarding": {
     "brand": "AstAx",
     "title": "Lavora con AstAx",
-    "intro": "Agenzie (RUI sezione A) e broker (sezione B) possono chiedere di entrare. Prima i dati della società; poi, sul link privato che ricevi, i contratti. Il back office controlla i dati sul RUI e ti risponde. L'IBAN si chiede più avanti, solo quando serve: all'agenzia con la prima offerta.",
+    "intro": "Possono entrare agenti (RUI sezione A), broker (sezione B) e i loro sub-agenti e collaboratori (sezione E). Prima i dati; poi, sul link privato che ricevi, i contratti. Il back office controlla i dati sul RUI e ti risponde. L'IBAN si chiede più avanti, solo quando serve: all'agenzia con la prima offerta.",
     "typeChoice": "Chi sei",
     "types": {
       "AGENCY": "Sono un'agenzia",
       "BROKER": "Sono un broker",
-      "E": "Sono un intermediario di sezione E"
+      "E": "Sono un sub-agente o un collaboratore (sezione E)"
     },
     "company": "La società",
     "legalName": "Ragione sociale",
@@ -1992,7 +1993,7 @@
     "submit": "Invia la richiesta",
     "ruiNumberE": "Numero RUI (sezione E)",
     "principalRuiNumber": "Numero RUI dell'intermediario per cui lavori",
-    "principalRuiNumberHint": "L'agenzia (sezione A) o il broker (sezione B) per cui lavori. Se è un'agenzia, partecipi alle aste a nome tuo con le compagnie della tua agenzia e la tua agenzia non è invitata alle aste dei tuoi preventivi; se è un broker, chiedi preventivi per i tuoi clienti."
+    "principalRuiNumberHint": "L'agente (sezione A) o il broker (sezione B) per cui lavori. Sulla piattaforma hai i suoi stessi poteri, tranne creare un team. Se lavori per un agente, offri alle aste con le compagnie del tuo agente e chiedi preventivi per i tuoi clienti; se lavori per un broker, chiedi preventivi per i tuoi clienti."
   },
   "complaints": {
     "title": "Reclami",

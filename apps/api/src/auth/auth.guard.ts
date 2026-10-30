@@ -31,6 +31,7 @@ const memberActor = (m: ActiveMembership): Actor => ({
   role: m.role,
   organizationType: m.organizationType,
   flags: m.flags,
+  sectionE: m.sectionE,
 });
 
 /**

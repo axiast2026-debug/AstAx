@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
+import { Info } from "@/components/info";
 
 interface AccessLog {
   entries: {
@@ -39,8 +40,10 @@ export default async function AccessLogPage({
       <Link href="/team" className="text-sm underline">
         {t("back")}
       </Link>
-      <h1 className="mt-2 text-2xl font-bold">{t("title")}</h1>
-      <p className="mt-1 text-sm text-warm-600">{t("intro")}</p>
+      <h1 className="mt-2 text-2xl font-bold">
+        {t("title")}
+        <Info>{t("intro")}</Info>
+      </h1>
       {log.entries.length === 0 ? (
         <Card className="mt-6">
           <p className="text-sm">{t("empty")}</p>

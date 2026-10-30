@@ -16,7 +16,8 @@ Nel codice i nomi sono in inglese; nei documenti e nell'interfaccia in italiano.
 | Appartenenza / contesto | `Membership` | Legame utente-organizzazione con ruolo e abilitazioni; il contesto attivo è l'appartenenza scelta nel selettore |
 | Titolare | ruolo `OWNER` | Responsabile dell'organizzazione sulla piattaforma |
 | Supervisore | ruolo `SUPERVISOR` | Gestisce le offerte di tutti gli utenti dell'agenzia |
-| Operatore, sub-agente | ruolo `OPERATOR` | Collaboratore (spesso sez. E) dell'agenzia o del broker |
+| Operatore | ruolo `OPERATOR` | Dipendente dell'agenzia o del broker, nel suo team |
+| Sub-agente, collaboratore | organizzazione con `ruiSection = E` | Intermediario sez. E di un agente (sub-agente) o di un broker (collaboratore), iscritto da sé: i poteri del titolare, senza team (ADR 0026) |
 | Operatore verifica | ruolo `BO_VERIFIER` | Back office: verifica richieste e apre aste |
 | Assistenza | ruolo `BO_SUPPORT` | Back office: risponde a clienti, broker e agenzie |
 | Contabilità | ruolo `BO_ACCOUNTING` | Back office: incassi, rimesse, fatture |

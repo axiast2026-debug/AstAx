@@ -7,6 +7,7 @@ import { AppShell } from "@/components/app-shell";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
 import { addHoliday, confirmYear, removeHoliday, saveListValue } from "./actions";
+import { Info } from "@/components/info";
 
 interface ListValue {
   code: string;
@@ -57,8 +58,10 @@ export default async function ListsHolidaysPage({
 
   return (
     <AppShell viewer={viewer}>
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
-      <p className="mt-1 text-sm text-warm-600">{t("intro")}</p>
+      <h1 className="text-2xl font-bold">
+        {t("title")}
+        <Info>{t("intro")}</Info>
+      </h1>
       {query.errore ? (
         <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
           {t("error", { code: query.errore })}
@@ -90,8 +93,10 @@ export default async function ListsHolidaysPage({
         <Card>
           {selected ? (
             <>
-              <CardTitle>{selected}</CardTitle>
-              <p className="mt-1 text-sm text-warm-600">{t("listHint")}</p>
+              <CardTitle>
+                {selected}
+                <Info>{t("listHint")}</Info>
+              </CardTitle>
               <div className="mt-3 space-y-3">
                 {(lists.body[selected] ?? []).map((v) => (
                   <form

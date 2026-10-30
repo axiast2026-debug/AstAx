@@ -13,6 +13,8 @@ export interface ActionRule {
    * The map only decides on role and flags; the use case enforces these.
    */
   conditions?: string;
+  /** Denied to section E organizations, whatever the role (ADR 0026). */
+  notForSectionE?: true;
 }
 
 const BACK_OFFICE = ["BO_VERIFIER", "BO_SUPPORT", "BO_ACCOUNTING", "BO_SUPERVISOR"] as const;
@@ -221,6 +223,9 @@ export const PERMISSIONS = {
   "team.manage": {
     grants: ["AGENCY_OWNER", "BROKER_OWNER"],
     conditions: "invite, suspend, remove users and grant flags in the own organization",
+    // Dan, 2026-10-30: a sub-agent or a broker's collaborator does everything
+    // its principal does, but does not build a team.
+    notForSectionE: true,
   },
   "organization.editProfile": {
     grants: ["AGENCY_OWNER", "BROKER_OWNER"],

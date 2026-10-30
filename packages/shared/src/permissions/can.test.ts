@@ -309,6 +309,20 @@ describe("SIC-01 permission map, role by role (docs/permessi.md)", () => {
   }
 });
 
+describe("ADR 0026 section E intermediaries registered on their own", () => {
+  it("a sub-agent or a broker's collaborator has every power of its principal but the team", () => {
+    for (const role of ["AGENCY_OWNER", "BROKER_OWNER"] as const) {
+      const principal = actorFor(role);
+      const sectionE: Actor = { ...principal, sectionE: true } as Actor;
+      expect(can(principal, "team.manage")).toBe(true);
+      expect(can(sectionE, "team.manage")).toBe(false);
+      for (const action of ACTIONS.filter((a) => a !== "team.manage")) {
+        expect(can(sectionE, action), `${role} ${action}`).toBe(can(principal, action));
+      }
+    }
+  });
+});
+
 describe("flags granted by the owner", () => {
   it("AGENCY_OPERATOR with canIssue sees «Da emettere» and issues", () => {
     expect(can(actorFor("AGENCY_OPERATOR"), "issuance.manage")).toBe(false);

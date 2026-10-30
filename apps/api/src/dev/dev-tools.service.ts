@@ -165,6 +165,7 @@ export class DevToolsService implements OnApplicationBootstrap, OnApplicationShu
           organizationType: "AGENCY",
           role: "OWNER",
           flags: NO_FLAGS,
+          sectionE: false,
         },
         actor: { kind: "MEMBER", role: "OWNER", organizationType: "AGENCY", flags: NO_FLAGS },
         db: {

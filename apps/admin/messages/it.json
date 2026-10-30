@@ -2,7 +2,8 @@
   "app": {
     "name": "AstAx",
     "tagline": "Back office e amministrazione di AstAx",
-    "demoNotice": "DEMO di AstAx: usa solo dati inventati. Nessun pagamento, firma o polizza è vera."
+    "demoNotice": "DEMO di AstAx: usa solo dati inventati. Nessun pagamento, firma o polizza è vera.",
+    "info": "Spiegazione"
   },
   "login": {
     "title": "Back office AstAx",

@@ -7,6 +7,7 @@ import { ErrorSummary, Field } from "@/components/form";
 import { api } from "@/lib/auth";
 import { readSearch } from "@/lib/search";
 import { requireViewer } from "@/lib/me";
+import { Info } from "@/components/info";
 
 interface CustomerRow {
   id: string;
@@ -31,8 +32,10 @@ export default async function NewBrokerRequestPage({
     : await api<CustomerRow[]>("/customers");
   return (
     <AppShell viewer={viewer}>
-      <h1 className="font-display text-screen font-extrabold">{t("title")}</h1>
-      <p className="mt-1 text-sm text-warm-600">{t("intro")}</p>
+      <h1 className="font-display text-screen font-extrabold">
+        {t("title")}
+        <Info>{t("intro")}</Info>
+      </h1>
       <div className="mt-6">
         <ErrorSummary codes={errore} />
       </div>

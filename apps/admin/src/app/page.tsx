@@ -6,6 +6,7 @@ import { requireViewer } from "@/lib/me";
 import { can } from "@astax/shared/permissions";
 import { AdminDashboard } from "@/components/admin-dashboard";
 import { OperationsDashboard } from "@/components/operations-dashboard";
+import { Info } from "@/components/info";
 
 export default async function HomePage({
   searchParams,
@@ -29,8 +30,8 @@ export default async function HomePage({
       <Card>
         <h1 className="font-display text-screen font-extrabold">
           {t("welcome", { name: viewer.me.firstName })}
+          <Info>{t("intro")}</Info>
         </h1>
-        <p className="mt-2 text-warm-600">{t("intro")}</p>
       </Card>
       {can(viewer.actor, "admin.reports.view") ? <AdminDashboard query={query} /> : null}
       {can(viewer.actor, "backOffice.dashboard") ? <OperationsDashboard /> : null}

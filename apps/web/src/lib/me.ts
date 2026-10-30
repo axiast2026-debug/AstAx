@@ -18,7 +18,7 @@ export interface Me {
   memberships: {
     id: string;
     role: MembershipRole;
-    organization: { id: string; name: string; type: OrganizationType };
+    organization: { id: string; name: string; type: OrganizationType; sectionE: boolean };
     flags: MembershipFlags;
   }[];
 }
@@ -74,6 +74,7 @@ export async function requireViewer(
       role: active.role,
       organizationType: active.organization.type,
       flags: active.flags,
+      sectionE: active.organization.sectionE,
     },
   };
 }

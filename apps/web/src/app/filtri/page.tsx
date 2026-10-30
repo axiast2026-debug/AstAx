@@ -7,6 +7,7 @@ import { AppShell } from "@/components/app-shell";
 import { CheckField, ErrorSummary, Field } from "@/components/form";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
+import { Info } from "@/components/info";
 
 interface Criteria {
   vehicleTypes: string[];
@@ -173,8 +174,10 @@ export default async function FiltersPage({
 
   return (
     <AppShell viewer={viewer}>
-      <h1 className="text-2xl font-bold">{t("filtersTitle")}</h1>
-      <p className="mt-1 text-sm text-warm-600">{t("filtersIntro")}</p>
+      <h1 className="text-2xl font-bold">
+        {t("filtersTitle")}
+        <Info>{t("filtersIntro")}</Info>
+      </h1>
       <div className="mt-4">
         <ErrorSummary codes={query.errore} />
       </div>

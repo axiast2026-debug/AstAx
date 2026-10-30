@@ -12,6 +12,7 @@ import type { IssuanceDetail } from "@/lib/acceptance";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
 import { markIssued, reportIssuanceProblem, uploadIssuanceDocument } from "../actions";
+import { Info } from "@/components/info";
 
 /**
  * «Da emettere», detail (spec 04, EMI-01, EMI-02): all the data with the
@@ -211,8 +212,10 @@ export default async function IssuancePage({
 
         {open ? (
           <Card>
-            <CardTitle>{t("problemTitle")}</CardTitle>
-            <p className="mt-1 text-sm text-warm-600">{t("problemIntro")}</p>
+            <CardTitle>
+              {t("problemTitle")}
+              <Info>{t("problemIntro")}</Info>
+            </CardTitle>
             <form action={reportIssuanceProblem} className="mt-3 space-y-3 text-sm">
               <input type="hidden" name="requestId" value={requestId} />
               <fieldset className="space-y-1">

@@ -201,7 +201,7 @@ export class BatchSchedulerService implements OnApplicationBootstrap, OnApplicat
           user: { status: "ACTIVE" },
           organization: { status: "ACTIVE", type: { in: ["BROKER", "AGENCY"] } },
         },
-        include: { user: true, organization: { select: { type: true } } },
+        include: { user: true, organization: { select: { type: true, ruiSection: true } } },
       }),
     );
     if (!membership) return null;
@@ -216,6 +216,7 @@ export class BatchSchedulerService implements OnApplicationBootstrap, OnApplicat
       role: membership.role,
       organizationType: membership.organization.type,
       flags,
+      sectionE: membership.organization.ruiSection === "E",
     };
     return {
       userId,
@@ -227,6 +228,7 @@ export class BatchSchedulerService implements OnApplicationBootstrap, OnApplicat
         organizationType: membership.organization.type,
         role: membership.role,
         flags,
+        sectionE: membership.organization.ruiSection === "E",
       },
       actor,
       db: {

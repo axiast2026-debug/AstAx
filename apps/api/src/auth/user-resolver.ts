@@ -163,13 +163,14 @@ export class UserResolver {
     const rows = await withContext(this.db, SYSTEM_CONTEXT, (tx) =>
       tx.membership.findMany({
         where: { userId, status: "ACTIVE", organization: { status: "ACTIVE" } },
-        include: { organization: { select: { type: true } } },
+        include: { organization: { select: { type: true, ruiSection: true } } },
       }),
     );
     return rows.map((m) => ({
       id: m.id,
       organizationId: m.organizationId,
       organizationType: m.organization.type,
+      sectionE: m.organization.ruiSection === "E",
       role: m.role,
       flags: {
         canIssue: m.canIssue,

@@ -13,6 +13,7 @@ import { LiveRefresh } from "@/components/live-refresh";
 import { api } from "@/lib/auth";
 import type { IncomingRow, IncomingState } from "@/lib/agency";
 import { requireViewer } from "@/lib/me";
+import { Info } from "@/components/info";
 
 const STATES: IncomingState[] = [
   "NEW",
@@ -176,8 +177,10 @@ export default async function IncomingRequestsPage({
         ) : null}
 
         <div className="flex flex-col gap-1">
-          <h1 className="font-display text-screen font-extrabold">{t("incoming.title")}</h1>
-          <p className="text-table text-warm-600">{t("incoming.intro")}</p>
+          <h1 className="font-display text-screen font-extrabold">
+            {t("incoming.title")}
+            <Info>{t("incoming.intro")}</Info>
+          </h1>
         </div>
         {query.fatto === "rinuncia" ? (
           <p role="status" className="rounded-lg bg-green-50 p-3 text-table text-green-700">

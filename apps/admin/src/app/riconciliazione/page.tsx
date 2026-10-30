@@ -8,6 +8,7 @@ import { AppShell } from "@/components/app-shell";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
 import { importStatement, lineStep } from "./actions";
+import { Info } from "@/components/info";
 
 interface Line {
   id: string;
@@ -69,8 +70,10 @@ export default async function ReconciliationPage({
 
   return (
     <AppShell viewer={viewer}>
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
-      <p className="mt-1 text-sm text-warm-600">{t("intro")}</p>
+      <h1 className="text-2xl font-bold">
+        {t("title")}
+        <Info>{t("intro")}</Info>
+      </h1>
       {query.errore ? (
         <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
           {t("error", { code: query.errore })}
@@ -87,8 +90,10 @@ export default async function ReconciliationPage({
 
       {manage ? (
         <Card className="mt-6">
-          <CardTitle>{t("import")}</CardTitle>
-          <p className="mt-1 text-sm text-warm-600">{t("importHint")}</p>
+          <CardTitle>
+            {t("import")}
+            <Info>{t("importHint")}</Info>
+          </CardTitle>
           <form action={importStatement} className="mt-3 flex flex-wrap items-end gap-3 text-sm">
             <input type="file" name="file" required accept=".csv,.xml,text/csv,application/xml" />
             <Button type="submit" size="sm">

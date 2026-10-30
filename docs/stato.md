@@ -30,6 +30,21 @@ Poi, da decidere: B6 (dati dalla targa, serve l'account del fornitore), B7 (cont
 
 ## Ultima sessione
 
+**2026-10-30 — ruoli sez. E e icone «i»** (piano `docs/piano-ruoli-acquisto-icone.md`, parti 1 e 3; [ADR 0026](adr/0026-sezione-e-come-il-titolare-senza-team.md)).
+- **Sub-agenti e collaboratori sez. E.** Si iscrivono da sé, con gli stessi passi, e hanno i poteri del titolare tranne `team.manage`.
+  - L'attore porta `sectionE`, la regola del permesso `notForSectionE`; `/me` dice `organization.sectionE`.
+  - Testi di «Lavora con AstAx» aggiornati.
+- **Icone «i».** Le descrizioni sotto i titoli di riquadri e pagine (45, nel portale e nel back office) sono diventate un'icona «i» accanto al titolo, che apre la spiegazione al passaggio del mouse, al tocco o con la tastiera.
+  - Componenti: `InfoTip` in `packages/ui`, `Info` nelle app.
+  - Restano scritti per esteso:
+    - le pagine dei clienti e i testi legali;
+    - i suggerimenti dei campi;
+    - gli avvisi (busta chiusa, filigrana, AI).
+- **Prove:**
+  - permessi a tabella: sez. E uguale al titolare tranne il team;
+  - integrazione: `/team` → 403 per un'organizzazione sez. E, il resto risponde.
+- **Resta:** la parte 2 del piano (acquisto diretto dell'intermediario, contatti dopo, firma OTP).
+
 **2026-10-29 — caratteri dentro il progetto** (Dan). Inter e Inter Tight sono in `apps/web/src/fonts` e `apps/admin/src/fonts` (licenza SIL OFL, `OFL.txt`) e si caricano con `next/font/local`: la build non scarica più nulla da Google Fonts, che due volte non era raggiungibile dalla CI e aveva fatto fallire le immagini della demo o le prove dal browser.
 
 **2026-10-29 — agenzie: aste aperte a tutte, filtri per le email, richiesta più essenziale, registrazione più corta, date** (piano in `docs/piano-agenzia-filtri-richiesta.md`, risposte di Dan A, B, C; [ADR 0024](adr/0024-aste-aperte-a-tutte-le-agenzie.md)).

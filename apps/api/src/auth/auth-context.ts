@@ -39,6 +39,8 @@ export interface ActiveMembership {
   organizationType: OrganizationType;
   role: MembershipRole;
   flags: MembershipFlags;
+  /** Section E intermediary registered on its own (ADR 0026). */
+  sectionE: boolean;
 }
 
 /** Who is calling, resolved by the AuthGuard and attached to the request. */

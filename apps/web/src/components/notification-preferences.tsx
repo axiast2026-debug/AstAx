@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { setNotificationPreference } from "@/app/actions";
 import { api } from "@/lib/auth";
 import { PushSwitch } from "./push-switch";
+import { Info } from "@/components/info";
 
 interface Preference {
   eventKey: string;
@@ -21,8 +22,10 @@ export async function NotificationPreferences() {
   if (status !== 200) return null;
   return (
     <Card>
-      <CardTitle>{t("title")}</CardTitle>
-      <p className="mt-1 text-sm text-warm-600">{t("intro")}</p>
+      <CardTitle>
+        {t("title")}
+        <Info>{t("intro")}</Info>
+      </CardTitle>
       <PushSwitch
         publicKey={process.env.VAPID_PUBLIC_KEY ?? ""}
         texts={{

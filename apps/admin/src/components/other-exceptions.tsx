@@ -3,6 +3,7 @@ import { can, type Actor } from "@astax/shared/permissions";
 import { Card, CardTitle } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { api } from "@/lib/auth";
+import { Info } from "@/components/info";
 
 interface Overview {
   deserted: { id: string; code: string; channel: string; since: string }[];
@@ -37,8 +38,10 @@ export async function OtherExceptions({ actor }: { actor: Actor }) {
       {overview.status === 200 ? (
         <>
           <Card>
-            <CardTitle>{t("deserted")}</CardTitle>
-            <p className="mt-1 text-sm text-warm-600">{t("desertedHint")}</p>
+            <CardTitle>
+              {t("deserted")}
+              <Info>{t("desertedHint")}</Info>
+            </CardTitle>
             {overview.body.deserted.length === 0 ? (
               <p className="mt-2 text-sm">{t("none")}</p>
             ) : (

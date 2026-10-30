@@ -47,7 +47,9 @@ export class MeController {
         include: {
           memberships: {
             where: { status: "ACTIVE", organization: { status: "ACTIVE" } },
-            include: { organization: { select: { id: true, legalName: true, type: true } } },
+            include: {
+              organization: { select: { id: true, legalName: true, type: true, ruiSection: true } },
+            },
             orderBy: { createdAt: "asc" },
           },
         },
@@ -66,6 +68,7 @@ export class MeController {
             id: m.organization.id,
             name: m.organization.legalName,
             type: m.organization.type,
+            sectionE: m.organization.ruiSection === "E",
           },
           flags: {
             canIssue: m.canIssue,
@@ -131,7 +134,7 @@ export class MeController {
     return withContext(this.db, auth.db, async (tx) => {
       const organization = await tx.organization.findUniqueOrThrow({
         where: { id: membership.organizationId },
-        select: { id: true, legalName: true, type: true },
+        select: { id: true, legalName: true, type: true, ruiSection: true },
       });
       return {
         membershipId: membership.id,
@@ -141,6 +144,7 @@ export class MeController {
           id: organization.id,
           name: organization.legalName,
           type: organization.type,
+          sectionE: organization.ruiSection === "E",
         },
       };
     });

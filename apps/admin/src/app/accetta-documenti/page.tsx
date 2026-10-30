@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 import { acceptLegal } from "@/app/actions";
 import { api } from "@/lib/auth";
+import { Info } from "@/components/info";
 
 interface PendingDocument {
   documentKey: string;
@@ -20,8 +21,10 @@ export default async function LegalPage() {
   if (pending.length === 0) redirect("/");
   return (
     <main className="mx-auto max-w-3xl px-4 py-12">
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
-      <p className="mt-2 text-warm-600">{t("intro")}</p>
+      <h1 className="text-2xl font-bold">
+        {t("title")}
+        <Info>{t("intro")}</Info>
+      </h1>
       <form action={acceptLegal} className="mt-6 space-y-4">
         {pending.map((doc) => (
           <Card key={doc.versionId}>

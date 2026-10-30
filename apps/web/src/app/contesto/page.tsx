@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { chooseContext } from "@/app/actions";
 import { api } from "@/lib/auth";
 import type { Me } from "@/lib/me";
+import { Info } from "@/components/info";
 
 /** Context selector for people working for several organizations (decisione aggiunta 4). */
 export default async function ContextPage() {
@@ -12,8 +13,10 @@ export default async function ContextPage() {
   if (me.kind === "PRIVATE") redirect("/");
   return (
     <main className="mx-auto max-w-2xl px-4 py-12">
-      <h1 className="text-2xl font-bold">{t("context.title")}</h1>
-      <p className="mt-2 text-warm-600">{t("context.text")}</p>
+      <h1 className="text-2xl font-bold">
+        {t("context.title")}
+        <Info>{t("context.text")}</Info>
+      </h1>
       <div className="mt-6 space-y-3">
         {me.memberships.map((m) => (
           <Card key={m.id} className="flex items-center justify-between gap-4">

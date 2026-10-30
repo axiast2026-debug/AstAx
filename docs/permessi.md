@@ -10,9 +10,11 @@ I permessi si controllano nell'API, con negazione predefinita (SIC-01): un'azion
 | `BROKER_CLIENT_LINK` | nessuna | Cliente del broker che apre il link: vale per una sola richiesta, dopo un codice OTP, fino alla scadenza della garanzia |
 | `OWNER` | `BROKER` o `AGENCY` | Titolare |
 | `SUPERVISOR` | `AGENCY` | Facoltativo |
-| `OPERATOR` | `BROKER` o `AGENCY` | Operatore o sub-agente |
+| `OPERATOR` | `BROKER` o `AGENCY` | Operatore: dipendente del titolare, nel suo team |
 | `BO_VERIFIER`, `BO_SUPPORT`, `BO_ACCOUNTING`, `BO_SUPERVISOR` | `ASTAX` | Back office |
 | `ADMIN` | `ASTAX` | Amministratore |
+
+**Sub-agenti e collaboratori sez. E** (ADR 0026): si iscrivono da sé e sono `OWNER` di una propria organizzazione con `ruiSection = E`; hanno tutti i permessi del titolare (agente o broker) tranne `team.manage`.
 
 Ogni utente professionale lavora in un contesto: l'appartenenza scelta nel selettore. Ogni chiamata porta l'intestazione `X-AstAx-Context` con l'identificativo dell'appartenenza; l'API verifica che appartenga all'utente e che sia attiva, e limita ogni lettura a quell'organizzazione (SIC-02).
 

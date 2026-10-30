@@ -5,6 +5,7 @@ import { AniaScreen } from "@/components/ania-screen";
 import { AppShell } from "@/components/app-shell";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
+import { Info } from "@/components/info";
 
 /**
  * Dan, 2026-10-28: the back office logs in to the agencies' portal here, on
@@ -18,8 +19,10 @@ export default async function AniaPortalPage() {
 
   return (
     <AppShell viewer={viewer}>
-      <h1 className="font-display text-screen font-extrabold">{t("title")}</h1>
-      <p className="mt-2 max-w-3xl text-sm text-warm-700">{t("intro")}</p>
+      <h1 className="font-display text-screen font-extrabold">
+        {t("title")}
+        <Info>{t("intro")}</Info>
+      </h1>
       <Card className="mt-4">
         {body.real ? (
           <AniaScreen

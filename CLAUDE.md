@@ -4,8 +4,8 @@
 
 AstAx è una piattaforma italiana di aste inverse per i preventivi RC auto, gestita da AstAx, società iscritta al RUI come broker (sez. B).
 
-- Chi chiede un preventivo: privati (consumatori) e broker per i propri clienti.
-- Chi offre: agenzie assicurative (sez. A), con i loro sub-agenti (sez. E) che offrono sempre a nome dell'agenzia.
+- Chi chiede un preventivo: privati (consumatori); broker (sez. B) e loro collaboratori (sez. E); agenti (sez. A) e loro sub-agenti (sez. E), per i propri clienti.
+- Chi offre: agenti (sez. A) e sub-agenti (sez. E). Sub-agenti e collaboratori si iscrivono da sé con il proprio RUI e hanno i poteri del titolare, tranne creare un team ([ADR 0026](docs/adr/0026-sezione-e-come-il-titolare-senza-team.md)).
 - Il back office di AstAx verifica ogni richiesta; poi parte un'asta a busta chiusa di durata scelta dal richiedente (1, 2, 5 o 24 ore lavorative).
 - Ogni offerta è vincolante e ha una data di prezzo garantito. Alla chiusura il richiedente vede la migliore offerta per ogni compagnia; i privati possono chiedere un confronto qualità/prezzo con AI.
 - Il cliente sceglie, firma con FEA e paga AstAx; l'agenzia vincitrice riceve i contatti ed emette; AstAx rimette il premio all'agenzia ogni settimana.

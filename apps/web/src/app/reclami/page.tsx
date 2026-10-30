@@ -7,6 +7,7 @@ import { ErrorSummary, Field } from "@/components/form";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
 import { fileComplaint } from "./actions";
+import { Info } from "@/components/info";
 
 interface Complaint {
   id: string;
@@ -36,8 +37,10 @@ export default async function ComplaintsPage({
 
   return (
     <AppShell viewer={viewer}>
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
-      <p className="mt-2 text-sm text-warm-600">{t("intro")}</p>
+      <h1 className="text-2xl font-bold">
+        {t("title")}
+        <Info>{t("intro")}</Info>
+      </h1>
       <div className="mt-6">
         <ErrorSummary codes={query.errore} />
       </div>

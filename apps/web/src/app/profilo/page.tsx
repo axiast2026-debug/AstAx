@@ -8,6 +8,7 @@ import { AppShell } from "@/components/app-shell";
 import { NotificationPreferences } from "@/components/notification-preferences";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
+import { Info } from "@/components/info";
 
 interface OwnConsent {
   id: string;
@@ -90,8 +91,10 @@ export default async function ProfilePage() {
 
         {me.kind === "PRIVATE" ? (
           <Card>
-            <CardTitle>{t("profile.consents")}</CardTitle>
-            <p className="mt-1 text-sm text-warm-600">{t("profile.consentsIntro")}</p>
+            <CardTitle>
+              {t("profile.consents")}
+              <Info>{t("profile.consentsIntro")}</Info>
+            </CardTitle>
             {consents.length === 0 ? (
               <p className="mt-4 text-sm">{t("profile.noConsents")}</p>
             ) : (
@@ -128,8 +131,10 @@ export default async function ProfilePage() {
         ) : null}
 
         <Card>
-          <CardTitle>{t("profile.sessions")}</CardTitle>
-          <p className="mt-1 text-sm text-warm-600">{t("profile.sessionsIntro")}</p>
+          <CardTitle>
+            {t("profile.sessions")}
+            <Info>{t("profile.sessionsIntro")}</Info>
+          </CardTitle>
           {sessions.length === 0 ? (
             <p className="mt-4 text-sm">{t("profile.noSessions")}</p>
           ) : (

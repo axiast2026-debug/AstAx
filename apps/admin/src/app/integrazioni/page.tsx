@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
+import { Info } from "@/components/info";
 
 interface Integration {
   key: string;
@@ -21,8 +22,10 @@ export default async function IntegrationsPage() {
   if (status !== 200) notFound();
   return (
     <AppShell viewer={viewer}>
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
-      <p className="mt-1 text-sm text-warm-600">{t("intro")}</p>
+      <h1 className="text-2xl font-bold">
+        {t("title")}
+        <Info>{t("intro")}</Info>
+      </h1>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {body.map((i) => (
           <Card key={i.key}>

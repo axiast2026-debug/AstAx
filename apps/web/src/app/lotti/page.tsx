@@ -6,6 +6,7 @@ import { AppShell } from "@/components/app-shell";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
 import { uploadBatch } from "./actions";
+import { Info } from "@/components/info";
 
 interface Batch {
   id: string;
@@ -36,8 +37,10 @@ export default async function BatchesPage({
 
   return (
     <AppShell viewer={viewer}>
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
-      <p className="mt-2 max-w-3xl text-sm text-warm-600">{t("intro")}</p>
+      <h1 className="text-2xl font-bold">
+        {t("title")}
+        <Info>{t("intro")}</Info>
+      </h1>
       {errors.length > 0 ? (
         <div role="alert" className="mt-6 rounded-xl border border-red-600 bg-red-50 p-4 text-sm">
           <p className="font-semibold text-red-700">{t("errorsTitle")}</p>

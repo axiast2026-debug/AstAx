@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { requireViewer } from "@/lib/me";
 import { bulkUpload } from "./actions";
+import { Info } from "@/components/info";
 
 /**
  * The broker's bulk upload (phase 7): one customer per row, with the
@@ -33,8 +34,10 @@ export default async function BulkUploadPage({
       <Link href="/clienti" className="text-sm underline">
         {t("back")}
       </Link>
-      <h1 className="mt-2 text-2xl font-bold">{t("title")}</h1>
-      <p className="mt-2 text-sm text-warm-600">{t("intro")}</p>
+      <h1 className="mt-2 text-2xl font-bold">
+        {t("title")}
+        <Info>{t("intro")}</Info>
+      </h1>
       {errors.length > 0 ? (
         <div role="alert" className="mt-6 rounded-xl border border-red-600 bg-red-50 p-4 text-sm">
           <p className="font-semibold text-red-700">{t("errorsTitle")}</p>

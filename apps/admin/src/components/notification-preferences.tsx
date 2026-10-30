@@ -2,6 +2,7 @@ import { Card, CardTitle } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { setNotificationPreference } from "@/app/actions";
 import { api } from "@/lib/auth";
+import { Info } from "@/components/info";
 
 interface Preference {
   eventKey: string;
@@ -20,8 +21,10 @@ export async function NotificationPreferences() {
   if (status !== 200) return null;
   return (
     <Card>
-      <CardTitle>{t("title")}</CardTitle>
-      <p className="mt-1 text-sm text-warm-600">{t("intro")}</p>
+      <CardTitle>
+        {t("title")}
+        <Info>{t("intro")}</Info>
+      </CardTitle>
       <ul className="mt-3 divide-y divide-warm-200 text-sm">
         {body.map((p) => (
           <li key={p.eventKey} className="flex flex-wrap items-center justify-between gap-2 py-2">

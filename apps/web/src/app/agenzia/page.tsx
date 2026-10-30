@@ -11,6 +11,7 @@ import { AppShell } from "@/components/app-shell";
 import { ErrorSummary, Field } from "@/components/form";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
+import { Info } from "@/components/info";
 
 const KINDS = ["PRODUCT_DIP", "PRODUCT_DIP_ADDITIONAL", "PRODUCT_CONDITIONS"] as const;
 
@@ -55,8 +56,10 @@ export default async function AgencyPage({
       ) : null}
       <div className="grid gap-6">
         <Card>
-          <CardTitle>{t("mandates")}</CardTitle>
-          <p className="mt-1 text-sm text-warm-600">{t("mandatesIntro")}</p>
+          <CardTitle>
+            {t("mandates")}
+            <Info>{t("mandatesIntro")}</Info>
+          </CardTitle>
           <ul className="mt-3 list-disc pl-5 text-sm">
             {library.companies.map((c) => (
               <li key={c.id}>{c.name}</li>
@@ -65,8 +68,10 @@ export default async function AgencyPage({
         </Card>
 
         <Card>
-          <CardTitle>{t("products")}</CardTitle>
-          <p className="mt-1 text-sm text-warm-600">{t("productsIntro")}</p>
+          <CardTitle>
+            {t("products")}
+            <Info>{t("productsIntro")}</Info>
+          </CardTitle>
           <div className="mt-4 space-y-4">
             {library.products.map((p) => (
               <section

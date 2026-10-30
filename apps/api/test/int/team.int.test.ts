@@ -214,4 +214,26 @@ describe("fase 1 passo 9: events of team changes", () => {
     );
     expect(pending).toBe(0);
   });
+
+  it("ADR 0026 a section E organization (sub-agent, collaborator) has no team: 403, the rest stays", async () => {
+    const id = orgId("agenzia-sei");
+    const setSection = (ruiSection: "A" | "E") =>
+      withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+        tx.organization.update({ where: { id }, data: { ruiSection } }),
+      );
+    await setSection("E");
+    try {
+      expect((await call("/team")).status).toBe(403);
+      const me = (await (await call("/me")).json()) as {
+        memberships: { organization: { id: string; sectionE: boolean } }[];
+      };
+      expect(me.memberships.find((m) => m.organization.id === id)?.organization.sectionE).toBe(
+        true,
+      );
+      expect((await call("/agency/filters")).status).toBe(200);
+    } finally {
+      await setSection("A");
+    }
+    expect((await call("/team")).status).toBe(200);
+  });
 });
