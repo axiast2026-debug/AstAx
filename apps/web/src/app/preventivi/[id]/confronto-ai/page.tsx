@@ -1,5 +1,5 @@
 import { formatEuroCents } from "@astax/shared/format";
-import { Button, Card, CardTitle } from "@astax/ui";
+import { Button, Card, CardTitle, CompanyLogo } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -9,6 +9,7 @@ import { ErrorSummary } from "@/components/form";
 import type { Presentation } from "@/lib/acceptance";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
+import { TrademarksNote } from "@/components/trademarks-note";
 
 /**
  * PRES-06, FEE-01: before the comparison the customer sees the fee going up
@@ -54,6 +55,11 @@ export default async function AiComparisonPage({
             <ul className="mt-2 list-disc pl-5 text-sm">
               {open.map((o) => (
                 <li key={o.id}>
+                  <CompanyLogo
+                    companyId={o.companyId}
+                    name={o.company}
+                    className="mr-2 align-middle"
+                  />
                   {t("offerFee", {
                     offer: `${o.company} · ${o.product}`,
                     from: formatEuroCents(o.feeCents),
@@ -71,6 +77,7 @@ export default async function AiComparisonPage({
             {t("back")}
           </Link>
         </form>
+        <TrademarksNote className="mt-4" />
       </Card>
     </AppShell>
   );

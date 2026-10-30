@@ -1,5 +1,5 @@
 import { formatDate, formatDateTime, formatEuroCents } from "@astax/shared/format";
-import { Badge, Button, GuaranteeChip, Icon } from "@astax/ui";
+import { Badge, Button, CompanyLogo, GuaranteeChip, Icon } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { AcceptanceSteps } from "@/components/acceptance-steps";
@@ -7,6 +7,7 @@ import { ErrorSummary, Field } from "@/components/form";
 import { PendingButton } from "@/components/pending-button";
 import { linkProof, PROOF_HEADER, TOKEN, type LinkPage } from "@/lib/customer-link";
 import { publicApi } from "@/lib/public-api";
+import { TrademarksNote } from "@/components/trademarks-note";
 import {
   chooseLinkOffer,
   confirmOfferCode,
@@ -139,7 +140,10 @@ export default async function CustomerOfferPage({
                       ) : null}
                       <div className="flex items-start justify-between gap-3">
                         <span className="flex min-w-0 flex-col">
-                          <span className="text-body font-bold">{o.company}</span>
+                          <span className="flex items-center gap-2">
+                            <CompanyLogo companyId={o.companyId} name={o.company} />
+                            <span className="text-body font-bold">{o.company}</span>
+                          </span>
                           <span className="text-table text-warm-600">{o.product}</span>
                         </span>
                         <span className="font-display text-screen font-extrabold whitespace-nowrap tabular">
@@ -208,6 +212,7 @@ export default async function CustomerOfferPage({
             ) : null}
           </>
         )}
+        {offers.length > 0 ? <TrademarksNote className="mt-6" /> : null}
       </main>
     </div>
   );

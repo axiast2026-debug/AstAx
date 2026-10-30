@@ -88,6 +88,8 @@ export class FakeDocumentReader implements DocumentReaderPort {
     private readonly plateLookup?: PlateLookupPort,
     private readonly fixturesDir = FIXTURES_DIR,
     private readonly load?: (key: string) => Promise<Uint8Array>,
+    /** The demo turns the invented companies of the fixtures into real ones (ADR 0028). */
+    private readonly renameCompany: (name: string) => string = (name) => name,
   ) {}
 
   private async readQuote(file: StoredFileRef): Promise<ExtractionResult> {
@@ -174,7 +176,11 @@ export class FakeDocumentReader implements DocumentReaderPort {
       : HIGH_CONFIDENCE;
     const fields: ExtractionResult["fields"] = {};
     for (const [key, value] of Object.entries(values)) {
-      fields[key] = { value: resolveValue(value, this.clock), confidence };
+      const named =
+        (key === "currentInsurer" || key === "companyName") && typeof value === "string"
+          ? this.renameCompany(value)
+          : value;
+      fields[key] = { value: resolveValue(named, this.clock), confidence };
     }
     return {
       kind: input.kind,

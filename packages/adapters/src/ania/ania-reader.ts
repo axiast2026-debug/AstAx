@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import type { Clock } from "../clock/clock.js";
-import { FakePlateLookup } from "../vehicle-data/plate-lookup.js";
+import { FAKE_INSURERS, FakePlateLookup } from "../vehicle-data/plate-lookup.js";
 
 /**
  * The Banca Dati ANIA read by plate (Dan, 2026-10-28,
@@ -145,8 +145,11 @@ const INSURER_CODES: Record<string, string> = {
 export class FakeAniaReader implements AniaReaderPort {
   readonly #plates: FakePlateLookup;
 
-  constructor(private readonly clock: Clock) {
-    this.#plates = new FakePlateLookup(clock);
+  constructor(
+    private readonly clock: Clock,
+    private readonly insurers: readonly string[] = FAKE_INSURERS,
+  ) {
+    this.#plates = new FakePlateLookup(clock, insurers);
   }
 
   async read(input: AniaReadInput): Promise<AniaReadResult> {
@@ -161,8 +164,11 @@ export class FakeAniaReader implements AniaReaderPort {
     const vehicle = looked.vehicle;
     const first = vehicle.firstRegistrationDate ?? null;
     const owner = input.owner?.fiscalCode ?? null;
-    const insurer = looked.insurance?.companyName ?? "Compagnia Alfa";
-    const company = { code: INSURER_CODES[insurer] ?? "900", name: insurer.toUpperCase() };
+    const insurer = looked.insurance?.companyName ?? this.insurers[0] ?? "";
+    const company = {
+      code: INSURER_CODES[insurer] ?? String(900 + this.insurers.indexOf(insurer) + 1),
+      name: insurer.toUpperCase(),
+    };
     const expiry = looked.insurance?.expiryDate ?? null;
     const year = Number(this.clock.now().toISOString().slice(0, 4));
     // A used vehicle: the owner bought it some years after the first registration.

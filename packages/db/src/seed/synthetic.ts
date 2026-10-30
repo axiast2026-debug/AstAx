@@ -1,4 +1,5 @@
 import type { FieldCipher } from "@astax/adapters/crypto";
+import type { ObjectStoragePort } from "@astax/adapters/storage";
 import {
   AgencyFilterCriteriaSchema,
   buildSyntheticIban,
@@ -11,6 +12,7 @@ import type {
   OrganizationType,
   UserKind,
 } from "../generated/prisma/client.js";
+import { DEMO_AGENCY_MANDATES, seedDemoCompanies, type DemoCompany } from "./demo-companies.js";
 import { deterministicUuid } from "./deterministic-id.js";
 
 /**
@@ -288,10 +290,18 @@ export interface SyntheticCounts {
   memberships: number;
 }
 
+/** DEMO_COMPANIES=true (ADR 0028): the real companies, their logos and the store for them. */
+export interface DemoCompaniesInput {
+  companies: DemoCompany[];
+  repoRoot: string;
+  storage: ObjectStoragePort;
+}
+
 export async function seedSynthetic(
   tx: DbTransaction,
   cipher: FieldCipher,
   seed: string = DEFAULT_SYNTHETIC_SEED,
+  demo?: DemoCompaniesInput,
 ): Promise<SyntheticCounts> {
   for (const org of SYNTHETIC.organizations) {
     const vatNumber = buildVatNumber(9_000_000 + org.serial, 15);
@@ -371,7 +381,7 @@ export async function seedSynthetic(
     });
   }
 
-  await seedAgencies(tx, seed);
+  await seedAgencies(tx, seed, demo);
 
   return {
     organizations: SYNTHETIC.organizations.length,
@@ -384,21 +394,41 @@ export async function seedSynthetic(
  * Companies, mandates, one product per mandate, filters and capacity of the
  * synthetic agencies (ASTA-05). Rerunning the seed leaves later changes alone.
  */
-async function seedAgencies(tx: DbTransaction, seed: string): Promise<void> {
+async function seedAgencies(
+  tx: DbTransaction,
+  seed: string,
+  demo?: DemoCompaniesInput,
+): Promise<void> {
   // Companies are found by name: one list for every seed in the same database.
+  // Keys: the invented short name, or the real company's slug in the demo.
   const companyId = new Map<string, string>();
-  for (const name of COMPANY_NAMES) {
-    const company = await tx.insuranceCompany.upsert({
-      where: { name: `Compagnia ${name}` },
-      create: {
-        id: syntheticId(seed, "company", name.toLowerCase()),
-        name: `Compagnia ${name}`,
-      },
-      update: {},
+  const productName = new Map<string, string>();
+  let mandates: Record<string, readonly string[]> = AGENCY_MANDATES;
+  if (demo) {
+    const ids = await seedDemoCompanies(tx, {
+      ...demo,
+      idOf: (slug) => syntheticId(seed, "company", slug),
     });
-    companyId.set(name, company.id);
+    for (const c of demo.companies) {
+      companyId.set(c.slug, ids.get(c.slug) ?? "");
+      productName.set(c.slug, c.name);
+    }
+    mandates = DEMO_AGENCY_MANDATES;
+  } else {
+    for (const name of COMPANY_NAMES) {
+      const company = await tx.insuranceCompany.upsert({
+        where: { name: `Compagnia ${name}` },
+        create: {
+          id: syntheticId(seed, "company", name.toLowerCase()),
+          name: `Compagnia ${name}`,
+        },
+        update: {},
+      });
+      companyId.set(name, company.id);
+      productName.set(name, name);
+    }
   }
-  for (const [agency, companies] of Object.entries(AGENCY_MANDATES)) {
+  for (const [agency, companies] of Object.entries(mandates)) {
     const organizationId = syntheticId(seed, "org", `agenzia-${agency}`);
     const companyIds = companies.map((c) => companyId.get(c) ?? "");
     for (const [i, companyId] of companyIds.entries()) {
@@ -417,11 +447,11 @@ async function seedAgencies(tx: DbTransaction, seed: string): Promise<void> {
           organizationId_companyId_name_version: {
             organizationId,
             companyId,
-            name: `RC Auto ${companies[i] ?? ""}`,
+            name: `RC Auto ${productName.get(companies[i] ?? "") ?? ""}`,
             version: 1,
           },
         },
-        create: { organizationId, companyId, name: `RC Auto ${companies[i] ?? ""}` },
+        create: { organizationId, companyId, name: `RC Auto ${productName.get(companies[i] ?? "") ?? ""}` },
         update: {},
       });
     }

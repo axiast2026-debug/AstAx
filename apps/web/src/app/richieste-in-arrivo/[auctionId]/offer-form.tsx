@@ -5,6 +5,8 @@ import { getTranslations } from "next-intl/server";
 import { sendOffer } from "@/app/agency-actions";
 import { CheckField, Field, Fieldset, fieldId, hasError, INPUT } from "@/components/form";
 import { PendingButton } from "@/components/pending-button";
+import { TrademarksNote } from "@/components/trademarks-note";
+import { CompanySelect } from "./company-select";
 import {
   centsToEuroInput,
   COINSURANCE_ITEMS,
@@ -125,21 +127,13 @@ export async function OfferForm({
           <label htmlFor="f-companyId" className="block text-label font-semibold">
             {t("company")}
           </label>
-          <select
-            id="f-companyId"
-            name="companyId"
-            required
+          <CompanySelect
+            companies={detail.companies}
             defaultValue={base?.companyId ?? ""}
+            chooseLabel={t("choose")}
             className={INPUT}
-            aria-invalid={hasError(errors, "companyId") || undefined}
-          >
-            <option value="">{t("choose")}</option>
-            {detail.companies.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+            invalid={hasError(errors, "companyId")}
+          />
         </div>
         <div>
           <label htmlFor="f-productId" className="block text-label font-semibold">
@@ -380,6 +374,7 @@ export async function OfferForm({
       ) : (
         <PendingButton label={own ? t("change") : t("send")} busy={t("sealing")} />
       )}
+      <TrademarksNote className="mt-4" />
     </form>
   );
 }

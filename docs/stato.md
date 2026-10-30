@@ -30,6 +30,22 @@ Poi, da decidere: B6 (dati dalla targa, serve l'account del fornitore), B7 (cont
 
 ## Ultima sessione
 
+**2026-10-30 — compagnie vere e loghi nella demo** (richiesta di Dan, `PROMPT_LOGHI_DEMO.md`; [ADR 0028](adr/0028-compagnie-vere-nella-demo.md); ramo `feat/loghi-compagnie-demo`, non unito né spinto, come ha chiesto Dan).
+- **Decisioni di Dan.** Compagnie vere nella demo: sì, seconda eccezione alla regola 11 (`CLAUDE.md` aggiornato). Loghi nel repository pubblico: sì.
+- **Loghi.** 19 su 22 in `seed/loghi/` (SVG come sul sito; PNG a 240 e 120 px con lo sfondo esterno trasparente), fonti e date in `seed/loghi/FONTI.md`, foglio di controllo `seed/loghi/contatto.html` visto e approvato da Dan.
+  - Mancano ITAS (il sito risponde 403), TUA e Assimoco (siti non raggiungibili): si vedono con il nome e il segnaposto; si caricano dal back office.
+  - Da fonte di riserva: Allianz e Unipol 2025 (Wikimedia), Prima (JPG di Wikimedia, il sito ha un controllo anti-robot).
+  - `ivassCode` lasciato vuoto per tutte: l'Albo imprese IVASS non era raggiungibile in modo automatico.
+- **Dati.** `InsuranceCompany.logoKey` e `website` (migrazione `20261102150000_company_logo_website`, con l'istruzione per tornare indietro). Con `DEMO_COMPANIES=true` la seed carica le 22 compagnie dal file `seed/compagnie-demo.json`, mette i loghi nello storage (`public/companies/`) e dà a ogni agenzia finta da 2 a 5 mandati (`DEMO_AGENCY_MANDATES`), con prodotti e filtri; su un database che ha già le compagnie inventate le rinomina (Alfa → Unipol, Beta → Generali, Gamma → Allianz, Delta → AXA). Senza la variabile tutto resta come prima.
+- **Finti.** Visura targa, ANIA, registro RUI e lettore dei documenti usano i nomi veri con `DEMO_COMPANIES=true` (`fakeCompanyNames`, `demoCompanyName` in `packages/shared`).
+- **Schermate.** Logo (24 px in lista, 40 px nel dettaglio, testo alternativo il nome) nelle offerte del privato, del broker e del cliente del broker, nel confronto con AI, nel riepilogo dell'accettazione e accanto alla compagnia scelta nel modulo dell'offerta dell'agenzia. Nuova pagina «Compagnie» del back office (amministratore) per caricare o sostituire un logo, PNG o SVG semplice fino a 512 KB, nel registro (`COMPANY_LOGO_SET`). Il browser prende i loghi da `/loghi/:id` del sito o del back office, che li chiede all'API (`GET /companies/:id/logo`) e mostra un segnaposto neutro se manca. Nota `legal.trademarks` sotto le offerte.
+- **Prove.** Test di integrazione della seed (22 vere e nessuna inventata con la variabile, solo inventate senza, mandati 2-5), dell'API dei loghi (lettura pubblica, caricamento con registro, SVG con script rifiutato, permessi), dei finti, del componente (il logo è solo quello della compagnia dell'offerta) e del segnaposto.
+- **Controllo finale.** Su un database separato `astax_demo` (il database di sviluppo non è stato azzerato) con `DEMO_COMPANIES=true`: migrazioni e seed fatte, 22 compagnie (19 con logo), nessuna «Compagnia Alfa/Beta/Gamma/Delta» né «RC Auto Alfa…» in nessuna delle 282 colonne di testo; `/loghi/:id` dà SVG, PNG o il segnaposto; pagina «Compagnie» del back office con i 22 loghi e home pubblica senza loghi, provate nel browser. Il giro completo nel browser (richiesta, offerte, confronto con AI, accettazione) non è arrivato in fondo: l'API in sviluppo andava in timeout sul database (P2028) per il carico della macchina, prima delle schermate delle offerte; quelle schermate sono coperte dai test, non viste nel browser.
+- **Da fare.**
+  - Sulla demo online: aggiungere `DEMO_COMPANIES=true` a `/opt/astax/demo.env` (i server nuovi lo hanno già da `make-env.sh`) e aggiornare con `deploy.sh`, quando Dan unisce il ramo e lo chiede.
+  - La nota sui marchi è nei file di traduzione, come ha chiesto Dan, e non nell'archivio dei testi legali con versioni (regola 10): punto per il legale in `docs/punti-aperti.md`.
+  - Caricare dal back office i loghi di ITAS, TUA e Assimoco quando li abbiamo.
+
 **2026-10-30 — correzione delle incongruenze, passo 3** (`docs/analisi-incongruenze-2026-10-30.md`, sezione 9):
 - **D6:** il rabbocco non parte più nelle aste nuove (`patched("no-top-up")`). I suoi parametri restano per le aste aperte prima, ma non sono più nel pannello (`RETIRED_SETTING_KEYS`).
 - **G1:** tolti dal pannello anche i parametri che nessun codice legge (regole di rimborso, fuso, conservazione dei contratti, promemoria della RC professionale).

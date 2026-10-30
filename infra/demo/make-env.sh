@@ -28,6 +28,8 @@ IMAGE_TAG=none
 NODE_ENV=development
 DEV_TOOLS=true
 DEMO_NOTICE=true
+# ADR 0028: the real companies and their logos instead of the invented ones.
+DEMO_COMPANIES=true
 LOG_LEVEL=info
 
 WEB_URL=https://demo.$DOMAIN

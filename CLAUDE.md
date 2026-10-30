@@ -89,7 +89,7 @@ Su Windows Docker Desktop è installato nella cartella dell'utente: i comandi ch
 8. **Niente dati sensibili dove non servono.** Log, errori, analisi, payload di Temporal e URL contengono identificativi, non dati personali, prezzi di offerte o documenti. Le notifiche possono contenere i prezzi e, verso il richiedente, la targa (Dan, domanda 15, 2026-10-18), come nei testi di `seed/notifiche.yaml`; mai i contatti del cliente, mai i prezzi di altre agenzie prima della classifica, mai documenti.
 9. **Fornitori solo tramite adattatori.** Ogni fornitore ha una porta e un adattatore finto; test e sviluppo usano solo i finti.
 10. **Testi legali solo dall'archivio con versioni.** Finché il legale non li valida mostrano «[DA VALIDARE — LEGALE]» e la produzione non parte.
-11. **Solo dati sintetici** in sviluppo, test e collaudo. Compagnie inventate («Compagnia Alfa»…), persone e targhe inventate. Unica eccezione, decisa da Dan: la lettura ANIA vera nel back office della demo ([ADR 0022](docs/adr/0022-ania-vero-nella-demo.md)).
+11. **Solo dati sintetici** in sviluppo, test e collaudo. Compagnie inventate («Compagnia Alfa»…), persone e targhe inventate. Due eccezioni, decise da Dan, solo nella demo: la lettura ANIA vera nel back office ([ADR 0022](docs/adr/0022-ania-vero-nella-demo.md)) e, con `DEMO_COMPANIES=true`, le compagnie vere con i loghi al posto di quelle inventate ([ADR 0028](docs/adr/0028-compagnie-vere-nella-demo.md)).
 12. **Segreti mai nel repository**, mai nei log, mai nella chat. In locale `.env` (ignorato da git); in cloud AWS Secrets Manager.
 13. **Strumenti di sviluppo** (orologio spostabile, timer anticipati, offerte di prova) solo con `DEV_TOOLS=true`, mai in produzione.
 

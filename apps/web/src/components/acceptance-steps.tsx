@@ -1,8 +1,9 @@
 import { formatDate, formatDateTime, formatEuroCents } from "@astax/shared/format";
-import { Badge, Button, buttonVariants, GuaranteeChip, Icon } from "@astax/ui";
+import { Badge, Button, buttonVariants, CompanyLogo, GuaranteeChip, Icon } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import type { AcceptanceView, CurrentAcceptance, OfferRow, PolicyRow } from "@/lib/acceptance";
+import { TrademarksNote } from "@/components/trademarks-note";
 
 const TO_SIGN = ["PRECONTRACTUAL_INFO", "ENGAGEMENT_LETTER"];
 
@@ -60,6 +61,7 @@ export async function AcceptanceSteps({
         {t("summaryTitle")}
       </h2>
       <span className="flex flex-col">
+        <CompanyLogo companyId={row.companyId} name={row.company} size="detail" className="mb-2" />
         <span className="text-body font-bold">
           {row.company} · {row.product}
         </span>
@@ -282,6 +284,7 @@ export async function AcceptanceSteps({
           {grid}
         </form>
       )}
+      <TrademarksNote className="mt-4" />
     </div>
   );
 }

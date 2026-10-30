@@ -11,6 +11,8 @@ const configSchema = z
   .object({
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
     DEV_TOOLS: flag,
+    /** ADR 0028: the demo shows the real companies; dev and tests the invented ones (rule 11). */
+    DEMO_COMPANIES: flag,
     API_PORT: z.coerce.number().int().min(1).max(65535).default(4000),
     /** 127.0.0.1 on a developer's machine; 0.0.0.0 in a container (phase 8). */
     API_HOST: z.string().min(1).default("127.0.0.1"),
@@ -155,6 +157,10 @@ const configSchema = z
   .refine((c) => !(c.NODE_ENV === "production" && c.DEV_TOOLS), {
     message: "DEV_TOOLS must be false in production",
     path: ["DEV_TOOLS"],
+  })
+  .refine((c) => !(c.NODE_ENV === "production" && c.DEMO_COMPANIES), {
+    message: "DEMO_COMPANIES must be false in production",
+    path: ["DEMO_COMPANIES"],
   });
 
 export type ApiConfig = z.infer<typeof configSchema>;

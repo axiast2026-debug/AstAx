@@ -1,10 +1,11 @@
 import { formatDate, formatDateTime, formatEuroCents } from "@astax/shared/format";
-import { Badge, Button, GuaranteeChip, Icon } from "@astax/ui";
+import { Badge, Button, CompanyLogo, GuaranteeChip, Icon } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { purchaseOffer, sendForSignature } from "@/app/acceptance-actions";
 import { Info } from "@/components/info";
 import type { CurrentAcceptance, Presentation } from "@/lib/acceptance";
 import { api } from "@/lib/auth";
+import { TrademarksNote } from "@/components/trademarks-note";
 
 interface LinkState {
   expiresAt: string;
@@ -42,7 +43,10 @@ export async function BrokerOffersPanel({ requestId }: { requestId: string }) {
   const head = (o: (typeof p.offers)[number]) => (
     <div className="flex items-start gap-3">
       <span className="flex min-w-0 flex-1 flex-col gap-1">
-        <span className="text-body font-bold">{o.company}</span>
+        <span className="flex items-center gap-2">
+          <CompanyLogo companyId={o.companyId} name={o.company} />
+          <span className="text-body font-bold">{o.company}</span>
+        </span>
         <span className="text-table text-warm-600">{o.product}</span>
       </span>
       <span className="font-display text-screen font-extrabold whitespace-nowrap tabular">
@@ -167,6 +171,7 @@ export async function BrokerOffersPanel({ requestId }: { requestId: string }) {
           </form>
         </div>
       ) : null}
+      <TrademarksNote className="mt-4" />
     </section>
   );
 }

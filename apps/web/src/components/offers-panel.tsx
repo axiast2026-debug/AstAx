@@ -5,7 +5,7 @@ import {
   formatEuroCents,
   formatWeekdayDate,
 } from "@astax/shared/format";
-import { Badge, buttonVariants, GuaranteeChip, Icon } from "@astax/ui";
+import { Badge, buttonVariants, CompanyLogo, GuaranteeChip, Icon } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { cookies } from "next/headers";
 import Link from "next/link";
@@ -20,6 +20,7 @@ import { UNLOCK_AT } from "@/components/offers-reveal-timing";
 import type { CurrentAcceptance, OfferRow, Presentation } from "@/lib/acceptance";
 import { guaranteeState } from "@/lib/guarantee";
 import { api } from "@/lib/auth";
+import { TrademarksNote } from "@/components/trademarks-note";
 
 const eur = (value: unknown) => formatEuroCents(Number(value) * 100).replace(/,00(?=\s*€)/, "");
 
@@ -461,7 +462,10 @@ export async function OffersPanel({ requestId }: { requestId: string }) {
                 ) : null}
                 <div className="flex items-start justify-between gap-3 lg:flex-col lg:gap-2">
                   <span className="flex flex-col">
-                    <span className="text-body font-bold lg:text-section">{o.company}</span>
+                    <span className="flex items-center gap-2">
+                      <CompanyLogo companyId={o.companyId} name={o.company} />
+                      <span className="text-body font-bold lg:text-section">{o.company}</span>
+                    </span>
                     <span className="text-table text-warm-600">
                       {o.product}
                       {o.packageName ? ` · ${t("package", { name: o.packageName })}` : null}
@@ -619,6 +623,7 @@ export async function OffersPanel({ requestId }: { requestId: string }) {
           </p>
         </div>
       </OffersReveal>
+      <TrademarksNote className="mt-4" />
     </section>
   );
 }

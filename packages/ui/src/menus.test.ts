@@ -138,6 +138,7 @@ describe("menus by role (docs/specifiche 02-07)", () => {
       "economy",
       "systemSettings",
       "complaintsIndex",
+      "companies",
       "users",
       "organizations",
       "legalDocuments",

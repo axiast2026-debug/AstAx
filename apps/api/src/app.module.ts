@@ -56,6 +56,7 @@ import { AgencyPreviewService } from "./verification/agency-preview.service.js";
 import { AniaLoginController } from "./verification/ania-login.controller.js";
 import { VerificationController } from "./verification/verification.controller.js";
 import { VerificationService } from "./verification/verification.service.js";
+import { CompaniesController } from "./settings/companies.controller.js";
 import { ComplaintsIndexController } from "./settings/complaints-index.controller.js";
 import { ExceptionsController, NextOfferController } from "./issuance/exceptions.controller.js";
 import { ExceptionsService } from "./issuance/exceptions.service.js";
@@ -133,6 +134,7 @@ export class AppModule {
         OrganizationSettingsController,
         SettingsController,
         ComplaintsIndexController,
+        CompaniesController,
         IssuanceController,
         ExceptionsController,
         NextOfferController,

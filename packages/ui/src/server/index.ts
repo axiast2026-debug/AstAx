@@ -9,3 +9,4 @@ export {
   type WebAuthOptions,
   type WebSession,
 } from "./web-auth.js";
+export { COMPANY_LOGO_PLACEHOLDER, companyLogoResponse } from "./company-logo.js";

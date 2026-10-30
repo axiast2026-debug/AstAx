@@ -14,6 +14,8 @@ const configSchema = z
   .object({
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
     DEV_TOOLS: flag,
+    /** ADR 0028: the demo shows the real companies; dev and tests the invented ones (rule 11). */
+    DEMO_COMPANIES: flag,
     LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
     DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
     FIELD_ENCRYPTION_KEY: hexKey,
@@ -99,6 +101,10 @@ const configSchema = z
   .refine((c) => !(c.NODE_ENV === "production" && c.DEV_TOOLS), {
     message: "DEV_TOOLS must be false in production",
     path: ["DEV_TOOLS"],
+  })
+  .refine((c) => !(c.NODE_ENV === "production" && c.DEMO_COMPANIES), {
+    message: "DEMO_COMPANIES must be false in production",
+    path: ["DEMO_COMPANIES"],
   })
   .refine(
     (c) =>

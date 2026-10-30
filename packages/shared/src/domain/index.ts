@@ -28,3 +28,4 @@ export * from "./intake.js";
 export * from "./verification-checks.js";
 export * from "./ania.js";
 export * from "./bot-data.js";
+export * from "./demo-companies.js";

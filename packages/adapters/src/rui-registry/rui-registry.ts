@@ -65,10 +65,17 @@ export function parseRuiCsv(text: string): RuiRecordInput[] {
 }
 
 export class FakeRuiRegistry implements RuiRegistryPort {
-  constructor(private readonly csv: string = FAKE_CSV) {}
+  /** `renameCompany`: the demo turns the invented companies into real ones (ADR 0028). */
+  constructor(
+    private readonly csv: string = FAKE_CSV,
+    private readonly renameCompany: (name: string) => string = (name) => name,
+  ) {}
 
   async downloadLatest(): Promise<AsyncIterable<RuiRecordInput>> {
-    const records = parseRuiCsv(this.csv);
+    const records = parseRuiCsv(this.csv).map((r) => ({
+      ...r,
+      companies: r.companies.map(this.renameCompany),
+    }));
     return (async function* () {
       yield* records;
     })();

@@ -27,6 +27,7 @@ import {
   revokePushSubscription,
 } from "@astax/db";
 import { AwsSmsSender, MailpitSmsSender } from "@astax/adapters/sms";
+import { demoCompanyName } from "@astax/shared/domain";
 import { loadEnv } from "@astax/shared/env";
 import { createLogger, errorForLog } from "@astax/shared/logging";
 import { Client, Connection } from "@temporalio/client";
@@ -153,7 +154,13 @@ const activities = createActivities({
           { region: config.AWS_REGION, modelId: config.BEDROCK_MODEL_ID ?? "" },
           (key) => storage.get(key),
         )
-      : new FakeDocumentReader(clock, undefined, undefined, (key) => storage.get(key)),
+      : new FakeDocumentReader(
+          clock,
+          undefined,
+          undefined,
+          (key) => storage.get(key),
+          (name) => demoCompanyName(name, config.DEMO_COMPANIES),
+        ),
   notifier,
   logger,
   urls: { web: config.WEB_URL, admin: config.ADMIN_URL },
@@ -212,7 +219,7 @@ const stopSchedules = startSchedules(
     clock,
     cipher: fieldCipher,
     logger,
-    rui: new FakeRuiRegistry(),
+    rui: new FakeRuiRegistry(undefined, (name) => demoCompanyName(name, config.DEMO_COMPANIES)),
     notifier,
     adminUrl: config.ADMIN_URL,
     archiveAudit: (key, body) =>

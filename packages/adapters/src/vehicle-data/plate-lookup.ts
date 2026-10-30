@@ -41,12 +41,13 @@ const MAKES = [
   { make: "Veicoli Esempio", models: ["Compatta", "Berlina"] },
 ] as const;
 const FUELS = ["PETROL", "DIESEL", "HYBRID", "LPG", "ELECTRIC"] as const;
-const INSURERS = [
+/** Invented insurers (rule 11); the demo passes the real ones (ADR 0028). */
+export const FAKE_INSURERS: readonly string[] = [
   "Compagnia Alfa",
   "Compagnia Beta",
   "Compagnia Gamma",
   "Compagnia Delta",
-] as const;
+];
 
 function pick<T>(list: readonly T[], n: number): T {
   return list[n % list.length] as T;
@@ -62,7 +63,10 @@ function isoDay(date: Date): string {
  * the injected clock. `ZZ000ZZ` is not found, `XX999XX` is a provider error.
  */
 export class FakePlateLookup implements PlateLookupPort {
-  constructor(private readonly clock: Clock) {}
+  constructor(
+    private readonly clock: Clock,
+    private readonly insurers: readonly string[] = FAKE_INSURERS,
+  ) {}
 
   async lookup(input: { plate: string; vehicleType?: VehicleType }): Promise<PlateLookupResult> {
     const plate = input.plate.replace(/[\s-]/g, "").toUpperCase();
@@ -91,7 +95,7 @@ export class FakePlateLookup implements PlateLookupPort {
         powerKw: moto ? 11 + (n(9) % 60) : 50 + (n(9) % 120),
         firstRegistrationDate: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
       },
-      insurance: { companyName: pick(INSURERS, n(10)), expiryDate: isoDay(expiry) },
+      insurance: { companyName: pick(this.insurers, n(10)), expiryDate: isoDay(expiry) },
     };
   }
 }

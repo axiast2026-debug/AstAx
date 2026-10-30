@@ -67,6 +67,7 @@
     "integrations": "Integrazioni",
     "reports": "Report ed esportazioni",
     "complaintsIndex": "Indice reclami",
+    "companies": "Compagnie",
     "systemSettings": "Sicurezza e dati",
     "listsHolidays": "Elenchi e festività",
     "onboardingQueue": "Ingressi",
@@ -85,6 +86,7 @@
     "text": "Questa sezione arriva nelle prossime fasi di AstAx."
   },
   "legal": {
+    "trademarks": "I marchi delle compagnie appartengono ai rispettivi titolari e sono usati solo per identificare il prodotto offerto. AstAx non è partner delle compagnie.",
     "title": "Documenti da accettare",
     "intro": "Prima di continuare leggi e accetta questi documenti. Registriamo la versione, la data e l'ora.",
     "notValidated": "[DA VALIDARE — LEGALE]",
@@ -709,6 +711,24 @@
     "search": "Cerca per codice",
     "searchAction": "Cerca",
     "searchPlaceholder": "AX-2026-000123"
+  },
+  "companiesAdmin": {
+    "title": "Compagnie e loghi",
+    "intro": "Le compagnie con cui le agenzie offrono. Il logo si vede solo accanto alle offerte, mai nelle pagine pubbliche. PNG o SVG, al massimo 512 KB; senza logo le offerte mostrano il nome con un segnaposto neutro. Ogni modifica finisce nel registro.",
+    "group": "Gruppo {name}",
+    "ivass": "Codice IVASS {code}",
+    "noDetails": "Nessun dettaglio",
+    "hasLogo": "Logo caricato.",
+    "noLogo": "Nessun logo: le offerte mostrano il segnaposto.",
+    "file": "File del logo (PNG o SVG)",
+    "upload": "Carica il logo",
+    "replace": "Sostituisci il logo",
+    "saved": "Logo salvato.",
+    "error": "Operazione non riuscita ({code}).",
+    "errors": {
+      "LOGO_PNG_OR_SVG": "Il file deve essere un PNG o un SVG semplice, al massimo 512 KB.",
+      "FILE_REQUIRED": "Scegli il file del logo."
+    }
   },
   "complaintsIndex": {
     "title": "Indice reclami delle compagnie",

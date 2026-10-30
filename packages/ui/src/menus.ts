@@ -157,6 +157,7 @@ const ADMIN_MENU: MenuItem[] = [
   item("economy", "/economia", "admin.settings.manage"),
   item("systemSettings", "/sicurezza-dati", "admin.settings.manage"),
   item("complaintsIndex", "/indice-reclami", "admin.settings.manage"),
+  item("companies", "/compagnie", "admin.settings.manage"),
   item("users", "/utenti", "admin.users.manage"),
   item("organizations", "/organizzazioni", "organization.suspend"),
   item("legalDocuments", "/documenti-legali", "admin.legal.manage"),

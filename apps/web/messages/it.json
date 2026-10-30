@@ -80,6 +80,7 @@
     "integrations": "Integrazioni",
     "reports": "Report ed esportazioni",
     "complaintsIndex": "Indice reclami",
+    "companies": "Compagnie",
     "systemSettings": "Sicurezza e dati",
     "listsHolidays": "Elenchi e festività",
     "onboardingQueue": "Ingressi",
@@ -137,6 +138,7 @@
     "choose": "Lavora per questa"
   },
   "legal": {
+    "trademarks": "I marchi delle compagnie appartengono ai rispettivi titolari e sono usati solo per identificare il prodotto offerto. AstAx non è partner delle compagnie.",
     "title": "Documenti da accettare",
     "intro": "Prima di continuare leggi e accetta questi documenti. Registriamo la versione, la data e l'ora.",
     "notValidated": "[DA VALIDARE — LEGALE]",

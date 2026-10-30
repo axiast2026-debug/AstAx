@@ -20,6 +20,7 @@ import {
   VapidWebPush,
   type WebPushPort,
 } from "@astax/adapters/web-push";
+import { demoCompanyName, fakeCompanyNames } from "@astax/shared/domain";
 import { loadNotificationTemplates } from "@astax/shared/notifications";
 import {
   InMemoryObjectStorage,
@@ -225,7 +226,7 @@ export class InfraModule {
             baseUrl: config.OPENAPI_AUTOMOTIVE_URL,
             token: config.OPENAPI_AUTOMOTIVE_TOKEN ?? "",
           })
-        : new FakePlateLookup(clock));
+        : new FakePlateLookup(clock, fakeCompanyNames(config.DEMO_COMPANIES)));
     // One store for the documents and for the fake providers' envelopes and checkouts.
     const objectStorage = overrides.objectStorage ?? objectStorageFor(config);
     const bedrock = { region: config.AWS_REGION, modelId: config.BEDROCK_MODEL_ID ?? "" };
@@ -236,7 +237,7 @@ export class InfraModule {
             baseUrl: config.ANIA_BOT_URL ?? "",
             token: config.ANIA_BOT_TOKEN ?? "",
           })
-        : new FakeAniaReader(clock));
+        : new FakeAniaReader(clock, fakeCompanyNames(config.DEMO_COMPANIES)));
     return {
       module: InfraModule,
       providers: [
@@ -322,7 +323,9 @@ export class InfraModule {
             overrides.documentReader ??
             (config.AI_PROVIDER === "bedrock"
               ? new BedrockDocumentReader(bedrock, (key) => objectStorage.get(key))
-              : new FakeDocumentReader(clock, plateLookup)),
+              : new FakeDocumentReader(clock, plateLookup, undefined, undefined, (name) =>
+                  demoCompanyName(name, config.DEMO_COMPANIES),
+                )),
         },
         {
           // BC-03, ADR 0005: the API holds only the key of the agencies' own copies.

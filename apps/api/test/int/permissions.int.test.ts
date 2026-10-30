@@ -126,6 +126,14 @@ const ENDPOINTS: Endpoint[] = [
     path: () => "/admin/complaints-index",
     body: {},
   },
+  // ADR 0028: the companies and their logos.
+  { action: "admin.settings.manage", method: "GET", path: () => "/admin/companies" },
+  {
+    action: "admin.settings.manage",
+    method: "PUT",
+    path: () => `/admin/companies/${randomUUID()}/logo`,
+    body: {},
+  },
   {
     action: "admin.legal.manage",
     method: "POST",
@@ -1066,6 +1074,8 @@ const ENDPOINTS: Endpoint[] = [
 const PUBLIC_ROUTES = [
   // ADR 0016: the public home, read only, anonymous or aggregate data. Tested in public-home.int.test.ts.
   "GET /public/home",
+  // ADR 0028: a company logo, a public mark and not personal data. Tested in company-logos.int.test.ts.
+  "GET /companies/{id}/logo",
   "POST /webhooks/signature",
   "POST /webhooks/payments",
   "POST /webhooks/sdi",

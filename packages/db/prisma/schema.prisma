@@ -912,6 +912,9 @@ model InsuranceCompany {
   name      String   @unique
   ivassCode String?  @unique
   group     String?
+  /// ADR 0028: S3 key of the logo, under public/companies/; null shows the placeholder.
+  logoKey   String?
+  website   String?
   active    Boolean  @default(true)
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @default(now()) @db.Timestamptz(3)

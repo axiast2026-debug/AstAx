@@ -61,6 +61,8 @@ export async function createApp(
   );
   // The information set of a product of the agency library (decision 17).
   app.use(/^\/agency\/products\/[^/]+\/documents$/, raw({ type: () => true, limit: "60mb" }));
+  // ADR 0028: the logo of a company, uploaded by the back office (the use case caps it at 512 KB).
+  app.use(/^\/admin\/companies\/[^/]+\/logo$/, raw({ type: () => true, limit: "1mb" }));
   // Phase 7: the professional liability policy of an entry (public link: a smaller cap).
   app.use(/^\/onboarding\/[^/]+\/prof-insurance$/, raw({ type: () => true, limit: "20mb" }));
   // Phase 7: the bank statement of the separate account (CSV or camt.053).
