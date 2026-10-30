@@ -17,6 +17,16 @@ const decideSchema = z.strictObject({
   newPremiumCents: z.number().int().positive().optional(),
 });
 const reasonSchema = z.strictObject({ reason: z.string().trim().min(3).max(500) });
+const refundRequestSchema = z
+  .strictObject({
+    requestCode: z.string().trim().min(3).max(40),
+    reason: z.enum(["BEFORE_ISSUANCE", "INVALID_ACCEPTANCE"]),
+    // Rule 5: integer cents.
+    premiumCents: z.number().int().min(0),
+    feeCents: z.number().int().min(0),
+    note: z.string().trim().min(3).max(500),
+  })
+  .refine((v) => v.premiumCents + v.feeCents > 0, "nothing to refund");
 const returnSchema = z.strictObject({
   returnPath: z
     .string()
@@ -64,6 +74,14 @@ export class ExceptionsController {
   @RequirePermission("accounting.view")
   refundList(@CurrentAuth() auth: AuthContext) {
     return this.refunds.list(auth);
+  }
+
+  /** Audit of 2026-10-30 (A4): a refund asked by hand, approved by the supervisor. */
+  @Post("refunds")
+  @HttpCode(201)
+  @RequirePermission("refund.request")
+  requestRefund(@CurrentAuth() auth: AuthContext, @Body() body: unknown) {
+    return this.refunds.requestByBackOffice(auth, parseInput(refundRequestSchema, body));
   }
 
   @Post("refunds/:id/approve")

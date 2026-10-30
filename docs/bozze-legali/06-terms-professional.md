@@ -53,7 +53,7 @@
 
 5.2 L'agenzia può mettersi in pausa, limitare la capacità e scegliere gli orari di ricezione. Mantenere filtri realistici fa parte degli obblighi di correttezza.
 
-5.3 Le agenzie invitate vedono i dati utili al preventivo e i documenti della richiesta, **mai telefono ed email del cliente**. Ogni apertura del dettaglio o di un documento è registrata e la pagina lo dice; i documenti portano una filigrana con agenzia, utente, data e ora. Il titolare vede il registro degli accessi dei propri utenti.
+5.3 Le agenzie attive su AstAx (ADR 0024: le aste sono aperte a tutte) vedono i dati utili al preventivo e i documenti della richiesta, **mai telefono ed email del cliente**. Ogni apertura del dettaglio o di un documento è registrata e la pagina lo dice; i documenti portano una filigrana con agenzia, utente, data e ora. Il titolare vede il registro degli accessi dei propri utenti.
 
 5.4 La presa in carico di una richiesta la blocca per gli altri utenti della stessa agenzia fino al rilascio, all'intervento del titolare o del supervisore, o alla chiusura.
 

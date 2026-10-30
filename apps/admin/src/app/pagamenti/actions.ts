@@ -70,3 +70,30 @@ export async function generateSepaFile(formData: FormData): Promise<void> {
 export async function executeRemittance(formData: FormData): Promise<void> {
   await post(`/back-office/remittances/${remittanceId(formData)}/execute`);
 }
+
+/** «12,50» or «12.5» in integer cents (rule 5); null when it is not an amount. */
+function toCents(value: string): number | null {
+  const m = /^(\d{1,7})(?:[.,](\d{1,2}))?$/.exec(value.trim());
+  if (!m) return null;
+  return Number(m[1]) * 100 + Number((m[2] ?? "0").padEnd(2, "0"));
+}
+
+/** Audit of 2026-10-30 (A4): a refund asked by hand; the supervisor approves it. */
+export async function requestRefund(formData: FormData): Promise<void> {
+  const premiumCents = toCents(String(formData.get("premium") ?? "0") || "0");
+  const feeCents = toCents(String(formData.get("fee") ?? "0") || "0");
+  if (premiumCents === null || feeCents === null) redirect("/pagamenti?errore=INVALID_AMOUNT");
+  const { status, body } = await api(`/back-office/refunds`, {
+    method: "POST",
+    body: JSON.stringify({
+      requestCode: String(formData.get("requestCode") ?? "").trim(),
+      reason: String(formData.get("reason") ?? ""),
+      premiumCents,
+      feeCents,
+      note: String(formData.get("note") ?? "").trim(),
+    }),
+  });
+  revalidatePath("/pagamenti");
+  if (status !== 201) redirect(`/pagamenti?errore=${encodeURIComponent(codesOf(body))}`);
+  redirect("/pagamenti?fatto=1");
+}

@@ -8,7 +8,7 @@ describe("broker work table (docs/piano-broker.md, G)", () => {
     expect(taskHref("r1", task)).toBe("/richieste/r1/tipo");
   });
 
-  it("offers ready: the broker sends the best to the customer from the request", () => {
+  it("ADR 0027 offers ready: the intermediary chooses and buys from the request", () => {
     const task = brokerTask("OFFERS_AVAILABLE");
     expect(task.kind).toBe("ACTION");
     expect(taskHref("r1", task)).toBe("/richieste/r1");
@@ -16,9 +16,13 @@ describe("broker work table (docs/piano-broker.md, G)", () => {
 
   it("while others work the table says who it waits for; closed requests have no task", () => {
     expect(brokerTask("IN_VERIFICATION")).toEqual({ kind: "WAIT", key: "verification" });
-    expect(brokerTask("ACCEPTED")).toEqual({ kind: "WAIT", key: "customer" });
     expect(brokerTask("ISSUED")).toEqual({ kind: "NONE" });
     expect(brokerTask("CANCELLED")).toEqual({ kind: "NONE" });
+  });
+
+  it("ADR 0027 bought: the purchase is completed until the customer signs", () => {
+    expect(brokerTask("ACCEPTED")).toEqual({ kind: "ACTION", key: "completePurchase" });
+    expect(taskHref("r1", brokerTask("ACCEPTED"))).toBe("/richieste/r1");
   });
 
   it("«Da fare» lists only the states with an action", () => {
@@ -26,6 +30,7 @@ describe("broker work table (docs/piano-broker.md, G)", () => {
       "DRAFT",
       "INTEGRATION_REQUESTED",
       "OFFERS_AVAILABLE",
+      "ACCEPTED",
       "EXPIRED",
     ]);
   });

@@ -23,7 +23,14 @@ interface PenaltyRow {
  * or withdraws the proposed ones; in «Organizzazioni» the administrator
  * decides the contested ones. Simple pages: the full panel is phase 7.
  */
-export async function PenaltiesList({ mode }: { mode: "backOffice" | "admin" }) {
+export async function PenaltiesList({
+  mode,
+  canApply = true,
+}: {
+  mode: "backOffice" | "admin";
+  /** Audit of 2026-10-30 (E1): apply and cancel only with penalty.apply. */
+  canApply?: boolean;
+}) {
   const t = await getTranslations("penalties");
   const { status, body } = await api<PenaltyRow[]>(
     mode === "admin" ? "/admin/penalties" : "/back-office/penalties",
@@ -58,7 +65,7 @@ export async function PenaltiesList({ mode }: { mode: "backOffice" | "admin" }) 
                 {p.contestText ? (
                   <p className="mt-1">{t("contestText", { text: p.contestText })}</p>
                 ) : null}
-                {mode === "backOffice" ? (
+                {mode === "backOffice" && !canApply ? null : mode === "backOffice" ? (
                   <div className="mt-2 flex flex-wrap items-end gap-3">
                     {p.status === "PROPOSED" ? (
                       <form action={applyPenalty}>

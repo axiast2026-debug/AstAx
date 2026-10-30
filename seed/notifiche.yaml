@@ -97,7 +97,7 @@ events:
       emailBody: |
         Buongiorno {{nome}},
         {{broker}} sta chiedendo per te un preventivo RC auto su AstAx per {{veicolo}}.
-        Per procedere serve il tuo consenso a condividere i dati del preventivo con le agenzie che faranno l'offerta. Telefono ed email non vengono condivisi.
+        Per procedere serve il tuo consenso a condividere i dati del preventivo con le agenzie attive su AstAx, che vedono la richiesta e possono fare un'offerta. Telefono ed email non vengono condivisi.
         Leggi e conferma con un codice: {{link}}
         Il link vale fino al {{scadenza_link}}.
 
@@ -808,6 +808,18 @@ events:
       emailBody: |
         {{organizzazione}} ({{tipo_organizzazione}}, RUI {{numero_rui}}) ha chiesto di entrare su AstAx.
         Verifica dati, mandati, RC professionale e contratti firmati: {{link}}
+  organization.mandates_requested.bo:
+    recipients: [bo_supervisors]
+    channels: [in_app, email]
+    # Analisi del 2026-10-30 (A3): il titolare chiede di cambiare i mandati, che si controllano sul RUI.
+    variables: [organizzazione, link]
+    it:
+      title: "Richiesta di modifica dei mandati: {{organizzazione}}"
+      body: "Il titolare chiede di cambiare i mandati: la richiesta è nelle note dell'organizzazione."
+      emailSubject: "Richiesta di modifica dei mandati: {{organizzazione}}"
+      emailBody: |
+        Il titolare di {{organizzazione}} chiede di cambiare i mandati.
+        La richiesta è nelle note dell'organizzazione: {{link}}
   onboarding.approved:
     recipients: [organization_owner]
     channels: [in_app, email]

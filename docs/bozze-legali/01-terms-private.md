@@ -65,7 +65,7 @@ Capitali assicurati, valore del veicolo, scoperti e franchigie li propone l'agen
 
 > **Nota per il legale:** `CLAUDE.md` (riga 9) dice che la durata dell'asta la sceglie il richiedente, ma con il flusso semplificato (`docs/piano-flusso-semplificato.md`, schermate 1-5) e per il broker (`docs/piano-broker.md`, riga 87) durata e validità minima del prezzo sono quelle predefinite dei parametri. Il testo è scritto in modo neutro («le durate in vigore»): va confermato con Dan se il Cliente sceglie ancora la durata e la validità minima.
 
-5.2 AstAx invita all'asta le agenzie compatibili con la richiesta (oggi fino a 8; se a metà asta le offerte sono meno di 3, fino a 4 agenzie in più). Il Cliente non sceglie le agenzie invitate.
+5.2 L'asta è aperta a tutte le agenzie attive su AstAx con un mandato utile per la richiesta: ognuna vede la richiesta e può fare un'offerta; AstAx avvisa per email le agenzie i cui filtri corrispondono alla richiesta. Il Cliente non sceglie le agenzie.
 
 5.3 **Busta chiusa.** Prima della chiusura nessuno può leggere il contenuto delle offerte: né le altre agenzie, né il Cliente, né il personale o gli amministratori di AstAx. Le offerte sono cifrate all'arrivo e si aprono solo alla chiusura, in modo automatico.
 

@@ -140,6 +140,6 @@ Dettagli tecnici: [`busta-chiusa.md`](busta-chiusa.md).
 - **LEG-01** I testi legali stanno in un archivio con versioni. Ogni accettazione registra versione, data, ora e indirizzo IP.
 - **LEG-02** Una nuova versione obbliga gli utenti interessati ad accettarla al prossimo accesso.
 - **LEG-03** Un testo non validato mostra «[DA VALIDARE — LEGALE]». Il rilascio in produzione è bloccato se un testo in uso non è validato.
-- **LEG-04** Prima dell'invio di una richiesta serve il consenso alla condivisione dei dati con le agenzie invitate. Se il cliente lo revoca, non si aprono nuove aste per lui.
+- **LEG-04** Prima dell'invio di una richiesta serve il consenso alla condivisione dei dati con le agenzie attive su AstAx: dall'ADR 0024 ogni agenzia attiva vede le aste aperte, con i dati e i documenti della richiesta (mai telefono ed email). Se il cliente lo revoca, non si aprono nuove aste per lui.
 - **LEG-05** All'accettazione il privato firma con FEA la lettera di incarico e prende visione dell'informativa precontrattuale (MUP), che indica AstAx proponente, agenzia emittente, compagnia, compensi e modalità di pagamento. Il set di documenti dipende dal canale ed è configurabile.
 - **LEG-06** Le richieste non concluse si cancellano dopo 12 mesi; contratti e documenti contabili si conservano per i termini di legge (predefinito 10 anni, da validare).

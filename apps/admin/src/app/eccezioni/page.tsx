@@ -1,5 +1,6 @@
 import { formatDate, formatDateTime } from "@astax/shared/format";
 import { Badge, Button, Card } from "@astax/ui";
+import { can } from "@astax/shared/permissions";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -129,7 +130,7 @@ export default async function ExceptionsPage({
         </ul>
       )}
       <OtherExceptions actor={viewer.actor} />
-      <PenaltiesList mode="backOffice" />
+      <PenaltiesList mode="backOffice" canApply={can(viewer.actor, "penalty.apply")} />
     </AppShell>
   );
 }

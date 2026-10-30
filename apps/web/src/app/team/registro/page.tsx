@@ -37,9 +37,12 @@ export default async function AccessLogPage({
 
   return (
     <AppShell viewer={viewer}>
-      <Link href="/team" className="text-sm underline">
-        {t("back")}
-      </Link>
+      {/* A section E owner has no team page (ADR 0026): the link only for who has it. */}
+      {can(viewer.actor, "team.manage") ? (
+        <Link href="/team" className="text-sm underline">
+          {t("back")}
+        </Link>
+      ) : null}
       <h1 className="mt-2 text-2xl font-bold">
         {t("title")}
         <Info>{t("intro")}</Info>

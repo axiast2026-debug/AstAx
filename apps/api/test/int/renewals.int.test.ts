@@ -168,6 +168,58 @@ describe("process 10 «Rinnova in asta»", () => {
   });
 });
 
+describe("VIS-13 the broker's policies (audit of 2026-10-30, A1)", () => {
+  it("the owner sees every policy of the broker; an operator only those of their own customers", async () => {
+    await acceptAllLegal(h, "broker-owner");
+    await acceptAllLegal(h, "broker-operator");
+    const owner = {
+      token: await h.tokenFor("broker-owner"),
+      context: membershipId("broker-owner", "broker-demo"),
+    };
+    const operator = {
+      token: await h.tokenFor("broker-operator"),
+      context: membershipId("broker-operator", "broker-demo"),
+    };
+    const request = await r.submittedPrivateRequest(customer, EMAIL);
+    // A request of the owner's, for a customer the operator does not follow.
+    const policyId = await system(async (tx) => {
+      await tx.quoteRequest.update({
+        where: { id: request.id },
+        data: {
+          channel: "BROKER",
+          ownerUserId: null,
+          ownerOrganizationId: orgId("broker-demo"),
+          requesterUserId: userId("broker-owner"),
+        },
+      });
+      const company = await tx.insuranceCompany.findFirstOrThrow({
+        where: { name: "Compagnia Alfa" },
+      });
+      const policy = await tx.policy.create({
+        data: {
+          quoteRequestId: request.id,
+          offerId: randomUUID(),
+          acceptanceId: randomUUID(),
+          organizationId: orgId("agenzia-uno"),
+          companyId: company.id,
+          ownerOrganizationId: orgId("broker-demo"),
+          policyNumber: `VIS13-${randomUUID().slice(0, 6)}`,
+          startDate: new Date("2030-03-01"),
+          endDate: new Date("2031-02-28"),
+          premiumCents: 48_000,
+          issuedAt: new Date("2030-03-01T09:00:00Z"),
+          issuedByUserId: randomUUID(),
+        },
+      });
+      return policy.id;
+    });
+    const ids = async (who: Who) =>
+      (await r.json<{ id: string }[]>(await r.call(who, "/policies"), 200)).map((x) => x.id);
+    expect(await ids(owner)).toContain(policyId);
+    expect(await ids(operator)).not.toContain(policyId);
+  });
+});
+
 describe("spec 02 the broker's renewals", () => {
   it("the month at once: only the renewals already open (renewal.daysBefore); the list is in the audit log", async () => {
     const broker = {

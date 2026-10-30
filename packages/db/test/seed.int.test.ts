@@ -172,7 +172,8 @@ describe("fase 1 passo 4: seed", () => {
     // Nothing more when the file has not changed.
     await runSeed();
     expect((await latest("offer.link_to_client")).version).toBe(link.version + 2);
-  });
+    // Two runs of the whole seed: more than the usual time of one test.
+  }, 120_000);
 
   it("SIC-03 stores contacts only encrypted, findable by blind index", async () => {
     const giulia = SYNTHETIC.users.find((u) => u.key === "private-giulia-neri");

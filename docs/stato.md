@@ -30,6 +30,28 @@ Poi, da decidere: B6 (dati dalla targa, serve l'account del fornitore), B7 (cont
 
 ## Ultima sessione
 
+**2026-10-30 — correzione delle incongruenze, passo 1** (piano approvato da Dan; `docs/analisi-incongruenze-2026-10-30.md`):
+- **A1:** il dipendente del broker vede solo le polizze dei suoi clienti (`requesterPolicies` con `requesterScope`, VIS-13).
+- **A2:** pagina `/inviti`: chi ha già un account accetta l'invito nel team (`GET /me/invites`, `POST /me/invites/:id/accept`).
+- **A3:** pagina «Impostazioni» del titolare, di agenzia, broker e sez. E (`/organization/settings`, `/organization/iban`, `/organization/mandates/request`):
+  - dati della società;
+  - PEC e sede modificabili;
+  - IBAN cambiato con un codice SMS al titolare;
+  - richiesta di modifica dei mandati, che diventa una nota sull'organizzazione con un avviso ai supervisori (`organization.mandates_requested.bo`).
+- **A4:** rimborso chiesto a mano dal back office in «Pagamenti» (`POST /back-office/refunds`, `refund.request`): mai più di quanto pagato, poi lo approva il supervisore.
+- **D5:** consenso con «agenzie attive su AstAx» (spunta, profilo, email del consenso, LEG-04, bozze legali 01, 02, 06); domanda al legale in `punti-aperti.md`.
+- **Già fatti del passo 2:**
+  - menu per ruolo:
+    - C1: registro accessi tra i collegamenti;
+    - C2: «Agenzia» con `productLibrary.manage`;
+    - C3: «Polizze emesse» al dipendente che emette;
+    - B2: «Rinnovi» al dipendente;
+    - `SUB_AGENT_*` rinominati `OPERATOR_*`;
+  - back office:
+    - E1: Aste, Pagamenti, Eccezioni e Verifiche mostrano le azioni solo a chi ha il permesso;
+    - E2: «Portale ANIA» solo a chi verifica;
+    - A7: testi dell'anteprima delle agenzie.
+
 **2026-10-30 — analisi delle incongruenze e correzioni dell'acquisto diretto** (Dan: «prima di procedere con i miglioramenti, analizziamo il portale»). Il rapporto è in `docs/analisi-incongruenze-2026-10-30.md`: 45 punti, 8 decisioni per Dan e il piano di correzione proposto.
 
 Corretti subito, con le prove (errori del lavoro già approvato):

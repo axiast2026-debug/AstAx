@@ -66,7 +66,7 @@ export function linksFor(actor: Actor): MenuItem[] {
         : role === "AGENCY_OWNER" || role === "AGENCY_SUPERVISOR"
           ? AGENCY_LINKS
           : role === "AGENCY_OPERATOR"
-            ? SUB_AGENT_LINKS
+            ? OPERATOR_LINKS
             : [];
   return links.filter((entry) => can(actor, entry.action));
 }
@@ -96,25 +96,38 @@ export const AGENCY_LINKS: MenuItem[] = [
   item("filters", "/filtri", "agencyFilters.manage"),
   item("accounting", "/contabilita", "accounting.agencyStatement"),
   item("team", "/team", "team.manage"),
-  item("agency", "/agenzia", "organization.editProfile"),
+  // Audit of 2026-10-30: the access log has its own link (a section E owner
+  // has no team page, C1); «Agenzia» is the product library, the supervisor's
+  // too (C2); «Impostazioni» is the owner's (A3).
+  item("accessLog", "/team/registro", "accessLog.viewOwnAgency"),
+  item("agency", "/agenzia", "productLibrary.manage"),
+  item("settings", "/impostazioni", "organization.editProfile"),
 ];
 
-/** 05 — agency operator (sub-agent): the same sections, with its own data only. */
-const SUB_AGENT_MENU: MenuItem[] = [
+/**
+ * 05 — agency operator: an employee of the agency, in its team (ADR 0026; the
+ * sub-agent of section E is the owner of its own organization and has the
+ * agency's menu). The same sections, with its own data only.
+ */
+const OPERATOR_MENU: MenuItem[] = [
   item("incomingRequests", "/richieste-in-arrivo", "request.viewQuoteData"),
   item("myRequests", "/richieste", "request.viewOwn"),
   item("myResults", "/risultati", "ranking.view"),
   item("toIssue", "/da-emettere", "issuance.manage"),
+  // Audit of 2026-10-30 (C3): with «può emettere», the policies issued.
+  item("issuedPolicies", "/polizze", "issuance.manage"),
   item("metrics", "/metriche", "ranking.view"),
   item("profile", "/profilo", "profile.view"),
 ];
 
-/** The sub-agent's other pages, at the bottom of every page. */
-export const SUB_AGENT_LINKS: MenuItem[] = [
+/** The operator's other pages, at the bottom of every page. */
+export const OPERATOR_LINKS: MenuItem[] = [
   item("personalDashboard", "/", "request.viewQuoteData"),
   item("myOffers", "/le-mie-offerte", "offer.submit"),
   item("customers", "/clienti", "brokerCustomer.manage"),
   item("batches", "/lotti", "request.bulkUpload"),
+  // Audit of 2026-10-30 (B2): the renewals, as the broker's operator.
+  item("renewals", "/rinnovi", "request.viewOwn"),
   item("myFilters", "/filtri", "memberFilters.manageOwn"),
 ];
 
@@ -170,7 +183,7 @@ export function menuFor(actor: Actor): MenuItem[] {
       menu = AGENCY_MENU;
       break;
     case "AGENCY_OPERATOR":
-      menu = SUB_AGENT_MENU;
+      menu = OPERATOR_MENU;
       break;
     case "ADMIN":
       menu = ADMIN_MENU;
@@ -197,8 +210,8 @@ export const MENU_KEYS = [
       BROKER_LINKS,
       AGENCY_MENU,
       AGENCY_LINKS,
-      SUB_AGENT_MENU,
-      SUB_AGENT_LINKS,
+      OPERATOR_MENU,
+      OPERATOR_LINKS,
       BACK_OFFICE_MENU,
       ADMIN_MENU,
     ].flatMap((m) => m.map((entry) => entry.key)),

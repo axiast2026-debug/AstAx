@@ -1,6 +1,7 @@
 import { missingChecks, type QuoteType } from "@astax/shared/domain";
 import { formatDateTime, formatTime } from "@astax/shared/format";
 import { Badge, Button, Card, CardTitle, cn, Icon } from "@astax/ui";
+import { can } from "@astax/shared/permissions";
 import { getTranslations } from "next-intl/server";
 import { AppShell } from "@/components/app-shell";
 import { AgencySheet } from "@/components/agency-sheet";
@@ -125,9 +126,9 @@ export default async function VerificationCardPage({
   // Dan, 2026-10-28: only the holder decides; nobody holding it, the first action takes it.
   const holder = round?.assignedTo ?? null;
   const mine = holder?.id === viewer.me.id;
-  const supervisor =
-    viewer.activeMembership?.role === "BO_SUPERVISOR" || viewer.activeMembership?.role === "ADMIN";
-  const canDecide = open && (holder === null || mine);
+  const decides = can(viewer.actor, "verification.decide");
+  const supervisor = decides && viewer.activeMembership?.role === "BO_SUPERVISOR";
+  const canDecide = decides && open && (holder === null || mine);
   const checks = round?.checks ?? {};
   const missing = missingChecks(checks);
 
@@ -395,7 +396,7 @@ export default async function VerificationCardPage({
                         ))}
                       </ul>
                     ) : null}
-                    {open ? (
+                    {open && decides ? (
                       <form action={saveChecklistItem} className="mt-3 grid gap-2">
                         <input type="hidden" name="requestId" value={card.id} />
                         <input type="hidden" name="code" value={item.code} />
@@ -468,24 +469,26 @@ export default async function VerificationCardPage({
                         <li key={a.organizationId} className="py-2">
                           <div className="font-medium">{a.name}</div>
                           <div className="text-warm-600">{a.companies.join(", ")}</div>
-                          <form action={excludeAgency} className="mt-2 flex flex-wrap gap-2">
-                            <input type="hidden" name="requestId" value={card.id} />
-                            <input type="hidden" name="organizationId" value={a.organizationId} />
-                            <label className="sr-only" htmlFor={`reason-${a.organizationId}`}>
-                              {t("agencies.reason")}
-                            </label>
-                            <input
-                              id={`reason-${a.organizationId}`}
-                              name="reason"
-                              required
-                              minLength={3}
-                              placeholder={t("agencies.reason")}
-                              className="flex-1 rounded-lg border border-warm-200 px-3 py-1 text-sm"
-                            />
-                            <Button type="submit" variant="outline" size="sm">
-                              {t("agencies.exclude")}
-                            </Button>
-                          </form>
+                          {can(viewer.actor, "verification.excludeAgency") ? (
+                            <form action={excludeAgency} className="mt-2 flex flex-wrap gap-2">
+                              <input type="hidden" name="requestId" value={card.id} />
+                              <input type="hidden" name="organizationId" value={a.organizationId} />
+                              <label className="sr-only" htmlFor={`reason-${a.organizationId}`}>
+                                {t("agencies.reason")}
+                              </label>
+                              <input
+                                id={`reason-${a.organizationId}`}
+                                name="reason"
+                                required
+                                minLength={3}
+                                placeholder={t("agencies.reason")}
+                                className="flex-1 rounded-lg border border-warm-200 px-3 py-1 text-sm"
+                              />
+                              <Button type="submit" variant="outline" size="sm">
+                                {t("agencies.exclude")}
+                              </Button>
+                            </form>
+                          ) : null}
                         </li>
                       ))}
                     </ul>

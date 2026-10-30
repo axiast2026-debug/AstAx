@@ -118,11 +118,13 @@ Senza i dati richiesti non è possibile preparare il preventivo e organizzare l'
 
 ---
 
-## Parte II — Consenso alla condivisione dei dati con le agenzie invitate
+## Parte II — Consenso alla condivisione dei dati con le agenzie attive su AstAx
 
 Testo proposto per la spunta:
 
-> ☐ Ho letto le Condizioni d'uso e l'Informativa privacy di AstAx e **acconsento a che AstAx comunichi i dati e i documenti della mia richiesta di preventivo alle agenzie assicurative invitate all'asta e ai loro collaboratori**, per il solo calcolo dell'offerta. So che telefono ed email saranno comunicati solo all'agenzia di cui accetto e pago l'offerta. Posso revocare il consenso in ogni momento dal profilo: da quel momento non si aprono nuove aste per me; le aste già aperte proseguono.
+> ☐ Ho letto le Condizioni d'uso e l'Informativa privacy di AstAx e **acconsento a che AstAx comunichi i dati e i documenti della mia richiesta di preventivo alle agenzie assicurative attive su AstAx e ai loro sub-agenti, che vedono le aste aperte**, per il solo calcolo dell'offerta. So che telefono ed email saranno comunicati solo all'agenzia della polizza acquistata, dopo il pagamento (e, se la acquista il mio intermediario, dopo la mia firma).
+
+> **Nota per il legale (2026-10-30):** dall'ADR 0024 le aste sono aperte a tutte le agenzie attive, non più solo a quelle invitate (prima «fino a 8»). Il testo della spunta nel portale è già stato adeguato; va validato insieme a questa parte. Domanda in `docs/punti-aperti.md`. Posso revocare il consenso in ogni momento dal profilo: da quel momento non si aprono nuove aste per me; le aste già aperte proseguono.
 
 - Il consenso è registrato con versione del testo, data, ora e indirizzo IP.
 - Per il cliente di un intermediario il consenso si dà dal link ricevuto (valido per il periodo in vigore, oggi 7 giorni), con conferma tramite codice; oppure è coperto dalla dichiarazione unica firmata dall'intermediario (documento 09), oppure l'intermediario carica il consenso già firmato dal cliente, che il back office controlla.

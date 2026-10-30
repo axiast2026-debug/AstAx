@@ -105,6 +105,7 @@ Ogni utente sceglie i canali per evento nel profilo. Restano sempre attivi: le n
 | `survey.post_sale` | Privato o `broker_client` | Email |
 | `team.invitation` | La persona invitata | Email |
 | `onboarding.submitted.bo` | `bo_supervisors` | In app, email |
+| `organization.mandates_requested.bo` | `bo_supervisors` | In app, email |
 | `onboarding.approved` | Titolare | In app, email |
 | `onboarding.rejected` | Titolare | In app, email |
 | `profinsurance.expiring` | Titolare | In app, email |

@@ -86,7 +86,8 @@
     "batches": "Lotti",
     "metrics": "Metriche",
     "myRequests": "Le mie richieste",
-    "fleets": "Flotte aziendali"
+    "fleets": "Flotte aziendali",
+    "accessLog": "Registro accessi"
   },
   "home": {
     "welcome": "Ciao {name}",
@@ -160,7 +161,7 @@
     "logoutAll": "Disconnetti tutti i dispositivi",
     "noSessions": "Nessun accesso attivo.",
     "consents": "Consensi",
-    "consentsIntro": "Il consenso a condividere i dati delle tue richieste con le agenzie invitate. Se lo revochi, non si aprono nuove aste per te finché non lo dai di nuovo; le aste già aperte continuano.",
+    "consentsIntro": "Il consenso a condividere i dati delle tue richieste con le agenzie attive su AstAx, che vedono le aste aperte. Se lo revochi, non si aprono nuove aste per te finché non lo dai di nuovo; le aste già aperte continuano.",
     "noConsents": "Non hai ancora dato consensi.",
     "consentLine": "Condivisione con le agenzie, il {at} (testo versione {version})",
     "consentRevokedAt": "Revocato il {at}",
@@ -255,13 +256,13 @@
     "tasks": {
       "complete": "Completa e invia",
       "integrate": "Integra i dati",
-      "sendToCustomer": "Manda al cliente",
-      "reconfirm": "Chiedi la riconferma"
+      "reconfirm": "Chiedi la riconferma",
+      "buy": "Scegli e acquista",
+      "completePurchase": "Completa l'acquisto"
     },
     "waits": {
       "verification": "La verifica il back office",
       "auction": "Asta in corso",
-      "customer": "Il cliente firma e paga",
       "issuance": "L'agenzia emette",
       "reconfirmation": "Le agenzie riconfermano"
     },
@@ -788,7 +789,7 @@
         "start": "Decorrenza",
         "documents": "Documenti caricati"
       },
-      "consentTick": "Ho letto e accetto il trattamento dei dati e la condivisione con le agenzie invitate all'asta.",
+      "consentTick": "Ho letto e accetto il trattamento dei dati e la condivisione con le agenzie attive su AstAx, che vedono la richiesta e possono fare un'offerta.",
       "afterSubmit": "Dopo l'invio controlliamo i documenti e apriamo l'asta: ti avvisiamo noi a ogni passo.",
       "submit": "Invia la richiesta",
       "continue": "Continua",
@@ -967,7 +968,7 @@
     "reconfirmationPending": "Riconferma chiesta: tra pochi istanti le agenzie ricevono la richiesta.",
     "chosenDuration": "{hours, plural, one {Durata # ora lavorativa} other {Durata # ore lavorative}}",
     "namesHidden": "I nomi delle agenzie non si vedono, neanche dopo la chiusura: compaiono solo quando il cliente accetta.",
-    "atClosingBroker": "Vedi la migliore offerta di ogni compagnia e mandi al cliente quelle che vuoi: riceve un link, conferma con un codice, firma e paga il solo premio."
+    "atClosingBroker": "Vedi la migliore offerta di ogni compagnia, scegli quella per il tuo cliente e la acquisti pagando il solo premio. Poi il cliente riceve il link e firma con un codice."
   },
   "agency": {
     "days": "{days, plural, one {# giorno} other {# giorni}}",
@@ -1607,7 +1608,8 @@
     "signOnly": "Firma",
     "signOnlyText": "Il tuo intermediario ha già pagato. La firma è elettronica avanzata: sulla pagina del servizio di firma ricevi un codice via SMS e firmi.",
     "boughtSignedTitle": "Hai firmato",
-    "boughtSignedText": "La polizza è in emissione: l'agenzia la emette e ti contatta."
+    "boughtSignedText": "La polizza è in emissione: l'agenzia la emette e ti contatta.",
+    "boughtNote": "Il tuo intermediario ha già pagato il premio ad AstAx: tu firmi soltanto."
   },
   "fakeSignature": {
     "title": "Firma di prova",
@@ -2276,5 +2278,47 @@
     "phoneHint": "Per esempio 333 123 4567.",
     "submit": "Continua",
     "saving": "Salvo…"
+  },
+  "invites": {
+    "title": "Inviti a lavorare con un'organizzazione",
+    "none": "Non hai inviti da accettare.",
+    "until": "valido fino al {date}",
+    "accept": "Accetta l'invito",
+    "home": "Torna alla pagina iniziale"
+  },
+  "organizationSettings": {
+    "title": "Impostazioni",
+    "intro": "I dati della tua organizzazione su AstAx. Le modifiche le fa solo il titolare e restano nel registro.",
+    "dataTitle": "Dati della società",
+    "dataIntro": "Ragione sociale, partita IVA e RUI vengono dalla registrazione controllata dal back office: per cambiarli scrivi ad AstAx. PEC e sede le cambi qui.",
+    "legalName": "Ragione sociale",
+    "vatNumber": "Partita IVA",
+    "rui": "Numero RUI",
+    "section": "sezione {section}",
+    "principal": "RUI di chi ti incarica",
+    "pec": "PEC",
+    "street": "Indirizzo della sede",
+    "save": "Salva i dati",
+    "ibanTitle": "IBAN",
+    "ibanIntro": "Il conto su cui AstAx versa le rimesse e le provvigioni. Lo cambia solo il titolare, con un codice via SMS sul proprio cellulare.",
+    "ibanNow": "IBAN attuale: {iban}",
+    "ibanNone": "Nessun IBAN inserito.",
+    "codeTo": "Il codice arriva al tuo cellulare {phone}.",
+    "phone": "Il tuo cellulare",
+    "sendCode": "Mandami il codice per cambiare l'IBAN",
+    "sendAgain": "Mandami un nuovo codice",
+    "iban": "Nuovo IBAN",
+    "code": "Codice ricevuto",
+    "confirmIban": "Cambia l'IBAN",
+    "mandatesTitle": "Mandati",
+    "mandatesIntro": "Le compagnie con cui l'agenzia può fare offerte, controllate sul RUI. Per aggiungerne o toglierne una scrivi qui: decide il back office dopo il controllo.",
+    "notVerified": "da verificare",
+    "mandatesRequest": "Quali mandati vuoi aggiungere o togliere?",
+    "mandatesSend": "Invia la richiesta al back office",
+    "done": {
+      "dati": "Dati salvati.",
+      "iban": "IBAN cambiato.",
+      "mandati": "Richiesta inviata: il back office ti risponde dopo il controllo sul RUI."
+    }
   }
 }

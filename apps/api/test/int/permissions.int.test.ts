@@ -922,6 +922,33 @@ const ENDPOINTS: Endpoint[] = [
   { action: "offer.submit", method: "GET", path: () => "/agency/iban" },
   { action: "offer.submit", method: "POST", path: () => "/agency/iban/code", body: {} },
   { action: "offer.submit", method: "POST", path: () => "/agency/iban", body: {} },
+  // Audit of 2026-10-30: the owner's settings (A3) and the refund asked by hand (A4).
+  { action: "organization.editProfile", method: "GET", path: () => "/organization/settings" },
+  {
+    action: "organization.editProfile",
+    method: "PUT",
+    path: () => "/organization/settings",
+    body: {},
+  },
+  {
+    action: "organization.editProfile",
+    method: "POST",
+    path: () => "/organization/iban/code",
+    body: { phone: "abc" },
+  },
+  {
+    action: "organization.editProfile",
+    method: "POST",
+    path: () => "/organization/iban",
+    body: {},
+  },
+  {
+    action: "organization.editProfile",
+    method: "POST",
+    path: () => "/organization/mandates/request",
+    body: {},
+  },
+  { action: "refund.request", method: "POST", path: () => "/back-office/refunds", body: {} },
   { action: "productLibrary.manage", method: "POST", path: () => "/agency/products", body: {} },
   {
     action: "productLibrary.manage",

@@ -1,25 +1,28 @@
 /**
- * The broker's work table (docs/piano-broker.md, G, Dan 2026-10-21): for
- * every state of a request, what the broker has to do now and where. A state
- * without a task says who the request is waiting for.
+ * The intermediary's work table (docs/piano-broker.md, G, Dan 2026-10-21): for
+ * every state of a request, what the intermediary has to do now and where. A
+ * state without a task says who the request is waiting for. ADR 0027: with
+ * the offers the intermediary chooses and buys; once bought, it completes the
+ * purchase (payment, the customer's contacts, the signature) until the
+ * customer signs.
  */
 export type BrokerTask =
   | {
       kind: "ACTION";
-      key: "complete" | "integrate" | "sendToCustomer" | "reconfirm";
+      key: "complete" | "integrate" | "buy" | "completePurchase" | "reconfirm";
       step?: string;
     }
-  | { kind: "WAIT"; key: "verification" | "auction" | "customer" | "issuance" | "reconfirmation" }
+  | { kind: "WAIT"; key: "verification" | "auction" | "issuance" | "reconfirmation" }
   | { kind: "NONE" };
 
 const TASKS: Record<string, BrokerTask> = {
   DRAFT: { kind: "ACTION", key: "complete", step: "tipo" },
   INTEGRATION_REQUESTED: { kind: "ACTION", key: "integrate" },
-  OFFERS_AVAILABLE: { kind: "ACTION", key: "sendToCustomer" },
+  OFFERS_AVAILABLE: { kind: "ACTION", key: "buy" },
+  ACCEPTED: { kind: "ACTION", key: "completePurchase" },
   EXPIRED: { kind: "ACTION", key: "reconfirm" },
   IN_VERIFICATION: { kind: "WAIT", key: "verification" },
   AUCTION_OPEN: { kind: "WAIT", key: "auction" },
-  ACCEPTED: { kind: "WAIT", key: "customer" },
   IN_ISSUANCE: { kind: "WAIT", key: "issuance" },
   IN_RECONFIRMATION: { kind: "WAIT", key: "reconfirmation" },
 };

@@ -7,7 +7,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { api } from "@/lib/auth";
 import { requireViewer } from "@/lib/me";
-import { approveRefund, rejectRefund } from "./actions";
+import { approveRefund, rejectRefund, requestRefund } from "./actions";
 import { RemittancesSection } from "./remittances-section";
 
 interface RefundRow {
@@ -55,6 +55,61 @@ export default async function PaymentsPage({
       ) : null}
       <RemittancesSection canExecute={can(viewer.actor, "remittance.execute")} />
       {refunds ? <h2 className="mt-8 text-lg font-semibold">{t("refunds")}</h2> : null}
+      {can(viewer.actor, "refund.request") ? (
+        <Card className="mt-3">
+          <h3 className="text-base font-semibold">{t("requestTitle")}</h3>
+          <p className="mt-1 text-sm text-warm-600">{t("requestIntro")}</p>
+          <form action={requestRefund} className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+            <label className="grid gap-1">
+              {t("requestCode")}
+              <input
+                name="requestCode"
+                required
+                className="rounded-lg border border-warm-200 px-3 py-2"
+              />
+            </label>
+            <label className="grid gap-1">
+              {t("requestReason")}
+              <select name="reason" className="rounded-lg border border-warm-200 px-3 py-2">
+                <option value="INVALID_ACCEPTANCE">{t("reason.INVALID_ACCEPTANCE")}</option>
+                <option value="BEFORE_ISSUANCE">{t("reason.BEFORE_ISSUANCE")}</option>
+              </select>
+            </label>
+            <label className="grid gap-1">
+              {t("requestPremium")}
+              <input
+                name="premium"
+                inputMode="decimal"
+                placeholder="0,00"
+                className="rounded-lg border border-warm-200 px-3 py-2"
+              />
+            </label>
+            <label className="grid gap-1">
+              {t("requestFee")}
+              <input
+                name="fee"
+                inputMode="decimal"
+                placeholder="0,00"
+                className="rounded-lg border border-warm-200 px-3 py-2"
+              />
+            </label>
+            <label className="grid gap-1 sm:col-span-2">
+              {t("requestNote")}
+              <input
+                name="note"
+                required
+                minLength={3}
+                className="rounded-lg border border-warm-200 px-3 py-2"
+              />
+            </label>
+            <div className="sm:col-span-2">
+              <Button type="submit" variant="outline">
+                {t("requestSend")}
+              </Button>
+            </div>
+          </form>
+        </Card>
+      ) : null}
       {!refunds ? null : refunds.length === 0 ? (
         <Card className="mt-3">
           <p className="text-sm">{t("noRefunds")}</p>
@@ -86,7 +141,7 @@ export default async function PaymentsPage({
                       ? ` · ${t("executedAt", { at: formatDateTime(refund.executedAt) })}`
                       : ""}
                   </p>
-                  {refund.status === "REQUESTED" ? (
+                  {refund.status === "REQUESTED" && can(viewer.actor, "refund.approve") ? (
                     <div className="mt-3 flex flex-wrap items-end gap-3 text-sm">
                       <form action={approveRefund}>
                         <input type="hidden" name="refundId" value={refund.id} />

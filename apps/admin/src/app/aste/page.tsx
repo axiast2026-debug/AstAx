@@ -1,5 +1,6 @@
 import { formatDateTime, formatEuroCents } from "@astax/shared/format";
 import { Badge, Button, Card, Icon } from "@astax/ui";
+import { can } from "@astax/shared/permissions";
 import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { realtimeTicket } from "@/app/actions";
@@ -203,7 +204,7 @@ export default async function AuctionsPage({
         message={query.errore ? t("error", { code: query.errore }) : null}
         closeLabel={t("close")}
       />
-      {DEV_TOOLS ? (
+      {DEV_TOOLS && can(viewer.actor, "devTools.use") ? (
         <Card className="mt-6 border-dashed border-orange-500">
           <p className="text-sm font-semibold">{t("dev.title")}</p>
           <p className="mt-1 text-xs text-warm-600">{t("dev.intro")}</p>
@@ -261,6 +262,7 @@ export default async function AuctionsPage({
                 </div>
               </dl>
               {DEV_TOOLS &&
+              can(viewer.actor, "devTools.use") &&
               ["AUCTION_OPEN", "OFFERS_AVAILABLE", "IN_RECONFIRMATION"].includes(
                 a.requestStatus,
               ) ? (
@@ -282,7 +284,7 @@ export default async function AuctionsPage({
                   </form>
                 </div>
               ) : null}
-              {a.status === "OPEN" ? (
+              {a.status === "OPEN" && can(viewer.actor, "auction.manage") ? (
                 <div className="mt-4 grid gap-3 lg:grid-cols-3">
                   <form action={extendAuction} className="flex flex-wrap items-end gap-2">
                     <input type="hidden" name="auctionId" value={a.auctionId} />

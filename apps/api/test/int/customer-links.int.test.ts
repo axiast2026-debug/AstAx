@@ -357,3 +357,54 @@ describe("ADR 0027: the intermediary buys the offer, the customer signs afterwar
     expect(JSON.stringify(await toIssue("agenzia-uno-owner", "agenzia-uno"))).not.toContain(EMAIL);
   });
 });
+
+describe("audit 2026-10-30 A4: a refund asked by hand by the back office", () => {
+  it("never more than what was paid; then it waits for the supervisor", async () => {
+    await acceptAllLegal(h, "bo-support");
+    const support = {
+      token: await h.tokenFor("bo-support"),
+      context: membershipId("bo-support", "astax"),
+    };
+    const { code } = await system((tx) =>
+      tx.quoteRequest.findUniqueOrThrow({ where: { id: requestId } }),
+    );
+    const tooMuch = await r.json<{ errors: { issue: string }[] }>(
+      await r.call(support, "/back-office/refunds", {
+        body: {
+          requestCode: code,
+          reason: "INVALID_ACCEPTANCE",
+          premiumCents: 46_001,
+          feeCents: 0,
+          note: "Il cliente non firma",
+        },
+      }),
+      400,
+    );
+    expect(tooMuch.errors.map((e) => e.issue)).toEqual(["MORE_THAN_PAID"]);
+    const refund = await r.json<{ id: string }>(
+      await r.call(support, "/back-office/refunds", {
+        body: {
+          requestCode: code,
+          reason: "INVALID_ACCEPTANCE",
+          premiumCents: 46_000,
+          feeCents: 0,
+          note: "Il cliente non firma",
+        },
+      }),
+      201,
+    );
+    const stored = await system((tx) => tx.refund.findUniqueOrThrow({ where: { id: refund.id } }));
+    expect(stored).toMatchObject({ status: "REQUESTED", premiumCents: 46_000, feeCents: 0 });
+    // Nothing left to refund now.
+    const again = await r.call(support, "/back-office/refunds", {
+      body: {
+        requestCode: code,
+        reason: "INVALID_ACCEPTANCE",
+        premiumCents: 1,
+        feeCents: 0,
+        note: "Ancora",
+      },
+    });
+    expect(again.status).toBe(400);
+  });
+});

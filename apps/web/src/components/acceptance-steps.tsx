@@ -98,7 +98,7 @@ export async function AcceptanceSteps({
           {bought ? t("signOnly") : t("signAndPay", { amount })}
         </Button>
       ) : null}
-      <p className="text-note text-warm-600">{t("onePayment")}</p>
+      <p className="text-note text-warm-600">{bought ? t("boughtNote") : t("onePayment")}</p>
       {!paid && changeHref ? (
         <p className="text-table">
           <Link href={changeHref} className="inline-flex min-h-11 items-center underline">

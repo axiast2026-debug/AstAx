@@ -73,7 +73,8 @@
     "batches": "Lotti",
     "metrics": "Metriche",
     "myRequests": "Le mie richieste",
-    "fleets": "Flotte aziendali"
+    "fleets": "Flotte aziendali",
+    "accessLog": "Registro accessi"
   },
   "home": {
     "welcome": "Ciao {name}",
@@ -301,12 +302,12 @@
     "messageToRequester": "Messaggio al richiedente",
     "askIntegration": "Chiedi l'integrazione",
     "agencies": {
-      "title": "Agenzie da invitare",
-      "summary": "Approvando ora si invitano {count} agenzie, che coprono: {companies}. Chiusura prevista: {close}.",
-      "none": "Nessuna agenzia compatibile: approvando, la richiesta diventerebbe subito deserta.",
+      "title": "Agenzie avvisate per email",
+      "summary": "Approvando ora l'email arriva a {count} agenzie, che coprono: {companies}. L'asta resta comunque visibile a tutte le agenzie attive. Chiusura prevista: {close}.",
+      "none": "Nessuna agenzia ha i filtri compatibili: non parte nessuna email, ma l'asta si apre e resta visibile a tutte le agenzie attive.",
       "reason": "Motivo dell'esclusione",
       "exclude": "Escludi l'agenzia",
-      "reserve": "Altre {count} agenzie compatibili restano di riserva (rabbocco e rotazione).",
+      "reserve": "Altre {count} agenzie compatibili vedono l'asta nell'elenco, senza email.",
       "excluded": "Agenzie escluse",
       "include": "Reinserisci"
     },
@@ -746,7 +747,15 @@
       "REJECTED": "Respinto",
       "FAILED": "Non riuscito"
     },
-    "reconciliationLink": "Riconciliazione con l'estratto conto"
+    "reconciliationLink": "Riconciliazione con l'estratto conto",
+    "requestTitle": "Chiedi un rimborso",
+    "requestIntro": "Per esempio quando il cliente di un intermediario non firma mai l'offerta acquistata. Non più di quanto pagato; lo approva il supervisore.",
+    "requestCode": "Codice della richiesta",
+    "requestReason": "Motivo del rimborso",
+    "requestPremium": "Premio da rimborsare (€)",
+    "requestFee": "Compenso da rimborsare (€)",
+    "requestNote": "Nota per il registro",
+    "requestSend": "Chiedi il rimborso"
   },
   "penalties": {
     "title": "Penali",

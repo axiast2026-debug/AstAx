@@ -1,5 +1,6 @@
 import { formatDateTime, formatTime } from "@astax/shared/format";
 import { Badge, Button, buttonVariants, Card, cn } from "@astax/ui";
+import { can } from "@astax/shared/permissions";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -47,9 +48,11 @@ export default async function VerificationQueuePage({
       <AutoRefresh seconds={REFRESH_SECONDS} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-screen font-extrabold">{t("queueTitle")}</h1>
-        <Link href="/portale-ania" className={buttonVariants({ variant: "outline", size: "sm" })}>
-          {t("queue.portal")}
-        </Link>
+        {can(viewer.actor, "verification.decide") ? (
+          <Link href="/portale-ania" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            {t("queue.portal")}
+          </Link>
+        ) : null}
       </div>
       {query.fatto ? (
         <p role="status" className="mt-4 rounded-lg bg-green-50 p-3 text-sm">
@@ -159,7 +162,7 @@ export default async function VerificationQueuePage({
                       )}
                     </td>
                     <td className="px-3 py-3">
-                      {r.assignedTo === null ? (
+                      {r.assignedTo === null && can(viewer.actor, "verification.decide") ? (
                         <form action={assignToMe}>
                           <input type="hidden" name="requestId" value={r.requestId} />
                           <Button type="submit" size="sm">

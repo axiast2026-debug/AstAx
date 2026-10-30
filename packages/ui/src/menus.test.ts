@@ -70,8 +70,25 @@ describe("menus by role (docs/specifiche 02-07)", () => {
       "filters",
       "accounting",
       "team",
+      "accessLog",
       "agency",
+      "settings",
     ]);
+  });
+
+  it("audit 2026-10-30: the supervisor reaches «Agenzia»; a section E owner has its access log, not the team", () => {
+    expect(pages(member("SUPERVISOR", "AGENCY"))).toContain("agency");
+    expect(pages(member("SUPERVISOR", "AGENCY"))).not.toContain("settings");
+    const sectionE = { ...member("OWNER", "AGENCY"), sectionE: true } as Actor;
+    expect(pages(sectionE)).toContain("accessLog");
+    expect(pages(sectionE)).toContain("settings");
+    expect(pages(sectionE)).not.toContain("team");
+  });
+
+  it("audit 2026-10-30: the operator has «Rinnovi», and «Polizze emesse» only when it issues", () => {
+    expect(pages(member("OPERATOR", "AGENCY"))).toContain("renewals");
+    expect(pages(member("OPERATOR", "AGENCY"))).not.toContain("issuedPolicies");
+    expect(pages(member("OPERATOR", "AGENCY", { canIssue: true }))).toContain("issuedPolicies");
   });
 
   it("agency supervisor: accounting only with canSeeAccounting, never team", () => {
@@ -82,7 +99,7 @@ describe("menus by role (docs/specifiche 02-07)", () => {
     expect(pages(member("SUPERVISOR", "AGENCY"))).not.toContain("team");
   });
 
-  it("sub-agent: personal menu, «Da emettere» only if enabled (spec 05)", () => {
+  it("operator (an employee, ADR 0026): personal menu, «Da emettere» only if enabled (spec 05)", () => {
     expect(keys(member("OPERATOR", "AGENCY"))).toEqual([
       "incomingRequests",
       "myRequests",
@@ -95,6 +112,7 @@ describe("menus by role (docs/specifiche 02-07)", () => {
       "myOffers",
       "customers",
       "batches",
+      "renewals",
       "myFilters",
     ]);
     expect(keys(member("OPERATOR", "AGENCY", { canIssue: true }))).toContain("toIssue");

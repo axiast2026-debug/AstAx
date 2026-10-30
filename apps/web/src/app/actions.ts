@@ -14,6 +14,23 @@ export async function chooseContext(formData: FormData): Promise<void> {
   redirect("/");
 }
 
+/**
+ * Audit of 2026-10-30 (A2): an invitation to a team accepted by someone who
+ * already has an account; then they work for that organization.
+ */
+export async function acceptTeamInvite(formData: FormData): Promise<void> {
+  const id = await sessionId();
+  const inviteId = String(formData.get("inviteId") ?? "");
+  if (!id || !/^[0-9a-f-]{36}$/i.test(inviteId)) redirect("/inviti");
+  const { status, body } = await api<{ membershipId: string }>(`/me/invites/${inviteId}/accept`, {
+    method: "POST",
+    body: "{}",
+  });
+  if (status !== 200 && status !== 201) redirect("/inviti?errore=NOT_FOUND");
+  await webAuth().setContext(id, body.membershipId);
+  redirect("/");
+}
+
 export async function acceptLegal(formData: FormData): Promise<void> {
   const versionIds = formData.getAll("versionId").map(String);
   await api("/legal/acceptances", { method: "POST", body: JSON.stringify({ versionIds }) });

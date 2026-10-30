@@ -43,6 +43,7 @@ import { InvoicingService, type InvoiceRecipient } from "../invoicing/invoicing.
 import labels from "../notifications/labels.it.json" with { type: "json" };
 import { NotificationService } from "../notifications/notification.service.js";
 import { Postbox, staffUsers } from "../notifications/postbox.js";
+import { requesterScope } from "../requests/request-support.js";
 
 /** EMI-02: what the agency uploads before marking the policy as issued. */
 export const ISSUANCE_KINDS = ["ISSUED_POLICY", "POLICY_RECEIPT", "INSURANCE_CERTIFICATE"] as const;
@@ -652,11 +653,19 @@ export class IssuanceService {
     return withContext(this.db, auth.db, async (tx) => {
       // Row level security keeps the requester's own; an agency has its own list.
       if (auth.membership?.organizationType === "AGENCY") throw new ProblemError("NOT_FOUND");
+      // VIS-13: an operator only the policies of their own customers, like the
+      // requests (audit of 2026-10-30, A1).
+      const requests = await tx.quoteRequest.findMany({
+        where: requesterScope(auth),
+        select: { id: true },
+      });
       const policies = await tx.policy.findMany({
-        where:
-          auth.kind === "PRIVATE"
+        where: {
+          quoteRequestId: { in: requests.map((r) => r.id) },
+          ...(auth.kind === "PRIVATE"
             ? { ownerUserId: auth.userId }
-            : { ownerOrganizationId: auth.membership?.organizationId ?? "" },
+            : { ownerOrganizationId: auth.membership?.organizationId ?? "" }),
+        },
         orderBy: { issuedAt: "desc" },
         take: 200,
       });

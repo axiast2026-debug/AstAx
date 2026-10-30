@@ -42,6 +42,8 @@ import { QuoteChecksService } from "./auctions/quote-checks.service.js";
 import { AgencyService } from "./agency/agency.service.js";
 import { AgencySettingsService } from "./agency/agency-settings.service.js";
 import { AgencyIbanService } from "./agency/agency-iban.service.js";
+import { OrganizationSettingsController } from "./organization/organization-settings.controller.js";
+import { OrganizationSettingsService } from "./organization/organization-settings.service.js";
 import { AuctionsController } from "./auctions/auctions.controller.js";
 import { AuctionsService } from "./auctions/auctions.service.js";
 import { OffersService } from "./auctions/offers.service.js";
@@ -128,6 +130,7 @@ export class AppModule {
         MeController,
         LegalController,
         TeamController,
+        OrganizationSettingsController,
         SettingsController,
         ComplaintsIndexController,
         IssuanceController,
@@ -194,6 +197,7 @@ export class AppModule {
         AgencyService,
         AgencySettingsService,
         AgencyIbanService,
+        OrganizationSettingsService,
         AcceptanceService,
         PublicHomeService,
         AcceptanceEventsService,

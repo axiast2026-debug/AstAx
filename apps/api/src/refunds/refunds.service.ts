@@ -111,6 +111,76 @@ export class RefundsService {
     });
   }
 
+  /**
+   * Audit of 2026-10-30 (A4; docs/permessi.md, spec 06): a refund the back
+   * office asks by hand, for instance when the customer of an intermediary
+   * never signs the offer bought (ADR 0027). Never more than what was paid
+   * and not refunded yet; the supervisor approves it as any other.
+   */
+  async requestByBackOffice(
+    auth: AuthContext,
+    input: {
+      requestCode: string;
+      reason: RefundReason;
+      premiumCents: number;
+      feeCents: number;
+      note: string;
+    },
+  ) {
+    const postbox = new Postbox(this.notifications, this.cipher, this.config.WEB_URL);
+    const out = await withContext(this.db, auth.db, async (tx) => {
+      const request = await asSystem(tx, () =>
+        tx.quoteRequest.findUnique({ where: { code: input.requestCode } }),
+      );
+      if (!request) {
+        throw new ProblemError("VALIDATION_FAILED", undefined, [
+          { path: "requestCode", issue: "NOT_FOUND" },
+        ]);
+      }
+      await tx.$queryRaw`SELECT 1 FROM "QuoteRequest" WHERE "id" = ${request.id}::uuid FOR UPDATE`;
+      const [paid, refunded] = await asSystem(tx, () =>
+        Promise.all([
+          tx.payment.aggregate({
+            where: {
+              status: { in: ["CAPTURED", "PARTIALLY_REFUNDED"] },
+              acceptance: { quoteRequestId: request.id },
+            },
+            _sum: { premiumCents: true, feeCents: true },
+          }),
+          tx.refund.aggregate({
+            where: { quoteRequestId: request.id, status: { notIn: ["REJECTED", "FAILED"] } },
+            _sum: { premiumCents: true, feeCents: true },
+          }),
+        ]),
+      );
+      const premiumLeft = (paid._sum.premiumCents ?? 0) - (refunded._sum.premiumCents ?? 0);
+      const feeLeft = (paid._sum.feeCents ?? 0) - (refunded._sum.feeCents ?? 0);
+      if (input.premiumCents > premiumLeft || input.feeCents > feeLeft) {
+        throw new ProblemError("VALIDATION_FAILED", "More than what was paid", [
+          { path: "premiumCents", issue: "MORE_THAN_PAID" },
+        ]);
+      }
+      const refund = await this.request(tx, postbox, {
+        quoteRequestId: request.id,
+        reason: input.reason,
+        premiumCents: input.premiumCents,
+        feeCents: input.feeCents,
+        requestedByUserId: auth.userId,
+        requestedByLabel: labels.refundRequester.backOffice,
+      });
+      await this.audit.inTransaction(tx, actorOf(auth), {
+        action: "REFUND_REQUESTED",
+        targetType: "QuoteRequest",
+        targetId: request.id,
+        after: { refundId: refund.id, reason: input.reason },
+        reason: input.note,
+      });
+      return { id: refund.id };
+    });
+    await postbox.flush();
+    return out;
+  }
+
   /** «Pagamenti», refunds (spec 06). */
   async list(auth: AuthContext) {
     return withContext(this.db, auth.db, async (tx) => {
