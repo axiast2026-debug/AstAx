@@ -499,7 +499,14 @@ export class IssuanceService {
         ? (customer.person.companyName ??
           `${customer.person.givenName ?? ""} ${customer.person.surname ?? ""}`.trim())
         : "";
-      const link = `${this.config.WEB_URL}/polizze`;
+      // An agency as requester reads its customers' policies (B1), not the issued ones.
+      const owner = await asSystem(tx, () =>
+        tx.organization.findUnique({
+          where: { id: request.ownerOrganizationId ?? "" },
+          select: { type: true },
+        }),
+      );
+      const link = `${this.config.WEB_URL}/polizze${owner?.type === "AGENCY" ? "?vista=clienti" : ""}`;
       await postbox.tell(
         tx,
         [requester],
@@ -651,8 +658,9 @@ export class IssuanceService {
    */
   async requesterPolicies(auth: AuthContext) {
     return withContext(this.db, auth.db, async (tx) => {
-      // Row level security keeps the requester's own; an agency has its own list.
-      if (auth.membership?.organizationType === "AGENCY") throw new ProblemError("NOT_FOUND");
+      // Row level security keeps the requester's own. An agency has the list of
+      // the policies it issued (/agency/policies) and this one, of its own
+      // customers as a requester (ADR 0015; audit of 2026-10-30, B1).
       // VIS-13: an operator only the policies of their own customers, like the
       // requests (audit of 2026-10-30, A1).
       const requests = await tx.quoteRequest.findMany({

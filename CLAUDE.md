@@ -8,8 +8,8 @@ AstAx è una piattaforma italiana di aste inverse per i preventivi RC auto, gest
 - Chi offre: agenti (sez. A) e sub-agenti (sez. E). Sub-agenti e collaboratori si iscrivono da sé con il proprio RUI e hanno i poteri del titolare, tranne creare un team ([ADR 0026](docs/adr/0026-sezione-e-come-il-titolare-senza-team.md)).
 - Il back office di AstAx verifica ogni richiesta; poi parte un'asta a busta chiusa di durata scelta dal richiedente (1, 2, 5 o 24 ore lavorative).
 - Ogni offerta è vincolante e ha una data di prezzo garantito. Alla chiusura il richiedente vede la migliore offerta per ogni compagnia; i privati possono chiedere un confronto qualità/prezzo con AI.
-- Il cliente sceglie, firma con FEA e paga AstAx; l'agenzia vincitrice riceve i contatti ed emette; AstAx rimette il premio all'agenzia ogni settimana.
-- Ricavi, solo a polizza acquistata, tutti esenti IVA: privato 30 € (35 € con il confronto AI; 15 € o 20 € sotto i 200 € di premio); broker 30 €; agenzia 15 €.
+- Il privato sceglie, firma con FEA e paga AstAx. L'intermediario sceglie e paga subito, poi il suo cliente firma con FEA dal link ([ADR 0027](docs/adr/0027-acquisto-diretto-dell-intermediario.md)). L'agenzia vincitrice riceve i contatti ed emette; AstAx rimette il premio all'agenzia ogni settimana.
+- Ricavi, solo a polizza acquistata, tutti esenti IVA: privato 30 € (35 € con il confronto AI; 15 € o 20 € sotto i 200 € di premio); intermediario che chiede il preventivo (broker, agente, sub-agente, collaboratore) 30 € (Dan, 2026-10-30, D4); agenzia che vince l’asta 15 €.
 - Trasparenza finale: quando il cliente accetta, ogni agenzia vede le prime due offerte anonime e la propria posizione.
 - Il progetto parte da zero. Nessuna integrazione con sistemi di altre società (in particolare GD Brokers e CorteXa).
 
@@ -80,7 +80,7 @@ Su Windows Docker Desktop è installato nella cartella dell'utente: i comandi ch
 ## Regole che non si violano mai
 
 1. **Busta chiusa.** Prima della chiusura nessuno legge le offerte altrui: né le altre agenzie, né il richiedente, né back office o amministratore, né chi ha accesso al database. Il contenuto si cifra all'arrivo; solo il worker lo decifra alla chiusura. Ogni tentativo di lettura riceve 403 ed è registrato. Dettagli: `docs/busta-chiusa.md`.
-2. **Contatti del cliente.** Telefono ed email del cliente arrivano a un'agenzia solo quando vince e il pagamento è confermato. Non compaiono mai prima in schermate, risposte API, esportazioni, notifiche o log. `quoteData` non li contiene per costruzione.
+2. **Contatti del cliente.** Telefono ed email del cliente arrivano a un'agenzia solo quando vince e la polizza va in emissione: pagamento confermato e, per l'offerta acquistata da un intermediario, firma del cliente (ADR 0027). Non compaiono mai prima in schermate, risposte API, esportazioni, notifiche o log. `quoteData` non li contiene per costruzione.
 3. **Permessi nel backend.** Ogni endpoint controlla ruolo, contesto (`X-AstAx-Context`) e organizzazione, con negazione predefinita. La sicurezza a livello di riga di PostgreSQL è la seconda linea. Nascondere un pulsante non è un controllo.
 4. **Registro accessi.** Ogni apertura di dati o documenti di un cliente, ogni azione sensibile e ogni accesso negato finisce nel registro, che è solo in aggiunta e con catena di hash.
 5. **Denaro.** Importi in centesimi interi (`...Cents`); massimali e capitali in euro interi (`...Eur`). Mai numeri decimali per il denaro.

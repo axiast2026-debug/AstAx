@@ -25,7 +25,7 @@ Abilitazioni aggiuntive di un'appartenenza, decise dal titolare:
 | `canIssue` | `OPERATOR` di agenzia | Vede «Da emettere» ed emette |
 | `canSeeColleagueOffers` | `OPERATOR` di agenzia | Vede le offerte dei colleghi |
 | `canSeeAccounting` | `SUPERVISOR` di agenzia | Vede la contabilità e contesta le penali |
-| `seesAllClients` | `OPERATOR` di broker | Vede tutti i clienti del broker, non solo i propri |
+| `seesAllClients` | `OPERATOR` di broker o di agenzia (analisi del 2026-10-30, B3) | Vede tutti i clienti dell'organizzazione, non solo i propri |
 
 ## Richieste, clienti e documenti
 
@@ -36,7 +36,7 @@ Abilitazioni aggiuntive di un'appartenenza, decise dal titolare:
 | Revocare il consenso alla condivisione con le agenzie | `PRIVATE` (propri consensi); `OWNER` e `OPERATOR` di broker (consensi dei propri clienti) | LEG-04: da allora non si aprono nuove aste per il cliente |
 | Vedere la propria richiesta, la cronologia, i propri documenti | `PRIVATE`; broker; agenzia richiedente | Broker e agenzia: clienti dell'organizzazione; `OPERATOR` solo i propri, salvo `seesAllClients`; il `SUPERVISOR` di agenzia li vede tutti |
 | Annullare una richiesta | Richiedente; `BO_SUPERVISOR` | Solo prima dell'accettazione |
-| Vedere i dati del preventivo e i documenti del cliente | Utenti di un'agenzia invitata; `BO_*`; `ADMIN` | `OPERATOR`: solo richieste nei propri filtri. Registrazione (VIS-09) e filigrana (VIS-10) per le agenzie |
+| Vedere i dati del preventivo e i documenti del cliente | Utenti di un'agenzia attiva che può offrire all'asta (ADR 0024); `BO_*`; `ADMIN` | Ogni utente dell'agenzia vede tutte le aste aperte; i filtri personali decidono solo le email (D3). Registrazione (VIS-09) e filigrana (VIS-10) per le agenzie |
 | Vedere telefono ed email del cliente | Richiedente; agenzia vincitrice; `BO_*`; `ADMIN` | Agenzia: solo dopo la conferma del pagamento (VIS-02) |
 | Gestire i clienti del broker | `OWNER` e `OPERATOR` di broker | Stesse condizioni di visibilità |
 | Caricamento in blocco | `OWNER` e `OPERATOR` di broker | — |
@@ -50,7 +50,7 @@ Abilitazioni aggiuntive di un'appartenenza, decise dal titolare:
 | Rilasciare una pratica | `BO_VERIFIER`, `BO_SUPERVISOR` | Chi l'ha in carico, o il supervisore |
 | Approvare, chiedere integrazione, escludere | `BO_VERIFIER`, `BO_SUPERVISOR` | Con motivo per integrazione ed esclusione; solo chi ha in carico la pratica; l'approvazione con le 5 verifiche fatte |
 | Escludere un'agenzia dall'anteprima | `BO_VERIFIER`, `BO_SUPERVISOR` | Con motivo |
-| Vedere lo stato delle aste (senza prezzi) | `BO_*`, `ADMIN`; richiedente (contatori); agenzie invitate (il proprio invito) | Mai prezzi prima della chiusura (BC-01) |
+| Vedere lo stato delle aste (senza prezzi) | `BO_*`, `ADMIN`; richiedente (contatori); agenzie (le aste aperte a cui possono offrire, ADR 0024) | Mai prezzi prima della chiusura (BC-01) |
 | Prolungare, invitare altre agenzie, annullare un'asta | `BO_VERIFIER`, `BO_SUPERVISOR` | Inviti solo nella prima metà (ASTA-06); sempre con motivo |
 | Leggere un'offerta prima della chiusura | Nessuno | Eccezione: l'agenzia che l'ha fatta (BC-04) |
 
@@ -58,7 +58,7 @@ Abilitazioni aggiuntive di un'appartenenza, decise dal titolare:
 
 | Azione | Chi | Condizioni |
 | --- | --- | --- |
-| Prendere in carico, rilasciare, rinunciare | Utenti dell'agenzia invitata | `OPERATOR` nei propri filtri; OFF-02 e OFF-03 |
+| Prendere in carico, rilasciare, rinunciare | Utenti dell'agenzia che può offrire (ADR 0024) | OFF-02 e OFF-03; la rinuncia vale per tutta l'agenzia e non si fa sopra la presa in carico di un collega (analisi del 2026-10-30, C4) |
 | Liberare o riassegnare una presa in carico | `OWNER`, `SUPERVISOR` di agenzia | — |
 | Inviare, modificare, ritirare un'offerta | Chi ha la presa in carico; `OWNER`, `SUPERVISOR` | Fino alla chiusura (OFF-07); su ogni asta aperta (ADR 0024) |
 | IBAN dell'agenzia alla prima offerta (`/agency/iban`) | Chi può inviare offerte, anche un sub-agente | Una volta, con il codice SMS sul proprio cellulare (ADR 0024) |
@@ -80,6 +80,7 @@ Abilitazioni aggiuntive di un'appartenenza, decise dal titolare:
 | Scegliere e acquistare un'offerta (`offer.purchase`) | Richiedenti professionali: broker, agenzie e sez. E | Paga l'intermediario; GAR-04 (ADR 0027) |
 | Inviare al cliente il link per la firma dell'offerta acquistata (`customerLink.send`) | Richiedenti professionali | Con email o telefono del cliente (ADR 0027) |
 | Accettare, firmare, pagare | `PRIVATE` (propria richiesta); `BROKER_CLIENT_LINK` (solo la firma dell'offerta acquistata) | GAR-04 |
+| Confermare o rifiutare la seconda offerta o il nuovo prezzo (`nextOffer.respond`) | `PRIVATE`; richiedenti professionali per l'offerta che hanno acquistato (analisi del 2026-10-30, D2) | EMI-04, entro il termine; l'intermediario paga la differenza, il cliente firma di nuovo |
 | Chiedere la riconferma | Richiedente | GAR-06 |
 | Vedere «Da emettere», caricare documenti, segnare emessa, segnalare un problema | `OWNER`, `SUPERVISOR` dell'agenzia vincitrice; `OPERATOR` con `canIssue` | — |
 | Decidere una mancata emissione, passare alla seconda offerta | `BO_VERIFIER`, `BO_SUPERVISOR` | EMI-04 |
@@ -118,6 +119,7 @@ Abilitazioni aggiuntive di un'appartenenza, decise dal titolare:
 | Ticket di assistenza | `BO_SUPPORT`, `BO_SUPERVISOR` | — |
 | Aprire un reclamo o una segnalazione | `BO_SUPPORT`, `BO_SUPERVISOR` (reclami arrivati per email, PEC, posta o telefono: `complaint.register`); il cliente apre il reclamo dalla sua area (`complaint.open`) | — |
 | Gestire reclami e segnalazioni | `BO_SUPERVISOR` | — |
+| Esportare i reclami per IVASS (`complaint.export`) | `BO_SUPERVISOR`; `ADMIN` (analisi del 2026-10-30, A5) | — |
 | Richieste sui dati personali (copia, correzione, cancellazione) | `BO_SUPPORT`, `BO_SUPERVISOR` | Nei termini di legge |
 
 ## Amministrazione

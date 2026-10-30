@@ -66,7 +66,7 @@ export interface AgencyRequestDetail {
   invitation: string;
   claim: { byMe: boolean; holder: string | null } | null;
   elsewhere: { agency: string; offered: boolean } | null;
-  offer: { id: string; status: string; version: number } | null;
+  offer: { id: string; status: string; version: number; readable?: boolean } | null;
   /** Dan, 2026-10-29: the request without names, vehicle, persons or history. */
   request: AgencyRequest;
   /** The type of quote the back office confirmed (fifth check). */

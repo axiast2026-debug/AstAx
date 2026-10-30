@@ -421,8 +421,11 @@ export async function RequestView({
           timeline={detail.timeline}
         />
       ) : null}
-      {base === "/preventivi" && detail.status === "ACCEPTED" ? (
-        <NextOfferCard requestId={detail.id} />
+      {detail.status === "ACCEPTED" ? (
+        <NextOfferCard
+          requestId={detail.id}
+          base={base === "/richieste" ? "/richieste" : "/preventivi"}
+        />
       ) : null}
       {presented && base === "/preventivi" ? <OffersPanel requestId={detail.id} /> : null}
       {presented && base === "/richieste" ? <BrokerOffersPanel requestId={detail.id} /> : null}

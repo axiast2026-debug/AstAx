@@ -173,6 +173,11 @@ export const PERMISSIONS = {
     grants: ORG_REQUESTERS,
     conditions: "only the link for the customer's signature of the offer bought (ADR 0027)",
   },
+  "nextOffer.respond": {
+    grants: ["PRIVATE", ...ORG_REQUESTERS],
+    conditions:
+      "EMI-04, own request: the private user; the intermediary for the offer it bought (D2, ADR 0027)",
+  },
   "offer.purchase": {
     grants: ORG_REQUESTERS,
     conditions: "own customer's request; the intermediary chooses and pays, GAR-04 (ADR 0027)",
@@ -253,6 +258,8 @@ export const PERMISSIONS = {
     conditions: "complaints received by email, PEC, post or phone",
   },
   "complaint.manage": { grants: ["BO_SUPERVISOR"] },
+  // Spec 07 (audit of 2026-10-30, A5): the administrator exports for IVASS.
+  "complaint.export": { grants: ["BO_SUPERVISOR", "ADMIN"] },
   "dataSubjectRequest.manage": {
     grants: ["BO_SUPPORT", "BO_SUPERVISOR"],
     conditions: "within legal terms",

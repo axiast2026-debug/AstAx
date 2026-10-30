@@ -20,7 +20,10 @@ type Flag = keyof MembershipFlags;
 
 /** Each flag belongs to one role of one kind of organization (docs/permessi.md, «Abilitazioni»). */
 const FLAGS: Record<"AGENCY" | "BROKER", Partial<Record<MembershipRole, Flag[]>>> = {
-  AGENCY: { OPERATOR: ["canIssue", "canSeeColleagueOffers"], SUPERVISOR: ["canSeeAccounting"] },
+  AGENCY: {
+    OPERATOR: ["canIssue", "canSeeColleagueOffers", "seesAllClients"],
+    SUPERVISOR: ["canSeeAccounting"],
+  },
   BROKER: { OPERATOR: ["seesAllClients"] },
 };
 const ROLES: Record<"AGENCY" | "BROKER", MembershipRole[]> = {
@@ -98,12 +101,6 @@ export default async function TeamPage({
                   </Badge>
                 </div>
                 <dl className="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-[12rem_1fr]">
-                  <dt className="text-warm-600">{t("rui")}</dt>
-                  <dd>
-                    {m.ruiNumberE
-                      ? `${m.ruiNumberE} · ${m.ruiVerified ? t("ruiVerified") : t("ruiToVerify")}`
-                      : "—"}
-                  </dd>
                   <dt className="text-warm-600">{t("lastLogin")}</dt>
                   <dd>{m.lastLoginAt ? formatDateTime(m.lastLoginAt) : t("never")}</dd>
                   <dt className="text-warm-600">{t("permissions")}</dt>

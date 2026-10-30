@@ -88,6 +88,10 @@ export default async function ComplaintsPage({
               </Card>
             ))}
           </div>
+        </>
+      ) : null}
+      {can(viewer.actor, "complaint.export") ? (
+        <>
           <Card className="mt-6">
             <CardTitle>{t("export")}</CardTitle>
             <form
@@ -111,48 +115,50 @@ export default async function ComplaintsPage({
         </>
       ) : null}
 
-      <Card className="mt-6">
-        <CardTitle>{t("new")}</CardTitle>
-        <form action={registerComplaint} className="mt-3 grid gap-3 text-sm md:grid-cols-2">
-          <label className="grid gap-1">
-            {t("channel")}
-            <select name="channel" className={field}>
-              {(["PEC", "EMAIL", "POST", "PHONE"] as const).map((c) => (
-                <option key={c} value={c}>
-                  {t(`channels.${c}`)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="grid gap-1">
-            {t("receivedOn")}
-            <input type="date" name="receivedOn" required className={field} />
-          </label>
-          <label className="grid gap-1">
-            {t("complainantName")}
-            <input name="complainantName" required minLength={2} className={field} />
-          </label>
-          <label className="grid gap-1">
-            {t("complainantEmail")}
-            <input name="complainantEmail" type="email" className={field} />
-          </label>
-          <label className="grid gap-1">
-            {t("requestCode")}
-            <input name="requestCode" className={field} />
-          </label>
-          <label className="grid gap-1 md:col-span-2">
-            {t("subject")}
-            <input name="subject" required minLength={3} className={field} />
-          </label>
-          <label className="grid gap-1 md:col-span-2">
-            {t("description")}
-            <textarea name="description" required minLength={10} rows={4} className={field} />
-          </label>
-          <Button type="submit" className="justify-self-start">
-            {t("register")}
-          </Button>
-        </form>
-      </Card>
+      {can(viewer.actor, "complaint.register") ? (
+        <Card className="mt-6">
+          <CardTitle>{t("new")}</CardTitle>
+          <form action={registerComplaint} className="mt-3 grid gap-3 text-sm md:grid-cols-2">
+            <label className="grid gap-1">
+              {t("channel")}
+              <select name="channel" className={field}>
+                {(["PEC", "EMAIL", "POST", "PHONE"] as const).map((c) => (
+                  <option key={c} value={c}>
+                    {t(`channels.${c}`)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-1">
+              {t("receivedOn")}
+              <input type="date" name="receivedOn" required className={field} />
+            </label>
+            <label className="grid gap-1">
+              {t("complainantName")}
+              <input name="complainantName" required minLength={2} className={field} />
+            </label>
+            <label className="grid gap-1">
+              {t("complainantEmail")}
+              <input name="complainantEmail" type="email" className={field} />
+            </label>
+            <label className="grid gap-1">
+              {t("requestCode")}
+              <input name="requestCode" className={field} />
+            </label>
+            <label className="grid gap-1 md:col-span-2">
+              {t("subject")}
+              <input name="subject" required minLength={3} className={field} />
+            </label>
+            <label className="grid gap-1 md:col-span-2">
+              {t("description")}
+              <textarea name="description" required minLength={10} rows={4} className={field} />
+            </label>
+            <Button type="submit" className="justify-self-start">
+              {t("register")}
+            </Button>
+          </form>
+        </Card>
+      ) : null}
     </AppShell>
   );
 }

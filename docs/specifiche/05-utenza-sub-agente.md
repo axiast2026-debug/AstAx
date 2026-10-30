@@ -1,6 +1,8 @@
-# Sub-agente (sez. E)
+# Operatore dell'agenzia (dipendente)
 
-Il sub-agente usa le stesse schermate dell'agenzia, ridotte ai propri dati e ai permessi che gli dà il titolare.
+> **Dal 2026-10-30** ([ADR 0026](../adr/0026-sezione-e-come-il-titolare-senza-team.md)) il **sub-agente** (sez. E) si iscrive da sé ed è titolare di una propria organizzazione: ha le schermate e i poteri dell'agente (spec 04), tranne creare un team. Questa scheda descrive l'**operatore**, cioè il dipendente che l'agente aggiunge al suo team.
+
+L'operatore usa le stesse schermate dell'agenzia, ridotte ai propri dati e ai permessi che gli dà il titolare.
 
 ## Menu
 
@@ -14,12 +16,14 @@ Il sub-agente usa le stesse schermate dell'agenzia, ridotte ai propri dati e ai 
 ## Cosa cambia rispetto all'agenzia
 
 - **Dashboard:** solo i propri numeri (richieste in target, offerte, vittorie, emissioni).
-- **Richieste in arrivo:** solo quelle nei propri filtri, che stanno dentro i filtri dell'agenzia. Vede se un collega ha già preso in carico una richiesta.
+- **Richieste in arrivo:** tutte le aste aperte, come l'agenzia; i propri filtri, dentro quelli dell'agenzia, decidono solo le email che riceve (Dan, 2026-10-30, D3). Vede se un collega ha già preso in carico una richiesta, e in quel caso non può rinunciare all'asta per l'agenzia.
 - **Offerte:** partono sempre a nome dell'agenzia. Nelle sue viste compaiono solo le proprie, salvo permesso del titolare.
 - **Da emettere:** solo se il titolare gli dà il permesso di emissione.
 - **Risultati:** per le sole aste a cui ha partecipato, le prime due offerte anonime, la posizione della sua e le statistiche.
 - **I miei filtri:** può restringere quelli dell'agenzia, mai allargarli.
-- **Nessun accesso** a contabilità, team, contratti e dati dell'agenzia. Le provvigioni restano un accordo interno con l'agenzia: la piattaforma gli mostra solo le polizze emesse da lui, con il premio.
+- **Rinnovi e Polizze emesse:** i rinnovi dei propri clienti; le polizze emesse, se ha il permesso di emissione.
+- **Clienti:** solo i propri, salvo il permesso «vede tutti i clienti» del titolare.
+- **Nessun accesso** a contabilità, team, contratti e dati dell'agenzia. Le provvigioni restano un accordo interno con l'agenzia.
 
 ## Più agenzie
 

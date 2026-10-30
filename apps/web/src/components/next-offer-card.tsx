@@ -6,11 +6,19 @@ import type { NextOffer } from "@/lib/acceptance";
 import { api } from "@/lib/auth";
 
 /**
- * EMI-04 for the customer: the agency could not issue (second offer) or the
- * data did not match (new price). The new offer, the fee, the difference to
- * pay or to get back, and the time to answer; or the full refund.
+ * EMI-04: the agency could not issue (second offer) or the data did not match
+ * (new price). The new offer, the fee, the difference to pay or to get back,
+ * and the time to answer; or the full refund. The private user answers from
+ * «Preventivi»; the intermediary, for the offer it bought, from «Richieste»
+ * (D2, ADR 0027): it pays the difference, then the customer signs again.
  */
-export async function NextOfferCard({ requestId }: { requestId: string }) {
+export async function NextOfferCard({
+  requestId,
+  base = "/preventivi",
+}: {
+  requestId: string;
+  base?: "/preventivi" | "/richieste";
+}) {
   const t = await getTranslations("nextOffer");
   const { status, body: p } = await api<NextOffer | null>(`/requests/${requestId}/next-offer`);
   if (status !== 200 || !p || p.status !== "PROPOSED") return null;
@@ -20,6 +28,9 @@ export async function NextOfferCard({ requestId }: { requestId: string }) {
       <p className="mt-1 text-sm">
         {t(p.kind === "SECOND_OFFER" ? "secondIntro" : "repriceIntro")}
       </p>
+      {base === "/richieste" ? (
+        <p className="mt-1 text-sm text-warm-700">{t("intermediaryNote")}</p>
+      ) : null}
       <dl className="mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-[12rem_1fr]">
         <dt className="text-warm-600">{t("offer")}</dt>
         <dd>
@@ -45,10 +56,12 @@ export async function NextOfferCard({ requestId }: { requestId: string }) {
       <div className="mt-4 flex flex-wrap gap-3">
         <form action={confirmNextOffer}>
           <input type="hidden" name="requestId" value={requestId} />
+          <input type="hidden" name="base" value={base} />
           <Button type="submit">{t("confirm")}</Button>
         </form>
         <form action={refuseNextOffer}>
           <input type="hidden" name="requestId" value={requestId} />
+          <input type="hidden" name="base" value={base} />
           <Button type="submit" variant="outline">
             {t("refuse")}
           </Button>

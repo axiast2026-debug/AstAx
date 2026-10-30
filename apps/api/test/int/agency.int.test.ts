@@ -337,6 +337,22 @@ describe("fase 4: the agency area (spec 04)", () => {
     expect(claims).toBe(1);
   });
 
+  it("OFF-03 audit 2026-10-30 C4: an operator cannot refuse an auction a colleague holds", async () => {
+    await acceptAllLegal(h, "agenzia-due-owner");
+    await acceptAllLegal(h, "agenzia-due-operator");
+    const owner = await who("agenzia-due-owner", "agenzia-due");
+    const operator = await who("agenzia-due-operator", "agenzia-due");
+    await r.json(await r.call(owner, `/auctions/${auctionId}/claim`, { body: {} }), 200);
+    const refused = await r.call(operator, `/auctions/${auctionId}/decline`, { body: {} });
+    expect(refused.status).toBe(409);
+    expect(JSON.stringify(await refused.json())).toContain("CLAIMED_BY_COLLEAGUE");
+    const invitation = await withContext(h.db, SYSTEM_CONTEXT, (tx) =>
+      tx.invitation.findFirst({ where: { auctionId, organizationId: orgId("agenzia-due") } }),
+    );
+    expect(invitation?.status).not.toBe("DECLINED");
+    await r.json(await r.call(owner, `/auctions/${auctionId}/release`, { body: {} }), 200);
+  });
+
   it("OFF-03 the supervisor gives the claim to the operator, who then offers", async () => {
     const supervisor = await who("agenzia-uno-supervisor", "agenzia-uno");
     await r.json(

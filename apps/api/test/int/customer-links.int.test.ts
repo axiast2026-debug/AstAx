@@ -324,6 +324,13 @@ describe("ADR 0027: the intermediary buys the offer, the customer signs afterwar
       200,
     );
     expect(seen.acceptance.signingUrl).toBeNull();
+    // D1 (Dan, 2026-10-30): a chosen start date already passed when the customer signs.
+    await system((tx) =>
+      tx.quoteRequest.update({
+        where: { id: requestId },
+        data: { startMode: "DATE", startDate: new Date("2026-11-10") },
+      }),
+    );
     // Nothing to pay on the link.
     const pay = await h.call(`/customer-links/${token}/acceptance/payment`, {
       body: {},
@@ -344,6 +351,32 @@ describe("ADR 0027: the intermediary buys the offer, the customer signs afterwar
     );
     expect(request.status).toBe("IN_ISSUANCE");
     expect(acceptance.issuanceDeadlineAt).not.toBeNull();
+    // D1: the date no longer reachable becomes «dalle 24:00» of the deadline
+    // day; the deadline is ahead, not already passed.
+    expect(request.startMode).toBe("MIDNIGHT_AFTER_DEADLINE");
+    expect(acceptance.issuanceDeadlineAt?.getTime()).toBeGreaterThan(h.clock.now().getTime());
+    const moved = await system((tx) =>
+      tx.quoteRequestEvent.findFirst({
+        where: { quoteRequestId: requestId, type: "START_DATE_MOVED" },
+      }),
+    );
+    expect(moved?.details).toMatchObject({
+      from: "2026-11-10",
+      startMode: "MIDNIGHT_AFTER_DEADLINE",
+    });
+    // The intermediary was told at the payment and at the signature, never «Pagamento ricevuto».
+    const notices = await system((tx) =>
+      tx.notification.findMany({
+        where: { eventKey: { in: ["purchase.paid", "purchase.signed", "payment.confirmed"] } },
+        select: { eventKey: true, payload: true },
+      }),
+    );
+    const mine = notices.filter((n) => JSON.stringify(n.payload).includes(requestId));
+    expect(new Set(mine.map((n) => n.eventKey))).toEqual(
+      new Set(["purchase.paid", "purchase.signed"]),
+    );
+    // The customer: «Hai firmato», not «abbiamo ricevuto il pagamento».
+    expect(lastMail(EMAIL)?.subject).toContain("Hai firmato");
     // The customer signed, on the link.
     const signedEvent = await system((tx) =>
       tx.quoteRequestEvent.findFirst({
@@ -406,5 +439,75 @@ describe("audit 2026-10-30 A4: a refund asked by hand by the back office", () =>
       },
     });
     expect(again.status).toBe(400);
+  });
+});
+
+describe("audit 2026-10-30 D2: a second offer on an offer bought by the intermediary", () => {
+  it("the intermediary confirms and pays the difference; the customer signs again", async () => {
+    // EMI-04 as the back office leaves it: Agenzia Tre did not issue, Alfa
+    // (480,00 €) is proposed instead of Beta (460,00 €).
+    const paid = await system((tx) =>
+      tx.acceptance.findFirstOrThrow({ where: { quoteRequestId: requestId, status: "PAID" } }),
+    );
+    await system(async (tx) => {
+      await tx.quoteRequest.update({ where: { id: requestId }, data: { status: "ACCEPTED" } });
+      await tx.offer.update({
+        where: { id: offers[0] },
+        data: { status: "AWAITING_CUSTOMER", guaranteeUntil: new Date("2027-01-31") },
+      });
+      const request = await tx.quoteRequest.findUniqueOrThrow({ where: { id: requestId } });
+      await tx.nextOfferProposal.create({
+        data: {
+          quoteRequestId: requestId,
+          ownerOrganizationId: request.ownerOrganizationId,
+          kind: "SECOND_OFFER",
+          fromOfferId: paid.offerId,
+          toOfferId: offers[0] as string,
+          premiumCents: 48_000,
+          feeCents: 0,
+          differenceCents: 2_000,
+          expiresAt: new Date(h.clock.now().getTime() + 24 * 3600 * 1000),
+        },
+      });
+    });
+    const confirmed = await r.json<{ redirectUrl: string | null }>(
+      await r.call(broker, `/requests/${requestId}/next-offer/confirm`, {
+        body: { returnPath: `/richieste/${requestId}` },
+      }),
+      200,
+    );
+    expect(confirmed.redirectUrl).toBeTruthy();
+    const ref = refOf(confirmed.redirectUrl ?? "");
+    await r.json(
+      await h.call(`/fake-providers/payments/${ref}/pay`, { body: { method: "INSTANT_TRANSFER" } }),
+      200,
+    );
+    const webhook = h.app.get<FakePaymentsProvider>(PAYMENTS).confirmTransfer(ref);
+    const done = await fetch(`${h.baseUrl}/webhooks/payments`, {
+      method: "POST",
+      headers: { ...webhook.headers, "content-type": "application/json" },
+      body: webhook.body,
+    });
+    expect(done.status).toBe(204);
+    const bought = await system((tx) =>
+      tx.acceptance.findFirstOrThrow({
+        where: { quoteRequestId: requestId, status: { not: "VOIDED" } },
+        include: { payments: true },
+      }),
+    );
+    expect(bought).toMatchObject({
+      offerId: offers[0],
+      intermediaryPurchase: true,
+      status: "PENDING_SIGNATURE",
+      creditPremiumCents: 46_000,
+    });
+    expect(bought.paidAt).not.toBeNull();
+    // Only the difference was paid.
+    expect(bought.payments.find((x) => x.status === "CAPTURED")?.premiumCents).toBe(2_000);
+    // Then a new link for the customer's signature.
+    await r.json(
+      await r.call(broker, `/requests/${requestId}/customer-link`, { body: { email: EMAIL } }),
+      200,
+    );
   });
 });

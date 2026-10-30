@@ -399,7 +399,8 @@
     "SECOND_OFFER_DECIDED": "Seconda offerta decisa",
     "POLICY_ISSUED": "Polizza emessa",
     "REFUNDED": "Rimborso eseguito",
-    "WITHDRAWN": "Recesso"
+    "WITHDRAWN": "Recesso",
+    "START_DATE_MOVED": "Decorrenza non più possibile alla firma: dalle 24:00 del giorno del termine di emissione"
   },
   "requestView": {
     "title": "Richiesta {code}",
@@ -1412,7 +1413,8 @@
         "DOCUMENT_VIEWED": "Ha aperto un documento",
         "OFFER_OWNER_COPY_READ": "Ha letto un'offerta dell'agenzia",
         "ACCESS_DENIED": "Accesso rifiutato",
-        "SEALED_BID_ACCESS_DENIED": "Tentativo di leggere un'offerta sigillata"
+        "SEALED_BID_ACCESS_DENIED": "Tentativo di leggere un'offerta sigillata",
+        "OFFER_OWNER_COPY_UNREADABLE": "Copia dell’offerta non leggibile per chi l’ha aperta"
       }
     }
   },
@@ -1765,7 +1767,9 @@
       "PRICED": "Recesso in approvazione da parte di AstAx.",
       "APPROVED": "Recesso eseguito: il premio indicato è stato rimborsato.",
       "REJECTED": "Recesso non approvato."
-    }
+    },
+    "customersTitle": "Polizze dei tuoi clienti",
+    "views": "Elenchi delle polizze"
   },
   "nextOffer": {
     "secondTitle": "L'agenzia non ha potuto emettere la polizza",
@@ -1781,7 +1785,8 @@
     "same": "Differenza",
     "until": "Rispondi entro",
     "confirm": "Confermo questa offerta",
-    "refuse": "Chiedo il rimborso completo"
+    "refuse": "Chiedo il rimborso completo",
+    "intermediaryNote": "Hai acquistato tu l'offerta: se confermi paghi la differenza (o ricevi il rimborso dopo la firma) e il cliente firma di nuovo dal link."
   },
   "accounting": {
     "title": "Contabilità",
@@ -2116,9 +2121,9 @@
       "90": "Ultimi 3 mesi",
       "365": "Ultimi 12 mesi"
     },
-    "invited": "Inviti ricevuti",
+    "invited": "Aste seguite (email o elenco)",
     "offers": "Offerte fatte",
-    "responseRate": "Tasso di risposta",
+    "responseRate": "Offerte sulle aste seguite",
     "wins": "Aste vinte",
     "winRate": "Tasso di vittoria",
     "wonPremiums": "Premi vinti",

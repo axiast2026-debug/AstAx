@@ -30,6 +30,35 @@ Poi, da decidere: B6 (dati dalla targa, serve l'account del fornitore), B7 (cont
 
 ## Ultima sessione
 
+**2026-10-30 — correzione delle incongruenze, passo 2** (`docs/analisi-incongruenze-2026-10-30.md`):
+- **D1:** alla firma del cliente dell'intermediario, una data di decorrenza non più raggiungibile (GAR-04) diventa «dalle 24:00» del giorno del termine di emissione (`MIDNIGHT_AFTER_DEADLINE`, evento `START_DATE_MOVED`). Non può essere la mezzanotte del giorno della firma, che sarebbe retroattiva.
+- **D2:** seconda offerta e nuovo prezzo (EMI-04) per gli acquisti degli intermediari:
+  - risponde l'intermediario dalla sua richiesta (`nextOffer.respond`);
+  - paga subito la differenza, o la riceve alla firma (rimborso `SECOND_OFFER_DIFFERENCE`);
+  - poi invia di nuovo il link di firma al cliente.
+- **D3:** i filtri del dipendente decidono solo le email: tolti `memberScope`, `fitsScope` e `checkMemberFilters`.
+- **Avvisi dell'acquisto diretto** (F1):
+  - `purchase.paid`, `purchase.signed`, `purchase.signed.customer` e `purchase.signature_failed`;
+  - niente più «Pagamento ricevuto 0,00 €» all'intermediario, né «abbiamo ricevuto il pagamento» al cliente.
+- **Utenze:**
+  - B1: elenco «Polizze dei tuoi clienti» per le agenzie richiedenti (`/polizze?vista=clienti`, anche nell'avviso della polizza emessa);
+  - B3: «vede tutti i clienti» anche per i dipendenti dell'agenzia;
+  - B5: gli avvisi delle richieste arrivano anche al titolare;
+  - C3: l'avviso «offerta vinta» manda chi non emette a «Le mie offerte»;
+  - C4: niente rinuncia sopra la presa in carico di un collega;
+  - C5: niente lettura della copia di un'offerta non leggibile, né modulo «Modifica»;
+  - C6: etichette delle metriche;
+  - C7: niente RUI sez. E nella pagina Team.
+- **A5:** l'amministratore esporta i reclami per IVASS (`complaint.export`).
+- **Etichette (G5):** tutti gli eventi della cronologia nel back office, e un'azione del registro accessi.
+- **Preferenze:** `payer` per broker e agenzie, `refund_recipient` per le agenzie.
+- **Documenti:**
+  - regole VIS-02, VIS-06, VIS-13, PAG-01, PAG-02, EMI-01, EMI-04;
+  - `CLAUDE.md` (regola 2, flusso, fee D4);
+  - spec 05 (l'operatore è il dipendente);
+  - `permessi.md` e `notifiche.md`;
+  - scenario S02.
+
 **2026-10-30 — correzione delle incongruenze, passo 1** (piano approvato da Dan; `docs/analisi-incongruenze-2026-10-30.md`):
 - **A1:** il dipendente del broker vede solo le polizze dei suoi clienti (`requesterPolicies` con `requesterScope`, VIS-13).
 - **A2:** pagina `/inviti`: chi ha già un account accetta l'invito nel team (`GET /me/invites`, `POST /me/invites/:id/accept`).

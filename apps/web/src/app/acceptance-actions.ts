@@ -82,6 +82,17 @@ export async function payAcceptance(formData: FormData): Promise<void> {
 /** EMI-04: the customer confirms the second offer (or the new price): sign, then pay the difference. */
 export async function confirmNextOffer(formData: FormData): Promise<void> {
   const requestId = idOf(formData, "requestId");
+  // D2 (ADR 0027): the intermediary, from its request, pays the difference.
+  if (formData.get("base") === "/richieste") {
+    const page = `/richieste/${requestId}`;
+    const { status, body } = await api<{ redirectUrl: string | null }>(
+      `/requests/${requestId}/next-offer/confirm`,
+      { method: "POST", body: JSON.stringify({ returnPath: page }) },
+    );
+    if (status !== 200) redirect(`${page}?errore=${encodeURIComponent(codesOf(body))}#offerte`);
+    revalidatePath(page);
+    redirect(body.redirectUrl ?? `${page}#offerte`);
+  }
   const { status, body } = await api(`/requests/${requestId}/next-offer/confirm`, {
     method: "POST",
     body: JSON.stringify({ returnPath: acceptancePage(requestId) }),
@@ -94,17 +105,17 @@ export async function confirmNextOffer(formData: FormData): Promise<void> {
 /** EMI-04: the customer prefers the full refund (approved by the back office, PAG-05). */
 export async function refuseNextOffer(formData: FormData): Promise<void> {
   const requestId = idOf(formData, "requestId");
+  const page =
+    formData.get("base") === "/richieste" ? `/richieste/${requestId}` : quotePage(requestId);
   const { status, body } = await api(`/requests/${requestId}/next-offer/refuse`, {
     method: "POST",
     body: "{}",
   });
-  if (status !== 200)
-    redirect(`${quotePage(requestId)}?errore=${encodeURIComponent(codesOf(body))}`);
-  revalidatePath(quotePage(requestId));
-  redirect(`${quotePage(requestId)}?fatto=rimborso`);
+  if (status !== 200) redirect(`${page}?errore=${encodeURIComponent(codesOf(body))}`);
+  revalidatePath(page);
+  redirect(`${page}?fatto=rimborso`);
 }
 
-/** «Invia al cliente» (decision 26): the broker sends the chosen offers. */
 /** ADR 0027: the intermediary chooses the offer and goes to pay it. */
 export async function purchaseOffer(formData: FormData): Promise<void> {
   const requestId = idOf(formData, "requestId");

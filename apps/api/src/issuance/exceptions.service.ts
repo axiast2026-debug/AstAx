@@ -35,6 +35,7 @@ import { CLOCK, CONFIG, DB, FIELD_CIPHER } from "../infra/tokens.js";
 import labels from "../notifications/labels.it.json" with { type: "json" };
 import { NotificationService } from "../notifications/notification.service.js";
 import { Postbox, staffUsers, type PostboxUser } from "../notifications/postbox.js";
+import { isOrgRequester } from "../requests/request-support.js";
 import { RefundsService } from "../refunds/refunds.service.js";
 
 const HOUR_MS = 3_600_000;
@@ -500,9 +501,16 @@ export class ExceptionsService {
     });
   }
 
-  /** EMI-04: confirmed; the customer signs the new documents and pays the difference. */
+  /**
+   * EMI-04: confirmed. The private user signs the new documents and pays the
+   * difference. Dan, 2026-10-30 (D2): for an offer the intermediary bought
+   * (ADR 0027), the intermediary confirms and pays the difference at once;
+   * then the customer signs again on a new link, and a lower price is
+   * refunded at the signature.
+   */
   async confirm(auth: AuthContext, requestId: string, returnUrl: string) {
-    if (auth.kind !== "PRIVATE") throw new ProblemError("FORBIDDEN");
+    const intermediary = auth.kind === "PROFESSIONAL" && isOrgRequester(auth.membership);
+    if (auth.kind !== "PRIVATE" && !intermediary) throw new ProblemError("FORBIDDEN");
     const now = this.clock.now();
     return withContext(this.db, auth.db, async (tx) => {
       const { request, proposal } = await this.open(tx, auth, requestId);
@@ -518,14 +526,31 @@ export class ExceptionsService {
           data: { status: "ACCEPTED", decidedAt: now },
         }),
       );
-      const user = await tx.user.findUniqueOrThrow({ where: { id: auth.userId } });
+      // The signer is who signs: the private user, or the intermediary's customer.
+      const signer = intermediary
+        ? await asSystem(tx, async () => {
+            const customer = await tx.customer.findUniqueOrThrow({
+              where: { id: request.customerId ?? "" },
+              include: { person: true },
+            });
+            return {
+              firstName: customer.person.givenName ?? customer.person.companyName ?? "",
+              lastName: customer.person.surname ?? "",
+            };
+          })
+        : await tx.user.findUniqueOrThrow({ where: { id: auth.userId } });
       const id = await this.acceptance.acceptNextOffer(
         tx,
         request,
         proposal,
-        { kind: "PRIVATE", userId: auth.userId, customerLinkId: null, offerIds: null },
-        { firstName: user.firstName, lastName: user.lastName },
-        returnUrl,
+        {
+          kind: intermediary ? "INTERMEDIARY" : "PRIVATE",
+          userId: auth.userId,
+          customerLinkId: null,
+          offerIds: null,
+        },
+        { firstName: signer.firstName, lastName: signer.lastName },
+        intermediary ? `${this.config.WEB_URL}/offerta/firmato` : returnUrl,
         actorOf(auth),
       );
       await asSystem(tx, () =>
@@ -543,6 +568,16 @@ export class ExceptionsService {
         targetId: request.id,
         after: { proposalId: proposal.id, decision: "ACCEPTED" },
       });
+      if (intermediary) {
+        const bought = await asSystem(tx, () => tx.acceptance.findUniqueOrThrow({ where: { id } }));
+        const due =
+          bought.premiumCents - bought.creditPremiumCents + bought.feeCents - bought.creditFeeCents;
+        // A difference to pay: the intermediary pays it now. Otherwise what
+        // was paid covers it: the customer's signature is all that is left.
+        if (due > 0) return this.acceptance.pay(tx, request, returnUrl);
+        await asSystem(tx, () => tx.acceptance.update({ where: { id }, data: { paidAt: now } }));
+        return { redirectUrl: null };
+      }
       return this.acceptance.view(tx, id);
     });
   }
@@ -610,7 +645,11 @@ export class ExceptionsService {
         premiumCents: paid.premiumCents,
         feeCents: paid.feeCents,
         requestedByUserId: auth?.userId ?? null,
-        requestedByLabel: auth ? labels.refundRequester.customer : labels.refundRequester.system,
+        requestedByLabel: !auth
+          ? labels.refundRequester.system
+          : auth.kind === "PRIVATE"
+            ? labels.refundRequester.customer
+            : labels.refundRequester.intermediary,
       });
       return { refundId: refund.id };
     });

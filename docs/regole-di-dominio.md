@@ -19,18 +19,18 @@ Dettagli tecnici: [`busta-chiusa.md`](busta-chiusa.md).
 ## VIS — Chi vede cosa
 
 - **VIS-01** Le agenzie vedono i dati ANIA confermati, la richiesta, il codice fiscale e l'indirizzo del cliente, la tipologia del preventivo e i documenti (Dan, 2026-10-29, [ADR 0024](adr/0024-aste-aperte-a-tutte-le-agenzie.md)). Nome, telefono ed email del cliente non escono mai verso un'agenzia prima che vinca: né nelle schermate, né nelle risposte API, né nelle esportazioni, nelle notifiche o nei metadati dei documenti; il nome compare solo nei documenti caricati dal cliente.
-- **VIS-02** L'agenzia vincitrice riceve telefono ed email del cliente alla conferma del pagamento.
+- **VIS-02** L'agenzia vincitrice riceve telefono ed email del cliente quando la polizza va in emissione: per il privato alla conferma del pagamento; per l'offerta acquistata da un intermediario dopo il pagamento e la firma del cliente ([ADR 0027](adr/0027-acquisto-diretto-dell-intermediario.md)).
 - **VIS-03** Durante l'asta il richiedente vede il conto alla rovescia e il numero di offerte; il broker vede anche il numero di agenzie invitate, senza nomi. Nessun prezzo.
 - **VIS-04** Dopo la chiusura il richiedente vede le offerte secondo le regole PRES. Il nome dell'agenzia compare solo dopo l'accettazione.
 - **VIS-05** Dopo la chiusura ogni agenzia vede solo le proprie offerte e il loro stato. La classifica segue le regole CLA.
-- **VIS-06** Il sub-agente vede le richieste nei propri filtri, che stanno sempre dentro quelli dell'agenzia, e le proprie offerte. Le offerte dei colleghi solo se il titolare lo abilita.
+- **VIS-06** Ogni utente dell'agenzia vede tutte le aste aperte, come l'agenzia; i filtri personali del dipendente stanno sempre dentro quelli dell'agenzia e decidono solo le email che riceve (Dan, 2026-10-30, D3). Le offerte dei colleghi solo se il titolare lo abilita.
 - **VIS-07** Back office e amministratore vedono tutto, tranne le offerte prima della chiusura. Ogni loro accesso ai dati di un cliente è registrato.
 - **VIS-08** Il titolare dell'agenzia vede il registro degli accessi dei propri utenti ai dati dei clienti.
 - **VIS-09** Ogni apertura del dettaglio di una richiesta o di un documento da parte di un utente di agenzia è registrata, e la pagina lo dice.
 - **VIS-10** Ogni documento del cliente scaricato o visualizzato da un utente di agenzia porta una filigrana con nome dell'agenzia, utente, data e ora.
 - **VIS-11** Le note per il cliente hanno al massimo 300 caratteri. Il sistema rifiuta numeri di telefono, indirizzi email e link, anche scritti con spazi o parole al posto dei simboli.
 - **VIS-12** La nazionalità non si raccoglie.
-- **VIS-13** Il broker vede solo i propri clienti. Un operatore vede tutti i clienti del broker oppure solo i propri, secondo l'impostazione del titolare.
+- **VIS-13** Il broker vede solo i propri clienti. Un operatore vede tutti i clienti del broker oppure solo i propri, secondo l'impostazione del titolare. Dal 2026-10-30 (analisi B3) vale anche per l'agenzia che chiede preventivi: il titolare può dare «vede tutti i clienti» anche ai dipendenti dell'agenzia.
 
 ## OFF — Offerte
 
@@ -92,8 +92,8 @@ Dettagli tecnici: [`busta-chiusa.md`](busta-chiusa.md).
 
 ## PAG — Pagamenti e rimborsi
 
-- **PAG-01** Il cliente paga premio e, se privato, fee ad AstAx tramite il fornitore dei pagamenti, con carta o bonifico istantaneo. Il premio va sul conto separato.
-- **PAG-02** Pagamento confermato: richiesta «In emissione», offerta «Vincente», le altre offerte «Non scelta», contatti all'agenzia vincitrice, parte il termine di emissione.
+- **PAG-01** Il cliente paga premio e, se privato, fee ad AstAx tramite il fornitore dei pagamenti, con carta o bonifico istantaneo. Il premio va sul conto separato. Per l'offerta acquistata da un intermediario (broker, agente, sub-agente, collaboratore) paga l'intermediario, subito, il solo premio; il cliente firma dopo ([ADR 0027](adr/0027-acquisto-diretto-dell-intermediario.md)).
+- **PAG-02** Pagamento confermato: richiesta «In emissione», offerta «Vincente», le altre offerte «Non scelta», contatti all'agenzia vincitrice, parte il termine di emissione. Per l'offerta acquistata da un intermediario, il pagamento confermato blocca l'offerta (nessun'altra si può scegliere, anche dopo la garanzia); il resto avviene alla firma del cliente.
 - **PAG-03** Pagamento fallito o abbandonato: l'accettazione decade e la richiesta torna a «Offerte disponibili», finché ci sono garanzie valide.
 - **PAG-04** Rimborso prima dell'emissione: totale, fee compreso. Dopo l'emissione (recesso): il premio indicato dall'agenzia secondo le condizioni della compagnia; il fee del cliente e quello dell'agenzia restano dovuti. Il premio rimborsato si recupera dall'agenzia come voce negativa della rimessa successiva. Regola da validare con il legale. Domanda 18: dopo l'emissione il cliente recede o annulla fuori dal portale (parametro `withdrawal.onPlatform` spento): né il cliente né il back office registrano un recesso in AstAx.
 - **PAG-05** Ogni rimborso richiede l'approvazione del supervisore del back office ed è registrato.
@@ -101,10 +101,10 @@ Dettagli tecnici: [`busta-chiusa.md`](busta-chiusa.md).
 
 ## EMI — Emissione e penali
 
-- **EMI-01** Termine di emissione: 4 ore lavorative dalla conferma del pagamento, contate sull'orario delle emissioni (`issuance.workingHours`: lunedì-venerdì 9-19, festività escluse), e per una data scelta comunque prima della decorrenza. Decorrenza «immediata»: dal momento dell'emissione, mai prima. Decorrenza «dalle 24:00»: dalle 24:00 del giorno in cui cade il termine di emissione (domanda 1).
+- **EMI-01** Termine di emissione: 4 ore lavorative dalla conferma del pagamento, contate sull'orario delle emissioni (`issuance.workingHours`: lunedì-venerdì 9-19, festività escluse), e per una data scelta comunque prima della decorrenza. Decorrenza «immediata»: dal momento dell'emissione, mai prima. Decorrenza «dalle 24:00»: dalle 24:00 del giorno in cui cade il termine di emissione (domanda 1). Per l'offerta acquistata da un intermediario il termine parte dalla firma del cliente; se la data scelta non è più raggiungibile a quel momento (GAR-04), la decorrenza diventa «dalle 24:00» del giorno del termine di emissione, mai retroattiva (Dan, 2026-10-30, D1).
 - **EMI-02** L'agenzia carica polizza, quietanza e certificato e segna la polizza come emessa. Il cliente riceve la notifica e trova i documenti nella sua area.
 - **EMI-03** Termine superato: avviso ad agenzia e back office e proposta di penale per ritardo (25 €).
-- **EMI-04** Mancata emissione (nessuna emissione prima della decorrenza, o entro il termine per la decorrenza «immediata», oppure impossibilità segnalata). Se è colpa dell'agenzia: proposta di penale di 100 €, che sostituisce quella per ritardo, e passaggio alla seconda offerta, cioè la migliore offerta ancora garantita di un'altra agenzia. Il cliente conferma entro 24 ore (paga la differenza o riceve il rimborso della differenza) oppure viene rimborsato del tutto. Se la colpa è di dati errati del cliente: nuovo calcolo con l'agenzia; il cliente accetta il nuovo prezzo o viene rimborsato.
+- **EMI-04** Mancata emissione (nessuna emissione prima della decorrenza, o entro il termine per la decorrenza «immediata», oppure impossibilità segnalata). Se è colpa dell'agenzia: proposta di penale di 100 €, che sostituisce quella per ritardo, e passaggio alla seconda offerta, cioè la migliore offerta ancora garantita di un'altra agenzia. Il cliente conferma entro 24 ore (paga la differenza o riceve il rimborso della differenza) oppure viene rimborsato del tutto. Se la colpa è di dati errati del cliente: nuovo calcolo con l'agenzia; il cliente accetta il nuovo prezzo o viene rimborsato. Per l'offerta acquistata da un intermediario conferma o rifiuta l'intermediario dalla sua richiesta: paga la differenza (o la riceve alla firma) e il cliente firma di nuovo dal link (Dan, 2026-10-30, D2).
 - **EMI-05** Penali: proposta (sistema o back office) → applicata dal supervisore del back office → contestabile dall'agenzia entro 10 giorni → decisione finale dell'amministratore. Le penali applicate si trattengono dalla prima rimessa utile; se la rimessa non basta, il residuo passa alla successiva. Una rimessa non è mai negativa.
 - **EMI-06** Tre mancate emissioni per colpa dell'agenzia in 6 mesi: sospensione automatica dagli inviti e avviso all'amministratore, che conferma o revoca. Gli obblighi in corso restano.
 - **EMI-07** Aggiramento accertato: penale di 1.000 € ed esclusione dalla piattaforma, decise dall'amministratore su proposta del back office.

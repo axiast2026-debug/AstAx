@@ -2,6 +2,7 @@ import { startTexts } from "@/lib/start";
 import { AniaConfirmed } from "@/components/ania-confirmed";
 import { formatDate } from "@astax/shared/format";
 import { Badge, Button, Card, CardTitle, Icon } from "@astax/ui";
+import { can } from "@astax/shared/permissions";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -77,7 +78,8 @@ export default async function IncomingRequestPage({
   const offerOpen = detail.offer?.status === "SUBMITTED";
   // BC-04: the agency's copy is read only by its author, the owner, the supervisors and the
   // operators allowed; anyone else (a colleague's offer) sees no receipt, never an error.
-  const ownCopy = offerOpen ? await api<OwnOffer>(`/offers/${detail.offer?.id}`) : null;
+  const ownCopy =
+    offerOpen && detail.offer?.readable ? await api<OwnOffer>(`/offers/${detail.offer.id}`) : null;
   const own = ownCopy?.status === 200 ? ownCopy.body : null;
   const mayOffer =
     open &&
@@ -300,7 +302,7 @@ export default async function IncomingRequestPage({
               />
             ) : null}
 
-            {mayOffer && !ibanRequired ? (
+            {mayOffer && !ibanRequired && (!offerOpen || own) ? (
               <section aria-labelledby="offer-title" className="flex flex-col gap-3">
                 <h2 id="offer-title" className="scroll-mt-4 text-section font-bold">
                   {offerOpen
@@ -321,7 +323,11 @@ export default async function IncomingRequestPage({
               </section>
             ) : null}
 
-            {open && !offerOpen && detail.invitation !== "DECLINED" ? (
+            {open &&
+            !offerOpen &&
+            detail.invitation !== "DECLINED" &&
+            // OFF-03 (C4): not over a colleague's claim, unless the role may take it over.
+            (!detail.claim || detail.claim.byMe || can(viewer.actor, "claim.override")) ? (
               <form
                 action={declineRequest}
                 className="flex flex-col gap-3 rounded-xl bg-white p-5 shadow-[inset_0_0_0_1px_var(--color-warm-200)]"

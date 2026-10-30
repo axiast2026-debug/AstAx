@@ -286,7 +286,7 @@ const ENDPOINTS: Endpoint[] = [
   { action: "complaint.manage", method: "GET", path: () => "/back-office/complaints" },
   { action: "complaint.register", method: "POST", path: () => "/back-office/complaints", body: {} },
   {
-    action: "complaint.manage",
+    action: "complaint.export",
     method: "GET",
     path: () => "/back-office/complaints/export?from=2026-01-01&to=2026-12-31",
   },
@@ -855,13 +855,13 @@ const ENDPOINTS: Endpoint[] = [
     path: () => `/requests/${randomUUID()}/next-offer`,
   },
   {
-    action: "offer.accept",
+    action: "nextOffer.respond",
     method: "POST",
     path: () => `/requests/${randomUUID()}/next-offer/confirm`,
     body: {},
   },
   {
-    action: "offer.accept",
+    action: "nextOffer.respond",
     method: "POST",
     path: () => `/requests/${randomUUID()}/next-offer/refuse`,
     body: {},

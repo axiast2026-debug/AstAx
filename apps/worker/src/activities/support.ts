@@ -117,10 +117,28 @@ async function recipientsOf(
   }));
 }
 
+/**
+ * docs/notifiche.md, `requester`: the private user; for an intermediary the
+ * user who follows the request and the owner (audit of 2026-10-30, B5: an
+ * operator suspended or away left the request without anyone told).
+ */
 export async function requesterOf(tx: DbTransaction, cipher: FieldCipher, request: QuoteRequest) {
-  const [recipient] = await recipientsOf(tx, cipher, [request.requesterUserId]);
+  const owners = request.ownerOrganizationId
+    ? await tx.membership.findMany({
+        where: {
+          organizationId: request.ownerOrganizationId,
+          role: "OWNER",
+          status: "ACTIVE",
+        },
+        select: { userId: true },
+      })
+    : [];
+  const recipients = await recipientsOf(tx, cipher, [
+    request.requesterUserId,
+    ...owners.map((o) => o.userId),
+  ]);
   const user = await tx.user.findUniqueOrThrow({ where: { id: request.requesterUserId } });
-  return { recipients: recipient ? [recipient] : [], firstName: user.firstName };
+  return { recipients, firstName: user.firstName };
 }
 
 /** The active members of the agencies; never anything about the customer (VIS-01). */

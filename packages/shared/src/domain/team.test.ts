@@ -23,13 +23,14 @@ describe("team: roles and flags an owner can grant", () => {
     ]);
   });
 
-  it("canSeeAccounting only for agency supervisors; seesAllClients only for broker operators (VIS-13)", () => {
+  it("canSeeAccounting only for agency supervisors; seesAllClients for the operators of brokers and agencies (VIS-13, audit B3)", () => {
     expect(membershipGrantProblems("AGENCY", "SUPERVISOR", { canSeeAccounting: true })).toEqual([]);
     expect(membershipGrantProblems("AGENCY", "OPERATOR", { canSeeAccounting: true })).toEqual([
       "FLAG_NOT_APPLICABLE:canSeeAccounting",
     ]);
     expect(membershipGrantProblems("BROKER", "OPERATOR", { seesAllClients: true })).toEqual([]);
-    expect(membershipGrantProblems("AGENCY", "OPERATOR", { seesAllClients: true })).toEqual([
+    expect(membershipGrantProblems("AGENCY", "OPERATOR", { seesAllClients: true })).toEqual([]);
+    expect(membershipGrantProblems("AGENCY", "SUPERVISOR", { seesAllClients: true })).toEqual([
       "FLAG_NOT_APPLICABLE:seesAllClients",
     ]);
   });

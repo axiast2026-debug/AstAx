@@ -28,6 +28,8 @@ const RECIPIENTS: Record<"PRIVATE" | "BROKER" | "AGENCY" | "STAFF", readonly str
   ],
   BROKER: [
     "requester",
+    // ADR 0027: the intermediary pays the offer it buys.
+    "payer",
     "organization_owner",
     "invoice_recipient",
     "refund_recipient",
@@ -36,8 +38,11 @@ const RECIPIENTS: Record<"PRIVATE" | "BROKER" | "AGENCY" | "STAFF", readonly str
     "affected_users",
   ],
   AGENCY: [
-    // ADR 0015: the agency requests quotes for its own customers too.
+    // ADR 0015: the agency requests quotes for its own customers too, and
+    // pays the offers it buys (ADR 0027).
     "requester",
+    "payer",
+    "refund_recipient",
     "invited_agency_users",
     "invited_agency_users_without_offer",
     "participating_agency_users",

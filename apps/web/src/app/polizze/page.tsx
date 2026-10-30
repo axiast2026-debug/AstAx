@@ -1,7 +1,9 @@
 import { startTexts } from "@/lib/start";
 import { formatDate, formatEuroCents } from "@astax/shared/format";
 import { Badge, Button, Card } from "@astax/ui";
+import { can } from "@astax/shared/permissions";
 import { getTranslations } from "next-intl/server";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { ErrorSummary } from "@/components/form";
@@ -36,14 +38,18 @@ const TONE: Record<string, "success" | "warning" | "neutral" | "danger"> = {
 export default async function PoliciesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ errore?: string; recesso?: string; prezzato?: string }>;
+  searchParams: Promise<{ errore?: string; recesso?: string; prezzato?: string; vista?: string }>;
 }) {
   const query = await searchParams;
   const viewer = await requireViewer();
   const t = await getTranslations("policies");
   const startText = await startTexts();
   const tk = await getTranslations("wizard.documentKinds");
-  const isAgency = viewer.activeMembership?.organization.type === "AGENCY";
+  const agency = viewer.activeMembership?.organization.type === "AGENCY";
+  // Audit of 2026-10-30 (B1): an agency also requests quotes for its own
+  // customers: two lists, the policies it issued and its customers' ones.
+  const mayIssue = can(viewer.actor, "issuance.manage");
+  const isAgency = agency && mayIssue && query.vista !== "clienti";
   // The documents through the requester's own routes (the API logs each opening).
   const base = viewer.me.kind === "PRIVATE" ? "/preventivi" : "/richieste";
   const { status, body: rows } = await api<PolicyRow[]>(
@@ -58,7 +64,27 @@ export default async function PoliciesPage({
 
   return (
     <AppShell viewer={viewer}>
-      <h1 className="text-2xl font-bold">{isAgency ? t("agencyTitle") : t("title")}</h1>
+      <h1 className="text-2xl font-bold">
+        {isAgency ? t("agencyTitle") : agency ? t("customersTitle") : t("title")}
+      </h1>
+      {agency && mayIssue ? (
+        <nav aria-label={t("views")} className="mt-3 flex flex-wrap gap-2 text-sm">
+          <Link
+            href="/polizze"
+            aria-current={isAgency ? "page" : undefined}
+            className={`rounded-full px-3 py-1.5 ${isAgency ? "bg-night-900 text-white" : "bg-warm-100"}`}
+          >
+            {t("agencyTitle")}
+          </Link>
+          <Link
+            href="/polizze?vista=clienti"
+            aria-current={isAgency ? undefined : "page"}
+            className={`rounded-full px-3 py-1.5 ${isAgency ? "bg-warm-100" : "bg-night-900 text-white"}`}
+          >
+            {t("customersTitle")}
+          </Link>
+        </nav>
+      ) : null}
       <ErrorSummary codes={query.errore} />
       {query.recesso || query.prezzato ? (
         <p role="status" className="mt-4 rounded-lg bg-green-50 p-3 text-sm">

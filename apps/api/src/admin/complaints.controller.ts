@@ -82,7 +82,7 @@ export class ComplaintsController {
   }
 
   @Get("export")
-  @RequirePermission("complaint.manage")
+  @RequirePermission("complaint.export")
   async export(
     @CurrentAuth() auth: AuthContext,
     @Query("from") from: string | undefined,

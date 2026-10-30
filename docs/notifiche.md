@@ -20,7 +20,7 @@ Ogni utente sceglie i canali per evento nel profilo. Restano sempre attivi: le n
 - Verso il richiedente e il cliente del broker `{{veicolo}}` è marca, modello e targa (domanda 15, risposta A); verso le agenzie solo marca e modello, la targa si vede nell'app.
 - I prezzi possono stare nelle notifiche (domanda 15): al richiedente le sue offerte e i suoi importi, all'agenzia la propria offerta e, dalla classifica, le prime due anonime.
 - Nessun prezzo di altre agenzie, mai. Prima della pubblicazione della classifica, nessuna posizione.
-- Gli importi arrivano già formattati («505,00 €»); le date nel fuso di Roma e nella lingua del destinatario («martedì 14 ottobre alle 10:30» / «e martë, 14 tetor, ora 10:30»).
+- Gli importi arrivano già formattati («505,00 €»); le date nel fuso di Roma e nella lingua del destinatario («martedì 14/10/2026 alle 10:30»): solo italiano ([ADR 0017](adr/0017-solo-italiano.md)), date in GG/MM/AAAA.
 - Le variabili con valori di elenco (stato dell'offerta, motivo, pacchetto) usano l'etichetta nella lingua del destinatario.
 - Una variabile vuota non lascia spazi doppi o righe vuote: il motore dei modelli le pulisce.
 - I link portano alla pagina giusta e richiedono l'accesso; i link al cliente del broker richiedono un codice OTP.
@@ -30,7 +30,7 @@ Ogni utente sceglie i canali per evento nel profilo. Restano sempre attivi: le n
 
 | Destinatario nel file | Chi riceve in pratica |
 | --- | --- |
-| `requester` | Il privato; per il broker, l'utente che segue la richiesta e il titolare |
+| `requester` | Il privato; per l'intermediario (broker, agenzia, sez. E), l'utente che segue la richiesta e il titolare (analisi del 2026-10-30, B5) |
 | `broker_client` | Il cliente del broker, con i contatti inseriti dal broker |
 | `invited_agency_users` | Gli utenti dell'agenzia invitata che possono vedere la richiesta (tutti, oppure quelli con i filtri compatibili, secondo la distribuzione scelta dall'agenzia) |
 | `participating_agency_users` | Chi ha preso in carico o offerto, più titolare e supervisore |
@@ -74,6 +74,10 @@ Ogni utente sceglie i canali per evento nel profilo. Restano sempre attivi: le n
 | `offer.link_to_client` | `broker_client` | Email, SMS |
 | `payment.confirmed.customer` | `broker_client` | Email (fase 8: il cliente del broker non ha un account; nessun link, il riepilogo è nel link del broker) |
 | `payment.confirmed` | Chi ha pagato | In app, email |
+| `purchase.paid` | Chi paga (l'intermediario) | In app, email |
+| `purchase.signed` | Chi paga (l'intermediario) | In app, email |
+| `purchase.signed.customer` | Il cliente dell'intermediario | Email |
+| `purchase.signature_failed` | Chi paga (l'intermediario) | In app, email |
 | `payment.failed` | Chi ha pagato | In app, push, email |
 | `offer.won` | `winning_agency_users` | In app, push, email |
 | `offer.won.bo` | `bo_verifiers` | In app |

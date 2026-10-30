@@ -117,7 +117,7 @@ export class NextOfferController {
 
   @Post("confirm")
   @HttpCode(200)
-  @RequirePermission("offer.accept")
+  @RequirePermission("nextOffer.respond")
   confirm(@CurrentAuth() auth: AuthContext, @Param("id") id: string, @Body() body: unknown) {
     return this.exceptions.confirm(
       auth,
@@ -128,7 +128,7 @@ export class NextOfferController {
 
   @Post("refuse")
   @HttpCode(200)
-  @RequirePermission("offer.accept")
+  @RequirePermission("nextOffer.respond")
   refuse(@CurrentAuth() auth: AuthContext, @Param("id") id: string) {
     return this.exceptions.refuse(auth, parseInput(uuid, id));
   }

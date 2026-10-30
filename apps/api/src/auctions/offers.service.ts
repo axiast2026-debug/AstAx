@@ -5,7 +5,6 @@ import { decryptFile, encryptFile, KMS_KEYS, seal, wipe, type KmsPort } from "@a
 import type { ObjectStoragePort } from "@astax/adapters/storage";
 import {
   asSystem,
-  filterableRequest,
   looksLikePdf,
   settingsAt,
   withContext,
@@ -13,18 +12,14 @@ import {
   type DbClient,
   type DbTransaction,
   type Offer,
-  type QuoteRequest,
   requestRequirements,
   requesterExclusions,
 } from "@astax/db";
 import {
-  AgencyFilterCriteriaSchema,
   coverageShortfalls,
-  filterMismatches,
   guaranteeDateAccepted,
   noteProblems,
   OfferPayloadSchema,
-  type AgencyFilterCriteria,
   type OfferPayload,
 } from "@astax/shared/domain";
 import { dbDateToCalendarDate } from "@astax/shared/format";
@@ -135,76 +130,6 @@ export class OffersService {
       throw new ProblemError("AUCTION_CLOSED");
     }
     return auction;
-  }
-
-  /**
-   * VIS-06: when the agency distributes the requests by the members' filters,
-   * an operator works only the requests inside their own filters. "all" for
-   * everyone else; null for an operator without a valid filter.
-   */
-  async memberScope(
-    tx: DbTransaction,
-    auth: AuthContext,
-  ): Promise<AgencyFilterCriteria | "all" | null> {
-    return this.memberScopeOf(tx, this.agency(auth));
-  }
-
-  /** VIS-06: what one member of the agency sees (the caller, or a colleague given a claim). */
-  async memberScopeOf(
-    tx: DbTransaction,
-    m: { id: string; organizationId: string; role: string },
-  ): Promise<AgencyFilterCriteria | "all" | null> {
-    if (m.role !== "OPERATOR") return "all";
-    const capacity = await tx.agencyCapacity.findUnique({
-      where: { organizationId: m.organizationId },
-    });
-    if (capacity?.distribution !== "BY_MEMBER_FILTERS") return "all";
-    const filter = await tx.memberFilter.findUnique({ where: { membershipId: m.id } });
-    const criteria = filter ? AgencyFilterCriteriaSchema.safeParse(filter.criteria) : null;
-    return criteria?.success ? criteria.data : null;
-  }
-
-  fitsScope(
-    scope: AgencyFilterCriteria | "all" | null,
-    request: QuoteRequest,
-    openedAt: Date,
-  ): boolean {
-    if (scope === "all") return true;
-    if (scope === null) return false;
-    const filterable = filterableRequest(request, openedAt);
-    return filterable !== null && filterMismatches(scope, filterable).length === 0;
-  }
-
-  /**
-   * VIS-06 checked in its own short transaction, before the auction is locked:
-   * a refusal is logged without holding the lock (no second connection under it).
-   */
-  private async checkMemberFilters(
-    auth: AuthContext,
-    target: { auctionId?: string; offerId?: string },
-  ) {
-    const fits = await withContext(this.db, auth.db, async (tx) => {
-      const auctionId =
-        target.auctionId ??
-        (await tx.offer.findUnique({ where: { id: target.offerId ?? "" } }))?.auctionId;
-      const auction = auctionId ? await tx.auction.findUnique({ where: { id: auctionId } }) : null;
-      if (!auction) return { ok: true, auctionId };
-      const request = await asSystem(tx, () =>
-        tx.quoteRequest.findUniqueOrThrow({ where: { id: auction.quoteRequestId } }),
-      );
-      return {
-        ok: this.fitsScope(await this.memberScope(tx, auth), request, auction.openedAt),
-        auctionId,
-      };
-    });
-    if (!fits.ok) {
-      await this.audit.record(actorOf(auth), {
-        action: "ACCESS_DENIED",
-        targetType: "Auction",
-        targetId: fits.auctionId ?? null,
-      });
-      throw new ProblemError("NOT_FOUND");
-    }
   }
 
   /** OFF-03: the claim of the agency is the user's; otherwise owner or supervisor. */
@@ -404,7 +329,6 @@ export class OffersService {
   }
 
   async claim(auth: AuthContext, auctionId: string) {
-    await this.checkMemberFilters(auth, { auctionId });
     const result = await withContext(this.db, auth.db, async (tx) => {
       const auction = await this.lockOpen(tx, auth, auctionId);
       await this.invitation(tx, auth, auction);
@@ -446,7 +370,6 @@ export class OffersService {
   /** OFF-08: «non interessato», with an optional reason from the list. */
   async decline(auth: AuthContext, auctionId: string, reasonCode: string | undefined) {
     const m = this.agency(auth);
-    await this.checkMemberFilters(auth, { auctionId });
     return withContext(this.db, auth.db, async (tx) => {
       const auction = await this.lockOpen(tx, auth, auctionId);
       const invitation = await this.invitation(tx, auth, auction);
@@ -458,6 +381,14 @@ export class OffersService {
           throw new ProblemError("VALIDATION_FAILED", undefined, [
             { path: "reasonCode", issue: "NOT_IN_LIST:declineReason" },
           ]);
+      }
+      // OFF-03 (audit of 2026-10-30, C4): the refusal binds the whole agency, so
+      // a colleague's claim is respected as for the offer.
+      const claim = await tx.claim.findFirst({
+        where: { auctionId, organizationId: m.organizationId, releasedAt: null },
+      });
+      if (claim && claim.userId !== auth.userId && !can(auth.actor, "claim.override")) {
+        throw new ProblemError("CLAIMED_BY_COLLEAGUE");
       }
       const active = await tx.offer.count({
         where: { auctionId, organizationId: m.organizationId, status: "SUBMITTED" },
@@ -478,7 +409,6 @@ export class OffersService {
   }
 
   async submit(auth: AuthContext, auctionId: string, raw: unknown, pdf: PdfInput | null) {
-    await this.checkMemberFilters(auth, { auctionId });
     const m = this.agency(auth);
     const result = await withContext(this.db, auth.db, async (tx) => {
       const auction = await this.lockOpen(tx, auth, auctionId);
@@ -634,7 +564,6 @@ export class OffersService {
 
   /** OFF-07: a change until the closing; the previous version stays sealed. */
   async change(auth: AuthContext, offerId: string, raw: unknown, pdf: PdfInput | null) {
-    await this.checkMemberFilters(auth, { offerId });
     const m = this.agency(auth);
     const result = await withContext(this.db, auth.db, async (tx) => {
       const found = await this.ownOffer(tx, auth, offerId, "write");
@@ -719,7 +648,6 @@ export class OffersService {
   /** OFF-07: a withdrawal until the closing. */
   async withdraw(auth: AuthContext, offerId: string) {
     this.agency(auth);
-    await this.checkMemberFilters(auth, { offerId });
     const result = await withContext(this.db, auth.db, async (tx) => {
       const found = await this.ownOffer(tx, auth, offerId, "write");
       const auction = await this.lockOpen(tx, auth, found.auctionId);

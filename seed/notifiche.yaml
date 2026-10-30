@@ -380,6 +380,57 @@ events:
         L'agenzia {{agenzia}} emetterà la polizza entro {{termine_emissione}}. Ti avvisiamo appena i documenti sono pronti.
         Riepilogo: {{link}}
 
+  # ADR 0027 (Dan, 2026-10-30): l'intermediario acquista e paga; poi il cliente firma dal link.
+  purchase.paid:
+    recipients: [payer]
+    channels: [in_app, email]
+    variables: [nome, veicolo, premio, link]
+    it:
+      title: "Acquisto confermato: ora la firma del cliente"
+      body: "Abbiamo ricevuto {{premio}} per {{veicolo}}. Invia al cliente il link per la firma."
+      emailSubject: "Acquisto confermato per {{veicolo}}"
+      emailBody: |
+        Ciao {{nome}},
+        abbiamo ricevuto il premio di {{premio}} per {{veicolo}}.
+        Ora inserisci email o telefono del cliente: riceverà il link per firmare con un codice. Dopo la firma la polizza va in emissione.
+        {{link}}
+  purchase.signed:
+    recipients: [payer]
+    channels: [in_app, email]
+    variables: [nome, veicolo, totale, premio, fee, agenzia, termine_emissione, link]
+    it:
+      title: "Il cliente ha firmato"
+      body: "La polizza per {{veicolo}} è in emissione: l'agenzia {{agenzia}} la emette entro {{termine_emissione}}."
+      emailSubject: "Il cliente ha firmato: polizza per {{veicolo}} in emissione"
+      emailBody: |
+        Ciao {{nome}},
+        il cliente ha firmato i documenti della polizza per {{veicolo}} (premio {{premio}}).
+        L'agenzia {{agenzia}} emetterà la polizza entro {{termine_emissione}}. Ti avvisiamo appena i documenti sono pronti.
+        Riepilogo: {{link}}
+  purchase.signed.customer:
+    recipients: [broker_client]
+    channels: [email]
+    mandatory: true
+    variables: [nome, veicolo, agenzia, termine_emissione, broker]
+    it:
+      emailSubject: "Hai firmato: la polizza per {{veicolo}} è in emissione"
+      emailBody: |
+        Buongiorno {{nome}},
+        hai firmato i documenti della polizza RC auto per {{veicolo}} scelta da {{broker}}.
+        L'agenzia {{agenzia}} emetterà la polizza entro {{termine_emissione}}.
+  purchase.signature_failed:
+    recipients: [payer]
+    channels: [in_app, email]
+    variables: [nome, veicolo, link]
+    it:
+      title: "Il cliente non ha firmato"
+      body: "La firma per {{veicolo}} è stata rifiutata o è scaduta: invia un nuovo link al cliente."
+      emailSubject: "Il cliente non ha firmato: {{veicolo}}"
+      emailBody: |
+        Ciao {{nome}},
+        la firma del cliente per {{veicolo}} è stata rifiutata o è scaduta. L'acquisto resta valido: invia al cliente un nuovo link per la firma.
+        {{link}}
+
   # Fase 8: il cliente del broker non ha un account; il riepilogo resta nel link che gli ha mandato il broker.
   payment.confirmed.customer:
     recipients: [broker_client]
@@ -524,7 +575,8 @@ events:
         {{descrizione}}
         Apri il caso e decidi come procedere: {{link}}
   issuance.second_offer_proposed:
-    recipients: [requester, broker_client]
+    # Analisi del 2026-10-30, D2: negli acquisti dell'intermediario conferma l'intermediario.
+    recipients: [requester]
     channels: [in_app, push, email, sms]
     forcePush: true
     # Domanda 15, risposta A (Dan, 2026-10-18): prezzi e targa nelle notifiche.

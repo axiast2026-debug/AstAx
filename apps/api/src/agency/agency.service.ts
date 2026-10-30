@@ -129,8 +129,7 @@ export class AgencyService {
     const request = await asSystem(tx, () =>
       tx.quoteRequest.findUniqueOrThrow({ where: { id: invitation.auction.quoteRequestId } }),
     );
-    const scope = await this.offers.memberScope(tx, auth);
-    if (!this.offers.fitsScope(scope, request, invitation.auction.openedAt)) return null;
+    // Dan, 2026-10-30 (D3): the members' filters choose the emails only.
     return { invitation, auction: invitation.auction, request };
   }
 
@@ -303,7 +302,6 @@ export class AgencyService {
         }),
       );
       const saved = filters.mine ? await this.savedCriteria(tx, auth) : [];
-      const scope = await this.offers.memberScope(tx, auth);
       const ids = all.map((i) => i.auctionId);
       const [offers, claims, packages] = await Promise.all([
         tx.offer.findMany({ where: { organizationId: m.organizationId, auctionId: { in: ids } } }),
@@ -332,7 +330,7 @@ export class AgencyService {
       );
       const rows = all.flatMap((i) => {
         const r = requests.find((q) => q.id === i.auction.quoteRequestId);
-        if (!r || !this.offers.fitsScope(scope, r, i.auction.openedAt)) return [];
+        if (!r) return [];
         if (filters.mine) {
           const facts = filterableRequest(r, i.auction.openedAt);
           if (!facts || saved.some((c) => filterMismatches(c, facts).length > 0)) return [];
@@ -578,7 +576,16 @@ export class AgencyService {
             }
           : null,
         elsewhere,
-        offer: offer ? { id: offer.id, status: offer.status, version: offer.version } : null,
+        offer: offer
+          ? {
+              id: offer.id,
+              status: offer.status,
+              version: offer.version,
+              // BC-04 (audit of 2026-10-30, C5): its author, or who may read the colleagues'.
+              readable:
+                offer.userId === auth.userId || can(auth.actor, "offer.readColleagueDuringAuction"),
+            }
+          : null,
         request: await agencyRequestView(tx, quoteData),
         quoteType,
         ania,
@@ -898,13 +905,6 @@ export class AgencyService {
         where: { id: membershipId, organizationId: m.organizationId, status: "ACTIVE" },
       });
       if (!member) throw new ProblemError("NOT_FOUND");
-      // VIS-06: the colleague must see the request, or the claim would block everyone.
-      const scope = await this.offers.memberScopeOf(tx, member);
-      if (!this.offers.fitsScope(scope, target.request, auction.openedAt)) {
-        throw new ProblemError("CONFLICT", "The request is outside the member's filters", [
-          { path: "membershipId", issue: "OUTSIDE_MEMBER_FILTERS" },
-        ]);
-      }
       // OFF-02: one offer per person per round, also after a released claim.
       const offeredElsewhere = await asSystem(tx, () =>
         tx.offer.count({

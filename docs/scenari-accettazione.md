@@ -67,9 +67,9 @@ Offerte: Agenzia Due, Alfa, 610,00 €, garantita fino al 04/12/2026; Agenzia Tr
 
 **Allora** Paolo vede le due offerte e non vede il pulsante «Confronta con AI».
 
-**Quando** il 27/11/2026 Paolo invia ad Anna il link per l'offerta Alfa,
-**e** Anna conferma l'identità con il codice, legge i documenti, firma e paga 610,00 €,
-**allora** non si apre nessuna nuova asta; l'offerta era ancora garantita; Anna non paga fee; Agenzia Due emette; la fattura mensile al broker di inizio dicembre contiene 30,00 € per questa polizza; l'estratto conto del broker la mostra come dovuta.
+**Quando** il 27/11/2026 Paolo sceglie l'offerta Alfa con «Scegli e acquista» e paga 610,00 € (ADR 0027),
+**e** poi inserisce l'email di Anna, che riceve il link, conferma l'identità con il codice, legge i documenti e firma,
+**allora** non si apre nessuna nuova asta; l'offerta era ancora garantita; Anna non paga niente e il broker non paga fee al momento; Agenzia Due emette; la fattura mensile al broker di inizio dicembre contiene 30,00 € per questa polizza; l'estratto conto del broker la mostra come dovuta.
 
 ---
 

@@ -20,7 +20,12 @@ import {
   type Acceptance,
   type QuoteRequest,
 } from "@astax/db";
-import { coverStartAt, issuanceDeadline, transitionOffer } from "@astax/shared/domain";
+import {
+  coverStartAt,
+  issuanceDeadline,
+  lastAcceptanceMoment,
+  transitionOffer,
+} from "@astax/shared/domain";
 import {
   dbDateToCalendarDate,
   formatDate,
@@ -218,6 +223,23 @@ export class AcceptanceEventsService {
               where: { id: envelope.acceptance.id },
               data: { status: "VOIDED", voidedAt: now, voidReason: `SIGNATURE_${event.status}` },
             });
+          } else if (envelope.acceptance.intermediaryPurchase && envelope.acceptance.paidAt) {
+            const bought = await tx.quoteRequest.findUniqueOrThrow({
+              where: { id: envelope.acceptance.quoteRequestId },
+            });
+            await this.tell(
+              tx,
+              emails,
+              await this.payers(tx, bought),
+              "purchase.signature_failed",
+              {
+                nome: await this.payerName(tx, bought),
+                veicolo: await this.vehicle(tx, bought),
+                link: this.requesterLink(bought),
+              },
+              this.requesterLink(bought),
+              { quoteRequestId: bought.id },
+            );
           }
           return;
         }
@@ -276,8 +298,53 @@ export class AcceptanceEventsService {
         // policy to issuance, the contacts to the agency (VIS-02).
         if (a.intermediaryPurchase && a.paidAt) {
           const signed = await tx.acceptance.findUniqueOrThrow({ where: { id: a.id } });
-          const current = await tx.quoteRequest.findUniqueOrThrow({ where: { id: request.id } });
+          let current = await tx.quoteRequest.findUniqueOrThrow({ where: { id: request.id } });
+          // Dan, 2026-10-30 (D1): a chosen start date no longer reachable when
+          // the customer signs (GAR-04: too late to issue before it) moves to
+          // the first moment possible after the signature, «dalle 24:00» of
+          // the issuance deadline day: the cover is never retroactive and the
+          // agency is never late from the start.
+          const rules = await this.acceptance.issuanceRules(tx, now);
+          if (
+            current.startMode === "DATE" &&
+            current.startDate &&
+            now >=
+              lastAcceptanceMoment(
+                rules.calendar,
+                dbDateToCalendarDate(current.startDate),
+                rules.hours,
+              )
+          ) {
+            const from = dbDateToCalendarDate(current.startDate);
+            current = await tx.quoteRequest.update({
+              where: { id: current.id },
+              data: { startMode: "MIDNIGHT_AFTER_DEADLINE" },
+            });
+            await addRequestEvent(tx, current, {
+              type: "START_DATE_MOVED",
+              actorKind: "SYSTEM",
+              actorUserId: null,
+              at: now,
+              details: { from, startMode: "MIDNIGHT_AFTER_DEADLINE" },
+            });
+          }
           await this.confirmPaid(tx, emails, current, signed, null, now);
+          // EMI-04: a second offer bought for less: the difference comes back.
+          const premiumDue = signed.premiumCents - signed.creditPremiumCents;
+          const feeDue = signed.feeCents - signed.creditFeeCents;
+          if (
+            (signed.creditPremiumCents > 0 || signed.creditFeeCents > 0) &&
+            (premiumDue < 0 || feeDue < 0)
+          ) {
+            await this.refunds.request(tx, postbox, {
+              quoteRequestId: request.id,
+              reason: "SECOND_OFFER_DIFFERENCE",
+              premiumCents: Math.max(0, -premiumDue),
+              feeCents: Math.max(0, -feeDue),
+              requestedByUserId: null,
+              requestedByLabel: labels.refundRequester.system,
+            });
+          }
           return;
         }
         // EMI-04: a second offer that costs the same or less is settled at the signature;
@@ -444,6 +511,20 @@ export class AcceptanceEventsService {
             targetId: request.id,
             after: { paymentId: payment.id, acceptanceId: a.id, intermediaryPurchase: true },
           });
+          await this.tell(
+            tx,
+            emails,
+            await this.payers(tx, request),
+            "purchase.paid",
+            {
+              nome: await this.payerName(tx, request),
+              veicolo: await this.vehicle(tx, request),
+              premio: formatEuroCents(payment.premiumCents),
+              link: this.requesterLink(request),
+            },
+            this.requesterLink(request),
+            { quoteRequestId: request.id },
+          );
           return;
         }
         if (a.status !== "SIGNED" || request.status !== "ACCEPTED" || !request.startDate) {
@@ -564,7 +645,7 @@ export class AcceptanceEventsService {
       tx,
       emails,
       await this.payers(tx, request),
-      "payment.confirmed",
+      a.intermediaryPurchase ? "purchase.signed" : "payment.confirmed",
       {
         nome: await this.payerName(tx, request),
         veicolo: vehicle,
@@ -590,7 +671,7 @@ export class AcceptanceEventsService {
           await this.notifications.queueEmail(
             tx,
             this.cipher.decrypt(customer.emailEnc),
-            "payment.confirmed.customer",
+            a.intermediaryPurchase ? "purchase.signed.customer" : "payment.confirmed.customer",
             {
               nome: customer.person.givenName ?? customer.person.companyName ?? "",
               veicolo: vehicle,
@@ -604,23 +685,30 @@ export class AcceptanceEventsService {
       }
     }
     const toIssue = `${this.config.WEB_URL}/da-emettere`;
-    await this.tell(
-      tx,
-      emails,
-      await this.agencyUsers(tx, won.organizationId, won.userId),
-      "offer.won",
-      {
-        codice: request.code,
-        veicolo: await this.vehicle(tx, request, "agency"),
-        premio: amounts.premio,
-        compagnia: company,
-        termine_emissione: term,
-        decorrenza,
-        link: toIssue,
-      },
-      toIssue,
-      { quoteRequestId: request.id },
-    );
+    const wonVariables = {
+      codice: request.code,
+      veicolo: await this.vehicle(tx, request, "agency"),
+      premio: amounts.premio,
+      compagnia: company,
+      termine_emissione: term,
+      decorrenza,
+    };
+    // Who issues opens «Da emettere»; the author who cannot issue gets the
+    // link to their offers (audit of 2026-10-30, C3: «Da emettere» is a 404 for them).
+    const issuers = await this.agencyUsers(tx, won.organizationId, null);
+    await this.tell(tx, emails, issuers, "offer.won", { ...wonVariables, link: toIssue }, toIssue, {
+      quoteRequestId: request.id,
+    });
+    const authorId = won.userId;
+    if (authorId && !issuers.some((u) => u.id === authorId)) {
+      const author = await asSystem(tx, () => tx.user.findUnique({ where: { id: authorId } }));
+      const mine = `${this.config.WEB_URL}/le-mie-offerte`;
+      if (author) {
+        await this.tell(tx, emails, [author], "offer.won", { ...wonVariables, link: mine }, mine, {
+          quoteRequestId: request.id,
+        });
+      }
+    }
     const staff = await tx.membership.findMany({
       where: {
         organization: { type: "ASTAX" },
@@ -645,9 +733,25 @@ export class AcceptanceEventsService {
   }
 
   /** Who paid: the private user, or the broker's customer and the broker's user. */
+  /** The requester and, for an intermediary, the owner too (docs/notifiche.md, B5). */
   private async payers(tx: DbTransaction, request: QuoteRequest) {
-    const requester = await tx.user.findUniqueOrThrow({ where: { id: request.requesterUserId } });
-    return [{ id: requester.id, emailEnc: requester.emailEnc }];
+    const owners = request.ownerOrganizationId
+      ? await tx.membership.findMany({
+          where: {
+            organizationId: request.ownerOrganizationId,
+            role: "OWNER",
+            status: "ACTIVE",
+          },
+          select: { userId: true },
+        })
+      : [];
+    const users = await tx.user.findMany({
+      where: {
+        id: { in: [...new Set([request.requesterUserId, ...owners.map((o) => o.userId)])] },
+        status: "ACTIVE",
+      },
+    });
+    return users.map((u) => ({ id: u.id, emailEnc: u.emailEnc }));
   }
 
   private async payerName(tx: DbTransaction, request: QuoteRequest) {

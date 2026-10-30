@@ -106,7 +106,8 @@
     "system": "AstAx (in automatico)",
     "customer": "il cliente",
     "backOffice": "il back office",
-    "agency": "l’agenzia"
+    "agency": "l’agenzia",
+    "intermediary": "l'intermediario"
   },
   "suspension": {
     "reason": "tre mancate emissioni negli ultimi sei mesi"
