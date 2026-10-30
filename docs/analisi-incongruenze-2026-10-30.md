@@ -42,6 +42,14 @@ Sono errori nel lavoro dei giorni scorsi (acquisto diretto, IBAN, dati ANIA per 
 | D7 | **«Flotte»** è solo nel menu del broker, e comunque è «In arrivo». | Darla anche alle agenzie quando verrà fatta. |
 | D8 | **Cliente che non firma mai:** il rimborso all'intermediario. | Pulsante «Chiedi rimborso» per il back office (vedi A4), più la domanda al legale già in `punti-aperti.md`. |
 
+**Risposte di Dan (2026-10-30):**
+- **D1:** la decorrenza passa al giorno della firma, e il termine di emissione parte da lì.
+- **D2:** conferma l'intermediario dalla sua richiesta.
+- **D3:** i filtri del dipendente valgono solo per le email.
+- **D4:** l'agenzia richiedente paga 30 €, come il broker.
+
+Per D5-D8 vale la proposta, salvo un parere diverso di Dan sul piano.
+
 ## 3. Problemi gravi (alta)
 
 | # | Problema | Utenze |
