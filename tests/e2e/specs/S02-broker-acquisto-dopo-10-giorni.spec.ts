@@ -106,7 +106,7 @@ test.describe.serial("S02 — broker: acquista l'offerta, il cliente firma dal l
     await expect(anna).toHaveURL(/\/firma-di-prova\//);
     await anna.getByLabel("Codice ricevuto").fill("123456");
     await anna.getByRole("button", { name: "Firma", exact: true }).click();
-    await expect(anna).toHaveURL(/\/offerta\/[A-Za-z0-9_-]+$/);
+    await expect(anna).toHaveURL(/\/offerta\/firmato$/);
     await expect(anna.getByRole("heading", { name: "Hai firmato" })).toBeVisible();
 
     await paolo.goto(url);

@@ -716,7 +716,13 @@ export class AcceptanceService {
    * comes later on a link (`CustomerLinksService.sendForSignature`); the
    * policy goes to issuance only after it.
    */
-  async purchase(auth: AuthContext, requestId: string, offerId: string, returnUrl: string) {
+  async purchase(
+    auth: AuthContext,
+    requestId: string,
+    offerId: string,
+    returnUrl: string,
+    signedUrl: string,
+  ) {
     if (auth.kind === "PRIVATE") throw new ProblemError("FORBIDDEN");
     return withContext(
       this.db,
@@ -741,7 +747,8 @@ export class AcceptanceService {
             firstName: customer.person.givenName ?? customer.person.companyName ?? "",
             lastName: customer.person.surname ?? "",
           },
-          returnUrl,
+          // The customer signs later, from the link: back to a page of its own.
+          signedUrl,
           actorOf(auth),
         );
         const out = await this.pay(tx, request, returnUrl);

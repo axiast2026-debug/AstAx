@@ -135,6 +135,7 @@ export class AcceptanceController {
       parseInput(uuid, id),
       input.offerId,
       this.url(input.returnPath),
+      this.url("/offerta/firmato"),
     );
   }
 

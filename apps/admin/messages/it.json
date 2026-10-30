@@ -1024,7 +1024,12 @@
       "batch_documentsDaysBeforeAuction": "Lotti: giorni tra la richiesta dei documenti e l'asta",
       "home_publicData_enabled": "Dati veri nella home pubblica (asta in corso, nastro, numeri): accendere solo dopo il parere del legale",
       "home_publicData_minClosedAuctions": "Aste chiuse nel periodo sotto le quali la home pubblica non mostra dati veri",
-      "home_publicData_windowDays": "Giorni del periodo per offerte medie e risparmio medio nella home pubblica"
+      "home_publicData_windowDays": "Giorni del periodo per offerte medie e risparmio medio nella home pubblica",
+      "acceptance_signatureLinkValidityDays": "Validità del link di firma del cliente, dopo l'acquisto dell'intermediario (giorni)",
+      "documents_maxFilesPerDocument": "File per documento caricabili insieme (fronte, retro, più pagine)",
+      "verification_ania_claimsYears": "Anni di sinistri dell'attestato sommati nella scheda ANIA",
+      "verification_ania_expiryNoticeDays": "Giorni prima della scadenza della copertura per l'avviso «in scadenza»",
+      "verification_ania_ownerMinAge": "Età minima dell'intestatario per leggere la data di nascita dal codice fiscale"
     }
   },
   "communications": {
