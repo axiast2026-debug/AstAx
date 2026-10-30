@@ -1,5 +1,6 @@
 import { formatDate, formatDateTime } from "@astax/shared/format";
 import { Badge, Button, Card, CardTitle } from "@astax/ui";
+import { can } from "@astax/shared/permissions";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -104,6 +105,13 @@ export default async function OrganizationPage({
                   )}
                   <option value="NOTE">{t("steps.NOTE")}</option>
                   <option value="EXCLUSION_PROPOSAL">{t("steps.EXCLUSION_PROPOSAL")}</option>
+                  {o.type === "AGENCY" && can(viewer.actor, "penalty.propose")
+                    ? (["LATE_ISSUANCE", "MISSED_ISSUANCE", "CIRCUMVENTION"] as const).map((k) => (
+                        <option key={k} value={k}>
+                          {t(`steps.${k}`)}
+                        </option>
+                      ))
+                    : null}
                 </select>
               </label>
               <label className="grid gap-1">

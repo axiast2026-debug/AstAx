@@ -41,7 +41,7 @@
 
 3.3 Durante l'asta il Broker vede conto alla rovescia, numero di offerte e numero di agenzie invitate, senza nomi e senza prezzi. Dopo la chiusura vede, per ogni compagnia, la migliore offerta ancora garantita.
 
-3.4 **Link al cliente.** Il Broker invia al cliente, dalla Piattaforma, il link per scegliere (o confermare l'offerta scelta), firmare e pagare. Il cliente non crea un account e conferma l'identità con un codice OTP. Il confronto con AI non è disponibile per i clienti del Broker.
+3.4 **Acquisto e firma del cliente.** Il Broker sceglie l'offerta per il cliente e la acquista dalla Piattaforma, pagando il premio ad AstAx; poi indica email o telefono del cliente, che riceve il link per firmare la documentazione con un codice ([ADR 0027](../adr/0027-acquisto-diretto-dell-intermediario.md)). Il cliente non paga compensi ad AstAx. **[DA VALIDARE — LEGALE]**
 
 3.5 **Rinnovi.** Il Broker vede le scadenze dei propri clienti (oggi i prossimi 60 giorni) e può attivare per ogni cliente il rinnovo in asta (oggi 30 giorni prima della scadenza).
 

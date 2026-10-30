@@ -644,7 +644,9 @@
       "reload": "Ricarica il portale",
       "alt": "Schermo del portale agenzie",
       "fake": "In questo ambiente l'ANIA è finto: non serve nessun login."
-    }
+    },
+    "cancelIntro": "Il supervisore può annullare la richiesta finché non c'è un'accettazione: il richiedente lo vede nella cronologia.",
+    "cancelRequest": "Annulla la richiesta"
   },
   "auctions": {
     "title": "Aste",
@@ -968,7 +970,7 @@
       "auction_desertedReopen_enabled": "Riapertura automatica dell'asta deserta",
       "auction_desertedReopen_workingHours": "Durata della riapertura (ore lavorative)",
       "auction_desertedReopen_maxAttempts": "Riaperture automatiche per richiesta",
-      "invitations_max": "Agenzie invitate al massimo per asta",
+      "invitations_max": "Agenzie al massimo per un invito a mano del back office",
       "invitations_topUp_checkAtFraction": "Controllo per il rabbocco, come frazione della durata",
       "invitations_topUp_minOffers": "Offerte sotto cui scatta il rabbocco",
       "invitations_topUp_extra": "Agenzie aggiunte al massimo con il rabbocco",
@@ -1258,7 +1260,7 @@
   },
   "onboardingQueue": {
     "title": "Ingresso di agenzie e broker",
-    "intro": "Le richieste arrivate dal sito, dalla più vecchia. Controlla i dati sul RUI, i mandati, la RC professionale e i contratti; poi approva o respingi con un motivo.",
+    "intro": "Le richieste arrivate dal sito, dalla più vecchia. Controlla i dati sul RUI, i mandati e i contratti; poi approva o respingi con un motivo.",
     "filter": "Stato",
     "status": {
       "SUBMITTED": "Da decidere",
@@ -1403,7 +1405,10 @@
       "suspend": "Sospendi",
       "reactivate": "Riattiva",
       "NOTE": "Aggiungi una nota",
-      "EXCLUSION_PROPOSAL": "Proponi l'esclusione"
+      "EXCLUSION_PROPOSAL": "Proponi l'esclusione",
+      "LATE_ISSUANCE": "Proponi la penale per emissione in ritardo",
+      "MISSED_ISSUANCE": "Proponi la penale per mancata emissione",
+      "CIRCUMVENTION": "Proponi la penale per aggiramento della piattaforma"
     },
     "text": "Motivo o testo della nota",
     "confirm": "Conferma",

@@ -95,7 +95,7 @@
 
 10.1 Il richiedente inserisce solo dati veri, di clienti che gli hanno dato incarico e per i quali dispone del consenso o della copertura della dichiarazione unica (documento 09). Comunica subito ad AstAx la revoca del consenso di un cliente: da allora non si aprono nuove aste per quel cliente.
 
-10.2 Il richiedente invia al cliente, dalla Piattaforma, il link per scegliere, firmare e pagare. Il cliente del richiedente non paga compensi ad AstAx; il richiedente paga ad AstAx il compenso previsto dal proprio accordo (oggi 30 € a polizza emessa).
+10.2 Il richiedente sceglie l'offerta per il cliente e la acquista dalla Piattaforma, pagando il premio ad AstAx; poi indica email o telefono del cliente, che riceve il link per firmare la documentazione con un codice ([ADR 0027](../adr/0027-acquisto-diretto-dell-intermediario.md)). Il cliente del richiedente non paga compensi ad AstAx. **[DA VALIDARE — LEGALE]** l'acquisto da parte dell'intermediario prima della firma del cliente (`docs/punti-aperti.md`).
 
 10.3 Nei lotti caricati da file la richiesta parte verso il back office alla data programmata (oggi 7 giorni prima della scadenza della polizza); il richiedente carica i documenti quando richiesto (oggi 3 giorni prima dell'asta). Una richiesta senza documenti va solo alle agenzie che le accettano.
 

@@ -49,7 +49,7 @@ Le specifiche lasciavano aperti alcuni dettagli che il codice deve per forza dec
 | 23b | Penali oltre la rimessa | Se la rimessa non basta a coprire penali o recuperi, il residuo passa alla successiva; una rimessa non è mai negativa. | EMI-05 | — |
 | 24 | Fatture | Privato: una per polizza, all'emissione (così un rimborso prima dell'emissione non richiede note di credito). Agenzia: una per rimessa. Broker: una al mese, pagamento con bonifico a 30 giorni. | CONT-03 | `invoicing.*` |
 | 25 | Quota di provvigione del broker | Prevista nel modello ma spenta (0%) finché il legale non valida lo schema a tre intermediari. Se attiva, si trattiene dalla rimessa dell'agenzia e si liquida al broker. | CONT-01, CONT-05 | `brokerCommission.*` |
-| 26 | Cliente del broker | Non crea un account: riceve un link, conferma l'identità con un codice OTP, firma e paga. Nessun confronto AI. | PRES-06 | — |
+| 26 | Cliente del broker | Non crea un account: riceve un link, conferma l'identità con un codice OTP e firma. Dal 2026-10-30 l'offerta la sceglie e la paga l'intermediario ([ADR 0027](adr/0027-acquisto-diretto-dell-intermediario.md)). Nessun confronto AI. | PRES-06 | — |
 
 ## Emissione e penali
 

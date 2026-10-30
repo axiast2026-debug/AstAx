@@ -23,6 +23,7 @@ import { InvoicingService, type InvoiceRecipient } from "../invoicing/invoicing.
 import labels from "../notifications/labels.it.json" with { type: "json" };
 import { NotificationService } from "../notifications/notification.service.js";
 import { Postbox, type PostboxUser } from "../notifications/postbox.js";
+import { ofSeries } from "../invoicing/invoice-series.js";
 
 /**
  * CONT-01, CONT-02, CONT-03: the weekly remittances. Prepared as drafts on
@@ -365,7 +366,7 @@ export class RemittancesService {
           };
         }),
         remittances: await this.rows(tx, remittances),
-        invoices: invoices.map((i) => ({
+        invoices: ofSeries(invoices, "A").map((i) => ({
           id: i.id,
           code: i.code,
           issuedOn: i.issuedOn.toISOString().slice(0, 10),

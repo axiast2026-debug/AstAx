@@ -123,5 +123,11 @@
   },
   "remittance": {
     "transferText": "Rimessa AstAx premi RCA del"
+  },
+  "flagType": {
+    "CIRCUMVENTION": "aggiramento della piattaforma"
+  },
+  "flagSource": {
+    "SURVEY": "questionario dopo l'acquisto"
   }
 }

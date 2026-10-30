@@ -72,7 +72,7 @@ Attenzione: qui collaborano tre intermediari (broker richiedente, AstAx, agenzia
 
 ## Ruolo 2 — Cliente privato
 
-Il privato carica i documenti, sceglie copertura e durata dell'asta, poi accetta un'offerta, firma e paga in app.
+Il privato carica i documenti, sceglie copertura e durata dell'asta, poi accetta un'offerta, firma e paga in app. L'intermediario (broker, agente, sub-agente, collaboratore) sceglie l'offerta per il suo cliente e la paga subito; il cliente firma dal link ([ADR 0027](../adr/0027-acquisto-diretto-dell-intermediario.md)).
 
 ### Struttura utenza
 

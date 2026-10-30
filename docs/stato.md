@@ -30,6 +30,18 @@ Poi, da decidere: B6 (dati dalla targa, serve l'account del fornitore), B7 (cont
 
 ## Ultima sessione
 
+**2026-10-30 — correzione delle incongruenze, passo 3** (`docs/analisi-incongruenze-2026-10-30.md`, sezione 9):
+- **D6:** il rabbocco non parte più nelle aste nuove (`patched("no-top-up")`). I suoi parametri restano per le aste aperte prima, ma non sono più nel pannello (`RETIRED_SETTING_KEYS`).
+- **G1:** tolti dal pannello anche i parametri che nessun codice legge (regole di rimborso, fuso, conservazione dei contratti, promemoria della RC professionale).
+- **G2:** etichetta di `invitations.max`.
+- **G3:** `flag.new.bo` ora parte dal questionario; tolto `profinsurance.expiring`.
+- **G4:** testi degli avvisi superati (riapertura, sospensione, offerta vinta, classifica, documenti del lotto, ingresso senza RC professionale).
+- **A6 e H1:** pagina «Per le agenzie» e home pubblica senza RC professionale né IBAN all'ingresso, con tutte le aste visibili e i filtri per le email.
+- **B4:** contabilità dell'agenzia separata per serie (A come emittente, B come richiedente; `ofSeries`); l'estratto da richiedente anche al supervisore con «contabilità».
+- **E3:** il supervisore annulla una richiesta dalla scheda di verifica; penali proposte a mano dalla pagina dell'organizzazione.
+- **Documenti:** spec 00, 01 e 09, scenario S09, `decisioni-aggiunte.md`, bozze legali 06 e 08.
+- **Debiti tecnici:** vedi la sezione 9 del rapporto.
+
 **2026-10-30 — correzione delle incongruenze, passo 2** (`docs/analisi-incongruenze-2026-10-30.md`):
 - **D1:** alla firma del cliente dell'intermediario, una data di decorrenza non più raggiungibile (GAR-04) diventa «dalle 24:00» del giorno del termine di emissione (`MIDNIGHT_AFTER_DEADLINE`, evento `START_DATE_MOVED`). Non può essere la mezzanotte del giorno della firma, che sarebbe retroattiva.
 - **D2:** seconda offerta e nuovo prezzo (EMI-04) per gli acquisti degli intermediari:

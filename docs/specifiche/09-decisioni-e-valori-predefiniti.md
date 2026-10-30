@@ -17,7 +17,7 @@ Questa scheda dà una risposta a ogni domanda aperta. Quello che hai già deciso
 | Fee dell'agenzia | Deciso | 15 € a polizza emessa, trattenuto dalla rimessa | — |
 | Fee sui premi bassi | Proposta | Premio sotto 200 €: fee 15 €, 20 € con il confronto AI | Su moto e ciclomotori 30 € pesano troppo e farebbero perdere il cliente |
 | Scelta dell'offerta | Deciso | Libera; evidenziate la più bassa e la scelta dell'AI | — |
-| Agenzie invitate | Proposta | Fino a 8 per richiesta; se a metà asta ci sono meno di 3 offerte, il sistema ne invita fino a 4 in più | Abbastanza concorrenza senza far lavorare gratis troppe agenzie |
+| Agenzie avvisate | Dan, 2026-10-29 e 2026-10-30 ([ADR 0024](../adr/0024-aste-aperte-a-tutte-le-agenzie.md), D6) | Ogni asta aperta è visibile a tutte le agenzie attive; l'email va a tutte quelle con i filtri compatibili, senza limite; niente rabbocco | Più concorrenza, nessuna agenzia esclusa dal sistema |
 | Aste deserte | Proposta | Una riapertura automatica di 2 ore con filtri allargati; se resta deserta, avviso al cliente | Il broker partner aggiunge un contratto in più: meglio in fase 2 |
 | Casi esclusi | Proposta | Bloccati prima dell'asta, con un messaggio chiaro al cliente | Evita aste che nessuno può vincere |
 | Rischio di cambio tariffa | Proposta | A carico dell'agenzia per tutta la garanzia; ogni agenzia sceglie la validità massima che può offrire | È ciò che rende il prezzo davvero garantito |
@@ -117,7 +117,7 @@ Tutti i valori sono proposte e tutti sono configurabili dall'amministratore: Cla
 | Tempo per la riconferma | 24 ore lavorative |
 | Promemoria di scadenza della garanzia | 2 giorni prima |
 | Termine di emissione | 4 ore lavorative dal pagamento, comunque prima della decorrenza |
-| Agenzie invitate | 8, più fino a 4 se a metà asta ci sono meno di 3 offerte |
+| Agenzie avvisate | Tutte quelle con i filtri compatibili; l'asta è visibile a tutte le agenzie attive (ADR 0024) |
 | Inviti aggiunti dal back office | Solo nella prima metà dell'asta |
 | Proposta di rinnovo | 30 giorni prima della scadenza |
 | Rimesse alle agenzie | Settimanali: ogni lunedì per le polizze emesse fino al venerdì |

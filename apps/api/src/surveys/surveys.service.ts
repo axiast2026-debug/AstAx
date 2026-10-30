@@ -14,7 +14,12 @@ import { Inject, Injectable } from "@nestjs/common";
 import { actorOf, AuditService } from "../audit/audit.service.js";
 import type { AuthContext } from "../auth/auth-context.js";
 import { ProblemError } from "../http/problem.js";
-import { CLOCK, DB } from "../infra/tokens.js";
+import type { FieldCipher } from "@astax/adapters/crypto";
+import type { ApiConfig } from "../config/config.js";
+import { CLOCK, CONFIG, DB, FIELD_CIPHER } from "../infra/tokens.js";
+import labels from "../notifications/labels.it.json" with { type: "json" };
+import { NotificationService } from "../notifications/notification.service.js";
+import { Postbox, staffUsers } from "../notifications/postbox.js";
 
 /** The customer answering from the link has no account (as a customer link). */
 const SYSTEM_ACTOR = {
@@ -47,6 +52,9 @@ export class SurveysService {
     @Inject(DB) private readonly db: DbClient,
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(AuditService) private readonly audit: AuditService,
+    @Inject(CONFIG) private readonly config: ApiConfig,
+    @Inject(FIELD_CIPHER) private readonly cipher: FieldCipher,
+    @Inject(NotificationService) private readonly notifications: NotificationService,
   ) {}
 
   private hash(token: string) {
@@ -77,7 +85,8 @@ export class SurveysService {
 
   async answer(token: string, answers: SurveyAnswers) {
     const now = this.clock.now();
-    return withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
+    const postbox = new Postbox(this.notifications, this.cipher, this.config.WEB_URL);
+    const out = await withContext(this.db, SYSTEM_CONTEXT, async (tx) => {
       // Locked: two answers sent at once make one, and one flag.
       const survey = await this.valid(tx, token, true);
       if (survey.answeredAt) {
@@ -106,6 +115,23 @@ export class SurveysService {
             updatedAt: now,
           },
         });
+        const request = await tx.quoteRequest.findUniqueOrThrow({
+          where: { id: policy.quoteRequestId },
+        });
+        const link = `${this.config.ADMIN_URL}/segnalazioni`;
+        await postbox.tell(
+          tx,
+          await staffUsers(tx, ["BO_SUPERVISOR"]),
+          "flag.new.bo",
+          {
+            tipo_segnalazione: labels.flagType.CIRCUMVENTION,
+            codice: request.code,
+            fonte: labels.flagSource.SURVEY,
+            link,
+          },
+          link,
+          { quoteRequestId: request.id },
+        );
       }
       await this.audit.inTransaction(tx, SYSTEM_ACTOR, {
         action: "SURVEY_ANSWERED",
@@ -115,6 +141,8 @@ export class SurveysService {
       });
       return { answered: true };
     });
+    await postbox.flush();
+    return out;
   }
 
   /** Spec 06 «Segnalazioni»: the open flags, with the request and the agency. */

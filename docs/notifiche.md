@@ -112,7 +112,6 @@ Ogni utente sceglie i canali per evento nel profilo. Restano sempre attivi: le n
 | `organization.mandates_requested.bo` | `bo_supervisors` | In app, email |
 | `onboarding.approved` | Titolare | In app, email |
 | `onboarding.rejected` | Titolare | In app, email |
-| `profinsurance.expiring` | Titolare | In app, email |
 | `legal.new_version` | Utenti interessati | Email (l'accettazione avviene al primo accesso) |
 | `complaint.received` | Chi presenta il reclamo | In app, email |
 | `complaint.answered` | Chi presenta il reclamo | In app, email |
@@ -127,7 +126,6 @@ Ogni utente sceglie i canali per evento nel profilo. Restano sempre attivi: le n
 - `issuance.deadline_near`: 60 minuti prima del termine (parametro `issuance.reminderMinutesBefore`).
 - `renewal.upcoming`: 30 giorni prima della scadenza.
 - `survey.post_sale`: 7 giorni dopo l'emissione.
-- `profinsurance.expiring`: 30 giorni prima della scadenza della RC professionale.
 - `complaint.due_soon.bo`: 5 giorni prima della scadenza della risposta.
 
 Ogni notifica nasce da un evento di dominio nell'outbox: se l'invio fallisce si riprova, e non si manda mai due volte la stessa notifica per lo stesso evento.

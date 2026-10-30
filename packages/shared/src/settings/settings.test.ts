@@ -6,6 +6,7 @@ import {
   parseSeedSettings,
   planSettingChange,
   requireSettingAt,
+  RETIRED_SETTING_KEYS,
   resolveSettingAt,
   SETTING_KEYS,
   SettingNotFoundError,
@@ -176,12 +177,14 @@ describe("changing a parameter", () => {
 });
 
 describe("phase 7 the panel pages of the parameters", () => {
-  it("every parameter is on exactly one page of the administrator's panel", () => {
-    for (const key of SETTING_KEYS) expect(settingsPageOf(key), key).toBeDefined();
+  it("every parameter in use is on exactly one page of the administrator's panel; retired ones on none", () => {
+    const live = SETTING_KEYS.filter((k) => !RETIRED_SETTING_KEYS.includes(k));
+    for (const key of live) expect(settingsPageOf(key), key).toBeDefined();
+    for (const key of RETIRED_SETTING_KEYS) expect(settingsPageOf(key), key).toBeUndefined();
     const all = (["auctionRules", "economy", "system"] as const).flatMap((p) =>
       settingsOfPage(p).flatMap((g) => g.keys),
     );
-    expect([...all].sort()).toEqual([...SETTING_KEYS].sort());
+    expect([...all].sort()).toEqual([...live].sort());
   });
 
   it("FEE-07 amounts in cents are edited as money; the rest by the type of the value", () => {

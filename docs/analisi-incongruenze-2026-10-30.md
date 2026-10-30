@@ -147,3 +147,22 @@ Per D5-D8 vale la proposta, salvo un parere diverso di Dan sul piano.
    - documenti (H3).
 
 Ogni passo ha le sue prove, e va in demo appena è pronto.
+
+## 9. Stato delle correzioni (2026-10-30)
+
+**Fatti:**
+- **Errori corretti subito:** i punti 1-6.
+- **Decisioni:** D1-D8.
+- **Problemi gravi:** A1-A8.
+- **Differenze tra utenze:** B1-B5, C1-C7, E1-E3.
+- **Acquisto diretto:** F1 (avvisi) e F3 (testi).
+- **Parametri e avvisi:** G1-G5.
+- **Testi e documenti:** H1 e la parte principale di H3, cioè regole di dominio, `CLAUDE.md`, `permessi.md`, `notifiche.md`, spec 00, 01, 05 e 09, scenari S02 e S09, bozze legali 01, 02, 06 e 08, `decisioni-aggiunte.md`.
+
+**Restano, da fare come passi a parte:**
+- **Promemoria automatico** al cliente che non firma (F1). Oggi l'intermediario riceve l'avviso di firma rifiutata o scaduta e reinvia il link.
+- **Contatti del cliente (F2):** si correggono reinviando il link con i contatti nuovi; manca una correzione senza reinvio.
+- **Recessi:** una voce propria per l'Assistenza (E3). Oggi i recessi sono spenti.
+- **Spec 06:** la tabella degli accessi del back office va riscritta sul codice (E4).
+- **H2:** pulizia delle chiavi di testo inutilizzate.
+- **Resto di H3:** spec 02 e 04, glossario e bozze legali 03 e 07.

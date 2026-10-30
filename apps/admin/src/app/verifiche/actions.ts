@@ -270,3 +270,12 @@ export async function confirmBotData(formData: FormData): Promise<void> {
   await post(id, "bot-confirm", {});
   redirect("/verifiche?fatto=approvata");
 }
+
+/** Audit of 2026-10-30 (E3): the back office supervisor cancels a request (request.cancel). */
+export async function cancelRequestByBackOffice(formData: FormData): Promise<void> {
+  const id = idOf(formData);
+  const { status, body } = await api(`/requests/${id}/cancel`, { method: "POST", body: "{}" });
+  revalidatePath(`/verifiche/${id}`);
+  if (status !== 200) redirect(`/verifiche/${id}?errore=${encodeURIComponent(codesOf(body))}`);
+  redirect(`/verifiche/${id}?fatto=annullata`);
+}

@@ -20,6 +20,7 @@ import {
   release,
   requestIntegration,
   saveChecklistItem,
+  cancelRequestByBackOffice,
 } from "../actions";
 import { Info } from "@/components/info";
 
@@ -766,6 +767,26 @@ export default async function VerificationCardPage({
             </form>
           </div>
         </section>
+      ) : null}
+      {can(viewer.actor, "request.cancel") &&
+      [
+        "DRAFT",
+        "IN_VERIFICATION",
+        "INTEGRATION_REQUESTED",
+        "OFFERS_AVAILABLE",
+        "DESERTED",
+        "EXPIRED",
+      ].includes(card.status) ? (
+        <form
+          action={cancelRequestByBackOffice}
+          className="mt-6 flex flex-wrap items-center gap-3 rounded-2xl bg-white p-4 ring-1 ring-warm-200"
+        >
+          <input type="hidden" name="requestId" value={card.id} />
+          <p className="text-sm text-warm-700">{t("cancelIntro")}</p>
+          <Button type="submit" variant="outline" size="sm">
+            {t("cancelRequest")}
+          </Button>
+        </form>
       ) : null}
     </AppShell>
   );

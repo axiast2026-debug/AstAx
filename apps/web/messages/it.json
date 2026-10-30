@@ -200,7 +200,6 @@
       "pec": "PEC",
       "address": "Sede",
       "iban": "IBAN per le rimesse",
-      "profInsurance": "RC professionale",
       "validUntil": "valida fino al {date}",
       "team": "Team",
       "members": "{count, plural, one {# utente attivo} other {# utenti attivi}}",
@@ -540,8 +539,6 @@
     "CONTEST_CLOSED": "Il termine per contestare questa penale è scaduto.",
     "WRONG_STATE": "Questa operazione non è possibile in questo stato.",
     "IBAN_NOT_CONFIRMED": "Conferma l'IBAN con il codice via SMS.",
-    "MISSING": "Carica la polizza di RC professionale.",
-    "EXPIRED": "La polizza di RC professionale è scaduta.",
     "NOT_ACCEPTED": "Accetta tutti i contratti.",
     "RUI_IN_USE": "Questo numero RUI è già su AstAx o ha già una richiesta in corso.",
     "WRONG_SECTION": "Il numero RUI non è della sezione giusta: A per le agenzie, B per i broker, E per gli intermediari di sezione E.",
@@ -1536,7 +1533,7 @@
     "costTitle": "Quanto costa",
     "costText": "Chiedere il preventivo è gratis. Paghi AstAx solo se compri: <b>{fee}</b> a polizza, <b>{low}</b> se il premio è fino a {threshold}. Il confronto con AI costa <b>{ai} in più</b>, solo se lo chiedi e poi compri.",
     "agenciesTitle": "Sei un'agenzia (RUI sezione A)?",
-    "agenciesText": "Ricevi le richieste che rientrano nei tuoi filtri, con dati e documenti già controllati dal back office. Offri in busta chiusa ed emetti entro {hours} ore lavorative dal pagamento. Paghi {fee} solo a polizza emessa.",
+    "agenciesText": "Vedi tutte le aste aperte, con dati e documenti già controllati dal back office; i tuoi filtri decidono le email. Offri in busta chiusa ed emetti entro {hours} ore lavorative dalla conferma. Paghi {fee} solo a polizza emessa.",
     "agenciesCta": "Lavora con AstAx",
     "footerRui": "AstAx · intermediario iscritto al RUI, sezione B, n. [DA VALIDARE — LEGALE]",
     "footerLabel": "Link utili",
@@ -1985,7 +1982,7 @@
     "lastName": "Cognome",
     "email": "Email",
     "phone": "Cellulare",
-    "phoneHint": "Ci arriva il codice per confermare l'IBAN.",
+    "phoneHint": "Ci servono per i codici di conferma via SMS.",
     "mandates": "Compagnie mandanti",
     "mandatesHint": "Le compagnie di cui hai il mandato. Le controlliamo sul RUI: solo queste potrai usare nelle offerte.",
     "start": "Continua",
@@ -2190,7 +2187,7 @@
         },
         "contacts": {
           "k": "I tuoi contatti",
-          "v": "Solo all'agenzia che scegli, dopo il pagamento."
+          "v": "Solo all'agenzia della polizza scelta, dopo il pagamento."
         }
       },
       "savingTitle": "Come calcoliamo il risparmio medio",
@@ -2202,12 +2199,12 @@
       "metaTitle": "Per le agenzie · AstAx",
       "title": "Per le agenzie",
       "intro": "Clienti già verificati. Un'offerta in busta chiusa. Paghi solo se emetti.",
-      "lead": "AstAx porta alla vostra agenzia (RUI sezione A) e ai vostri collaboratori di sezione E le richieste RC auto che rientrano nei vostri filtri, con dati e documenti controllati dal back office.",
+      "lead": "AstAx porta alla vostra agenzia (RUI sezione A) e ai vostri sub-agenti (sezione E, iscritti da sé) tutte le aste RC auto aperte, con dati e documenti controllati dal back office. Potete anche chiedere preventivi in asta per i vostri clienti.",
       "benefitsLabel": "Cosa vi porta AstAx",
       "benefits": {
         "filters": {
-          "title": "Solo richieste nei vostri filtri",
-          "text": "Tipi di veicolo, province, classi, sinistri, età, compagnie, decorrenza: decidete voi cosa arriva e quanto."
+          "title": "Tutte le aste, le email che volete",
+          "text": "Vedete tutte le aste aperte; con i filtri (tipi di veicolo, province, classi, sinistri, età, compagnie, decorrenza) decidete quali vi arrivano per email."
         },
         "sealed": {
           "title": "Offerta in busta chiusa",
@@ -2224,10 +2221,9 @@
       },
       "needsTitle": "Per entrare servono",
       "needs": {
-        "rui": "Iscrizione al RUI in sezione A (o sezione E per i collaboratori)",
+        "rui": "Iscrizione al RUI in sezione A (o sezione E per i sub-agenti, con il RUI dell'agente)",
         "mandates": "Compagnie mandanti, controllate sul RUI",
-        "liability": "Polizza di RC professionale in corso di validità",
-        "iban": "IBAN per le rimesse, confermato con un codice via SMS"
+        "iban": "L'IBAN per le rimesse si chiede alla prima offerta, con un codice via SMS"
       },
       "transparencyTitle": "Trasparenza dopo la scelta",
       "transparencyText": "Quando il cliente firma, ogni agenzia che ha offerto vede il premio della prima e della seconda offerta, senza nomi, la propria posizione e lo scarto dalla prima. Prima, nessuno vede le offerte degli altri: nemmeno AstAx.",

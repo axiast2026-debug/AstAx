@@ -28,7 +28,13 @@ export async function organizationStep(formData: FormData): Promise<void> {
             method: "POST",
             body: JSON.stringify({ kind: step, text }),
           })
-        : null;
+        : // Audit of 2026-10-30 (E3): a penalty proposed by hand, decided as any other.
+          step === "LATE_ISSUANCE" || step === "MISSED_ISSUANCE" || step === "CIRCUMVENTION"
+          ? api(`/back-office/penalties`, {
+              method: "POST",
+              body: JSON.stringify({ organizationId: id, type: step, reason: text }),
+            })
+          : null;
   if (!call) redirect(`/organizzazioni/${id}`);
   const { status, body } = await call;
   revalidatePath(`/organizzazioni/${id}`);

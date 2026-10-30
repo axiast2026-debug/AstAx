@@ -12,6 +12,7 @@ import { CLOCK, DB, FIELD_CIPHER, OBJECT_STORAGE } from "../infra/tokens.js";
 import labels from "../notifications/labels.it.json" with { type: "json" };
 import { decryptJson, encryptJson } from "../requests/request-support.js";
 import { InvoicingService, recipientComplete, type InvoiceRecipient } from "./invoicing.service.js";
+import { ofSeries } from "./invoice-series.js";
 
 const BOM = String.fromCharCode(0xfeff);
 
@@ -153,7 +154,7 @@ export class InvoicesService {
             invoiceCode: invoices.find((i) => i.id === p.brokerInvoiceId)?.code ?? null,
           };
         }),
-        invoices: invoices.map((i) => this.row(i, false)),
+        invoices: ofSeries(invoices, "B").map((i) => this.row(i, false)),
       };
     });
   }

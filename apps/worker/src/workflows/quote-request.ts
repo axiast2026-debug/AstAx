@@ -181,8 +181,12 @@ export async function quoteRequestWorkflow(input: { requestId: string }): Promis
         }
         times = await acts.roundTimes({ auctionId: times.auctionId });
       }
+      // Dan, 2026-10-30 (D6): with every auction open to all the agencies
+      // (ADR 0024) the top-up is gone. patched(): the histories recorded
+      // before keep their path.
+      const noTopUp = patched("no-top-up");
       const steps = [
-        ...(toppedUp ? [] : [{ at: times.topUpAt, step: "topUp" as const }]),
+        ...(toppedUp || noTopUp ? [] : [{ at: times.topUpAt, step: "topUp" as const }]),
         ...(reminded ? [] : [{ at: times.reminderAt, step: "remind" as const }]),
         { at: times.scheduledCloseAt, step: "close" as const },
       ].sort((a, b) => Date.parse(a.at) - Date.parse(b.at));

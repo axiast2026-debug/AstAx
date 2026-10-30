@@ -106,7 +106,7 @@ Offerte: Agenzia Due, Alfa, 610,00 €, garantita fino al 04/12/2026; Agenzia Tr
 **allora** sono invitate Uno, Tre e Quattro; l'asta chiude alle 18:30; il promemoria parte a metà asta (18:00).
 
 **Quando** a metà asta non ci sono offerte,
-**allora** il rabbocco non trova altre agenzie disponibili.
+**allora** non succede niente di nuovo: dal 2026-10-30 il rabbocco non c'è più (D6), l'asta è comunque visibile a tutte le agenzie attive (ADR 0024).
 
 **Quando** alle 18:30 non c'è nessuna offerta valida,
 **allora** parte la riapertura: è invitata Agenzia Nove, la nuova chiusura è venerdì 20/11/2026 alle 10:30, Davide riceve l'avviso.

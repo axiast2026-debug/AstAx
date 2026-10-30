@@ -54,7 +54,26 @@ const PAGE_OF_PREFIX: Record<string, SettingsPage> = {
 /** The group of a key: its first part («fees», «invoicing»…). */
 export const settingGroupOf = (key: string): string => key.split(".")[0] ?? key;
 
+/**
+ * Parameters not shown in the panel, because changing them would change
+ * nothing (audit of 2026-10-30): the top-up, gone (D6), still read by the
+ * auctions opened before; the refund rules, the time zone and the retention
+ * of contracts, fixed in the code until the lawyer validates them (G1); the
+ * reminder of the RC professionale, no longer asked (ADR 0024).
+ */
+export const RETIRED_SETTING_KEYS: readonly SettingKey[] = [
+  "invitations.topUp.checkAtFraction",
+  "invitations.topUp.minOffers",
+  "invitations.topUp.extra",
+  "refunds.beforeIssuance",
+  "refunds.afterIssuance",
+  "calendar.timeZone",
+  "retention.contractsYears",
+  "organizations.profInsuranceReminderDays",
+];
+
 export function settingsPageOf(key: SettingKey): SettingsPage | undefined {
+  if (RETIRED_SETTING_KEYS.includes(key)) return undefined;
   return PAGE_OF_PREFIX[settingGroupOf(key)];
 }
 

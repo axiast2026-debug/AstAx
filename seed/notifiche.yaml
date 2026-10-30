@@ -167,13 +167,13 @@ events:
     variables: [codice, veicolo, stato_offerta, motivo_esclusione, garanzia_offerta, link]
     it:
       title: "Asta chiusa: {{codice}}"
-      body: "La vostra offerta è {{stato_offerta}}. La classifica arriva quando il cliente sceglie."
+      body: "La vostra offerta è {{stato_offerta}}. La classifica arriva quando l'offerta è scelta e firmata."
       emailSubject: "Asta {{codice}} chiusa: offerta {{stato_offerta}}"
       emailBody: |
         L'asta {{codice}} ({{veicolo}}) si è chiusa.
         Stato della vostra offerta: {{stato_offerta}}. {{motivo_esclusione}}
         Se è valida, resta vincolante fino al {{garanzia_offerta}}.
-        Le prime due offerte e la vostra posizione saranno visibili quando il cliente accetta un'offerta.
+        Le prime due offerte e la vostra posizione saranno visibili quando un'offerta è scelta e firmata.
         Dettagli: {{link}}
 
   auction.reopened.requester:
@@ -181,7 +181,7 @@ events:
     channels: [in_app, push]
     variables: [veicolo, ora_chiusura, link]
     it:
-      title: "Abbiamo invitato altre agenzie"
+      title: "Asta riaperta"
       body: "Per {{veicolo}} non sono arrivate offerte valide: l'asta è riaperta fino a {{ora_chiusura}}."
 
   auction.deserted.requester:
@@ -194,7 +194,7 @@ events:
       emailSubject: "Richiesta {{codice}}: nessuna offerta valida"
       emailBody: |
         Ciao {{nome}},
-        per la richiesta {{codice}} ({{veicolo}}) nessuna agenzia ha presentato un'offerta valida, nemmeno dopo aver invitato altre agenzie.
+        per la richiesta {{codice}} ({{veicolo}}) nessuna agenzia ha presentato un'offerta valida, nemmeno dopo la riapertura dell'asta.
         Il nostro back office valuta le alternative e ti scrive.
         Non ti è stato addebitato nulla.
 
@@ -222,7 +222,7 @@ events:
       emailSubject: "Asta deserta: {{codice}}"
       emailBody: |
         La richiesta {{codice}} ({{veicolo}}) è deserta anche dopo la riapertura automatica.
-        Decidi se aprire una nuova asta con filtri più ampi o chiudere con un avviso al cliente: {{link}}
+        Decidi se aprire una nuova asta o chiudere con un avviso al cliente: {{link}}
   offer.quote_mismatch.bo:
     recipients: [bo_verifiers, bo_supervisors]
     channels: [in_app, email]
@@ -468,7 +468,7 @@ events:
       body: "Pagamento confermato. Emettete entro {{termine_emissione}}."
       emailSubject: "Polizza da emettere entro {{termine_emissione}}: {{codice}}"
       emailBody: |
-        Il cliente ha accettato e pagato la vostra offerta di {{premio}} ({{compagnia}}) per {{veicolo}}.
+        La vostra offerta di {{premio}} ({{compagnia}}) per {{veicolo}} è stata scelta, pagata e firmata.
         Termine di emissione: {{termine_emissione}}. Decorrenza: {{decorrenza}}.
         Nell'area «Da emettere» trovate i dati completi, i contatti del cliente, i documenti firmati e la ricevuta di pagamento: {{link}}
 
@@ -709,11 +709,11 @@ events:
     channels: [in_app, email]
     variables: [motivo, link]
     it:
-      title: "Account sospeso dagli inviti"
+      title: "Account sospeso dalle aste"
       body: "{{motivo}}. Offerte ed emissioni in corso restano valide."
-      emailSubject: "La vostra agenzia è sospesa dagli inviti"
+      emailSubject: "La vostra agenzia è sospesa dalle aste"
       emailBody: |
-        La vostra agenzia è sospesa dagli inviti alle nuove aste. Motivo: {{motivo}}.
+        La vostra agenzia non può partecipare alle aste finché dura la sospensione. Motivo: {{motivo}}.
         Le offerte ancora garantite e le emissioni in corso restano obbligatorie.
         Per chiarimenti scrivete all'assistenza: {{link}}
 
@@ -820,7 +820,7 @@ events:
       emailSubject: "Carica i documenti di {{cliente}}, {{veicolo}}"
       emailBody: |
         La richiesta del lotto per {{cliente}}, {{veicolo}}, parte verso il back office il {{data_asta}}.
-        Carica libretto e patente: con i documenti l'asta arriva a tutte le agenzie. Senza documenti partirà lo stesso, ma solo verso le agenzie che accettano richieste senza documenti.
+        Carica libretto e patente: con i documenti l'asta arriva a tutte le agenzie. Senza documenti partirà lo stesso: la vedono tutte le agenzie, ma l'email arriva solo a quelle che accettano richieste senza documenti.
         Carica qui: {{link}}
 
   survey.post_sale:
@@ -855,11 +855,11 @@ events:
     variables: [organizzazione, tipo_organizzazione, numero_rui, link]
     it:
       title: "Nuova richiesta di ingresso: {{organizzazione}}"
-      body: "{{tipo_organizzazione}}, RUI {{numero_rui}}. Verifica dati, mandati, RC professionale e contratti."
+      body: "{{tipo_organizzazione}}, RUI {{numero_rui}}. Verifica dati, mandati e contratti."
       emailSubject: "Nuova richiesta di ingresso: {{organizzazione}}"
       emailBody: |
         {{organizzazione}} ({{tipo_organizzazione}}, RUI {{numero_rui}}) ha chiesto di entrare su AstAx.
-        Verifica dati, mandati, RC professionale e contratti firmati: {{link}}
+        Verifica dati, mandati e contratti firmati: {{link}}
   organization.mandates_requested.bo:
     recipients: [bo_supervisors]
     channels: [in_app, email]
@@ -898,18 +898,6 @@ events:
         Buongiorno {{nome}},
         non possiamo ancora attivare {{organizzazione}}. Motivo: {{motivo}}.
         Potete correggere e inviare di nuovo da qui: {{link}}
-
-  profinsurance.expiring:
-    recipients: [organization_owner]
-    channels: [in_app, email]
-    variables: [organizzazione, scadenza, link]
-    it:
-      title: "RC professionale in scadenza"
-      body: "La RC professionale di {{organizzazione}} scade il {{scadenza}}. Caricate il rinnovo."
-      emailSubject: "RC professionale in scadenza il {{scadenza}}"
-      emailBody: |
-        La polizza di responsabilità civile professionale di {{organizzazione}} scade il {{scadenza}}.
-        Caricate il rinnovo per continuare a ricevere richieste: {{link}}
 
   legal.new_version:
     recipients: [affected_users]

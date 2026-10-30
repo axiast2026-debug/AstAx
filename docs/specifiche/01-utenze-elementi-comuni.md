@@ -51,7 +51,7 @@ Queste regole valgono per tutte le utenze. Le schede dei singoli ruoli descrivon
 | Deserta | Nessuna offerta valida | Back office |
 | Scaduta | Tutte le garanzie sono scadute senza accettazione | Richiedente: riconferma o nuova richiesta |
 | In riconferma | Chiesta conferma del prezzo alle stesse agenzie | Agenzie |
-| Accettata | Offerta scelta, firma e pagamento in corso | Richiedente |
+| Accettata | Offerta scelta: per il privato firma e pagamento in corso; per l'intermediario offerta pagata, in attesa della firma del cliente (ADR 0027) | Richiedente |
 | In emissione | Pagamento confermato, l'agenzia emette | Agenzia vincitrice |
 | Emessa | Polizza e documenti disponibili | Nessuna |
 | Annullata | Ritirata dal richiedente o recesso | Back office, se c'è un rimborso |

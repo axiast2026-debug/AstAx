@@ -1,4 +1,3 @@
-import { formatDate } from "@astax/shared/format";
 import { Badge, Card, CardTitle } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import { api } from "@/lib/auth";
@@ -41,12 +40,6 @@ export async function AgencyProfileCard() {
         : "",
     ],
     [t("iban"), p.iban ?? ""],
-    [
-      t("profInsurance"),
-      p.profInsuranceExpiresOn
-        ? t("validUntil", { date: formatDate(p.profInsuranceExpiresOn) })
-        : "",
-    ],
     [t("team"), t("members", { count: p.activeMembers })],
   ];
   return (

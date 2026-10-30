@@ -228,9 +228,10 @@ function start(taskQueue: string, requestId: string) {
 }
 
 describe("QuoteRequestWorkflow (ADR 0008)", () => {
-  it("ASTA-01 the approval opens the auction; top-up, reminder and closing follow at their instants", async () => {
+  it("ASTA-01 D6 the approval opens the auction; reminder and closing follow, no top-up any more", async () => {
     const r = await run({ closings: [2] });
-    expect(r.names().slice(0, 4)).toEqual(["openRound", "topUp", "remindAgencies", "closeRound"]);
+    expect(r.names().slice(0, 3)).toEqual(["openRound", "remindAgencies", "closeRound"]);
+    expect(r.names()).not.toContain("topUp");
     const opened = r.calls[0]?.at ?? 0;
     const closed = r.calls.find((c) => c.name === "closeRound")?.at ?? 0;
     expect(closed - opened).toBeGreaterThanOrEqual(2 * HOUR - 1000);

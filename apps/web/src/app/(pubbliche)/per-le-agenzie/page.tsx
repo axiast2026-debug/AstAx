@@ -18,7 +18,7 @@ const BENEFITS: { key: string; icon: IconName }[] = [
   { key: "fee", icon: "document" },
   { key: "issuance", icon: "clock" },
 ];
-const NEEDS = ["rui", "mandates", "liability", "iban"] as const;
+const NEEDS = ["rui", "mandates", "iban"] as const;
 
 /**
  * «Per le agenzie» (pagine pubbliche of the design), open without login: what
