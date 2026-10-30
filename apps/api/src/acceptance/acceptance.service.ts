@@ -494,6 +494,7 @@ export class AcceptanceService {
         accepter.kind === "LINK" &&
         bought.paidAt &&
         bought.offerId === offerId &&
+        bought.customerLinkId === accepter.customerLinkId &&
         bought.status === "PENDING_SIGNATURE"
       ) {
         return bought.id;
@@ -760,6 +761,60 @@ export class AcceptanceService {
         return out;
       },
       ACCEPTANCE_TX,
+    );
+  }
+
+  /**
+   * ADR 0027: the link that sends the customer to sign the offer bought. The
+   * acceptance belongs to that link from now on: its documents, the signature
+   * and the email of the policy go to whoever has it. A refused or expired
+   * signature gets a new envelope with the same documents.
+   */
+  async attachSignatureLink(
+    tx: DbTransaction,
+    acceptanceId: string,
+    linkId: string,
+    signer: { firstName: string; lastName: string },
+    returnUrl: string,
+  ) {
+    const a = await asSystem(tx, () =>
+      tx.acceptance.update({
+        where: { id: acceptanceId },
+        data: { customerLinkId: linkId },
+        include: { signature: true },
+      }),
+    );
+    const envelope = a.signature;
+    if (!envelope || envelope.status === "PENDING") return;
+    const documents = await asSystem(tx, () =>
+      tx.document.findMany({
+        where: {
+          id: { in: (envelope.documentIds as string[] | null) ?? [] },
+          kind: { in: ["PRECONTRACTUAL_INFO", "ENGAGEMENT_LETTER"] },
+        },
+      }),
+    );
+    const l = labels.acceptanceDocuments;
+    const renewed = await this.signature.createEnvelope({
+      reference: a.id,
+      signer,
+      documents: documents.map((d) => ({
+        id: d.id,
+        title: d.kind === "ENGAGEMENT_LETTER" ? l.letterTitle : l.mupTitle,
+        key: d.storageKey,
+      })),
+      returnUrl,
+    });
+    await asSystem(tx, () =>
+      tx.signatureEnvelope.update({
+        where: { id: envelope.id },
+        data: {
+          provider: this.signature.provider,
+          providerRef: renewed.providerRef,
+          signingUrl: renewed.signingUrl,
+          status: "PENDING",
+        },
+      }),
     );
   }
 

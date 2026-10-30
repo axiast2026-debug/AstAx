@@ -31,10 +31,25 @@ const CHANNEL: Record<string, NotificationChannel> = {
   push: "PUSH",
 };
 
+/** The same value whatever the order of the keys (jsonb does not keep it). */
+function stable(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value)
+      .sort()
+      .map((k) => `${JSON.stringify(k)}:${stable((value as Record<string, unknown>)[k])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value ?? null);
+}
+
 /**
  * Phase 7: seed/notifiche.yaml in NotificationTemplate, as version 1 of each
- * event without one; an event already edited by the administrator is left as
- * it is. A system step: the caller runs it in the system context.
+ * event without one. When the file changes, an event whose latest version
+ * came from the file gets a new version with the new text (otherwise a
+ * database seeded before keeps the old text, and a variable the code no
+ * longer passes breaks the sending); an event edited by the administrator is
+ * left as it is. A system step: the caller runs it in the system context.
  */
 export async function seedNotificationTemplates(
   tx: DbTransaction,
@@ -42,25 +57,41 @@ export async function seedNotificationTemplates(
 ): Promise<number> {
   let created = 0;
   for (const [eventKey, event] of Object.entries(events)) {
-    const exists = await tx.notificationTemplate.findFirst({
-      where: { eventKey },
-      select: { id: true },
-    });
-    if (exists) continue;
     const raw = event as Record<string, unknown>;
+    const fromFile = {
+      recipients: (raw.recipients as string[] | undefined) ?? [],
+      channels: ((raw.channels as string[] | undefined) ?? ["in_app"]).flatMap((c) =>
+        CHANNEL[c] ? [CHANNEL[c]] : [],
+      ),
+      mandatory: raw.mandatory === true,
+      forcePush: raw.forcePush === true,
+      variables: event.variables,
+      content: { it: event.it } as object,
+    };
+    const latest = await tx.notificationTemplate.findFirst({
+      where: { eventKey },
+      orderBy: { version: "desc" },
+    });
+    if (latest) {
+      if (latest.changedByUserId !== null) continue;
+      const stored = {
+        recipients: latest.recipients,
+        channels: latest.channels,
+        mandatory: latest.mandatory,
+        forcePush: latest.forcePush,
+        variables: latest.variables,
+        content: latest.content,
+      };
+      if (stable(stored) === stable(fromFile)) continue;
+    }
     await tx.notificationTemplate.create({
       data: {
         eventKey,
-        version: 1,
-        recipients: (raw.recipients as string[] | undefined) ?? [],
-        channels: ((raw.channels as string[] | undefined) ?? ["in_app"]).flatMap((c) =>
-          CHANNEL[c] ? [CHANNEL[c]] : [],
-        ),
-        mandatory: raw.mandatory === true,
-        forcePush: raw.forcePush === true,
-        variables: event.variables,
-        content: { it: event.it } as object,
-        reason: "Valore iniziale da seed/notifiche.yaml",
+        version: (latest?.version ?? 0) + 1,
+        ...fromFile,
+        reason: latest
+          ? "Aggiornato da seed/notifiche.yaml"
+          : "Valore iniziale da seed/notifiche.yaml",
       },
     });
     created += 1;

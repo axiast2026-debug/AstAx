@@ -193,6 +193,8 @@ describe("fase 4: the agency area (spec 04)", () => {
     expect(detail.request.holder.address.municipality).not.toBe("");
     expect(detail.quoteData).toBeUndefined();
     expect(JSON.stringify(detail)).not.toMatch(/Giulia|Neri\b|NERI/);
+    // Dan, 2026-10-30: no source of the data, no read date, no cover warnings.
+    expect(JSON.stringify(detail)).not.toMatch(/readAt|warnings|COVER_EXPIR/);
     expect(detail.accessLogged).toBe(true);
     expect(detail.live?.workingSecondsLeft).toBeGreaterThan(0);
     expect(detail.companies.map((c) => c.name).sort()).toEqual([
@@ -301,6 +303,20 @@ describe("fase 4: the agency area (spec 04)", () => {
     const set = await audit("ORGANIZATION_IBAN_SET", orgId("agenzia-tre"));
     expect(set).toHaveLength(1);
     expect(JSON.stringify(set[0]?.after)).not.toContain("IT60");
+    // Only the first time: nobody replaces it from here (remittances go there).
+    const again = await r.json<{ errors: { issue: string }[] }>(
+      await r.call(tre, "/agency/iban/code", { body: {} }),
+      409,
+    );
+    expect(again.errors.map((e) => e.issue)).toEqual(["IBAN_ALREADY_SET"]);
+    const replace = await r.json<{ errors: { issue: string }[] }>(
+      await r.call(tre, "/agency/iban", {
+        body: { iban: "IT60X0542811101000000123456", code: "123456" },
+      }),
+      409,
+    );
+    expect(replace.errors.map((e) => e.issue)).toEqual(["IBAN_ALREADY_SET"]);
+    expect(await audit("ORGANIZATION_IBAN_SET", orgId("agenzia-tre"))).toHaveLength(1);
   });
 
   it("OFF-03 two users of the same agency claim at the same instant: only one succeeds", async () => {

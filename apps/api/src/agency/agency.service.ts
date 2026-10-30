@@ -452,8 +452,12 @@ export class AgencyService {
               now,
             )
           : null;
-      // Dan, 2026-10-29: no owner's name before the purchase, no cover expiry.
-      const ania = stored ? { ...stored, sheet: agencySheet(stored.sheet) } : null;
+      // Dan, 2026-10-29/30: no owner's name before the purchase, no cover or
+      // contract expiry, no source: no read date and no warnings either
+      // (they speak of the cover expiry).
+      const ania = stored
+        ? { sheet: agencySheet(stored.sheet), birthPlace: stored.birthPlace }
+        : null;
       const checks = VerificationChecksSchema.safeParse(confirmed?.checks ?? {});
       const quoteType = (checks.success ? checks.data.QUOTE_TYPE?.value : undefined) ?? null;
       // The system read on its own: it must not overlap the agency's queries.

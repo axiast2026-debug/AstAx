@@ -36,6 +36,9 @@ import type { AuctionActivities, ExpiredSchedule, GuaranteeSchedule } from "./ty
  * Guarantees after the closing: the reminder about the best offer still
  * guaranteed (GAR-05) and «Scaduta» when every guarantee has ended (GAR-06).
  */
+/** How often a request bought by the intermediary is checked while waiting for the signature (technical, not a business rule). */
+const BOUGHT_RECHECK_MS = 24 * 3600 * 1000;
+
 export function guaranteeActivities(
   deps: ActivityDeps,
 ): Pick<
@@ -77,6 +80,23 @@ export function guaranteeActivities(
     };
   }
 
+  /**
+   * ADR 0027: the offer the intermediary bought and paid. It no longer expires
+   * with its guarantee: the request waits for the customer's signature.
+   */
+  async function boughtAndPaid(tx: DbTransaction, requestId: string) {
+    const bought = await tx.acceptance.findFirst({
+      where: {
+        quoteRequestId: requestId,
+        intermediaryPurchase: true,
+        paidAt: { not: null },
+        status: { not: "VOIDED" },
+      },
+      select: { id: true },
+    });
+    return bought !== null;
+  }
+
   async function guaranteeSchedule(input: { requestId: string }): Promise<GuaranteeSchedule> {
     return withContext(db, SYSTEM_CONTEXT, async (tx) => {
       const request = await tx.quoteRequest.findUniqueOrThrow({ where: { id: input.requestId } });
@@ -101,6 +121,17 @@ export function guaranteeActivities(
         };
       }
       const now = clock.now();
+      // ADR 0027: bought and paid, nothing expires; the signature wakes the
+      // workflow (PaymentConfirmed), a check a day meanwhile.
+      if (await boughtAndPaid(tx, request.id)) {
+        return {
+          active: true,
+          reminderAt: null,
+          reminderOfferId: null,
+          bestExpiresAt: null,
+          allExpiredAt: new Date(now.getTime() + BOUGHT_RECHECK_MS).toISOString(),
+        };
+      }
       const { snapshot, offers } = await waitingOffers(tx, request.id);
       const guaranteed = offers.filter((o) => isGuaranteed(o.guaranteeUntil, now));
       const best = [...guaranteed].sort(compareOffers)[0];
@@ -199,6 +230,8 @@ export function guaranteeActivities(
       if (request.status !== "OFFERS_AVAILABLE" && request.status !== "ACCEPTED") {
         return { expired: request.status === "EXPIRED" };
       }
+      // ADR 0027: an offer already paid by the intermediary never lapses here.
+      if (await boughtAndPaid(tx, request.id)) return { expired: false };
       const { offers } = await waitingOffers(tx, request.id);
       if (offers.some((o) => isGuaranteed(o.guaranteeUntil, now))) return { expired: false };
       // Not paid while every guarantee ended: the acceptance lapses (PAG-03),

@@ -560,7 +560,8 @@
     "UNKNOWN_MUNICIPALITY": "Scegli il comune dall'elenco dei suggerimenti.",
     "ALREADY_PURCHASED": "L'offerta è già stata acquistata.",
     "NOT_PAID": "Prima completa il pagamento dell'offerta.",
-    "ALREADY_SIGNED": "Il cliente ha già firmato."
+    "ALREADY_SIGNED": "Il cliente ha già firmato.",
+    "IBAN_ALREADY_SET": "L'IBAN dell'agenzia è già stato inserito: per cambiarlo serve il titolare."
   },
   "wizard": {
     "choose": "Scegli",

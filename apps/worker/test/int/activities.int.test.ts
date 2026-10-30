@@ -1065,6 +1065,67 @@ describe("phase 5: issuance deadline and an unpaid acceptance (EMI-01, PAG-03)",
     expect(after.status).toBe("EXPIRED");
     expect(acceptance).toMatchObject({ status: "VOIDED", voidReason: "GUARANTEE_EXPIRED" });
   });
+
+  it("ADR 0027 an offer bought and paid by the intermediary does not lapse with its guarantee", async () => {
+    h.clock.set(MONDAY_9);
+    const created = await approvedRequest(h);
+    const request = await read((tx) =>
+      tx.quoteRequest.findUniqueOrThrow({ where: { id: created.id } }),
+    );
+    const opened = await h.activities.openRound({ requestId: request.id, kind: "MAIN", round: 1 });
+    if (!opened.opened) throw new Error("not opened");
+    await sealedOffer(
+      h,
+      opened.auctionId,
+      "agenzia-uno",
+      {
+        company: "Compagnia Alfa",
+        annualGrossPremiumCents: 52000,
+        coverage: FULL_BASE_COVERAGE,
+        guaranteeUntil: "2026-12-05",
+        notes: null,
+      },
+      new Date(Date.parse(MONDAY_9) + 60_000),
+    );
+    h.clock.set(opened.scheduledCloseAt);
+    await h.activities.closeRound({ auctionId: opened.auctionId });
+    const offer = await read((tx) =>
+      tx.offer.findFirstOrThrow({ where: { auctionId: opened.auctionId } }),
+    );
+    // Paid by the intermediary, waiting for the customer's signature.
+    await read(async (tx) => {
+      await tx.quoteRequest.update({ where: { id: request.id }, data: { status: "ACCEPTED" } });
+      await tx.acceptance.create({
+        data: {
+          quoteRequestId: request.id,
+          offerId: offer.id,
+          ownerUserId: request.ownerUserId,
+          ownerOrganizationId: request.ownerOrganizationId,
+          acceptedByUserId: request.requesterUserId,
+          premiumCents: 52000,
+          feeCents: 0,
+          feeRule: "BROKER_CLIENT",
+          aiUsed: false,
+          intermediaryPurchase: true,
+          status: "PENDING_SIGNATURE",
+          paidAt: new Date(Date.parse(opened.scheduledCloseAt) + 60_000),
+        },
+      });
+    });
+    h.clock.set("2026-12-06T00:00:00.000Z");
+    const schedule = await h.activities.guaranteeSchedule({ requestId: request.id });
+    expect(schedule).toMatchObject({ active: true, reminderAt: null, bestExpiresAt: null });
+    expect(Date.parse(schedule.allExpiredAt ?? "")).toBeGreaterThan(h.clock.now().getTime());
+    expect(await h.activities.expireRequest({ requestId: request.id })).toEqual({ expired: false });
+    const [after, acceptance] = await read((tx) =>
+      Promise.all([
+        tx.quoteRequest.findUniqueOrThrow({ where: { id: request.id } }),
+        tx.acceptance.findFirstOrThrow({ where: { quoteRequestId: request.id } }),
+      ]),
+    );
+    expect(after.status).toBe("ACCEPTED");
+    expect(acceptance.status).toBe("PENDING_SIGNATURE");
+  });
 });
 
 describe("phase 6: the issuance steps (EMI-01, EMI-03, EMI-04)", () => {

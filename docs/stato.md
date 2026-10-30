@@ -30,6 +30,18 @@ Poi, da decidere: B6 (dati dalla targa, serve l'account del fornitore), B7 (cont
 
 ## Ultima sessione
 
+**2026-10-30 — analisi delle incongruenze e correzioni dell'acquisto diretto** (Dan: «prima di procedere con i miglioramenti, analizziamo il portale»). Il rapporto è in `docs/analisi-incongruenze-2026-10-30.md`: 45 punti, 8 decisioni per Dan e il piano di correzione proposto.
+
+Corretti subito, con le prove (errori del lavoro già approvato):
+- **Acquisto diretto:**
+  - il link di firma ora porta l'accettazione (documenti apribili, email della polizza al cliente, firma registrata come del cliente);
+  - un nuovo link dopo una firma rifiutata o scaduta crea una nuova busta (`attachSignatureLink`);
+  - l'offerta pagata dall'intermediario non scade più con la garanzia (worker: `boughtAndPaid`);
+  - migrazione `20261102100000_intermediary_purchase_link`: l'accettazione acquistata ha entrambi gli autori.
+- **Avvisi:** il seed aggiunge una nuova versione dei testi cambiati nel file, se l'ultima versione non è dell'amministratore. Prima un database già caricato teneva il vecchio testo del link, che chiedeva `{{garanzia}}`.
+- **IBAN dell'agenzia:** solo la prima volta (`IBAN_ALREADY_SET`). Prima qualunque utente dell'agenzia poteva sostituirlo.
+- **Richiesta per l'agenzia:** l'API non manda più la data di lettura ANIA e gli avvisi sulla copertura.
+
 **2026-10-30 — ruoli sez. E e icone «i»** (piano `docs/piano-ruoli-acquisto-icone.md`, parti 1 e 3; [ADR 0026](adr/0026-sezione-e-come-il-titolare-senza-team.md)).
 - **Sub-agenti e collaboratori sez. E.** Si iscrivono da sé, con gli stessi passi, e hanno i poteri del titolare tranne `team.manage`.
   - L'attore porta `sectionE`, la regola del permesso `notForSectionE`; `/me` dice `organization.sectionE`.

@@ -1,15 +1,13 @@
-import type { AniaSheet, AniaWarning } from "@astax/shared/domain";
+import type { AniaSheet } from "@astax/shared/domain";
 import { formatDate } from "@astax/shared/format";
 import { Card } from "@astax/ui";
 import { getTranslations } from "next-intl/server";
 import type { AgencyRequest } from "@/lib/agency";
 
+/** What the agency gets of the ANIA sheet: no source, no read date, no warnings. */
 export interface ConfirmedAnia {
-  plate: string;
-  readAt: string;
   sheet: AniaSheet;
   birthPlace: { name: string; province: string } | null;
-  warnings: AniaWarning[];
 }
 
 /**

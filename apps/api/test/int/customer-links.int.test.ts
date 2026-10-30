@@ -233,6 +233,41 @@ describe("ADR 0027: the intermediary buys the offer, the customer signs afterwar
     expect(mail?.text).toContain("MC789EF");
     token = /\/offerta\/([A-Za-z0-9_-]+)/.exec(mail?.text ?? "")?.[1] ?? "";
     expect(token.length).toBeGreaterThan(40);
+    // The acceptance is the link's: documents, signature and policy email.
+    const bought = await system((tx) =>
+      tx.acceptance.findFirstOrThrow({
+        where: { quoteRequestId: requestId, status: { not: "VOIDED" } },
+      }),
+    );
+    expect(bought.customerLinkId).not.toBeNull();
+  });
+
+  it("a refused signature: a new link gives a new envelope to sign; the old link is closed", async () => {
+    const before = await system((tx) =>
+      tx.signatureEnvelope.findFirstOrThrow({
+        where: { acceptance: { quoteRequestId: requestId, status: { not: "VOIDED" } } },
+      }),
+    );
+    // The provider's REJECTED webhook, as it leaves the envelope.
+    await system((tx) =>
+      tx.signatureEnvelope.update({ where: { id: before.id }, data: { status: "REJECTED" } }),
+    );
+    const oldToken = token;
+    const sentAt = h.email.sent.length;
+    await r.json(
+      await r.call(broker, `/requests/${requestId}/customer-link`, { body: { email: EMAIL } }),
+      200,
+    );
+    const mail = h.email.sent.slice(sentAt).find((m) => m.to === EMAIL);
+    token = /\/offerta\/([A-Za-z0-9_-]+)/.exec(mail?.text ?? "")?.[1] ?? "";
+    expect(token).not.toBe(oldToken);
+    expect((await h.call(`/customer-links/${oldToken}/code`, { body: {} })).status).toBe(409);
+    const after = await system((tx) =>
+      tx.signatureEnvelope.findUniqueOrThrow({ where: { id: before.id } }),
+    );
+    expect(after.status).toBe("PENDING");
+    expect(after.providerRef).not.toBe(before.providerRef);
+    expect(after.signingUrl).toMatch(/\/firma-di-prova\//);
   });
 
   it("before the code the page shows only who sends it and the vehicle; a wrong code or a forged proof is refused", async () => {
@@ -269,7 +304,7 @@ describe("ADR 0027: the intermediary buys the offer, the customer signs afterwar
       intermediaryPurchase: true,
       status: "PENDING_SIGNATURE",
     });
-    const a = await r.json<{ signingUrl: string; documents: { kind: string }[] }>(
+    const a = await r.json<{ signingUrl: string; documents: { id: string; kind: string }[] }>(
       await h.call(`/customer-links/${token}/acceptance`, {
         body: { offerId: offers[1] },
         ...withProof(),
@@ -277,6 +312,12 @@ describe("ADR 0027: the intermediary buys the offer, the customer signs afterwar
       200,
     );
     expect(a.documents.map((d) => d.kind)).toEqual(["PRECONTRACTUAL_INFO"]);
+    // LEG-05: the customer reads the documents before signing.
+    const file = await h.call(
+      `/customer-links/${token}/acceptance/documents/${a.documents[0]?.id}`,
+      withProof(),
+    );
+    expect(file.status).toBe(200);
     // Decision 26: the broker never gets the customer's signing page.
     const seen = await r.json<{ acceptance: { signingUrl: string | null } }>(
       await r.call(broker, `/requests/${requestId}/acceptance`),
@@ -303,6 +344,13 @@ describe("ADR 0027: the intermediary buys the offer, the customer signs afterwar
     );
     expect(request.status).toBe("IN_ISSUANCE");
     expect(acceptance.issuanceDeadlineAt).not.toBeNull();
+    // The customer signed, on the link.
+    const signedEvent = await system((tx) =>
+      tx.quoteRequestEvent.findFirst({
+        where: { quoteRequestId: requestId, type: "ACCEPTANCE_SIGNED" },
+      }),
+    );
+    expect(signedEvent?.actorKind).toBe("CUSTOMER");
     expect((await toIssue("agenzia-tre-owner", "agenzia-tre")).some((x) => x.email === EMAIL)).toBe(
       true,
     );

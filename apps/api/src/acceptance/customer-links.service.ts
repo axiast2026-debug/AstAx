@@ -191,6 +191,18 @@ export class CustomerLinksService {
       const customer = await asSystem(tx, () =>
         tx.customer.findUniqueOrThrow({ where: { id: customerId }, include: { person: true } }),
       );
+      // The acceptance is the link's: documents, signature, policy email; a
+      // refused or expired signature gets a new envelope.
+      await this.acceptance.attachSignatureLink(
+        tx,
+        bought.id,
+        link.id,
+        {
+          firstName: customer.person.givenName ?? customer.person.companyName ?? "",
+          lastName: customer.person.surname ?? "",
+        },
+        `${this.config.WEB_URL}/offerta/firmato`,
+      );
       const organization = await tx.organization.findUniqueOrThrow({
         where: { id: request.ownerOrganizationId },
       });

@@ -1,6 +1,6 @@
 import type { Clock } from "@astax/adapters/clock";
 import type { FieldCipher } from "@astax/adapters/crypto";
-import { asSystem, withContext, type DbClient } from "@astax/db";
+import { asSystem, withContext, type DbClient, type DbTransaction } from "@astax/db";
 import { isValidIban } from "@astax/shared/domain";
 import { Inject, Injectable } from "@nestjs/common";
 import { z } from "zod";
@@ -51,6 +51,21 @@ export class AgencyIbanService {
     return m;
   }
 
+  /**
+   * Only the first time: an IBAN already given is never replaced here (a
+   * change of the IBAN is the owner's, with `organization.editProfile`).
+   * Without this any user of the agency could redirect its remittances.
+   */
+  private async notYetGiven(tx: DbTransaction, organizationId: string) {
+    await tx.$queryRaw`SELECT 1 FROM "Organization" WHERE "id" = ${organizationId}::uuid FOR UPDATE`;
+    const organization = await tx.organization.findUniqueOrThrow({ where: { id: organizationId } });
+    if (organization.ibanEnc !== null) {
+      throw new ProblemError("CONFLICT", "The IBAN of the agency is already set", [
+        { path: "iban", issue: "IBAN_ALREADY_SET" },
+      ]);
+    }
+  }
+
   /** Whether the agency still has to give its IBAN, and the phone the code goes to. */
   async status(auth: AuthContext) {
     const m = this.agency(auth);
@@ -94,6 +109,9 @@ export class AgencyIbanService {
   async sendCode(auth: AuthContext, raw: unknown) {
     const m = this.agency(auth);
     const input = parseInput(IbanCodeInputSchema, raw);
+    await withContext(this.db, auth.db, (tx) =>
+      asSystem(tx, () => this.notYetGiven(tx, m.organizationId)),
+    );
     const to = await this.phoneOf(auth, input.phone);
     const now = this.clock.now();
     const challenge = await withContext(this.db, auth.db, (tx) =>
@@ -124,6 +142,7 @@ export class AgencyIbanService {
     const now = this.clock.now();
     const outcome = await withContext(this.db, auth.db, (tx) =>
       asSystem(tx, async () => {
+        await this.notYetGiven(tx, m.organizationId);
         const challenge = await this.codes.verifyChallenge(
           tx,
           "OFFER_IBAN",

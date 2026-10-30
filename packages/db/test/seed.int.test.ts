@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { LocalFieldCipher } from "@astax/adapters/crypto";
 import { findRepoRoot } from "@astax/shared/env";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -118,6 +119,59 @@ describe("fase 1 passo 4: seed", () => {
     const before = await count();
     await runSeed();
     expect(await count()).toEqual(before);
+  });
+
+  it("notification texts: a changed file gives a new version; the administrator's edit stays", async () => {
+    const latest = (eventKey: string) =>
+      withContext(db, SYSTEM_CONTEXT, (tx) =>
+        tx.notificationTemplate.findFirstOrThrow({
+          where: { eventKey },
+          orderBy: { version: "desc" },
+        }),
+      );
+    // A database seeded with an older text of the file (ADR 0027: the link
+    // text changed and lost a variable the code no longer passes).
+    const link = await latest("offer.link_to_client");
+    await withContext(db, SYSTEM_CONTEXT, (tx) =>
+      tx.notificationTemplate.create({
+        data: {
+          eventKey: link.eventKey,
+          version: link.version + 1,
+          recipients: link.recipients,
+          channels: link.channels,
+          variables: [...link.variables, "garanzia"],
+          content: { it: { sms: "Vecchio testo {{garanzia}}" } },
+          reason: "Valore iniziale da seed/notifiche.yaml",
+        },
+      }),
+    );
+    // An event the administrator edited.
+    const won = await latest("offer.won");
+    await withContext(db, SYSTEM_CONTEXT, (tx) =>
+      tx.notificationTemplate.create({
+        data: {
+          eventKey: won.eventKey,
+          version: won.version + 1,
+          recipients: won.recipients,
+          channels: won.channels,
+          variables: won.variables,
+          content: { it: { title: "Testo dell'amministratore" } },
+          reason: "Modifica dell'amministratore",
+          changedByUserId: randomUUID(),
+        },
+      }),
+    );
+    await runSeed();
+    const updated = await latest("offer.link_to_client");
+    expect(updated.version).toBe(link.version + 2);
+    expect(updated.variables).toEqual(link.variables);
+    expect(JSON.stringify(updated.content)).not.toContain("garanzia");
+    expect((await latest("offer.won")).content).toEqual({
+      it: { title: "Testo dell'amministratore" },
+    });
+    // Nothing more when the file has not changed.
+    await runSeed();
+    expect((await latest("offer.link_to_client")).version).toBe(link.version + 2);
   });
 
   it("SIC-03 stores contacts only encrypted, findable by blind index", async () => {
